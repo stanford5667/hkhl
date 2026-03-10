@@ -255,18 +255,25 @@ export function AuthGateDialog({
   if (isDesktop) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-md p-0 overflow-hidden">
+        <DialogContent className="sm:max-w-[820px] p-0 overflow-hidden">
           {showVerificationPending ? (
             <div className="p-6">{verificationContent}</div>
           ) : showForgotPassword ? (
             <div className="p-6">{forgotPasswordForm}</div>
           ) : (
-            <div className="p-6">
-              <DialogHeader className="text-center pb-2">
-                <DialogTitle className="text-xl font-bold">{title}</DialogTitle>
-                <DialogDescription className="text-sm">{description}</DialogDescription>
-              </DialogHeader>
-              {authForm}
+            <div className="flex">
+              {/* Left: Feature comparison */}
+              <div className="w-[360px] border-r border-border bg-muted/30 p-6 flex flex-col justify-center">
+                <FeatureComparisonPanel />
+              </div>
+              {/* Right: Auth form */}
+              <div className="flex-1 p-6">
+                <DialogHeader className="text-center pb-2">
+                  <DialogTitle className="text-xl font-bold">{title}</DialogTitle>
+                  <DialogDescription className="text-sm">{description}</DialogDescription>
+                </DialogHeader>
+                {authForm}
+              </div>
             </div>
           )}
         </DialogContent>
