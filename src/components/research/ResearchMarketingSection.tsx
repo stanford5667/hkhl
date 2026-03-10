@@ -1,12 +1,18 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useState, useCallback } from 'react';
 import { motion, type Easing } from 'framer-motion';
-import { Zap, Database, GraduationCap, ChevronRight, Loader2 } from 'lucide-react';
+import { Zap, Database, GraduationCap, ChevronRight, Loader2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { AuthGateDialog } from '@/components/auth/AuthGateDialog';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { format } from 'date-fns';
+import { retryWithBackoff } from '@/utils/retryWithBackoff';
+import { DEFAULT_ADVANCED_PARAMS } from '@/lib/backtesting/types';
 
-const StrategyBacktester = lazy(() => import('@/components/backtester/StrategyBacktester').then(m => ({ default: m.StrategyBacktester })));
+const VisualStrategyBuilder = lazy(() => import('@/components/builder/VisualStrategyBuilder').then(m => ({ default: m.VisualStrategyBuilder })));
 
 const ease: Easing = [0.16, 1, 0.3, 1];
 
