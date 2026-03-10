@@ -422,7 +422,7 @@ export function Sidebar() {
         </Popover>
 
         {/* Upgrade CTA for free users */}
-        {!isPro && user && (
+        {!isPro && userProfile && (
           <Link
             to="/upgrade"
             className={cn(
