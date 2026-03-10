@@ -29,6 +29,7 @@ import { MobileAuthSheet } from '@/components/auth/MobileAuthSheet';
 import { useSocialProofToasts } from '@/components/academy/SocialProofToast';
 import { ExitIntentPopup } from '@/components/academy/ExitIntentPopup';
 import { TestimonialsSection } from '@/components/academy/TestimonialsSection';
+import { BillingIntervalSheet } from '@/components/academy/BillingIntervalSheet';
 
 function getYouTubeThumbnail(url: string | null, provider: string | null): string | null {
   if (!url) return null;
