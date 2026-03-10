@@ -284,6 +284,7 @@ export function StrategyBacktester({ ticker, companyName, autoRunStrategy }: Str
               onPromptUpgrade={showUpgradeModal}
               advancedParams={advancedParams}
               onAdvancedParamsChange={setAdvancedParams}
+              autoRunStrategy={autoRunStrategy}
             />
           </TabsContent>
 
