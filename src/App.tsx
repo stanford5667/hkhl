@@ -117,6 +117,7 @@ const App = () => {
                               <Route path="/auth" element={<Auth />} />
                               <Route path="/reset-password" element={<ResetPassword />} />
                               <Route path="/verify-email" element={<VerifyEmail />} />
+                              <Route path="/upgrade" element={<Upgrade />} />
                               <Route path="/pipeline" element={<Pipeline />} />
                               <Route path="/assets" element={<Portfolio />} />
                               <Route path="/portfolio/:id" element={<CompanyDetail />} />
