@@ -107,6 +107,9 @@ export function VisualStrategyBuilder({
     exitLogic: 'OR',
   });
 
+  // Track whether auto-run has fired (must be before early returns)
+  const [hasAutoRun, setHasAutoRun] = useState(false);
+
   // Generate unique ID
   const generateId = () => `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
