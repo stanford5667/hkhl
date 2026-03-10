@@ -69,10 +69,15 @@ export function AuthGateDialog({
     e.preventDefault();
     setAgeError('');
 
-    // Validate age verification for signup
-    if (mode === 'signup' && !isAgeVerified) {
-      setAgeError('Please verify your age to continue');
-      return;
+    if (mode === 'signup') {
+      if (password !== confirmPassword) {
+        toast.error('Passwords do not match');
+        return;
+      }
+      if (!isAgeVerified) {
+        setAgeError('Please verify your age to continue');
+        return;
+      }
     }
 
     setIsLoading(true);
