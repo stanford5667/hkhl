@@ -12,14 +12,36 @@ const logStep = (step: string, details?: unknown) => {
   console.log(`[UPGRADE-SUBSCRIPTION] ${step}${detailsStr}`);
 };
 
-// Pro product IDs
-const PRO_PRODUCT_IDS = ["prod_TmstE9xtaH6xoT", "prod_ToF1TRMcLjOt1t"];
+// All known product IDs by tier
+const PRO_PRODUCT_IDS = [
+  "prod_TmstE9xtaH6xoT",   // Pro Plan (monthly)
+  "prod_ToF1TRMcLjOt1t",   // Pro Subscription (Test)
+  "prod_U76KPGz76OX3rO",   // Pro Plan - Annual
+];
 
-// Research & Education price IDs
-const RESEARCH_PRICES: Record<string, string> = {
-  monthly: "price_1T6y590ATyKK64GzTH165hof",   // $100/month
-  annual: "price_1T9I460ATyKK64Gz92CYtZUc",     // $700/year
+const RESEARCH_EDUCATION_PRODUCT_IDS = [
+  "prod_U58L8r27VPBg1T",   // Research & Education Plan (monthly)
+  "prod_U7X8ELiM8teiz5",   // Research & Education Annual
+  "prod_U76PEWCvnIs6Y1",   // Research & Education Plan - Annual (alt)
+];
+
+// Target price IDs for each plan + interval
+const TARGET_PRICES: Record<string, Record<string, string>> = {
+  pro: {
+    monthly: "price_1SpJ7t0ATyKK64GzVausjlQ2",      // $50/month
+    annual: "price_1T8s7d0ATyKK64Gz9fRwPWNu",        // $492/year
+  },
+  research_education: {
+    monthly: "price_1T6y590ATyKK64GzTH165hof",       // $100/month
+    annual: "price_1T9I460ATyKK64Gz92CYtZUc",        // $700/year
+  },
 };
+
+function getCurrentTier(productId: string): string | null {
+  if (PRO_PRODUCT_IDS.includes(productId)) return 'pro';
+  if (RESEARCH_EDUCATION_PRODUCT_IDS.includes(productId)) return 'research_education';
+  return null;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -40,16 +62,21 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No authorization header provided");
 
+    // Parse request body
+    let targetPlan = "research_education";
     let billingInterval = "monthly";
     try {
       const body = await req.json();
       if (body?.billing_interval === "annual" || body?.billing_interval === "monthly") {
         billingInterval = body.billing_interval;
       }
+      if (body?.target_plan && TARGET_PRICES[body.target_plan]) {
+        targetPlan = body.target_plan;
+      }
     } catch { /* defaults */ }
 
-    const newPriceId = RESEARCH_PRICES[billingInterval];
-    logStep("Target upgrade", { billingInterval, newPriceId });
+    const newPriceId = TARGET_PRICES[targetPlan][billingInterval];
+    logStep("Target upgrade", { targetPlan, billingInterval, newPriceId });
 
     const token = authHeader.replace("Bearer ", "");
     const { data } = await supabaseClient.auth.getUser(token);
@@ -67,50 +94,65 @@ serve(async (req) => {
     const customerId = customers.data[0].id;
     logStep("Found customer", { customerId });
 
-    // Find active Pro subscription
+    // Find any active subscription
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
       status: "active",
       limit: 10,
     });
 
-    let proSubscription: Stripe.Subscription | null = null;
-    let proItemId: string | null = null;
+    let currentSubscription: Stripe.Subscription | null = null;
+    let currentItemId: string | null = null;
+    let currentProductId: string | null = null;
+    let currentPriceId: string | null = null;
 
     for (const sub of subscriptions.data) {
       for (const item of sub.items.data) {
-        const productId = typeof item.price.product === "string" 
-          ? item.price.product 
+        const productId = typeof item.price.product === "string"
+          ? item.price.product
           : (item.price.product as any)?.id;
-        if (PRO_PRODUCT_IDS.includes(productId)) {
-          proSubscription = sub;
-          proItemId = item.id;
+        
+        const tier = getCurrentTier(productId);
+        if (tier) {
+          currentSubscription = sub;
+          currentItemId = item.id;
+          currentProductId = productId;
+          currentPriceId = item.price.id;
           break;
         }
       }
-      if (proSubscription) break;
+      if (currentSubscription) break;
     }
 
-    if (!proSubscription || !proItemId) {
-      throw new Error("No active Pro subscription found to upgrade.");
+    if (!currentSubscription || !currentItemId) {
+      throw new Error("No active subscription found to upgrade.");
     }
-    logStep("Found Pro subscription to upgrade", { 
-      subscriptionId: proSubscription.id, 
-      itemId: proItemId 
+
+    // Don't allow "upgrading" to the same price
+    if (currentPriceId === newPriceId) {
+      throw new Error("You are already on this plan and billing interval.");
+    }
+
+    logStep("Found subscription to upgrade", {
+      subscriptionId: currentSubscription.id,
+      itemId: currentItemId,
+      currentProduct: currentProductId,
+      currentPrice: currentPriceId,
+      targetPrice: newPriceId,
     });
 
     // Update the subscription with proration
-    const updatedSubscription = await stripe.subscriptions.update(proSubscription.id, {
+    const updatedSubscription = await stripe.subscriptions.update(currentSubscription.id, {
       items: [
         {
-          id: proItemId,
+          id: currentItemId,
           price: newPriceId,
         },
       ],
       proration_behavior: "create_prorations",
     });
 
-    logStep("Subscription upgraded with proration", { 
+    logStep("Subscription upgraded with proration", {
       newSubscriptionId: updatedSubscription.id,
       status: updatedSubscription.status,
     });
@@ -122,16 +164,16 @@ serve(async (req) => {
         customer: customerId,
       });
       proratedAmount = upcomingInvoice.amount_due;
-      logStep("Prorated amount on next invoice", { 
-        amountDue: proratedAmount, 
-        currency: upcomingInvoice.currency 
+      logStep("Prorated amount on next invoice", {
+        amountDue: proratedAmount,
+        currency: upcomingInvoice.currency,
       });
     } catch (e) {
       logStep("Could not fetch upcoming invoice (non-fatal)", { error: e });
     }
 
-    return new Response(JSON.stringify({ 
-      success: true, 
+    return new Response(JSON.stringify({
+      success: true,
       message: "Subscription upgraded successfully! You've been prorated for the remaining time on your previous plan.",
       prorated_amount: proratedAmount,
     }), {

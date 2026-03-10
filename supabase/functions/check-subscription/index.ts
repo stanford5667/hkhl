@@ -1,10 +1,10 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@18.5.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import Stripe from "npm:stripe@18.5.0";
+import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 const logStep = (step: string, details?: unknown) => {
@@ -12,9 +12,18 @@ const logStep = (step: string, details?: unknown) => {
   console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
 };
 
-// Product IDs for subscription tiers
-const PRO_PRODUCT_IDS = ["prod_TmstE9xtaH6xoT", "prod_ToF1TRMcLjOt1t"];
-const RESEARCH_EDUCATION_PRODUCT_IDS = ["prod_U58L8r27VPBg1T"];
+// All product IDs for each tier (monthly + annual variants)
+const PRO_PRODUCT_IDS = [
+  "prod_TmstE9xtaH6xoT",   // Pro Plan (monthly)
+  "prod_ToF1TRMcLjOt1t",   // Pro Subscription (Test)
+  "prod_U76KPGz76OX3rO",   // Pro Plan - Annual
+];
+
+const RESEARCH_EDUCATION_PRODUCT_IDS = [
+  "prod_U58L8r27VPBg1T",   // Research & Education Plan (monthly)
+  "prod_U7X8ELiM8teiz5",   // Research & Education Annual
+  "prod_U76PEWCvnIs6Y1",   // Research & Education Plan - Annual (alt)
+];
 
 function determinePlan(productId: string | null): string {
   if (productId && RESEARCH_EDUCATION_PRODUCT_IDS.includes(productId)) return 'research_education';
@@ -62,9 +71,6 @@ serve(async (req) => {
     const user = userData.user;
     logStep("User authenticated", { userId: user.id, email: user.email });
 
-    const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-
     // First check database for manual/lifetime subscriptions
     const { data: dbSubscription } = await supabaseClient
       .from('subscriptions')
@@ -74,15 +80,15 @@ serve(async (req) => {
       .single();
 
     if (dbSubscription && new Date(dbSubscription.current_period_end) > new Date()) {
-      logStep("Found active DB subscription (manual/lifetime)", { 
-        plan: dbSubscription.plan, 
-        endDate: dbSubscription.current_period_end 
+      logStep("Found active DB subscription (manual/lifetime)", {
+        plan: dbSubscription.plan,
+        endDate: dbSubscription.current_period_end,
       });
       return new Response(JSON.stringify({
         subscribed: true,
         plan: dbSubscription.plan || 'pro',
         product_id: null,
-        subscription_end: dbSubscription.current_period_end
+        subscription_end: dbSubscription.current_period_end,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
@@ -90,6 +96,9 @@ serve(async (req) => {
     }
 
     // Fall back to Stripe check
+    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+
     if (customers.data.length === 0) {
       logStep("No customer found");
       return new Response(JSON.stringify(FREE_RESPONSE), {
@@ -123,8 +132,7 @@ serve(async (req) => {
     for (const subscription of subscriptions.data) {
       const subProductId = subscription.items.data[0]?.price?.product as string;
       const subPlan = determinePlan(subProductId);
-      
-      // research_education > pro > free
+
       const tierRank: Record<string, number> = { free: 0, pro: 1, research_education: 2 };
       if (tierRank[subPlan] > tierRank[bestPlan]) {
         bestPlan = subPlan;
@@ -157,14 +165,12 @@ serve(async (req) => {
     // Auto-enroll in courses for research_education tier
     if (bestPlan === 'research_education') {
       try {
-        // Get all published courses
         const { data: courses } = await supabaseClient
           .from('courses')
           .select('id')
           .eq('is_published', true);
 
         if (courses && courses.length > 0) {
-          // Enroll user in all courses (ignore duplicates)
           for (const course of courses) {
             await supabaseClient
               .from('course_enrollments')
@@ -184,7 +190,7 @@ serve(async (req) => {
       subscribed: true,
       plan: bestPlan,
       product_id: productId,
-      subscription_end: subscriptionEnd
+      subscription_end: subscriptionEnd,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
