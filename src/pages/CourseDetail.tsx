@@ -37,6 +37,8 @@ import { useSocialProofToasts } from '@/components/academy/SocialProofToast';
 import { ExitIntentPopup } from '@/components/academy/ExitIntentPopup';
 import { TestimonialsSection } from '@/components/academy/TestimonialsSection';
 import { BillingIntervalSheet } from '@/components/academy/BillingIntervalSheet';
+import { FeatureComparisonPanel } from '@/components/auth/FeatureComparisonPanel';
+import { Check, X } from 'lucide-react';
 
 function getYouTubeThumbnail(url: string | null, provider: string | null): string | null {
   if (!url) return null;
