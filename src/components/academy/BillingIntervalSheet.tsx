@@ -146,6 +146,8 @@ export function BillingIntervalSheet({ open, onOpenChange, returnPath }: Billing
             `Continue — $${selected === 'annual' ? '58' : '100'}/mo`
           )}
         </Button>
+
+        <PriceIncreaseCountdown />
       </SheetContent>
     </Sheet>
   );
