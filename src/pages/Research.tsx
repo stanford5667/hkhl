@@ -43,6 +43,41 @@ export default function ResearchPage() {
   const { data: categoryCounts = {} } = useCategoryCounts();
   const { data: etfCount = 0 } = useETFCount();
 
+  // After sign-in, check for pending backtest from the marketing section
+  useEffect(() => {
+    if (!user) return;
+    
+    const pendingAction = sessionStorage.getItem('pending-auth-action');
+    const pendingParams = sessionStorage.getItem('pending-backtest-params');
+    
+    if (pendingAction && pendingParams) {
+      try {
+        const action = JSON.parse(pendingAction);
+        const params = JSON.parse(pendingParams);
+        
+        // Only act if it's a recent run-backtest action (within 5 min)
+        if (action.type === 'run-backtest' && Date.now() - action.timestamp < 300000) {
+          // Clean up
+          sessionStorage.removeItem('pending-auth-action');
+          sessionStorage.removeItem('pending-backtest-params');
+          
+          // Navigate to stock page with backtest auto-run state
+          const ticker = params.ticker || 'SPY';
+          navigate(`/stock/${ticker}`, { 
+            state: { 
+              tab: 'backtest',
+              autoRunStrategy: params 
+            } 
+          });
+        }
+      } catch {
+        // Invalid JSON, clean up
+        sessionStorage.removeItem('pending-auth-action');
+        sessionStorage.removeItem('pending-backtest-params');
+      }
+    }
+  }, [user, navigate]);
+
   const handleSearch = (ticker: string) => {
     const normalized = ticker.toUpperCase().trim();
     if (!normalized) return;
