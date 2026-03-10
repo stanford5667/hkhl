@@ -51,7 +51,8 @@ const COMING_SOON = [
 type PlanType = 'free' | 'research_education';
 
 const PRICES = {
-  pro: { monthly: 100, annual: 82 },
+  pro: { monthly: 100, annual: 58 },
+  annualTotal: 700,
 };
 
 export function MembershipStep({ onComplete, onBack }: MembershipStepProps) {
@@ -204,14 +205,14 @@ export function MembershipStep({ onComplete, onBack }: MembershipStepProps) {
                 ${proPrice}
                 <span className="text-lg text-slate-400">/mo</span>
               </div>
-              <p className="text-slate-400 text-sm">
-                {isAnnual ? `Billed $${PRICES.pro.annual * 12}/yr` : 'Billed monthly'}
-              </p>
-              {isAnnual && (
-                <p className="text-green-400 text-xs mt-1 font-medium">
-                  Save ${(PRICES.pro.monthly - PRICES.pro.annual) * 12}/yr vs monthly
-                </p>
-              )}
+               <p className="text-slate-400 text-sm">
+                 {isAnnual ? `Billed $${PRICES.annualTotal}/yr` : 'Billed monthly'}
+               </p>
+               {isAnnual && (
+                 <p className="text-green-400 text-xs mt-1 font-medium">
+                   Save ${(PRICES.pro.monthly * 12) - PRICES.annualTotal}/yr vs monthly
+                 </p>
+               )}
             </div>
             
             <ul className="space-y-2 mb-4">
