@@ -660,12 +660,23 @@ export default function CourseDetail() {
                   )}
                   <Button 
                     className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600" 
-                    onClick={handleStartLearning}
-                    disabled={enrollMutation.isPending || isCheckoutLoading || isUsageLoading}
+                    onClick={() => {
+                      if (!user) {
+                        setShowAuthSheet(true);
+                        return;
+                      }
+                      if (isUsageLoading) return;
+                      if (!isResearchTier && !course?.is_free) {
+                        handleSubscribe();
+                        return;
+                      }
+                      enrollMutation.mutate();
+                    }}
+                    disabled={enrollMutation.isPending || isCheckoutLoading || (!!user && isUsageLoading)}
                   >
                     {!user ? (
                       'Sign in to Start'
-                    ) : isCheckoutLoading ? (
+                    ) : isCheckoutLoading || isUsageLoading ? (
                       'Loading...'
                     ) : course.is_free ? (
                       'Start Free Course'
@@ -732,7 +743,13 @@ export default function CourseDetail() {
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#0B0E14]/90 backdrop-blur-md border-t border-border/40 p-3 sm:p-4 lg:hidden">
           <Button
             className="w-full bg-cyan-500 hover:bg-cyan-600 text-white font-semibold text-sm h-11"
-            onClick={() => handleSubscribe()}
+            onClick={() => {
+              if (!user) {
+                setShowAuthSheet(true);
+                return;
+              }
+              handleSubscribe();
+            }}
             disabled={isCheckoutLoading}
           >
             {isCheckoutLoading ? 'Loading...' : 'Unlock Full Masterclass — $100/mo'}
