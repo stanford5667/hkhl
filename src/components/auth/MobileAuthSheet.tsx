@@ -235,13 +235,13 @@ export function MobileAuthSheet({
         <DialogContent className="sm:max-w-md">
           {showVerificationPending ? (
             verificationContent
+          ) : showForgotPassword ? (
+            forgotPasswordForm
           ) : (
             <>
               <DialogHeader className="text-center pb-2">
                 <DialogTitle className="text-xl font-bold">{title}</DialogTitle>
-                <DialogDescription className="text-sm">
-                  {description}
-                </DialogDescription>
+                <DialogDescription className="text-sm">{description}</DialogDescription>
               </DialogHeader>
               {authForm}
             </>
