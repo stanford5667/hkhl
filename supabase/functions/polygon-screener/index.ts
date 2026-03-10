@@ -433,25 +433,22 @@ serve(async (req) => {
       filters.minEpsGrowth !== undefined || filters.maxEpsGrowth !== undefined ||
       filters.minRevenueGrowth !== undefined || filters.maxRevenueGrowth !== undefined;
 
-    // Try database-first approach for fundamental filters
-    if (hasFundamentalFilters) {
-      const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
-      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    // Always try database-first approach (Snapshot API requires higher Polygon plan)
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-      // Check if we have data in asset_universe
-      const { count } = await supabase
-        .from("asset_universe")
-        .select("*", { count: "exact", head: true })
-        // is_active is nullable in schema; treat NULL as active
-        .or("is_active.is.null,is_active.eq.true");
+    // Check if we have data in asset_universe
+    const { count } = await supabase
+      .from("asset_universe")
+      .select("*", { count: "exact", head: true })
+      .or("is_active.is.null,is_active.eq.true");
 
-      if (count && count > 100) {
-        console.log(`[polygon-screener] Using database-first approach with ${count} tickers`);
-        return await screenFromDatabase(supabase, filters, limit, offset, POLYGON_API_KEY);
-      }
+    if (count && count > 100) {
+      console.log(`[polygon-screener] Using database-first approach with ${count} tickers`);
+      return await screenFromDatabase(supabase, filters, limit, offset, POLYGON_API_KEY);
     }
 
-    // Fallback to API approach
+    // Fallback to API approach only if database has no data
     return await screenFromPolygonAPI(filters, limit, offset, POLYGON_API_KEY);
 
   } catch (error) {
