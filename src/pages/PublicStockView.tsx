@@ -504,7 +504,11 @@ export default function PublicStockView() {
         return (
           <div className="p-3 md:p-4">
             <Suspense fallback={<TabLoader />}>
-              <StrategyBacktester ticker={ticker} companyName={details?.name || ticker} />
+              <StrategyBacktester 
+                ticker={ticker} 
+                companyName={details?.name || ticker} 
+                autoRunStrategy={(location.state as any)?.autoRunStrategy}
+              />
             </Suspense>
           </div>
         );
