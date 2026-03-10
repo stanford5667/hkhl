@@ -26,6 +26,9 @@ const FREE_FEATURES = [
 
 const PRO_FEATURES = [
   { name: 'Everything in Free', included: true },
+  { name: 'Full Video Course Library', included: true, highlight: true },
+  { name: 'Trade Ideas & Signals', included: true, highlight: true },
+  { name: 'Community Research Posts', included: true },
   { name: 'Save Portfolios, Studies & Screens', included: true, highlight: true },
   { name: '100+ Quant Lab Studies', included: true },
   { name: 'Deep Conditional Probability Studies', included: true },
@@ -34,24 +37,8 @@ const PRO_FEATURES = [
   { name: 'Extended Historical Timeframes', included: true },
   { name: 'AI-Powered Market Chat', included: true },
   { name: 'Real-time Price Alerts', included: true },
-  { name: 'Priority Support', included: true },
-];
-
-const RESEARCH_FEATURES = [
-  { name: 'Full Video Course Library', included: true, highlight: true },
-  { name: 'Trade Ideas & Signals', included: true, highlight: true },
-  { name: 'Community Research Posts', included: true },
   { name: 'Backtesting Tools', included: true },
-  { name: 'Portfolio Analytics', included: true },
   { name: 'Early Access to New Features', included: true },
-  { name: 'Save Portfolios, Studies & Screens', included: true },
-  { name: '100+ Quant Lab Studies', included: true },
-  { name: 'Deep Conditional Probability Studies', included: true },
-  { name: 'Expanded Datasets & Asset Coverage', included: true },
-  { name: 'Unlimited Screener Results & Filters', included: true },
-  { name: 'Extended Historical Timeframes', included: true },
-  { name: 'AI-Powered Market Chat', included: true },
-  { name: 'Real-time Price Alerts', included: true },
   { name: 'Priority Support', included: true },
 ];
 
@@ -61,11 +48,10 @@ const COMING_SOON = [
   'Hundreds of New Studies',
 ];
 
-type PlanType = 'free' | 'pro' | 'research_education';
+type PlanType = 'free' | 'research_education';
 
 const PRICES = {
-  pro: { monthly: 50, annual: 41 },
-  research_education: { monthly: 100, annual: 82 },
+  pro: { monthly: 100, annual: 82 },
 };
 
 export function MembershipStep({ onComplete, onBack }: MembershipStepProps) {
