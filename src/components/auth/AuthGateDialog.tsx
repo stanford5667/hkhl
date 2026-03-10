@@ -328,8 +328,8 @@ export function AuthGateDialog({
   }
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange} handleOnly modal>
-      <DrawerContent className="max-h-[95dvh]">
+    <Drawer open={open} onOpenChange={onOpenChange} handleOnly modal repositionInputs={false}>
+      <DrawerContent className="max-h-[85dvh]">
         {showVerificationPending ? (
           <div className="px-3 pb-4 safe-area-bottom">
             {verificationContent}
