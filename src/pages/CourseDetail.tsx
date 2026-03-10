@@ -660,48 +660,58 @@ export default function CourseDetail() {
 
           <TestimonialsSection />
 
-          {/* Full-width conversion banner — non-pro only */}
+          {/* Full Free vs Pro comparison — non-pro only */}
           {!hasAccess && (
-            <Card className="overflow-hidden border-cyan-500/20 bg-gradient-to-br from-cyan-500/5 via-background to-blue-500/5">
+            <Card className="overflow-hidden border-border/50">
               <CardContent className="p-4 sm:p-6 space-y-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center flex-shrink-0">
-                    <Target className="w-5 h-5 text-white" />
+                <h3 className="text-base sm:text-lg font-bold text-foreground text-center">What you get</h3>
+                
+                {/* Comparison Table */}
+                <div className="rounded-lg border border-border overflow-hidden">
+                  <div className="grid grid-cols-[1fr_48px_48px] items-center gap-0 px-3 py-2 bg-muted/50 border-b border-border">
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Feature</span>
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider text-center">Free</span>
+                    <span className="text-[10px] font-semibold text-amber-400 uppercase tracking-wider text-center">Pro</span>
                   </div>
-                  <div>
-                    <h3 className="text-sm sm:text-base font-bold text-foreground">Ready to invest smarter?</h3>
-                    <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                      Join thousands of investors who've transformed their approach with our research-backed methodology.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  <div className="p-2 rounded-lg bg-muted/50">
-                    <p className="text-base sm:text-lg font-bold text-foreground">{totalLessons}+</p>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground">Video Lessons</p>
-                  </div>
-                  <div className="p-2 rounded-lg bg-muted/50">
-                    <p className="text-base sm:text-lg font-bold text-foreground">{course.duration_hours}h</p>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground">Of Content</p>
-                  </div>
-                  <div className="p-2 rounded-lg bg-muted/50">
-                    <p className="text-base sm:text-lg font-bold text-foreground">∞</p>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground">Lifetime Access</p>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  {['Full masterclass + all future updates', 'AI-powered research & backtesting tools', 'Trade signals & community insights'].map((item) => (
-                    <div key={item} className="flex items-center gap-2 text-xs sm:text-sm">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                      <span className="text-muted-foreground">{item}</span>
+                  {[
+                    { name: "Stock Overview & Charts", free: true, pro: true },
+                    { name: "Trending Tickers", free: true, pro: true },
+                    { name: "Earnings Calendar", free: true, pro: true },
+                    { name: "AI Stock Analysis", free: false, pro: true },
+                    { name: "AI Trading Bot", free: false, pro: true },
+                    { name: "AI Stock Backtesting", free: false, pro: true },
+                    { name: "Strategy Builder (20+ indicators)", free: false, pro: true },
+                    { name: "Trade Ideas & Signals", free: false, pro: true },
+                    { name: "Full Video Course Library", free: false, pro: true },
+                    { name: "Market Screener", free: false, pro: true },
+                  ].map((f, i, arr) => (
+                    <div
+                      key={f.name}
+                      className={`grid grid-cols-[1fr_48px_48px] items-center gap-0 px-3 py-1.5 ${
+                        i % 2 === 0 ? 'bg-card' : 'bg-muted/30'
+                      } ${i < arr.length - 1 ? 'border-b border-border/50' : ''}`}
+                    >
+                      <span className="text-[11px] text-foreground/80 leading-tight">{f.name}</span>
+                      <div className="flex justify-center">
+                        {f.free ? (
+                          <Check className="h-3.5 w-3.5 text-green-500" />
+                        ) : (
+                          <X className="h-3.5 w-3.5 text-muted-foreground/40" />
+                        )}
+                      </div>
+                      <div className="flex justify-center">
+                        <Check className="h-3.5 w-3.5 text-amber-400" />
+                      </div>
                     </div>
                   ))}
                 </div>
 
+                <p className="text-center text-[10px] text-muted-foreground">
+                  Pro starts at <span className="font-semibold text-foreground">$58/mo</span> (billed annually)
+                </p>
+
                 <Button
-                  className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold text-sm h-10 sm:h-11"
+                  className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold text-sm h-10 sm:h-11"
                   onClick={() => {
                     if (!user) { setShowAuthSheet(true); return; }
                     handleSubscribe();
@@ -709,7 +719,7 @@ export default function CourseDetail() {
                   disabled={isCheckoutLoading}
                 >
                   <Sparkles className="w-4 h-4 mr-2" />
-                  {isCheckoutLoading ? 'Loading...' : 'Get Full Access — from $58/mo'}
+                  {isCheckoutLoading ? 'Loading...' : 'Upgrade to Pro — from $58/mo'}
                 </Button>
                 <p className="text-[10px] sm:text-xs text-muted-foreground text-center flex items-center justify-center gap-1.5">
                   <Shield className="w-3 h-3 text-emerald-400" />
