@@ -3,9 +3,10 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, Sparkles, Loader2, Clock, TrendingUp } from 'lucide-react';
+import { CheckCircle2, Sparkles, Loader2, Clock, TrendingUp, ArrowUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import { useUsage } from '@/contexts/UsageContext';
 import { toast } from 'sonner';
 
 function PriceIncreaseCountdown() {
@@ -84,24 +85,44 @@ const PLANS = {
 export function BillingIntervalSheet({ open, onOpenChange, returnPath }: BillingIntervalSheetProps) {
   const [selected, setSelected] = useState<'annual' | 'monthly'>('annual');
   const [isLoading, setIsLoading] = useState(false);
+  const { plan } = useUsage();
+  
+  const isProUpgrade = plan === 'pro';
 
   const handleCheckout = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: {
-          plan: 'research_education',
-          billing_interval: selected,
-          return_path: returnPath,
-        },
-      });
+      if (isProUpgrade) {
+        // Use upgrade function with proration
+        const { data, error } = await supabase.functions.invoke('upgrade-subscription', {
+          body: { billing_interval: selected },
+        });
 
-      if (error) throw error;
-      if (data?.url) {
-        window.location.href = data.url;
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+
+        toast.success(data?.message || 'Subscription upgraded successfully! You only pay the prorated difference.');
+        onOpenChange(false);
+        // Refresh subscription status
+        window.location.reload();
+      } else {
+        // New subscription checkout
+        const { data, error } = await supabase.functions.invoke('create-checkout', {
+          body: {
+            plan: 'research_education',
+            billing_interval: selected,
+            return_path: returnPath,
+          },
+        });
+
+        if (error) throw error;
+        if (data?.url) {
+          window.open(data.url, '_blank') || (window.location.href = data.url);
+        }
       }
     } catch (err: any) {
-      toast.error(err.message || 'Failed to start checkout');
+      toast.error(err.message || 'Failed to process subscription');
+    } finally {
       setIsLoading(false);
     }
   };
@@ -112,12 +133,26 @@ export function BillingIntervalSheet({ open, onOpenChange, returnPath }: Billing
         <SheetHeader className="text-center mb-5">
           <SheetTitle className="text-xl text-white flex items-center justify-center gap-2">
             <Sparkles className="w-5 h-5 text-amber-400" />
-            Choose Your Plan
+            {isProUpgrade ? 'Upgrade Your Plan' : 'Choose Your Plan'}
           </SheetTitle>
           <SheetDescription className="text-slate-400 text-sm">
-            Unlock the full Research & Education experience
+            {isProUpgrade 
+              ? "Upgrade to Research & Education — you'll only pay the prorated difference"
+              : 'Unlock the full Research & Education experience'}
           </SheetDescription>
         </SheetHeader>
+
+        {isProUpgrade && (
+          <div className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3">
+            <div className="flex items-center gap-2 mb-1">
+              <ArrowUp className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="text-emerald-300 text-xs font-semibold uppercase tracking-wide">Pro → Research & Education</span>
+            </div>
+            <p className="text-slate-300 text-xs">
+              Your current Pro subscription will be upgraded. Stripe will automatically prorate the cost — you only pay the difference for the remaining billing period.
+            </p>
+          </div>
+        )}
 
         <div className="space-y-3 mb-6">
           {/* Annual */}
@@ -192,6 +227,8 @@ export function BillingIntervalSheet({ open, onOpenChange, returnPath }: Billing
         >
           {isLoading ? (
             <Loader2 className="w-5 h-5 animate-spin" />
+          ) : isProUpgrade ? (
+            `Upgrade Now — $${selected === 'annual' ? '58' : '100'}/mo`
           ) : (
             `Continue — $${selected === 'annual' ? '58' : '100'}/mo`
           )}
