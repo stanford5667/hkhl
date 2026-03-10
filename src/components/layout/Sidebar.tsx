@@ -53,6 +53,7 @@ import {
   Shield,
   Sparkles,
   Zap,
+  Crown,
   Activity,
   Lightbulb,
   BookOpen,
@@ -419,6 +420,23 @@ export function Sidebar() {
             )}
           </PopoverContent>
         </Popover>
+
+        {/* Upgrade CTA for free users */}
+        {!isPro && userProfile && (
+          <Link
+            to="/upgrade"
+            className={cn(
+              "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200",
+              "bg-gradient-to-r from-primary/20 to-primary/10 text-primary hover:from-primary/30 hover:to-primary/20 border border-primary/20",
+              collapsed && "justify-center px-2"
+            )}
+          >
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary/10">
+              <Crown className="h-4 w-4 text-primary" />
+            </div>
+            {!collapsed && <span>Upgrade to Pro</span>}
+          </Link>
+        )}
 
         {/* Admin Portal - only for admins */}
         {isAdmin && (

@@ -69,6 +69,7 @@ const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const StockDiscovery = lazy(() => import('./pages/StockDiscovery'));
 const ThemeAnalysis = lazy(() => import('./pages/ThemeAnalysis'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
+const Upgrade = lazy(() => import('./pages/Upgrade'));
 
 // Optimized QueryClient with aggressive caching and deduplication
 const queryClient = new QueryClient({
@@ -116,6 +117,7 @@ const App = () => {
                               <Route path="/auth" element={<Auth />} />
                               <Route path="/reset-password" element={<ResetPassword />} />
                               <Route path="/verify-email" element={<VerifyEmail />} />
+                              <Route path="/upgrade" element={<Upgrade />} />
                               <Route path="/pipeline" element={<Pipeline />} />
                               <Route path="/assets" element={<Portfolio />} />
                               <Route path="/portfolio/:id" element={<CompanyDetail />} />
