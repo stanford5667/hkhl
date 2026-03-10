@@ -123,7 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const resetPassword = async (email: string) => {
     const customDomain = "https://aiassetlabs.com";
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${customDomain}/auth?mode=reset`,
+      redirectTo: `${customDomain}/reset-password`,
     });
     return { error: error as Error | null };
   };

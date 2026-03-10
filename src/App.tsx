@@ -114,6 +114,7 @@ const App = () => {
                               <Route path="/" element={<Research />} />
                               <Route path="/news" element={<NewsIntelligence />} />
                               <Route path="/auth" element={<Auth />} />
+                              <Route path="/reset-password" element={<ResetPassword />} />
                               <Route path="/verify-email" element={<VerifyEmail />} />
                               <Route path="/pipeline" element={<Pipeline />} />
                               <Route path="/assets" element={<Portfolio />} />
