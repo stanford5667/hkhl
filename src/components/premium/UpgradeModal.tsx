@@ -113,9 +113,7 @@ export function UpgradeModal({ isOpen, feature, onClose, onUpgrade }: UpgradeMod
   const copy = FEATURE_COPY[feature] || FEATURE_COPY.default;
   const [isLoading, setIsLoading] = useState(false);
   const [showAuthSheet, setShowAuthSheet] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<'pro' | 'research_education'>(
-    RESEARCH_FEATURES.includes(feature) ? 'research_education' : 'pro'
-  );
+  const [selectedPlan, setSelectedPlan] = useState<'pro' | 'research_education'>('research_education');
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
   const handleUpgrade = async () => {

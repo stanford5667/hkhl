@@ -31,7 +31,9 @@ export function PremiumFeatureBlock({
         return;
       }
 
-      const { data, error } = await supabase.functions.invoke('create-checkout');
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { plan: 'research_education' },
+      });
       
       if (error) {
         toast.error('Failed to start checkout');
@@ -110,7 +112,9 @@ export function PremiumFeatureInline({ className }: { className?: string }) {
         return;
       }
 
-      const { data, error } = await supabase.functions.invoke('create-checkout');
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { plan: 'research_education' },
+      });
       
       if (error) {
         toast.error('Failed to start checkout');

@@ -8,7 +8,7 @@ export function useUpgrade() {
   const [upgradeFeature, setUpgradeFeature] = useState<string>("default");
   const [isLoading, setIsLoading] = useState(false);
 
-  const startCheckout = useCallback(async (plan: string = 'pro') => {
+  const startCheckout = useCallback(async (plan: string = 'research_education') => {
     setIsLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
