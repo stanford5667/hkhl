@@ -1,29 +1,33 @@
-import { useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
+import { AuthGateDialog } from '@/components/auth/AuthGateDialog';
 import PublicStockView from './PublicStockView';
 
 /**
- * TickerDetail - Auth-gated wrapper for stock detail pages.
- * Unauthenticated users are redirected to Research with the ticker
- * stored in sessionStorage for post-login redirect.
+ * TickerDetail - Shows the stock page but gates interaction behind auth.
+ * Unauthenticated users see the overview with a sign-in dialog overlay.
  */
 export default function TickerDetail() {
-  const { user, loading } = useAuth();
-  const { ticker } = useParams<{ ticker: string }>();
-  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { showAuthDialog, closeAuthDialog, requireAuth } = useRequireAuth();
+  const hasTriggered = useRef(false);
 
-  useEffect(() => {
-    if (loading) return;
-    if (!user) {
-      if (ticker) {
-        sessionStorage.setItem('pending-stock-navigation', ticker.toUpperCase());
-      }
-      navigate('/asset-research', { replace: true });
-    }
-  }, [user, loading, ticker, navigate]);
+  // Auto-trigger auth dialog for unauthenticated users (once)
+  if (!user && !hasTriggered.current) {
+    hasTriggered.current = true;
+    setTimeout(() => requireAuth(() => {}, 'view-stock'), 0);
+  }
 
-  if (loading || !user) return null;
-
-  return <PublicStockView />;
+  return (
+    <>
+      <PublicStockView />
+      <AuthGateDialog
+        open={showAuthDialog}
+        onOpenChange={closeAuthDialog}
+        title="Sign in to continue"
+        description="Create a free account to access full stock analysis, AI predictions, and more."
+      />
+    </>
+  );
 }
