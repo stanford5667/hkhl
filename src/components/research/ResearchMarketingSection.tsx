@@ -52,6 +52,67 @@ const statItems = [
 export function ResearchMarketingSection() {
   const { user } = useAuth();
   const { requireAuth, showAuthDialog, closeAuthDialog } = useRequireAuth();
+  const [isRunning, setIsRunning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const ticker = 'SPY';
+
+  const handleBacktest = useCallback(async (serialized: { 
+    strategy: string; 
+    ticker: string; 
+    params: Record<string, number | string | undefined> 
+  }) => {
+    setIsRunning(true);
+    setError(null);
+
+    try {
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setFullYear(endDate.getFullYear() - 3);
+
+      const data = await retryWithBackoff(
+        async () => {
+          const response = await supabase.functions.invoke('strategy-backtest', {
+            body: {
+              ticker,
+              strategy: serialized.strategy,
+              startDate: format(startDate, 'yyyy-MM-dd'),
+              endDate: format(endDate, 'yyyy-MM-dd'),
+              initialCapital: 10000,
+              params: serialized.params,
+              advancedParams: DEFAULT_ADVANCED_PARAMS,
+            }
+          });
+
+          if (response.error) throw response.error;
+          if (!response.data.success) throw new Error(response.data.error || 'Backtest failed');
+          return response.data;
+        },
+        { maxAttempts: 3, initialDelayMs: 200 }
+      );
+
+      toast.success(`Backtest complete: ${data.totalTrades} trades, ${data.totalReturn.toFixed(2)}% return`);
+
+      return {
+        totalReturn: data.totalReturn || 0,
+        winRate: data.winRate || 0,
+        totalTrades: data.totalTrades || 0,
+        sharpeRatio: data.sharpeRatio || 0,
+        maxDrawdown: data.maxDrawdown || 0,
+        avgWin: data.avgWin || 0,
+        avgLoss: data.avgLoss || 0,
+        profitFactor: data.profitFactor || 0,
+        avgHoldingDays: data.avgHoldingDays || 0,
+      };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Backtest failed';
+      setError(message);
+      toast.error(message);
+      return undefined;
+    } finally {
+      setIsRunning(false);
+    }
+  }, []);
 
   if (user) return null;
 
