@@ -113,6 +113,18 @@ export function AuthGateDialog({
     setMode('signin');
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetEmail.trim()) { toast.error('Please enter your email'); return; }
+    setResetSending(true);
+    const { error } = await resetPassword(resetEmail);
+    setResetSending(false);
+    if (error) { toast.error(error.message); } else {
+      toast.success('Password reset email sent! Check your inbox.');
+      setShowForgotPassword(false);
+    }
+  };
+
   const handleContinueStep1 = () => {
     if (!fullName.trim() || fullName.trim().length < 2) {
       toast.error('Please enter your full name (at least 2 characters)');

@@ -124,6 +124,18 @@ export function MobileAuthSheet({
     setMode('signin');
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetEmail.trim()) { toast.error('Please enter your email'); return; }
+    setResetSending(true);
+    const { error } = await resetPassword(resetEmail);
+    setResetSending(false);
+    if (error) { toast.error(error.message); } else {
+      toast.success('Password reset email sent! Check your inbox.');
+      setShowForgotPassword(false);
+    }
+  };
+
   const features = [
     { icon: TrendingUp, text: "No-Code Backtesting", highlight: true },
     { icon: Sparkles, text: "AI Strategy Builder", highlight: true },
