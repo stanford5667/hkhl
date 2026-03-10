@@ -11,6 +11,7 @@ import { BillingToggle } from './BillingToggle';
 interface MembershipStepProps {
   onComplete: () => void;
   onBack: () => void;
+  isStandalone?: boolean;
 }
 
 const FREE_FEATURES = [
@@ -55,7 +56,7 @@ const PRICES = {
   annualTotal: 700,
 };
 
-export function MembershipStep({ onComplete, onBack }: MembershipStepProps) {
+export function MembershipStep({ onComplete, onBack, isStandalone = false }: MembershipStepProps) {
   const { user } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState<PlanType | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -122,9 +123,9 @@ export function MembershipStep({ onComplete, onBack }: MembershipStepProps) {
           Choose Your Plan
         </CardTitle>
         <CardDescription className="text-slate-400">
-          Select the plan that works best for you
+          {isStandalone ? 'Unlock all premium features' : 'Select the plan that works best for you'}
         </CardDescription>
-        <p className="text-xs text-slate-500 mt-2">Step 2 of 2</p>
+        {!isStandalone && <p className="text-xs text-slate-500 mt-2">Step 2 of 2</p>}
       </CardHeader>
       <CardContent>
         <BillingToggle isAnnual={isAnnual} onChange={setIsAnnual} />
@@ -266,7 +267,7 @@ export function MembershipStep({ onComplete, onBack }: MembershipStepProps) {
             className="text-sm text-slate-400 hover:text-slate-300 transition-colors"
             disabled={isLoading}
           >
-            ← Back to profile
+            {isStandalone ? '← Back' : '← Back to profile'}
           </button>
         </div>
       </CardContent>
