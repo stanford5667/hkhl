@@ -56,7 +56,7 @@ const PRICES = {
   annualTotal: 700,
 };
 
-export function MembershipStep({ onComplete, onBack }: MembershipStepProps) {
+export function MembershipStep({ onComplete, onBack, isStandalone = false }: MembershipStepProps) {
   const { user } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState<PlanType | null>(null);
   const [isLoading, setIsLoading] = useState(false);
