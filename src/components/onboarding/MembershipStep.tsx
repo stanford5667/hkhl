@@ -123,9 +123,9 @@ export function MembershipStep({ onComplete, onBack, isStandalone = false }: Mem
           Choose Your Plan
         </CardTitle>
         <CardDescription className="text-slate-400">
-          Select the plan that works best for you
+          {isStandalone ? 'Unlock all premium features' : 'Select the plan that works best for you'}
         </CardDescription>
-        <p className="text-xs text-slate-500 mt-2">Step 2 of 2</p>
+        {!isStandalone && <p className="text-xs text-slate-500 mt-2">Step 2 of 2</p>}
       </CardHeader>
       <CardContent>
         <BillingToggle isAnnual={isAnnual} onChange={setIsAnnual} />
