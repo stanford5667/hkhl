@@ -348,7 +348,6 @@ export function VisualStrategyBuilder({
   }, [onRunBacktest]);
 
   // Auto-run strategy if provided (e.g. after auth redirect from Research page)
-  const [hasAutoRun, setHasAutoRun] = useState(false);
   useEffect(() => {
     if (autoRunStrategy && onRunBacktest && !hasAutoRun) {
       setHasAutoRun(true);
