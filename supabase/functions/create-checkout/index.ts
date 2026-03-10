@@ -20,7 +20,7 @@ const PLAN_PRICES: Record<string, Record<string, string>> = {
   },
   research_education: {
     monthly: "price_1T6y590ATyKK64GzTH165hof",       // $100/month
-    annual: "price_1T8sD80ATyKK64GzbUB5WTmN",        // $984/year ($82/mo)
+    annual: "price_1T8sD80ATyKK64GzbUB5WTmN",        // $700/year (~$58.33/mo)
   },
 };
 
