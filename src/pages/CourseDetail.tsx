@@ -22,7 +22,14 @@ import {
   Award,
   FileText,
   Sparkles,
-  Shield
+  Shield,
+  Zap,
+  ArrowRight,
+  TrendingUp,
+  BarChart3,
+  Brain,
+  Target,
+  Flame,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { MobileAuthSheet } from '@/components/auth/MobileAuthSheet';
