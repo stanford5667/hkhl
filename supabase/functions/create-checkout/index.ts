@@ -45,22 +45,25 @@ serve(async (req) => {
 
     // Parse request body for plan selection and return path
     let selectedPlan = "pro";
+    let billingInterval = "monthly";
     let returnPath = "/quant-lab";
     try {
       const body = await req.json();
       if (body?.plan && PLAN_PRICES[body.plan]) {
         selectedPlan = body.plan;
       }
+      if (body?.billing_interval === 'annual' || body?.billing_interval === 'monthly') {
+        billingInterval = body.billing_interval;
+      }
       if (body?.return_path && typeof body.return_path === 'string') {
-        // Sanitize return path - only allow paths starting with /
         returnPath = body.return_path.startsWith('/') ? body.return_path : '/quant-lab';
       }
     } catch {
       // No body or invalid JSON - use defaults
     }
 
-    const priceId = PLAN_PRICES[selectedPlan];
-    logStep("Selected plan", { plan: selectedPlan, priceId, returnPath });
+    const priceId = PLAN_PRICES[selectedPlan][billingInterval];
+    logStep("Selected plan", { plan: selectedPlan, billingInterval, priceId, returnPath });
 
     const token = authHeader.replace("Bearer ", "");
     const { data } = await supabaseClient.auth.getUser(token);
