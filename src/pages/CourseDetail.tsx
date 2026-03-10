@@ -660,12 +660,23 @@ export default function CourseDetail() {
                   )}
                   <Button 
                     className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600" 
-                    onClick={handleStartLearning}
-                    disabled={enrollMutation.isPending || isCheckoutLoading || isUsageLoading}
+                    onClick={() => {
+                      if (!user) {
+                        setShowAuthSheet(true);
+                        return;
+                      }
+                      if (isUsageLoading) return;
+                      if (!isResearchTier && !course?.is_free) {
+                        handleSubscribe();
+                        return;
+                      }
+                      enrollMutation.mutate();
+                    }}
+                    disabled={enrollMutation.isPending || isCheckoutLoading || (!!user && isUsageLoading)}
                   >
                     {!user ? (
                       'Sign in to Start'
-                    ) : isCheckoutLoading ? (
+                    ) : isCheckoutLoading || isUsageLoading ? (
                       'Loading...'
                     ) : course.is_free ? (
                       'Start Free Course'
