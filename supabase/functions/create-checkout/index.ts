@@ -105,7 +105,7 @@ serve(async (req) => {
 
     const planDescriptions: Record<string, string> = {
       pro: "Your Pro subscription includes:\n• Unlimited portfolio analysis\n• Advanced risk metrics & correlations\n• AI-powered insights & recommendations\n• Real-time market data\n• Priority support\n\nSubscription auto-renews monthly. Cancel anytime from your account settings.",
-      research_education: "Your Research & Education subscription includes:\n• Everything in Pro\n• Access to all courses & video library\n• Community trade ideas & research posts\n• Exclusive educational content\n• Priority support\n\nSubscription auto-renews monthly. Cancel anytime from your account settings.",
+      research_education: "Elite education, proprietary trade ideas, and the tools to execute them. Unlock our comprehensive AI and investment video course, join the exclusive community chat for real-time trade setups, and get your all-access pass to our AI-powered backtester and 30+ years of institutional data.\n\nSubscription auto-renews monthly. Cancel anytime from your account settings.",
     };
 
     const sessionParams: any = {
