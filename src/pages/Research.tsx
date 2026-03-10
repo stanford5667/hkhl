@@ -19,6 +19,8 @@ import { OnboardingNudges } from '@/components/research/OnboardingNudges';
 import { ResearchUnauthHero } from '@/components/research/ResearchUnauthHero';
 import { ResearchMarketingSection } from '@/components/research/ResearchMarketingSection';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
+import { AuthGateDialog } from '@/components/auth/AuthGateDialog';
 
 const stagger = {
   hidden: {},
@@ -33,6 +35,7 @@ const fadeUp = {
 export default function ResearchPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { requireAuth, showAuthDialog, closeAuthDialog } = useRequireAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [recentSearches, setRecentSearches] = useState<string[]>(() => {
     const saved = localStorage.getItem('recentAssetSearches');
@@ -43,7 +46,7 @@ export default function ResearchPage() {
   const { data: categoryCounts = {} } = useCategoryCounts();
   const { data: etfCount = 0 } = useETFCount();
 
-  // After sign-in, check for pending backtest from the marketing section
+  // After sign-in, check for pending backtest or stock navigation
   useEffect(() => {
     if (!user) return;
     
@@ -55,26 +58,27 @@ export default function ResearchPage() {
         const action = JSON.parse(pendingAction);
         const params = JSON.parse(pendingParams);
         
-        // Only act if it's a recent run-backtest action (within 5 min)
         if (action.type === 'run-backtest' && Date.now() - action.timestamp < 300000) {
-          // Clean up
           sessionStorage.removeItem('pending-auth-action');
           sessionStorage.removeItem('pending-backtest-params');
           
-          // Navigate to stock page with backtest auto-run state
           const ticker = params.ticker || 'SPY';
           navigate(`/stock/${ticker}`, { 
-            state: { 
-              tab: 'backtest',
-              autoRunStrategy: params 
-            } 
+            state: { tab: 'backtest', autoRunStrategy: params } 
           });
+          return;
         }
       } catch {
-        // Invalid JSON, clean up
         sessionStorage.removeItem('pending-auth-action');
         sessionStorage.removeItem('pending-backtest-params');
       }
+    }
+    
+    // Check for pending stock navigation
+    const pendingStock = sessionStorage.getItem('pending-stock-navigation');
+    if (pendingStock) {
+      sessionStorage.removeItem('pending-stock-navigation');
+      navigate(`/stock/${pendingStock}`);
     }
   }, [user, navigate]);
 
@@ -86,6 +90,44 @@ export default function ResearchPage() {
     setRecentSearches(updated);
     localStorage.setItem('recentAssetSearches', JSON.stringify(updated));
     navigate(`/stock/${normalized}`);
+  };
+
+  // Auth-gated ticker click — stores destination for post-login redirect
+  const handleTickerClick = (ticker: string) => {
+    const normalized = ticker.toUpperCase().trim();
+    if (!normalized) return;
+    
+    if (!user) {
+      sessionStorage.setItem('pending-stock-navigation', normalized);
+    }
+    
+    requireAuth(() => {
+      handleSearch(normalized);
+    }, 'view-stock');
+  };
+
+  // Auth-gated navigation for buttons
+  const handleAuthNavigation = (path: string, state?: any) => {
+    if (!user) {
+      const ticker = path.replace('/stock/', '');
+      sessionStorage.setItem('pending-stock-navigation', ticker);
+    }
+    
+    requireAuth(() => {
+      navigate(path, state ? { state } : undefined);
+    }, 'navigate');
+  };
+
+  // Intercept clicks on interactive elements inside sections for unauth users
+  const handleSectionClick = (e: React.MouseEvent, actionType: string) => {
+    if (user) return; // Authenticated users pass through
+    
+    const target = e.target as HTMLElement;
+    if (target.closest('a, button, [role="button"], td, tr[class*="cursor"], [data-clickable], .cursor-pointer')) {
+      e.preventDefault();
+      e.stopPropagation();
+      requireAuth(() => {}, actionType);
+    }
   };
 
   const clearRecentSearches = () => {
@@ -134,7 +176,7 @@ export default function ResearchPage() {
 
       {/* Main Content */}
       <motion.div
-        className="max-w-6xl mx-auto px-3 sm:px-6 pb-10 sm:pb-16 space-y-5 sm:space-y-12"
+        className="max-w-6xl mx-auto px-3 sm:px-6 pb-10 sm:pb-16 space-y-5 sm:space-y-12 relative"
         variants={stagger}
         initial="hidden"
         animate="visible"
@@ -158,7 +200,7 @@ export default function ResearchPage() {
               {tickersLoading && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
             </div>
             <button
-              onClick={() => navigate('/stock/AAPL')}
+              onClick={() => handleAuthNavigation('/stock/AAPL')}
               className="hidden sm:inline-flex items-center gap-1.5 font-mono font-bold uppercase tracking-wide rounded-lg transition-all bg-[hsl(175_80%_45%)] text-background hover:bg-[hsl(175_80%_50%)] shadow-[0_0_16px_hsl(175_80%_45%/0.4)] hover:shadow-[0_0_24px_hsl(175_80%_45%/0.6)] text-[11px] px-5 py-2.5"
             >
               Explore stocks <ArrowRight className="h-3.5 w-3.5" />
@@ -167,7 +209,7 @@ export default function ResearchPage() {
           {tickersWithQuotes.length > 0 ? (
             <TickerCarousel 
               tickers={tickersWithQuotes} 
-              onTickerClick={handleSearch} 
+              onTickerClick={handleTickerClick} 
             />
           ) : tickersLoading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
@@ -182,17 +224,17 @@ export default function ResearchPage() {
           )}
         </motion.section>
 
-        {/* Major Market Themes */}
-        <motion.div variants={fadeUp}>
+        {/* Major Market Themes — gated clicks */}
+        <motion.div variants={fadeUp} onClick={(e) => handleSectionClick(e, 'view-theme')}>
           <MarketThemesSection />
         </motion.div>
 
-        {/* Market Intelligence */}
-        <motion.div id="market-intelligence" variants={fadeUp}>
+        {/* Market Intelligence — gated clicks */}
+        <motion.div id="market-intelligence" variants={fadeUp} onClick={(e) => handleSectionClick(e, 'view-screener')}>
           <MarketIntelligenceSection />
         </motion.div>
 
-        {/* Earnings Calendar */}
+        {/* Earnings Calendar — gated clicks */}
         <motion.section className="space-y-2 sm:space-y-3" variants={fadeUp}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -205,13 +247,15 @@ export default function ResearchPage() {
               </div>
             </div>
             <button
-              onClick={() => navigate('/stock/NVDA')}
+              onClick={() => handleAuthNavigation('/stock/NVDA')}
               className="hidden sm:inline-flex items-center gap-1.5 font-mono font-bold uppercase tracking-wide rounded-lg transition-all bg-[hsl(175_80%_45%)] text-background hover:bg-[hsl(175_80%_50%)] shadow-[0_0_16px_hsl(175_80%_45%/0.4)] hover:shadow-[0_0_24px_hsl(175_80%_45%/0.6)] text-[11px] px-5 py-2.5"
             >
               Get AI predictions <ArrowRight className="h-3.5 w-3.5" />
             </button>
           </div>
-          <EarningsCalendar />
+          <div onClick={(e) => handleSectionClick(e, 'view-earnings')}>
+            <EarningsCalendar />
+          </div>
         </motion.section>
 
         {/* Bottom CTA Banner */}
@@ -222,15 +266,19 @@ export default function ResearchPage() {
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
             <button
-              onClick={() => navigate('/stock/AAPL', { state: { tab: 'backtest' } })}
+              onClick={() => handleAuthNavigation('/stock/AAPL', { tab: 'backtest' })}
               className="inline-flex items-center gap-1.5 font-mono font-bold uppercase tracking-wide rounded-lg transition-all bg-[hsl(175_80%_45%)] text-background hover:bg-[hsl(175_80%_50%)] shadow-[0_0_20px_hsl(175_80%_45%/0.4)] hover:shadow-[0_0_32px_hsl(175_80%_45%/0.6)] text-xs sm:text-sm px-6 py-3"
             >
               Start backtesting <ArrowRight className="h-4 w-4" />
             </button>
             <button
               onClick={() => {
-                const el = document.getElementById('market-intelligence');
-                el?.scrollIntoView({ behavior: 'smooth' });
+                if (!user) {
+                  requireAuth(() => {}, 'screen-stocks');
+                } else {
+                  const el = document.getElementById('market-intelligence');
+                  el?.scrollIntoView({ behavior: 'smooth' });
+                }
               }}
               className="inline-flex items-center gap-1.5 font-mono font-bold uppercase tracking-wide rounded-lg transition-all border-2 border-[hsl(175_80%_45%/0.5)] text-[hsl(175_80%_45%)] hover:bg-[hsl(175_80%_45%/0.1)] hover:border-[hsl(175_80%_45%/0.8)] shadow-[0_0_12px_hsl(175_80%_45%/0.15)] hover:shadow-[0_0_20px_hsl(175_80%_45%/0.3)] text-xs sm:text-sm px-6 py-3"
             >
@@ -245,6 +293,14 @@ export default function ResearchPage() {
 
       {/* Onboarding Nudges */}
       <OnboardingNudges />
+
+      {/* Auth Gate Dialog — shown with blur backdrop */}
+      <AuthGateDialog
+        open={showAuthDialog}
+        onOpenChange={closeAuthDialog}
+        title="Sign in to continue"
+        description="Create a free account to access full stock analysis, AI predictions, and more."
+      />
     </div>
   );
 }
