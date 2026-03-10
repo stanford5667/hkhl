@@ -41,6 +41,7 @@ export function AuthGateDialog({
   const [signUpStep, setSignUpStep] = useState(1);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [isAgeVerified, setIsAgeVerified] = useState(false);
   const [ageError, setAgeError] = useState('');
@@ -68,10 +69,15 @@ export function AuthGateDialog({
     e.preventDefault();
     setAgeError('');
 
-    // Validate age verification for signup
-    if (mode === 'signup' && !isAgeVerified) {
-      setAgeError('Please verify your age to continue');
-      return;
+    if (mode === 'signup') {
+      if (password !== confirmPassword) {
+        toast.error('Passwords do not match');
+        return;
+      }
+      if (!isAgeVerified) {
+        setAgeError('Please verify your age to continue');
+        return;
+      }
     }
 
     setIsLoading(true);
@@ -200,6 +206,20 @@ export function AuthGateDialog({
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  minLength={6}
+                  className="h-9 sm:h-10 text-sm"
+                  autoComplete="new-password"
+               />
+              </div>
+              <div className="space-y-0.5">
+                <Label htmlFor="confirmPassword" className="text-[11px] sm:text-xs font-medium">Confirm Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="••••••••"
                   required
                   minLength={6}
