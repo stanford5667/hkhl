@@ -128,7 +128,7 @@ export function MembershipStep({ onComplete, onBack }: MembershipStepProps) {
       <CardContent>
         <BillingToggle isAnnual={isAnnual} onChange={setIsAnnual} />
 
-        <div className="grid md:grid-cols-3 gap-5">
+        <div className="grid md:grid-cols-2 gap-5 max-w-3xl mx-auto">
           {/* Free Plan */}
           <div 
             className={cn(
@@ -180,17 +180,25 @@ export function MembershipStep({ onComplete, onBack }: MembershipStepProps) {
             </Button>
           </div>
 
-          {/* Pro Plan */}
+          {/* Pro Plan (maps to research_education) */}
           <div 
             className={cn(
               "relative rounded-xl border-2 p-5 cursor-pointer transition-all",
-              selectedPlan === 'pro' 
+              selectedPlan === 'research_education' 
                 ? "border-purple-500 bg-purple-900/20" 
-                : "border-slate-600 hover:border-slate-500 bg-slate-800/30"
+                : "border-purple-500/50 hover:border-purple-500 bg-gradient-to-b from-purple-900/15 to-slate-800/30"
             )}
-            onClick={() => !isLoading && setSelectedPlan('pro')}
+            onClick={() => !isLoading && setSelectedPlan('research_education')}
           >
-            <div className="text-center mb-5 mt-1">
+            {/* Best Value Badge */}
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+              <span className="bg-purple-600 text-white text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1 whitespace-nowrap">
+                <Sparkles className="h-3 w-3" />
+                MOST POPULAR
+              </span>
+            </div>
+
+            <div className="text-center mb-5 mt-2">
               <h3 className="text-lg font-bold text-white mb-1">Pro</h3>
               <div className="text-3xl font-bold text-white">
                 ${proPrice}
@@ -218,71 +226,9 @@ export function MembershipStep({ onComplete, onBack }: MembershipStepProps) {
               ))}
             </ul>
 
-            <Button 
-              className="w-full bg-purple-600 hover:bg-purple-500"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleSelectPlan('pro');
-              }}
-              disabled={isLoading}
-            >
-              {isLoading && selectedPlan === 'pro' ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                'Get Pro'
-              )}
-            </Button>
-          </div>
-
-          {/* Research & Education Plan */}
-          <div 
-            className={cn(
-              "relative rounded-xl border-2 p-5 cursor-pointer transition-all",
-              selectedPlan === 'research_education' 
-                ? "border-amber-500 bg-amber-900/20" 
-                : "border-amber-500/50 hover:border-amber-500 bg-gradient-to-b from-amber-900/15 to-slate-800/30"
-            )}
-            onClick={() => !isLoading && setSelectedPlan('research_education')}
-          >
-            {/* Best Value Badge */}
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-              <span className="bg-amber-600 text-white text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1 whitespace-nowrap">
-                <GraduationCap className="h-3 w-3" />
-                BEST VALUE
-              </span>
-            </div>
-
-            <div className="text-center mb-5 mt-2">
-              <h3 className="text-lg font-bold text-white mb-1">Research & Education</h3>
-              <div className="text-3xl font-bold text-white">
-                ${researchPrice}
-                <span className="text-lg text-slate-400">/mo</span>
-              </div>
-              <p className="text-slate-400 text-sm">
-                {isAnnual ? `Billed $${PRICES.research_education.annual * 12}/yr` : 'Billed monthly'}
-              </p>
-              {isAnnual && (
-                <p className="text-green-400 text-xs mt-1 font-medium">
-                  Save ${(PRICES.research_education.monthly - PRICES.research_education.annual) * 12}/yr vs monthly
-                </p>
-              )}
-            </div>
-            
-            <ul className="space-y-2 mb-4">
-              {RESEARCH_FEATURES.map((feature, index) => (
-                <li key={index} className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-amber-400 flex-shrink-0" />
-                  <span className={cn(
-                    "text-sm text-slate-300",
-                    feature.highlight && "font-semibold text-amber-400"
-                  )}>{feature.name}</span>
-                </li>
-              ))}
-            </ul>
-
             {/* Coming Soon Section */}
-            <div className="bg-gradient-to-r from-purple-500/10 to-amber-500/10 rounded-lg p-3 border border-amber-500/20 mb-4">
-              <p className="text-xs font-semibold text-amber-400 uppercase tracking-wide mb-2 flex items-center gap-1">
+            <div className="bg-gradient-to-r from-purple-500/10 to-amber-500/10 rounded-lg p-3 border border-purple-500/20 mb-4">
+              <p className="text-xs font-semibold text-purple-400 uppercase tracking-wide mb-2 flex items-center gap-1">
                 <Sparkles className="h-3 w-3" />
                 Coming Soon
               </p>
@@ -296,7 +242,7 @@ export function MembershipStep({ onComplete, onBack }: MembershipStepProps) {
             </div>
 
             <Button 
-              className="w-full bg-amber-600 hover:bg-amber-500 text-white"
+              className="w-full bg-purple-600 hover:bg-purple-500 text-white"
               onClick={(e) => {
                 e.stopPropagation();
                 handleSelectPlan('research_education');
@@ -306,7 +252,7 @@ export function MembershipStep({ onComplete, onBack }: MembershipStepProps) {
               {isLoading && selectedPlan === 'research_education' ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                'Get Full Access'
+                'Get Pro'
               )}
             </Button>
           </div>
