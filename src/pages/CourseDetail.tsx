@@ -584,7 +584,7 @@ export default function CourseDetail() {
                 <div className="text-lg sm:text-xl font-bold">Research & Education</div>
               </div>
               <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                $100/month membership
+                From $82/month (billed annually)
               </p>
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-0 space-y-4">
