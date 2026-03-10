@@ -46,7 +46,10 @@ export function AuthGateDialog({
   const [isAgeVerified, setIsAgeVerified] = useState(false);
   const [ageError, setAgeError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, resetPassword } = useAuth();
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetSending, setResetSending] = useState(false);
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
   const [showVerificationPending, setShowVerificationPending] = useState(false);
@@ -110,6 +113,18 @@ export function AuthGateDialog({
     setMode('signin');
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetEmail.trim()) { toast.error('Please enter your email'); return; }
+    setResetSending(true);
+    const { error } = await resetPassword(resetEmail);
+    setResetSending(false);
+    if (error) { toast.error(error.message); } else {
+      toast.success('Password reset email sent! Check your inbox.');
+      setShowForgotPassword(false);
+    }
+  };
+
   const handleContinueStep1 = () => {
     if (!fullName.trim() || fullName.trim().length < 2) {
       toast.error('Please enter your full name (at least 2 characters)');
@@ -121,6 +136,29 @@ export function AuthGateDialog({
     }
     setSignUpStep(2);
   };
+
+  const forgotPasswordForm = (
+    <div className="space-y-3 px-1">
+      <div className="flex flex-col items-center justify-center">
+        <AssetLabsLogo size="sm" showText={false} className="sm:hidden" />
+        <AssetLabsLogo size="lg" showText={false} className="hidden sm:flex" />
+      </div>
+      <p className="text-center text-sm font-medium">Reset your password</p>
+      <p className="text-center text-xs text-muted-foreground">Enter your email and we'll send you a reset link.</p>
+      <form onSubmit={handleForgotPassword} className="space-y-2.5">
+        <div className="space-y-0.5">
+          <Label htmlFor="resetEmail" className="text-[11px] sm:text-xs font-medium">Email</Label>
+          <Input id="resetEmail" type="email" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} placeholder="you@example.com" required className="h-9 sm:h-10 text-sm" autoComplete="email" />
+        </div>
+        <Button type="submit" className="w-full h-9 sm:h-10 text-sm font-semibold" disabled={resetSending}>
+          {resetSending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send Reset Link"}
+        </Button>
+      </form>
+      <div className="text-center text-[11px] sm:text-xs text-muted-foreground">
+        <button type="button" onClick={() => setShowForgotPassword(false)} className="text-primary font-medium hover:underline">Back to sign in</button>
+      </div>
+    </div>
+  );
 
   const authForm = (
     <div className="space-y-1.5 sm:space-y-3 px-1">
@@ -186,7 +224,10 @@ export function AuthGateDialog({
               <Input ref={emailInputRef} id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required className="h-9 sm:h-10 text-sm" autoComplete="email" />
             </div>
             <div className="space-y-0.5">
-              <Label htmlFor="password" className="text-[11px] sm:text-xs font-medium">Password</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password" className="text-[11px] sm:text-xs font-medium">Password</Label>
+                <button type="button" onClick={() => { setResetEmail(email); setShowForgotPassword(true); }} className="text-[10px] sm:text-[11px] text-primary hover:text-primary/80 transition-colors">Forgot password?</button>
+              </div>
               <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required minLength={6} className="h-9 sm:h-10 text-sm" autoComplete="current-password" />
             </div>
             <Button type="submit" className="w-full h-9 sm:h-10 text-sm font-semibold mt-1" disabled={isLoading}>
@@ -216,6 +257,8 @@ export function AuthGateDialog({
         <DialogContent className="sm:max-w-md p-0 overflow-hidden">
           {showVerificationPending ? (
             <div className="p-6">{verificationContent}</div>
+          ) : showForgotPassword ? (
+            <div className="p-6">{forgotPasswordForm}</div>
           ) : (
             <div className="p-6">
               <DialogHeader className="text-center pb-2">
@@ -235,6 +278,8 @@ export function AuthGateDialog({
       <DrawerContent className="max-h-[85dvh]">
         {showVerificationPending ? (
           <div className="px-3 pb-4 safe-area-bottom">{verificationContent}</div>
+        ) : showForgotPassword ? (
+          <div className="px-3 pb-4 safe-area-bottom">{forgotPasswordForm}</div>
         ) : (
           <>
             <DrawerHeader className="text-center py-1.5">
