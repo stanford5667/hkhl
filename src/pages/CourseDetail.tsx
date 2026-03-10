@@ -249,23 +249,8 @@ export default function CourseDetail() {
       return;
     }
 
-    setIsCheckoutLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { 
-          plan: 'research_education',
-          return_path: `/academy/course/${courseId}`
-        }
-      });
-      
-      if (error) throw error;
-      if (data?.url) {
-        window.location.href = data.url;
-      }
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to start checkout');
-      setIsCheckoutLoading(false);
-    }
+    // Show billing interval selection sheet
+    setShowBillingSheet(true);
   };
 
   const handleStartLearning = () => {
