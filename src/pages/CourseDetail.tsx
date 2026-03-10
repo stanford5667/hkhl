@@ -657,6 +657,65 @@ export default function CourseDetail() {
           </Tabs>
 
           <TestimonialsSection />
+
+          {/* Full-width conversion banner — non-pro only */}
+          {!hasAccess && (
+            <Card className="overflow-hidden border-cyan-500/20 bg-gradient-to-br from-cyan-500/5 via-background to-blue-500/5">
+              <CardContent className="p-4 sm:p-6 space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center flex-shrink-0">
+                    <Target className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm sm:text-base font-bold text-foreground">Ready to invest smarter?</h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                      Join thousands of investors who've transformed their approach with our research-backed methodology.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="p-2 rounded-lg bg-muted/50">
+                    <p className="text-base sm:text-lg font-bold text-foreground">{totalLessons}+</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">Video Lessons</p>
+                  </div>
+                  <div className="p-2 rounded-lg bg-muted/50">
+                    <p className="text-base sm:text-lg font-bold text-foreground">{course.duration_hours}h</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">Of Content</p>
+                  </div>
+                  <div className="p-2 rounded-lg bg-muted/50">
+                    <p className="text-base sm:text-lg font-bold text-foreground">∞</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">Lifetime Access</p>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  {['Full masterclass + all future updates', 'AI-powered research & backtesting tools', 'Trade signals & community insights'].map((item) => (
+                    <div key={item} className="flex items-center gap-2 text-xs sm:text-sm">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                      <span className="text-muted-foreground">{item}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <Button
+                  className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold text-sm h-10 sm:h-11"
+                  onClick={() => {
+                    if (!user) { setShowAuthSheet(true); return; }
+                    handleSubscribe();
+                  }}
+                  disabled={isCheckoutLoading}
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  {isCheckoutLoading ? 'Loading...' : 'Get Full Access — from $58/mo'}
+                </Button>
+                <p className="text-[10px] sm:text-xs text-muted-foreground text-center flex items-center justify-center gap-1.5">
+                  <Shield className="w-3 h-3 text-emerald-400" />
+                  7-day money-back guarantee • Cancel anytime
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Sidebar - hidden on mobile since we have sticky CTA */}
