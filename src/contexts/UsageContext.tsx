@@ -150,9 +150,25 @@ export function UsageProvider({ children, onUpgradeRequest }: UsageProviderProps
     if (subscriptionStatus === 'success') {
       const newUrl = window.location.pathname;
       window.history.replaceState({}, '', newUrl);
-      fetchUsage();
+      
+      // Mark onboarding as complete for users returning from Stripe checkout
+      if (user) {
+        supabase
+          .from('profiles')
+          .update({
+            membership_tier: 'research_education',
+            onboarding_step: 'complete',
+            onboarding_completed: true,
+          })
+          .eq('user_id', user.id)
+          .then(() => {
+            fetchUsage();
+          });
+      } else {
+        fetchUsage();
+      }
     }
-  }, [fetchUsage]);
+  }, [fetchUsage, user]);
 
   const canUse = useCallback((feature: keyof UsageLimits): boolean => {
     if (isPro) return true;
