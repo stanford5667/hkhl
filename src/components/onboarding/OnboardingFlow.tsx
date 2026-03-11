@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrganization } from '@/contexts/OrganizationContext';
+import { useUsage } from '@/contexts/UsageContext';
+import { supabase } from '@/integrations/supabase/client';
 import { ProfileSetupStep } from './ProfileSetupStep';
 import { MembershipStep } from './MembershipStep';
 
@@ -11,6 +13,7 @@ interface OnboardingFlowProps {
 export function OnboardingFlow({ children }: OnboardingFlowProps) {
   const { user } = useAuth();
   const { userProfile, isLoading, refreshProfile } = useOrganization();
+  const { isPro } = useUsage();
   const [currentStep, setCurrentStep] = useState<'profile' | 'membership' | 'complete'>('profile');
 
   useEffect(() => {
@@ -18,17 +21,30 @@ export function OnboardingFlow({ children }: OnboardingFlowProps) {
       // Check onboarding status
       if (userProfile.onboarding_completed) {
         setCurrentStep('complete');
+      } else if (isPro && user) {
+        // User has an active subscription but onboarding wasn't marked complete
+        // (e.g., returned from Stripe checkout) — auto-complete onboarding
+        supabase
+          .from('profiles')
+          .update({
+            membership_tier: 'research_education',
+            onboarding_step: 'complete',
+            onboarding_completed: true,
+          })
+          .eq('user_id', user.id)
+          .then(() => {
+            refreshProfile();
+          });
+        setCurrentStep('complete');
       } else if (userProfile.onboarding_step === 'membership') {
         setCurrentStep('membership');
       } else if (userProfile.onboarding_step === 'organization' || userProfile.onboarding_step === 'complete') {
-        // Legacy users who were on organization step - skip to membership
         setCurrentStep('membership');
       } else if (userProfile.full_name && userProfile.onboarding_step === 'profile') {
-        // User has set their name but hasn't selected membership yet
         setCurrentStep('membership');
       }
     }
-  }, [userProfile]);
+  }, [userProfile, isPro, user]);
 
   const handleProfileComplete = () => {
     setCurrentStep('membership');
@@ -45,7 +61,7 @@ export function OnboardingFlow({ children }: OnboardingFlowProps) {
     return <>{children}</>;
   }
 
-  // Loading state - only show if user is logged in and we're checking their profile
+  // Loading state
   if (isLoading) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
@@ -54,8 +70,8 @@ export function OnboardingFlow({ children }: OnboardingFlowProps) {
     );
   }
 
-  // Onboarding complete - show main app
-  if (currentStep === 'complete' || userProfile?.onboarding_completed) {
+  // Onboarding complete - show main app (also check isPro as safety net)
+  if (currentStep === 'complete' || userProfile?.onboarding_completed || isPro) {
     return <>{children}</>;
   }
 
@@ -63,7 +79,6 @@ export function OnboardingFlow({ children }: OnboardingFlowProps) {
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
       <div className="w-full max-w-4xl">
-        {/* Progress indicator */}
         <div className="flex items-center justify-center gap-2 mb-8">
           <div className={`h-2 w-16 rounded-full ${currentStep === 'profile' ? 'bg-purple-500' : 'bg-purple-500'}`} />
           <div className={`h-2 w-16 rounded-full ${currentStep === 'membership' ? 'bg-purple-500' : 'bg-slate-700'}`} />
