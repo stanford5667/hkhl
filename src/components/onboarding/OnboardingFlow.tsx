@@ -27,7 +27,7 @@ export function OnboardingFlow({ children }: OnboardingFlowProps) {
         supabase
           .from('profiles')
           .update({
-            membership_tier: 'research_education',
+            membership_tier: 'pro',
             onboarding_step: 'complete',
             onboarding_completed: true,
           })
