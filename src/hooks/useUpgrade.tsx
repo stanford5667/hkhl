@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getAffiliateRef } from "@/hooks/useAffiliateTracking";
 
 export function useUpgrade() {
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
@@ -8,7 +9,7 @@ export function useUpgrade() {
   const [upgradeFeature, setUpgradeFeature] = useState<string>("default");
   const [isLoading, setIsLoading] = useState(false);
 
-  const startCheckout = useCallback(async (plan: string = 'research_education') => {
+  const startCheckout = useCallback(async (plan: string = 'research_education', billingInterval?: string, returnPath?: string) => {
     setIsLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -18,8 +19,16 @@ export function useUpgrade() {
         return;
       }
 
+      // Get affiliate code from stored referral (if user came via affiliate link)
+      const affiliateCode = getAffiliateRef();
+
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { plan },
+        body: { 
+          plan,
+          ...(billingInterval && { billing_interval: billingInterval }),
+          ...(returnPath && { return_path: returnPath }),
+          ...(affiliateCode && { affiliate_code: affiliateCode }),
+        },
       });
       
       if (error) {
