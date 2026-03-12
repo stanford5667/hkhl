@@ -88,6 +88,26 @@ export default function Affiliate() {
     if (user) fetchAffiliateData();
   }, [user]);
 
+  // Check for Stripe Connect return
+  useEffect(() => {
+    const stripeConnect = searchParams.get("stripe_connect");
+    if (stripeConnect === "complete" && affiliate) {
+      checkConnectStatus();
+      toast.success("Stripe account setup updated!");
+    }
+  }, [searchParams, affiliate]);
+
+  const checkConnectStatus = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("stripe-connect-status");
+      if (!error && data) {
+        setConnectStatus(data);
+      }
+    } catch (e) {
+      console.error("Failed to check connect status:", e);
+    }
+  };
+
   const fetchAffiliateData = async () => {
     setLoading(true);
     const { data } = await supabase
@@ -99,7 +119,7 @@ export default function Affiliate() {
     if (data) {
       setAffiliate(data as any);
       setPaymentEmail(data.payment_email || "");
-      setPaymentMethod(data.payment_method || "paypal");
+      setPaymentMethod(data.payment_method || "stripe_connect");
       
       // Fetch referrals and payouts in parallel
       const [refsResult, payoutsResult] = await Promise.all([
