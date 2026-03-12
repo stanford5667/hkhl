@@ -32,7 +32,7 @@ export function StickyEngagementBar() {
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 80, opacity: 0 }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none"
+        className="fixed bottom-16 md:bottom-0 left-0 right-0 z-40 pointer-events-none"
       >
         <div className="max-w-3xl mx-auto px-3 pb-3 pointer-events-auto">
           <div className="relative flex items-center justify-between gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border border-border/60 bg-card/95 backdrop-blur-md shadow-2xl shadow-black/20">
