@@ -162,7 +162,7 @@ export function UpgradeModal({ isOpen, feature, onClose, onUpgrade }: UpgradeMod
         <div className="grid grid-cols-[1fr_48px_48px] items-center gap-0 px-3 py-2 bg-muted/50 border-b border-border">
           <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Feature</span>
           <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider text-center">Free</span>
-          <span className="text-[10px] font-semibold text-amber-400 uppercase tracking-wider text-center">Pro</span>
+          <span className="text-[10px] font-semibold text-primary uppercase tracking-wider text-center">Pro</span>
         </div>
         {COMPARISON_FEATURES.map((f, i) => (
           <div
@@ -179,7 +179,7 @@ export function UpgradeModal({ isOpen, feature, onClose, onUpgrade }: UpgradeMod
                 ? "text-foreground font-semibold flex items-center gap-1"
                 : "text-foreground/80"
             )}>
-              {f.highlight && <Star className="h-2.5 w-2.5 text-amber-400 fill-amber-400 flex-shrink-0" />}
+              {f.highlight && <Star className="h-2.5 w-2.5 text-primary fill-primary flex-shrink-0" />}
               {f.name}
             </span>
             <div className="flex justify-center">
@@ -190,7 +190,7 @@ export function UpgradeModal({ isOpen, feature, onClose, onUpgrade }: UpgradeMod
               )}
             </div>
             <div className="flex justify-center">
-              <Check className={cn("h-3.5 w-3.5", f.highlight ? "text-amber-400" : "text-amber-400")} />
+              <Check className={cn("h-3.5 w-3.5", f.highlight ? "text-primary" : "text-primary")} />
             </div>
           </div>
         ))}
@@ -202,13 +202,13 @@ export function UpgradeModal({ isOpen, feature, onClose, onUpgrade }: UpgradeMod
           className={cn(
             'relative p-4 cursor-pointer border-2 transition-all bg-muted/30',
             selected === 'annual'
-              ? 'border-amber-500 ring-1 ring-amber-500/30'
+               ? 'border-primary ring-1 ring-primary/30'
               : 'border-border hover:border-primary/30'
           )}
           onClick={() => setSelected('annual')}
         >
           {PLANS.annual.badge && (
-            <Badge className="absolute -top-2.5 left-4 bg-amber-600 text-white text-[10px] font-semibold px-2">
+            <Badge className="absolute -top-2.5 left-4 bg-primary text-primary-foreground text-[10px] font-semibold px-2">
               {PLANS.annual.badge}
             </Badge>
           )}
@@ -232,7 +232,7 @@ export function UpgradeModal({ isOpen, feature, onClose, onUpgrade }: UpgradeMod
           className={cn(
             'p-4 cursor-pointer border-2 transition-all bg-muted/30',
             selected === 'monthly'
-              ? 'border-amber-500 ring-1 ring-amber-500/30'
+              ? 'border-primary ring-1 ring-primary/30'
               : 'border-border hover:border-primary/30'
           )}
           onClick={() => setSelected('monthly')}
@@ -252,7 +252,7 @@ export function UpgradeModal({ isOpen, feature, onClose, onUpgrade }: UpgradeMod
       </div>
 
       <Button
-        className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold h-12 text-base"
+        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold h-12 text-base"
         onClick={handleUpgrade}
         disabled={isLoading}
       >

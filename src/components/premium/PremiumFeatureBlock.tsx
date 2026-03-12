@@ -62,7 +62,7 @@ export function PremiumFeatureBlock({
         onClick={handleUpgrade}
         disabled={isLoading}
         className={cn(
-          "flex flex-col items-center justify-center w-full text-amber-500/70 hover:text-amber-500 transition-colors cursor-pointer group",
+          "flex flex-col items-center justify-center w-full text-primary/70 hover:text-primary transition-colors cursor-pointer group",
           padding,
           className
         )}
@@ -81,7 +81,7 @@ export function PremiumFeatureBlock({
           </p>
         )}
         {!isLoading && (
-          <span className="text-xs text-amber-500/50 group-hover:text-amber-500 mt-1">
+          <span className="text-xs text-primary/50 group-hover:text-primary mt-1">
             Click to upgrade →
           </span>
         )}
@@ -137,7 +137,7 @@ export function PremiumFeatureInline({ className }: { className?: string }) {
         onClick={handleUpgrade}
         disabled={isLoading}
         className={cn(
-          "flex items-center gap-1.5 text-amber-500/70 hover:text-amber-500 transition-colors cursor-pointer",
+          "flex items-center gap-1.5 text-primary/70 hover:text-primary transition-colors cursor-pointer",
           className
         )}
       >

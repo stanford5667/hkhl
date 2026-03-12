@@ -110,7 +110,7 @@ export function PremiumBadge({ className, variant = 'badge', onUpgrade }: Premiu
               onClick={handleUpgrade}
               disabled={isLoading}
               className={cn(
-                "inline-flex items-center gap-1 text-xs text-amber-500 hover:text-amber-400 transition-colors cursor-pointer",
+                "inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors cursor-pointer",
                 className
               )}
             >
@@ -137,7 +137,7 @@ export function PremiumBadge({ className, variant = 'badge', onUpgrade }: Premiu
         variant="outline" 
         onClick={handleUpgrade}
         className={cn(
-          "bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/30 text-amber-500 gap-1 cursor-pointer hover:bg-amber-500/20 transition-colors",
+          "bg-primary/10 border-primary/30 text-primary gap-1 cursor-pointer hover:bg-primary/20 transition-colors",
           className
         )}
       >
@@ -187,7 +187,7 @@ export function PremiumDataPlaceholder({
             <button 
               onClick={handleUpgrade}
               disabled={isLoading}
-              className="inline-flex items-center gap-1 text-xs text-amber-500 hover:text-amber-400 transition-colors"
+              className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
             >
               {isLoading ? (
                 <Loader2 className="h-3 w-3 animate-spin" />

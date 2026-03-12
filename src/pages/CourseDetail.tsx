@@ -353,7 +353,7 @@ export default function CourseDetail() {
                 <Badge className="absolute top-2 left-2 sm:top-4 sm:left-4 bg-green-500 text-white text-xs">Free Course</Badge>
               )}
               {!course.is_free && !isResearchTier && (
-                <Badge className="absolute top-2 right-2 sm:top-4 sm:right-4 bg-amber-500/90 text-white text-xs flex items-center gap-1">
+                <Badge className="absolute top-2 right-2 sm:top-4 sm:right-4 bg-primary/90 text-primary-foreground text-xs flex items-center gap-1">
                   <Lock className="w-3 h-3" />
                   <span className="hidden sm:inline">Premium</span>
                 </Badge>
@@ -371,17 +371,17 @@ export default function CourseDetail() {
                 {course.description}
               </CardDescription>
               {course.description && course.description.length > 150 && (
-                <button
-                  onClick={() => setDescExpanded(!descExpanded)}
-                  className="text-xs text-cyan-400 hover:text-cyan-300 font-medium mt-1 transition-colors"
-                >
+                  <button
+                    onClick={() => setDescExpanded(!descExpanded)}
+                    className="text-xs text-primary hover:text-primary/80 font-medium mt-1 transition-colors"
+                  >
                   {descExpanded ? 'Show less' : 'Read more'}
                 </button>
               )}
             </CardHeader>
             <CardContent className="p-3 sm:p-6 pt-0">
               <div className="flex items-center gap-3 text-xs sm:text-sm text-muted-foreground">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                   CS
                 </div>
                 <span className="text-foreground/80">Led by <span className="font-medium text-foreground">Chris Stanford</span>, Private Equity Investor</span>
@@ -395,8 +395,8 @@ export default function CourseDetail() {
               <CardContent className="p-3 sm:p-4">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center flex-shrink-0">
-                      <BarChart3 className="w-4 h-4 text-cyan-400" />
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <BarChart3 className="w-4 h-4 text-primary" />
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-foreground">{totalLessons}+ Lessons</p>
@@ -413,8 +413,8 @@ export default function CourseDetail() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
-                      <Brain className="w-4 h-4 text-amber-400" />
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <Brain className="w-4 h-4 text-primary" />
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-foreground">AI-Powered</p>
@@ -422,8 +422,8 @@ export default function CourseDetail() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0">
-                      <Award className="w-4 h-4 text-purple-400" />
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <Award className="w-4 h-4 text-primary" />
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-foreground">Certificate</p>
@@ -432,7 +432,7 @@ export default function CourseDetail() {
                   </div>
                 </div>
                 <Button
-                  className="w-full mt-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white text-xs sm:text-sm h-9 sm:h-10"
+                  className="w-full mt-3 bg-primary hover:bg-primary/90 text-primary-foreground text-xs sm:text-sm h-9 sm:h-10"
                   onClick={() => {
                     if (!user) { setShowAuthSheet(true); return; }
                     handleSubscribe();
@@ -521,7 +521,7 @@ export default function CourseDetail() {
                                       </div>
                                     </div>
                                     {lesson.is_preview && !hasAccess && lessonIndex === 0 ? (
-                                      <Badge className="text-[10px] sm:text-xs flex-shrink-0 ml-2 bg-cyan-500/15 text-cyan-400 border-cyan-500/30 gap-1">
+                                      <Badge className="text-[10px] sm:text-xs flex-shrink-0 ml-2 bg-primary/15 text-primary border-primary/30 gap-1">
                                         <Play className="w-2.5 h-2.5" />
                                         Free Preview
                                       </Badge>
@@ -536,15 +536,15 @@ export default function CourseDetail() {
                         </AccordionItem>
                         {/* Inline CTA after every 2nd module for non-pro */}
                         {!hasAccess && moduleIndex > 0 && moduleIndex % 2 === 1 && moduleIndex < (modules?.length || 0) - 1 && (
-                          <div className="mx-4 sm:mx-6 my-2 p-3 rounded-lg bg-gradient-to-r from-cyan-500/5 to-blue-500/5 border border-cyan-500/20 flex items-center gap-3">
-                            <Flame className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                          <div className="mx-4 sm:mx-6 my-2 p-3 rounded-lg bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/20 flex items-center gap-3">
+                            <Flame className="w-4 h-4 text-primary flex-shrink-0" />
                             <p className="text-xs text-muted-foreground flex-1">
                               <span className="text-foreground font-medium">Don't stop here.</span> Unlock the full curriculum and accelerate your growth.
                             </p>
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="text-cyan-400 hover:text-cyan-300 text-xs h-7 px-2 shrink-0"
+                              className="text-primary hover:text-primary/80 text-xs h-7 px-2 shrink-0"
                               onClick={() => {
                                 if (!user) { setShowAuthSheet(true); return; }
                                 handleSubscribe();
@@ -567,7 +567,7 @@ export default function CourseDetail() {
                         </p>
                         <Button
                           size="sm"
-                          className="bg-cyan-500 hover:bg-cyan-600 text-white text-xs h-8 shrink-0"
+                          className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs h-8 shrink-0"
                           onClick={() => handleSubscribe()}
                           disabled={isCheckoutLoading}
                         >
@@ -602,12 +602,12 @@ export default function CourseDetail() {
                   {!hasAccess && (
                     <>
                       <Separator className="my-4" />
-                      <div className="flex items-center gap-3 p-3 rounded-lg bg-cyan-500/5 border border-cyan-500/20">
-                        <Sparkles className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+                      <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
+                        <Sparkles className="w-4 h-4 text-primary flex-shrink-0" />
                         <p className="text-xs sm:text-sm text-muted-foreground flex-1">Ready to start learning?</p>
                         <Button
                           size="sm"
-                          className="bg-cyan-500 hover:bg-cyan-600 text-white text-xs h-8 shrink-0"
+                          className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs h-8 shrink-0"
                           onClick={() => handleSubscribe()}
                           disabled={isCheckoutLoading}
                         >
@@ -678,7 +678,7 @@ export default function CourseDetail() {
           <Card className="lg:sticky lg:top-6">
             <CardHeader className="p-4 sm:p-6">
               <div className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-amber-400" />
+                <Sparkles className="w-5 h-5 text-primary" />
                 <div className="text-lg sm:text-xl font-bold">Research & Education</div>
               </div>
               <p className="text-xs sm:text-sm text-muted-foreground mt-1">
@@ -716,14 +716,14 @@ export default function CourseDetail() {
               ) : enrollment && !isResearchTier ? (
                 // Enrolled but subscription expired
                 <div className="space-y-4">
-                  <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-center">
-                    <Lock className="w-5 h-5 text-amber-400 mx-auto mb-2" />
-                    <p className="text-xs sm:text-sm text-amber-200">
-                      Subscribe to continue learning
-                    </p>
+                   <div className="p-3 rounded-lg bg-primary/10 border border-primary/30 text-center">
+                     <Lock className="w-5 h-5 text-primary mx-auto mb-2" />
+                     <p className="text-xs sm:text-sm text-muted-foreground">
+                       Subscribe to continue learning
+                     </p>
                   </div>
                   <Button 
-                    className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600" 
+                     className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                     onClick={() => handleSubscribe()}
                     disabled={isCheckoutLoading}
                   >
@@ -733,10 +733,10 @@ export default function CourseDetail() {
               ) : (
                 <div className="space-y-4">
                   {!course.is_free && (
-                    <div className="p-3 rounded-lg bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30">
-                      <div className="flex items-center gap-2 text-amber-400 mb-1">
-                        <Lock className="w-4 h-4" />
-                        <span className="text-xs sm:text-sm font-medium">Premium Course</span>
+                     <div className="p-3 rounded-lg bg-primary/10 border border-primary/30">
+                       <div className="flex items-center gap-2 text-primary mb-1">
+                         <Lock className="w-4 h-4" />
+                         <span className="text-xs sm:text-sm font-medium">Premium Course</span>
                       </div>
                       <p className="text-xs text-muted-foreground">
                         Requires Research & Education membership
@@ -744,7 +744,7 @@ export default function CourseDetail() {
                     </div>
                   )}
                   <Button 
-                    className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600" 
+                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" 
                     onClick={() => {
                       if (!user) {
                         setShowAuthSheet(true);
@@ -827,7 +827,7 @@ export default function CourseDetail() {
       {!hasAccess && (
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#0B0E14]/90 backdrop-blur-md border-t border-border/40 p-3 sm:p-4 lg:hidden">
           <Button
-            className="w-full bg-cyan-500 hover:bg-cyan-600 text-white font-semibold text-sm h-11"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm h-11"
             onClick={() => {
               if (!user) {
                 setShowAuthSheet(true);

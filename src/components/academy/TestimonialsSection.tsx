@@ -8,7 +8,7 @@ const TESTIMONIALS = [
     avatar: 'MR',
     rating: 5,
     text: 'This course completely changed how I analyze investments. The portfolio frameworks are invaluable.',
-    gradient: 'from-cyan-500 to-blue-600',
+    gradient: 'from-primary to-primary/70',
   },
   {
     name: 'Sarah K.',
@@ -52,7 +52,7 @@ export function TestimonialsSection() {
                     </div>
                     <div className="flex gap-0.5">
                       {Array.from({ length: testimonial.rating }).map((_, i) => (
-                        <Star key={i} className="w-3 h-3 fill-amber-400 text-amber-400" />
+                        <Star key={i} className="w-3 h-3 fill-primary text-primary" />
                       ))}
                     </div>
                   </div>

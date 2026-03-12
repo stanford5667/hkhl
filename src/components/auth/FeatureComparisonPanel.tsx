@@ -26,7 +26,7 @@ export function FeatureComparisonPanel() {
                   ? "text-foreground font-semibold flex items-center gap-1.5"
                   : "text-foreground/80"
               )}>
-                {feature.highlight && <Star className="h-3 w-3 text-amber-400 fill-amber-400 flex-shrink-0" />}
+                {feature.highlight && <Star className="h-3 w-3 text-primary fill-primary flex-shrink-0" />}
                 {feature.name}
               </span>
               <span className="w-12 flex justify-center">
@@ -37,7 +37,7 @@ export function FeatureComparisonPanel() {
                 )}
               </span>
               <span className="w-12 flex justify-center">
-                <Check className={cn("h-3.5 w-3.5", feature.highlight ? "text-amber-400" : "text-primary")} />
+                <Check className={cn("h-3.5 w-3.5", feature.highlight ? "text-primary" : "text-primary")} />
               </span>
             </div>
           ))}
