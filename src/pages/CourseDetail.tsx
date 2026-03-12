@@ -395,8 +395,8 @@ export default function CourseDetail() {
               <CardContent className="p-3 sm:p-4">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center flex-shrink-0">
-                      <BarChart3 className="w-4 h-4 text-cyan-400" />
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <BarChart3 className="w-4 h-4 text-primary" />
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-foreground">{totalLessons}+ Lessons</p>
