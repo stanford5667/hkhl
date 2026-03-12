@@ -432,7 +432,7 @@ export default function CourseDetail() {
                   </div>
                 </div>
                 <Button
-                  className="w-full mt-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white text-xs sm:text-sm h-9 sm:h-10"
+                  className="w-full mt-3 bg-primary hover:bg-primary/90 text-primary-foreground text-xs sm:text-sm h-9 sm:h-10"
                   onClick={() => {
                     if (!user) { setShowAuthSheet(true); return; }
                     handleSubscribe();
