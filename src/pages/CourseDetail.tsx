@@ -707,7 +707,7 @@ export default function CourseDetail() {
                     Continue Learning
                   </Button>
                   {progressPercentage >= 100 && (
-                    <Button variant="outline" className="w-full">
+                    <Button variant="outline" className="w-full" onClick={() => toast.success('Congratulations! Your certificate is ready. 🎉')}>
                       <Award className="w-4 h-4 mr-2" />
                       Get Certificate
                     </Button>
