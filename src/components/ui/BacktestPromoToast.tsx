@@ -30,9 +30,9 @@ export function BacktestPromoToast() {
   return (
     <div
       className={cn(
-        "fixed bottom-6 right-6 z-50 w-[370px] max-w-[calc(100vw-2rem)]",
+        "fixed bottom-20 md:bottom-6 right-4 md:right-6 z-40 w-[370px] max-w-[calc(100vw-2rem)]",
         "bg-card border border-border rounded-lg shadow-xl",
-        "border-l-4 border-l-cyan-400",
+        "border-l-4 border-l-primary",
         "animate-fade-in"
       )}
     >
