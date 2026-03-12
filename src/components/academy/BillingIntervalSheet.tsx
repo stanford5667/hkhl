@@ -169,11 +169,19 @@ export function BillingIntervalSheet({ open, onOpenChange, returnPath }: Billing
               key={f.name}
               className={cn(
                 "grid grid-cols-[1fr_48px_48px] items-center gap-0 px-3 py-1.5",
-                i % 2 === 0 ? "bg-card" : "bg-muted/30",
+                f.highlight ? "bg-primary/5" : i % 2 === 0 ? "bg-card" : "bg-muted/30",
                 i < COMPARISON_FEATURES.length - 1 && "border-b border-border/50"
               )}
             >
-              <span className="text-[11px] text-foreground/80 leading-tight">{f.name}</span>
+              <span className={cn(
+                "text-[11px] leading-tight",
+                f.highlight
+                  ? "text-foreground font-semibold flex items-center gap-1"
+                  : "text-foreground/80"
+              )}>
+                {f.highlight && <Star className="h-2.5 w-2.5 text-amber-400 fill-amber-400 flex-shrink-0" />}
+                {f.name}
+              </span>
               <div className="flex justify-center">
                 {f.free ? (
                   <Check className="h-3.5 w-3.5 text-green-500" />
@@ -182,7 +190,7 @@ export function BillingIntervalSheet({ open, onOpenChange, returnPath }: Billing
                 )}
               </div>
               <div className="flex justify-center">
-                <Check className="h-3.5 w-3.5 text-amber-400" />
+                <Check className={cn("h-3.5 w-3.5", f.highlight ? "text-amber-400" : "text-amber-400")} />
               </div>
             </div>
           ))}
