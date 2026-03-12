@@ -71,8 +71,59 @@ serve(async (req) => {
         } else {
           logStep("Failed to send email", { error: loopsData });
         }
+        }
       }
-    }
+
+      // Attribute conversion to affiliate if applicable
+      if (customerEmail) {
+        try {
+          const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+          const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+          const supabaseClient = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
+
+          // Find user by email
+          const { data: userData } = await supabaseClient.auth.admin.listUsers();
+          const matchedUser = userData?.users?.find(u => u.email === customerEmail);
+          
+          if (matchedUser && session.amount_total) {
+            // Check if this user was referred
+            const { data: referral } = await supabaseClient
+              .from("affiliate_referrals")
+              .select("id, affiliate_id, affiliates!inner(commission_rate)")
+              .eq("referred_user_id", matchedUser.id)
+              .order("click_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            if (referral) {
+              const amountDollars = session.amount_total / 100;
+              const affiliate = (referral as any).affiliates;
+              const commission = (amountDollars * affiliate.commission_rate) / 100;
+
+              await supabaseClient.from("affiliate_referrals").update({
+                converted_at: new Date().toISOString(),
+                conversion_amount: amountDollars,
+                commission_amount: commission,
+                commission_status: "approved",
+                stripe_subscription_id: session.subscription as string,
+              }).eq("id", referral.id);
+
+              await supabaseClient.rpc("update_affiliate_earnings", {
+                aff_id: referral.affiliate_id,
+                earning_amount: commission,
+              });
+
+              logStep("Affiliate commission attributed", { 
+                affiliate_id: referral.affiliate_id, 
+                amount: amountDollars, 
+                commission 
+              });
+            }
+          }
+        } catch (affErr) {
+          logStep("Affiliate attribution error (non-fatal)", { error: String(affErr) });
+        }
+      }
 
     // Handle subscription events
     if (event.type === "customer.subscription.created" || event.type === "customer.subscription.updated") {
