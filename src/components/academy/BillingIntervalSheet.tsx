@@ -81,15 +81,15 @@ interface BillingIntervalSheetProps {
 const PLANS = {
   annual: {
     label: 'Annual',
-    price: 58,
-    billed: '$700/year',
-    savings: 'Save $500/yr',
+    price: 83,
+    billed: '$1,000/year',
+    savings: 'Save $800/yr',
     badge: 'Best Value',
   },
   monthly: {
     label: 'Monthly',
-    price: 100,
-    billed: '$100/month',
+    price: 150,
+    billed: '$150/month',
     savings: null,
     badge: null,
   },

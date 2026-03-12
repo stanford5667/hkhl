@@ -32,7 +32,7 @@ export function BillingToggle({ isAnnual, onChange }: BillingToggleProps) {
       >
         Annual
         <span className="bg-green-500/20 text-green-400 text-xs font-semibold px-2 py-0.5 rounded-full">
-          Save 42%
+          Save 44%
         </span>
       </button>
     </div>
