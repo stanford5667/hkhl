@@ -171,7 +171,7 @@ export function ManualPortfolioForm({ onComplete }: ManualPortfolioFormProps) {
 
         {/* Settings Card with colored accents */}
         <Card className="overflow-hidden border-border/50 bg-card/80 backdrop-blur-sm">
-          <div className="h-1 bg-gradient-to-r from-primary via-cyan-500 to-primary" />
+          <div className="h-1 bg-gradient-to-r from-primary via-primary/60 to-primary" />
           <CardContent className="p-4 space-y-4">
             {/* Settings row */}
             <div className="grid grid-cols-2 gap-4">
