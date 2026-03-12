@@ -180,7 +180,7 @@ export function BillingIntervalSheet({ open, onOpenChange, returnPath }: Billing
                 )}
               </div>
               <div className="flex justify-center">
-                <Check className={cn("h-3.5 w-3.5", f.highlight ? "text-amber-400" : "text-amber-400")} />
+                <Check className={cn("h-3.5 w-3.5", f.highlight ? "text-primary" : "text-primary")} />
               </div>
             </div>
           ))}
