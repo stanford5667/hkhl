@@ -422,8 +422,8 @@ export default function CourseDetail() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0">
-                      <Award className="w-4 h-4 text-purple-400" />
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <Award className="w-4 h-4 text-primary" />
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-foreground">Certificate</p>
