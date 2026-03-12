@@ -81,7 +81,7 @@ export function PremiumFeatureBlock({
           </p>
         )}
         {!isLoading && (
-          <span className="text-xs text-amber-500/50 group-hover:text-amber-500 mt-1">
+          <span className="text-xs text-primary/50 group-hover:text-primary mt-1">
             Click to upgrade →
           </span>
         )}
