@@ -440,7 +440,7 @@ export default function CourseDetail() {
                   disabled={isCheckoutLoading}
                 >
                   <Zap className="w-3.5 h-3.5 mr-1.5" />
-                  {isCheckoutLoading ? 'Loading...' : 'Start Your Investing Journey — from $58/mo'}
+                  {isCheckoutLoading ? 'Loading...' : 'Start Your Investing Journey — from $83/mo'}
                 </Button>
               </CardContent>
             </Card>
