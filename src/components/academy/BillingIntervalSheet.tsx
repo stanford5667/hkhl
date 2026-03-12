@@ -136,10 +136,10 @@ export function BillingIntervalSheet({ open, onOpenChange, returnPath }: Billing
         </SheetHeader>
 
         {isProUpgrade && (
-          <div className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3">
+          <div className="mb-4 rounded-lg border border-success/30 bg-success/10 px-4 py-3">
             <div className="flex items-center gap-2 mb-1">
-              <ArrowUp className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="text-emerald-300 text-xs font-semibold uppercase tracking-wide">Pro → Research & Education</span>
+              <ArrowUp className="w-3.5 h-3.5 text-success" />
+              <span className="text-success text-xs font-semibold uppercase tracking-wide">Pro → Research & Education</span>
             </div>
             <p className="text-muted-foreground text-xs">
               Your current Pro subscription will be upgraded. Stripe will automatically prorate the cost — you only pay the difference for the remaining billing period.
