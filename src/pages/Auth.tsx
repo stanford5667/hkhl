@@ -49,7 +49,7 @@ export default function Auth() {
 
   // Get the redirect path and optional checkout intent from state
   const locationState = location.state as { from?: string; checkoutPlan?: string; checkoutReturnPath?: string } | null;
-  const from = locationState?.from || "/";
+  const from = locationState?.from || "/research";
   const checkoutPlan = locationState?.checkoutPlan;
   const checkoutReturnPath = locationState?.checkoutReturnPath;
 
