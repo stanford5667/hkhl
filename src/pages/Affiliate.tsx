@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Copy, DollarSign, MousePointerClick, UserPlus, TrendingUp, LinkIcon, CheckCircle2, Wallet, BanknoteIcon } from "lucide-react";
+import { Loader2, Copy, DollarSign, MousePointerClick, UserPlus, TrendingUp, LinkIcon, CheckCircle2, Wallet, BanknoteIcon, ShieldCheck, AlertTriangle } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 
 interface AffiliateData {
@@ -470,14 +470,14 @@ export default function Affiliate() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="settings" className="mt-4">
+        <TabsContent value="settings" className="mt-4 space-y-4">
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Wallet className="h-5 w-5" />
                 Payment Information
               </CardTitle>
-              <CardDescription>Configure how you'd like to receive your commission payouts. Payouts are processed monthly for balances over $50.</CardDescription>
+              <CardDescription>Configure how you'd like to receive your commission payouts. We use third-party payment platforms so we never store your sensitive financial information.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
@@ -488,34 +488,29 @@ export default function Affiliate() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="paypal">PayPal</SelectItem>
-                    <SelectItem value="bank_transfer">Bank Transfer (ACH/Wire)</SelectItem>
                     <SelectItem value="venmo">Venmo</SelectItem>
                     <SelectItem value="zelle">Zelle</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  All payouts are sent via the selected platform. We never collect or store bank account or card numbers.
+                </p>
               </div>
               <div className="space-y-2">
                 <Label>
                   {paymentMethod === "paypal" ? "PayPal Email" :
                    paymentMethod === "venmo" ? "Venmo Username or Phone" :
-                   paymentMethod === "zelle" ? "Zelle Email or Phone" :
-                   "Email for Payment Coordination"}
+                   "Zelle Email or Phone"}
                 </Label>
                 <Input
                   value={paymentEmail}
                   onChange={(e) => setPaymentEmail(e.target.value)}
                   placeholder={
                     paymentMethod === "paypal" ? "your@paypal.com" :
-                    paymentMethod === "venmo" ? "@username or phone" :
-                    paymentMethod === "zelle" ? "email or phone" :
-                    "your@email.com"
+                    paymentMethod === "venmo" ? "@username or phone number" :
+                    "email or phone number"
                   }
                 />
-                {paymentMethod === "bank_transfer" && (
-                  <p className="text-xs text-muted-foreground">
-                    We'll contact you at this email to coordinate bank transfer details securely.
-                  </p>
-                )}
               </div>
 
               <div className="p-4 rounded-lg bg-muted/50 border space-y-2">
@@ -544,6 +539,42 @@ export default function Affiliate() {
                 {savingPayment ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                 Save Payment Info
               </Button>
+            </CardContent>
+          </Card>
+
+          {/* Tax Compliance Section */}
+          <Card className="border-amber-500/20">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5 text-amber-500" />
+                Tax Information
+              </CardTitle>
+              <CardDescription>Important tax compliance information for US-based affiliates.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="p-4 rounded-lg bg-amber-500/5 border border-amber-500/20 space-y-3">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                  <div className="space-y-2 text-sm">
+                    <p className="font-medium">IRS Reporting Requirements</p>
+                    <p className="text-muted-foreground">
+                      Per IRS regulations, if your total affiliate earnings reach <span className="font-semibold text-foreground">$600 or more</span> in a calendar year, 
+                      we are required to issue you a <span className="font-semibold text-foreground">1099-NEC</span> form and report your earnings to the IRS.
+                    </p>
+                    <p className="text-muted-foreground">
+                      Before your first payout, we may request a <span className="font-semibold text-foreground">W-9 form</span> (for US persons) or <span className="font-semibold text-foreground">W-8BEN</span> (for non-US persons) 
+                      to collect your legal name, address, and taxpayer identification number. This information is required by law and will be handled securely.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2 text-xs text-muted-foreground">
+                <p><span className="font-medium text-foreground">Payout schedule:</span> Commissions are processed monthly for balances over $50.</p>
+                <p><span className="font-medium text-foreground">Minimum payout:</span> $50.00 USD</p>
+                <p><span className="font-medium text-foreground">Currency:</span> All commissions are calculated and paid in USD.</p>
+                <p><span className="font-medium text-foreground">Your responsibility:</span> You are responsible for reporting affiliate income on your tax return regardless of whether a 1099 is issued.</p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
