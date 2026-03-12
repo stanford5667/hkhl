@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Copy, DollarSign, MousePointerClick, UserPlus, TrendingUp, LinkIcon, CheckCircle2, Wallet, BanknoteIcon } from "lucide-react";
+import { Loader2, Copy, DollarSign, MousePointerClick, UserPlus, TrendingUp, LinkIcon, CheckCircle2, Wallet, BanknoteIcon, ShieldCheck, AlertTriangle } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 
 interface AffiliateData {
