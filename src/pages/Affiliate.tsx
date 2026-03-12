@@ -367,23 +367,13 @@ export default function Affiliate() {
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <LinkIcon className="h-5 w-5" />
-            Your Affiliate Link & Promo Code
+            Your Promo Code
           </CardTitle>
-          <CardDescription>Share your link or promo code to earn {affiliate.commission_rate}% recurring commission. Referrals get 10% off their first month!</CardDescription>
+          <CardDescription>Share your promo code to earn {affiliate.commission_rate}% recurring commission. Referrals get 10% off their first month!</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label className="text-xs text-muted-foreground mb-1.5 block">Referral Link</Label>
-            <div className="flex gap-2">
-              <Input value={affiliateLink} readOnly className="font-mono text-sm" />
-              <Button onClick={() => copyToClipboard(affiliateLink, "Affiliate link")} variant="outline" className="shrink-0">
-                <Copy className="h-4 w-4 mr-2" />
-                Copy
-              </Button>
-            </div>
-          </div>
-          <div>
-            <Label className="text-xs text-muted-foreground mb-1.5 block">Promo Code (users can enter this at checkout)</Label>
+            <Label className="text-xs text-muted-foreground mb-1.5 block">Promo Code (share this with people you refer — they get 10% off their first month)</Label>
             <div className="flex gap-2">
               <Input value={affiliate.affiliate_code} readOnly className="font-mono text-sm font-bold tracking-wider" />
               <Button onClick={() => copyToClipboard(affiliate.affiliate_code, "Promo code")} variant="outline" className="shrink-0">
@@ -394,8 +384,6 @@ export default function Affiliate() {
           </div>
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <span>Commission: {affiliate.commission_rate}% {affiliate.commission_type}</span>
-            <span>•</span>
-            <span>90-day cookie</span>
             <span>•</span>
             <span>10% discount for referrals</span>
           </div>
