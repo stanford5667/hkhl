@@ -11,7 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, Copy, DollarSign, MousePointerClick, UserPlus, TrendingUp, LinkIcon, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2, Copy, DollarSign, MousePointerClick, UserPlus, TrendingUp, LinkIcon, CheckCircle2, Wallet, BanknoteIcon } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 
 interface AffiliateData {
@@ -40,14 +41,29 @@ interface Referral {
   commission_status: string;
 }
 
+interface Payout {
+  id: string;
+  amount: number;
+  status: string;
+  payment_method: string | null;
+  payment_reference: string | null;
+  period_start: string | null;
+  period_end: string | null;
+  processed_at: string | null;
+  created_at: string;
+  notes: string | null;
+}
+
 export default function Affiliate() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [affiliate, setAffiliate] = useState<AffiliateData | null>(null);
   const [referrals, setReferrals] = useState<Referral[]>([]);
+  const [payouts, setPayouts] = useState<Payout[]>([]);
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
   const [paymentEmail, setPaymentEmail] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("paypal");
   const [savingPayment, setSavingPayment] = useState(false);
 
   useEffect(() => {
@@ -71,15 +87,26 @@ export default function Affiliate() {
     if (data) {
       setAffiliate(data as any);
       setPaymentEmail(data.payment_email || "");
+      setPaymentMethod(data.payment_method || "paypal");
       
-      const { data: refs } = await supabase
-        .from("affiliate_referrals")
-        .select("id, click_at, signed_up_at, converted_at, conversion_amount, commission_amount, commission_status")
-        .eq("affiliate_id", data.id)
-        .order("click_at", { ascending: false })
-        .limit(50);
+      // Fetch referrals and payouts in parallel
+      const [refsResult, payoutsResult] = await Promise.all([
+        supabase
+          .from("affiliate_referrals")
+          .select("id, click_at, signed_up_at, converted_at, conversion_amount, commission_amount, commission_status")
+          .eq("affiliate_id", data.id)
+          .order("click_at", { ascending: false })
+          .limit(50),
+        supabase
+          .from("affiliate_payouts")
+          .select("*")
+          .eq("affiliate_id", data.id)
+          .order("created_at", { ascending: false })
+          .limit(20),
+      ]);
       
-      setReferrals((refs as any[]) || []);
+      setReferrals((refsResult.data as any[]) || []);
+      setPayouts((payoutsResult.data as any[]) || []);
     }
     setLoading(false);
   };
@@ -116,7 +143,6 @@ export default function Affiliate() {
           });
         } catch (promoErr) {
           console.error("Failed to create promo code:", promoErr);
-          // Non-fatal — affiliate still works, promo can be created later
         }
 
         toast.success("You're now an affiliate! Your link and promo code are ready.");
@@ -134,19 +160,20 @@ export default function Affiliate() {
     setSavingPayment(true);
     const { error } = await supabase
       .from("affiliates")
-      .update({ payment_email: paymentEmail })
+      .update({ payment_email: paymentEmail, payment_method: paymentMethod })
       .eq("id", affiliate.id);
     
     if (error) toast.error("Failed to save");
-    else toast.success("Payment info saved!");
+    else {
+      toast.success("Payment info saved!");
+      setAffiliate(prev => prev ? { ...prev, payment_email: paymentEmail, payment_method: paymentMethod } : null);
+    }
     setSavingPayment(false);
   };
 
-  const copyLink = () => {
-    if (!affiliate) return;
-    const link = `https://assetlabs.ai?ref=${affiliate.affiliate_code}`;
-    navigator.clipboard.writeText(link);
-    toast.success("Affiliate link copied!");
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success(`${label} copied!`);
   };
 
   const affiliateLink = affiliate ? `https://assetlabs.ai?ref=${affiliate.affiliate_code}` : "";
@@ -294,7 +321,7 @@ export default function Affiliate() {
             <Label className="text-xs text-muted-foreground mb-1.5 block">Referral Link</Label>
             <div className="flex gap-2">
               <Input value={affiliateLink} readOnly className="font-mono text-sm" />
-              <Button onClick={copyLink} variant="outline" className="shrink-0">
+              <Button onClick={() => copyToClipboard(affiliateLink, "Affiliate link")} variant="outline" className="shrink-0">
                 <Copy className="h-4 w-4 mr-2" />
                 Copy
               </Button>
@@ -304,7 +331,7 @@ export default function Affiliate() {
             <Label className="text-xs text-muted-foreground mb-1.5 block">Promo Code (users can enter this at checkout)</Label>
             <div className="flex gap-2">
               <Input value={affiliate.affiliate_code} readOnly className="font-mono text-sm font-bold tracking-wider" />
-              <Button onClick={() => { navigator.clipboard.writeText(affiliate.affiliate_code); toast.success("Promo code copied!"); }} variant="outline" className="shrink-0">
+              <Button onClick={() => copyToClipboard(affiliate.affiliate_code, "Promo code")} variant="outline" className="shrink-0">
                 <Copy className="h-4 w-4 mr-2" />
                 Copy
               </Button>
@@ -324,6 +351,7 @@ export default function Affiliate() {
       <Tabs defaultValue="referrals">
         <TabsList>
           <TabsTrigger value="referrals">Referrals</TabsTrigger>
+          <TabsTrigger value="payouts">Payout History</TabsTrigger>
           <TabsTrigger value="settings">Payment Settings</TabsTrigger>
         </TabsList>
 
@@ -381,22 +409,137 @@ export default function Affiliate() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="payouts" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <BanknoteIcon className="h-5 w-5" />
+                Payout History
+              </CardTitle>
+              <CardDescription>
+                Payouts are processed monthly for balances over $50. You'll receive payment to your configured payment method below.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {payouts.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Wallet className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="mb-1">No payouts yet</p>
+                  <p className="text-xs">Payouts are processed once your unpaid balance reaches $50.</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Period</TableHead>
+                      <TableHead>Method</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {payouts.map((payout) => (
+                      <TableRow key={payout.id}>
+                        <TableCell className="text-sm">
+                          {new Date(payout.processed_at || payout.created_at).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {payout.period_start && payout.period_end
+                            ? `${new Date(payout.period_start).toLocaleDateString()} – ${new Date(payout.period_end).toLocaleDateString()}`
+                            : "—"}
+                        </TableCell>
+                        <TableCell className="text-sm capitalize">
+                          {payout.payment_method || "—"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={payout.status === "paid" ? "default" : payout.status === "pending" ? "secondary" : "outline"}>
+                            {payout.status === "paid" ? <CheckCircle2 className="h-3 w-3 mr-1" /> : null}
+                            {payout.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right text-sm font-medium">
+                          ${payout.amount.toFixed(2)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="settings" className="mt-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Payment Information</CardTitle>
-              <CardDescription>Where should we send your commission payouts?</CardDescription>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Wallet className="h-5 w-5" />
+                Payment Information
+              </CardTitle>
+              <CardDescription>Configure how you'd like to receive your commission payouts. Payouts are processed monthly for balances over $50.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
               <div className="space-y-2">
-                <Label>PayPal / Payment Email</Label>
+                <Label>Payment Method</Label>
+                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select payment method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="paypal">PayPal</SelectItem>
+                    <SelectItem value="bank_transfer">Bank Transfer (ACH/Wire)</SelectItem>
+                    <SelectItem value="venmo">Venmo</SelectItem>
+                    <SelectItem value="zelle">Zelle</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>
+                  {paymentMethod === "paypal" ? "PayPal Email" :
+                   paymentMethod === "venmo" ? "Venmo Username or Phone" :
+                   paymentMethod === "zelle" ? "Zelle Email or Phone" :
+                   "Email for Payment Coordination"}
+                </Label>
                 <Input
                   value={paymentEmail}
                   onChange={(e) => setPaymentEmail(e.target.value)}
-                  placeholder="your@paypal.com"
-                  type="email"
+                  placeholder={
+                    paymentMethod === "paypal" ? "your@paypal.com" :
+                    paymentMethod === "venmo" ? "@username or phone" :
+                    paymentMethod === "zelle" ? "email or phone" :
+                    "your@email.com"
+                  }
                 />
+                {paymentMethod === "bank_transfer" && (
+                  <p className="text-xs text-muted-foreground">
+                    We'll contact you at this email to coordinate bank transfer details securely.
+                  </p>
+                )}
               </div>
+
+              <div className="p-4 rounded-lg bg-muted/50 border space-y-2">
+                <p className="text-sm font-medium">Current Payment Status</p>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Total Earned:</span>
+                    <span className="ml-2 font-medium">${affiliate.total_earnings.toFixed(2)}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Total Paid:</span>
+                    <span className="ml-2 font-medium">${affiliate.total_paid.toFixed(2)}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Unpaid Balance:</span>
+                    <span className="ml-2 font-semibold text-primary">${unpaidEarnings.toFixed(2)}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Method:</span>
+                    <span className="ml-2 capitalize">{affiliate.payment_method || "Not set"}</span>
+                  </div>
+                </div>
+              </div>
+
               <Button onClick={savePaymentInfo} disabled={savingPayment}>
                 {savingPayment ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                 Save Payment Info

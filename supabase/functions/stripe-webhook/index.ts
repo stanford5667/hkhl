@@ -115,6 +115,9 @@ serve(async (req) => {
             }
           }
 
+          // Track whether attribution already happened
+          let attributed = false;
+
           // Method 4: Fallback to cookie-based referral lookup
           if (!affiliateId) {
             const { data: userData } = await supabaseClient.auth.admin.listUsers();
@@ -150,6 +153,7 @@ serve(async (req) => {
                   earning_amount: commission,
                 });
 
+                attributed = true;
                 logStep("Affiliate commission attributed (cookie method)", { 
                   affiliate_id: referral.affiliate_id, 
                   amount: amountDollars, 
@@ -159,8 +163,8 @@ serve(async (req) => {
             }
           }
 
-          // If we found affiliate via promo code/metadata, attribute the commission
-          if (affiliateId && !sessionMetadata._cookie_attributed) {
+          // If we found affiliate via promo code/metadata (and not already attributed via cookie), attribute the commission
+          if (affiliateId && !attributed) {
             const { data: affiliateData } = await supabaseClient
               .from("affiliates")
               .select("id, commission_rate")
