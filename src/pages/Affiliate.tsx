@@ -131,12 +131,12 @@ export default function Affiliate() {
 
   const copyLink = () => {
     if (!affiliate) return;
-    const link = `https://aiassetlabs.com?ref=${affiliate.affiliate_code}`;
+    const link = `https://assetlabs.ai?ref=${affiliate.affiliate_code}`;
     navigator.clipboard.writeText(link);
     toast.success("Affiliate link copied!");
   };
 
-  const affiliateLink = affiliate ? `https://aiassetlabs.com?ref=${affiliate.affiliate_code}` : "";
+  const affiliateLink = affiliate ? `https://assetlabs.ai?ref=${affiliate.affiliate_code}` : "";
 
   if (authLoading || loading) {
     return (

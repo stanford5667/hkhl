@@ -68,7 +68,7 @@ serve(async (req) => {
     }
 
     // Build verification URL
-    const verificationUrl = `https://aiassetlabs.com/verify-email?token=${verificationToken}`;
+    const verificationUrl = `https://assetlabs.ai/verify-email?token=${verificationToken}`;
 
     logStep("Sending verification email via Loops", { email, verificationUrl });
 
