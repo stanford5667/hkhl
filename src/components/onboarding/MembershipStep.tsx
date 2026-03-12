@@ -3,11 +3,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Check, Loader2, Sparkles, X } from 'lucide-react';
+import { Check, Loader2, Sparkles, X, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { BillingToggle } from './BillingToggle';
-import { FeatureComparisonPanel } from '@/components/auth/FeatureComparisonPanel';
+import { PRICING, COMPARISON_FEATURES, COMING_SOON } from '@/config/pricing';
 
 interface MembershipStepProps {
   onComplete: () => void;
@@ -15,54 +15,13 @@ interface MembershipStepProps {
   isStandalone?: boolean;
 }
 
-const FREE_FEATURES = [
-  { name: 'Basic Portfolio Tracking', included: true },
-  { name: 'Market Overview Dashboard', included: true },
-  { name: '2 Basic Quant Lab Studies', included: true },
-  { name: 'Limited Screener Results', included: true },
-  { name: 'Save Portfolios & Studies', included: false },
-  { name: 'Full Quant Lab Access', included: false },
-  { name: 'Unlimited Screener', included: false },
-  { name: 'Extended Timeframes', included: false },
-];
-
-const PRO_FEATURES = [
-  { name: 'Everything in Free', included: true },
-  { name: 'Full Video Course Library', included: true, highlight: true },
-  { name: 'Live Trade Ideas Chatroom', included: true, highlight: true },
-  { name: 'AI Stock Backtesting', included: true, highlight: true },
-  { name: 'Strategy Builder (20+ indicators)', included: true, highlight: true },
-  { name: 'Save Portfolios, Studies & Screens', included: true, highlight: true },
-  { name: '100+ Quant Lab Studies', included: true },
-  { name: 'Deep Conditional Probability Studies', included: true },
-  { name: 'Community Research Posts', included: true },
-  { name: 'Expanded Datasets & Asset Coverage', included: true },
-  { name: 'Unlimited Screener Results & Filters', included: true },
-  { name: 'Extended Historical Timeframes', included: true },
-  { name: 'AI-Powered Market Chat', included: true },
-  { name: 'Real-time Price Alerts', included: true },
-  { name: 'Early Access to New Features', included: true },
-  { name: 'Priority Support', included: true },
-];
-
-const COMING_SOON = [
-  'Options Flow Screening',
-  'Agentic News Bots',
-  'Hundreds of New Studies',
-];
-
 type PlanType = 'free' | 'research_education';
-
-const PRICES = {
-  pro: { monthly: 150, annual: 83 },
-  annualTotal: 1000,
-};
 
 export function MembershipStep({ onComplete, onBack, isStandalone = false }: MembershipStepProps) {
   const { user } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState<PlanType | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isAnnual, setIsAnnual] = useState(true);
+  const [selectedInterval, setSelectedInterval] = useState<'annual' | 'monthly'>('annual');
 
   const handleSelectPlan = async (plan: PlanType) => {
     if (!user) return;
@@ -80,7 +39,7 @@ export function MembershipStep({ onComplete, onBack, isStandalone = false }: Mem
         }
 
         const { data, error } = await supabase.functions.invoke('create-checkout', {
-          body: { plan: 'research_education', billing_interval: isAnnual ? 'annual' : 'monthly' },
+          body: { plan: 'research_education', billing_interval: selectedInterval },
         });
         
         if (error) throw error;
@@ -115,7 +74,7 @@ export function MembershipStep({ onComplete, onBack, isStandalone = false }: Mem
     }
   };
 
-  const proPrice = isAnnual ? PRICES.pro.annual : PRICES.pro.monthly;
+  const selectedPrice = selectedInterval === 'annual' ? PRICING.annualPerMonth : PRICING.monthly;
 
   return (
     <Card className="glass-card max-w-5xl mx-auto">
@@ -130,140 +89,136 @@ export function MembershipStep({ onComplete, onBack, isStandalone = false }: Mem
         {!isStandalone && <p className="text-xs text-muted-foreground/70 mt-2">Step 2 of 2</p>}
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Free vs Pro comparison checklist */}
-        <div className="max-w-md mx-auto">
-          <FeatureComparisonPanel />
+        {/* Feature comparison table */}
+        <div className="max-w-md mx-auto rounded-lg border border-border overflow-hidden">
+          <div className="grid grid-cols-[1fr_48px_48px] items-center gap-0 px-3 py-2 bg-muted/50 border-b border-border">
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Feature</span>
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider text-center">Free</span>
+            <span className="text-[10px] font-semibold text-amber-400 uppercase tracking-wider text-center">Pro</span>
+          </div>
+          {COMPARISON_FEATURES.map((f, i) => (
+            <div
+              key={f.name}
+              className={cn(
+                "grid grid-cols-[1fr_48px_48px] items-center gap-0 px-3 py-1.5",
+                f.highlight ? "bg-primary/5" : i % 2 === 0 ? "bg-card" : "bg-muted/30",
+                i < COMPARISON_FEATURES.length - 1 && "border-b border-border/50"
+              )}
+            >
+              <span className={cn(
+                "text-[11px] leading-tight",
+                f.highlight
+                  ? "text-foreground font-semibold flex items-center gap-1"
+                  : "text-foreground/80"
+              )}>
+                {f.highlight && <Star className="h-2.5 w-2.5 text-amber-400 fill-amber-400 flex-shrink-0" />}
+                {f.name}
+              </span>
+              <div className="flex justify-center">
+                {f.free ? (
+                  <Check className="h-3.5 w-3.5 text-green-500" />
+                ) : (
+                  <X className="h-3.5 w-3.5 text-muted-foreground/40" />
+                )}
+              </div>
+              <div className="flex justify-center">
+                <Check className={cn("h-3.5 w-3.5", f.highlight ? "text-amber-400" : "text-amber-400")} />
+              </div>
+            </div>
+          ))}
         </div>
 
-        <BillingToggle isAnnual={isAnnual} onChange={setIsAnnual} />
-
-        <div className="grid md:grid-cols-2 gap-5 max-w-3xl mx-auto">
-          {/* Free Plan */}
-          <div 
+        {/* Billing interval cards */}
+        <div className="max-w-md mx-auto space-y-3">
+          <Card
             className={cn(
-              "relative rounded-xl border-2 p-5 cursor-pointer transition-all",
-              selectedPlan === 'free' 
-                ? "border-primary bg-primary/5" 
-                : "border-border hover:border-primary/30 bg-muted/20"
+              'relative p-4 cursor-pointer border-2 transition-all bg-muted/30',
+              selectedInterval === 'annual'
+                ? 'border-amber-500 ring-1 ring-amber-500/30'
+                : 'border-border hover:border-primary/30'
             )}
-            onClick={() => !isLoading && setSelectedPlan('free')}
+            onClick={() => setSelectedInterval('annual')}
           >
-            <div className="text-center mb-5">
-              <h3 className="text-lg font-bold text-foreground mb-1">Free</h3>
-              <div className="text-3xl font-bold text-foreground">$0</div>
-              <p className="text-muted-foreground text-sm">Forever free</p>
+            <Badge className="absolute -top-2.5 left-4 bg-amber-600 text-white text-[10px] font-semibold px-2">
+              Best Value
+            </Badge>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-foreground font-semibold text-base">Annual</p>
+                <p className="text-muted-foreground text-xs">${PRICING.annualTotal.toLocaleString()}/year</p>
+              </div>
+              <div className="text-right">
+                <p className="text-foreground text-2xl font-bold">
+                  ${PRICING.annualPerMonth}<span className="text-sm text-muted-foreground">/mo</span>
+                </p>
+                <p className="text-green-400 text-xs font-medium">Save ${PRICING.annualSavings.toLocaleString()}/yr</p>
+              </div>
             </div>
-            
-            <ul className="space-y-2.5 mb-5">
-              {FREE_FEATURES.map((feature, index) => (
-                <li key={index} className="flex items-center gap-2">
-                  {feature.included ? (
-                    <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                  ) : (
-                    <X className="h-4 w-4 text-muted-foreground/40 flex-shrink-0" />
-                  )}
-                  <span className={cn(
-                    "text-sm",
-                    feature.included ? "text-foreground/80" : "text-muted-foreground/50"
-                  )}>
-                    {feature.name}
-                  </span>
-                </li>
-              ))}
-            </ul>
+          </Card>
 
-            <Button 
-              className="w-full"
-              variant={selectedPlan === 'free' ? 'default' : 'outline'}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleSelectPlan('free');
-              }}
-              disabled={isLoading}
-            >
-              {isLoading && selectedPlan === 'free' ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                'Start Free'
-              )}
-            </Button>
-          </div>
-
-          {/* Pro Plan */}
-          <div 
+          <Card
             className={cn(
-              "relative rounded-xl border-2 p-5 cursor-pointer transition-all",
-              selectedPlan === 'research_education' 
-                ? "border-primary bg-primary/10" 
-                : "border-primary/30 hover:border-primary bg-gradient-to-b from-primary/5 to-muted/20"
+              'p-4 cursor-pointer border-2 transition-all bg-muted/30',
+              selectedInterval === 'monthly'
+                ? 'border-amber-500 ring-1 ring-amber-500/30'
+                : 'border-border hover:border-primary/30'
             )}
-            onClick={() => !isLoading && setSelectedPlan('research_education')}
+            onClick={() => setSelectedInterval('monthly')}
           >
-            {/* Best Value Badge */}
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-              <span className="bg-primary text-primary-foreground text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1 whitespace-nowrap">
-                <Sparkles className="h-3 w-3" />
-                MOST POPULAR
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-foreground font-semibold text-base">Monthly</p>
+                <p className="text-muted-foreground text-xs">${PRICING.monthly}/month</p>
+              </div>
+              <div className="text-right">
+                <p className="text-foreground text-2xl font-bold">
+                  ${PRICING.monthly}<span className="text-sm text-muted-foreground">/mo</span>
+                </p>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* Action buttons */}
+        <div className="max-w-md mx-auto space-y-3">
+          <Button
+            className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold h-12 text-base"
+            onClick={() => handleSelectPlan('research_education')}
+            disabled={isLoading}
+          >
+            {isLoading && selectedPlan === 'research_education' ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              `Upgrade Now — $${selectedPrice}/mo`
+            )}
+          </Button>
+
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => handleSelectPlan('free')}
+            disabled={isLoading}
+          >
+            {isLoading && selectedPlan === 'free' ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              'Continue with Free'
+            )}
+          </Button>
+        </div>
+
+        {/* Coming Soon */}
+        <div className="max-w-md mx-auto bg-gradient-to-r from-primary/10 to-amber-500/10 rounded-lg p-3 border border-primary/20">
+          <p className="text-xs font-semibold text-primary uppercase tracking-wide mb-2 flex items-center gap-1">
+            <Sparkles className="h-3 w-3" />
+            Coming Soon
+          </p>
+          <div className="flex flex-wrap gap-1">
+            {COMING_SOON.map((feature, i) => (
+              <span key={i} className="text-xs bg-muted/50 px-2 py-0.5 rounded-full text-muted-foreground">
+                {feature}
               </span>
-            </div>
-
-            <div className="text-center mb-5 mt-2">
-              <h3 className="text-lg font-bold text-foreground mb-1">Pro</h3>
-              <div className="text-3xl font-bold text-foreground">
-                ${proPrice}
-                <span className="text-lg text-muted-foreground">/mo</span>
-              </div>
-               <p className="text-muted-foreground text-sm">
-                 {isAnnual ? `Billed $${PRICES.annualTotal}/yr` : 'Billed monthly'}
-               </p>
-               {isAnnual && (
-                 <p className="text-green-400 text-xs mt-1 font-medium">
-                   Save ${(PRICES.pro.monthly * 12) - PRICES.annualTotal}/yr vs monthly
-                 </p>
-               )}
-            </div>
-            
-            <ul className="space-y-2 mb-4">
-              {PRO_FEATURES.map((feature, index) => (
-                <li key={index} className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-primary flex-shrink-0" />
-                  <span className={cn(
-                    "text-sm text-foreground/80",
-                    feature.highlight && "font-semibold text-amber-400"
-                  )}>{feature.name}</span>
-                </li>
-              ))}
-            </ul>
-
-            {/* Coming Soon Section */}
-            <div className="bg-gradient-to-r from-primary/10 to-amber-500/10 rounded-lg p-3 border border-primary/20 mb-4">
-              <p className="text-xs font-semibold text-primary uppercase tracking-wide mb-2 flex items-center gap-1">
-                <Sparkles className="h-3 w-3" />
-                Coming Soon
-              </p>
-              <div className="flex flex-wrap gap-1">
-                {COMING_SOON.map((feature, i) => (
-                  <span key={i} className="text-xs bg-muted/50 px-2 py-0.5 rounded-full text-muted-foreground">
-                    {feature}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <Button 
-              className="w-full"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleSelectPlan('research_education');
-              }}
-              disabled={isLoading}
-            >
-              {isLoading && selectedPlan === 'research_education' ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                'Get Pro'
-              )}
-            </Button>
+            ))}
           </div>
         </div>
 

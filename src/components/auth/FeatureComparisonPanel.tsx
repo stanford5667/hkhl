@@ -1,18 +1,6 @@
 import { Check, X, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const FEATURES = [
-  { name: "Full Video Course Library", free: false, pro: true, highlight: true },
-  { name: "Live Trade Ideas Chatroom", free: false, pro: true, highlight: true },
-  { name: "AI Stock Backtesting", free: false, pro: true, highlight: true },
-  { name: "Strategy Builder (20+ indicators)", free: false, pro: true, highlight: true },
-  { name: "AI Trading Bot", free: false, pro: true },
-  { name: "AI Stock Analysis", free: false, pro: true },
-  { name: "Market Screener", free: false, pro: true },
-  { name: "Stock Overview & Charts", free: true, pro: true },
-  { name: "Trending Tickers", free: true, pro: true },
-  { name: "Earnings Calendar", free: true, pro: true },
-];
+import { COMPARISON_FEATURES, PRICING } from "@/config/pricing";
 
 export function FeatureComparisonPanel() {
   return (
@@ -25,7 +13,7 @@ export function FeatureComparisonPanel() {
           <span className="w-12 text-center text-primary">Pro</span>
         </div>
         <div className="divide-y divide-border/50">
-          {FEATURES.map((feature) => (
+          {COMPARISON_FEATURES.map((feature) => (
             <div key={feature.name} className={cn(
               "grid grid-cols-[1fr_auto_auto] gap-0 items-center px-3 py-2 transition-colors",
               feature.highlight
@@ -56,7 +44,7 @@ export function FeatureComparisonPanel() {
         </div>
       </div>
       <p className="text-center text-[10px] text-muted-foreground">
-        Pro starts at <span className="font-semibold text-foreground">$83/mo</span> (billed annually)
+        Pro starts at <span className="font-semibold text-foreground">${PRICING.annualPerMonth}/mo</span> (billed annually)
       </p>
     </div>
   );
