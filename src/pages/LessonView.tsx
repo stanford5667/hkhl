@@ -44,7 +44,6 @@ export default function LessonView() {
   const videoRef = useRef<HTMLIFrameElement | HTMLVideoElement>(null);
   const [videoProgress, setVideoProgress] = useState(0);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const [showAuthSheet, setShowAuthSheet] = useState(false);
 
   // Fetch lesson details
