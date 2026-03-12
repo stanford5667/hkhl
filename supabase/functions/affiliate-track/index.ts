@@ -100,12 +100,6 @@ serve(async (req) => {
         .eq("id", referral.id);
 
       // Increment referral count
-      await supabase
-        .from("affiliates")
-        .update({ total_referrals: supabase.rpc ? undefined : 0 })
-        .eq("id", referral.affiliate_id);
-
-      // Use raw SQL to increment
       const { error: incError } = await supabase.rpc("increment_affiliate_referrals", { aff_id: referral.affiliate_id });
       if (incError) logStep("Error incrementing referrals", incError);
 
