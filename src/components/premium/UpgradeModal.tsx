@@ -252,7 +252,7 @@ export function UpgradeModal({ isOpen, feature, onClose, onUpgrade }: UpgradeMod
       </div>
 
       <Button
-        className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold h-12 text-base"
+        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold h-12 text-base"
         onClick={handleUpgrade}
         disabled={isLoading}
       >
