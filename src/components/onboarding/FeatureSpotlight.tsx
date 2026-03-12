@@ -30,7 +30,7 @@ export function FeatureSpotlight({ show, onDismiss, hasCompletedAssessment = fal
       >
         <div className="relative bg-background/95 backdrop-blur-xl border border-border rounded-xl shadow-2xl overflow-hidden">
           {/* Gradient accent */}
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-purple-500/5 to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-primary/3 to-transparent pointer-events-none" />
           
           {/* Close button */}
           <Button 
