@@ -70,6 +70,7 @@ const StockDiscovery = lazy(() => import('./pages/StockDiscovery'));
 const ThemeAnalysis = lazy(() => import('./pages/ThemeAnalysis'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 const Upgrade = lazy(() => import('./pages/Upgrade'));
+const Affiliate = lazy(() => import('./pages/Affiliate'));
 
 // Optimized QueryClient with aggressive caching and deduplication
 const queryClient = new QueryClient({
@@ -165,6 +166,7 @@ const App = () => {
                               <Route path="/glossary" element={<Glossary />} />
                               <Route path="/theme-analysis" element={<ThemeAnalysis />} />
                               <Route path="/landing" element={<LandingPage />} />
+                              <Route path="/affiliate" element={<Affiliate />} />
                               {/* Redirects from old routes */}
                               <Route path="/portfolio" element={<Navigate to="/" replace />} />
                               <Route path="/companies" element={<Navigate to="/" replace />} />
