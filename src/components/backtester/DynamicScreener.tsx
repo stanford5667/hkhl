@@ -752,8 +752,8 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
                     </div>
                     <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-[2px] rounded-lg border border-primary/20 group-hover:border-primary/40 transition-all">
                       <div className="text-center p-4">
-                        <div className="bg-gradient-to-br from-amber-500/20 to-orange-500/20 p-3 rounded-full w-fit mx-auto mb-2">
-                          <Crown className="h-6 w-6 text-amber-500" />
+                        <div className="bg-primary/10 p-3 rounded-full w-fit mx-auto mb-2">
+                          <Crown className="h-6 w-6 text-primary" />
                         </div>
                         <p className="font-semibold text-lg text-primary mb-0.5">
                           {expandedTotalCount > 0 ? expandedTotalCount.toLocaleString() : '100,000'}+ Portfolios
@@ -764,7 +764,7 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
                         </p>
                         <Button 
                           size="sm" 
-                          className="mt-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
+                          className="mt-3 bg-primary hover:bg-primary/90 text-primary-foreground"
                         >
                           <Crown className="h-3 w-3 mr-1" />
                           Unlock All Portfolios
