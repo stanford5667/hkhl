@@ -8,7 +8,14 @@ export const PRICING = {
   },
 } as const;
 
-export const COMPARISON_FEATURES = [
+export interface ComparisonFeature {
+  name: string;
+  free: boolean;
+  pro: boolean;
+  highlight?: boolean;
+}
+
+export const COMPARISON_FEATURES: ComparisonFeature[] = [
   { name: "Full Video Course Library", free: false, pro: true, highlight: true },
   { name: "Live Trade Ideas Chatroom", free: false, pro: true, highlight: true },
   { name: "AI Stock Backtesting", free: false, pro: true, highlight: true },
@@ -19,7 +26,7 @@ export const COMPARISON_FEATURES = [
   { name: "Stock Overview & Charts", free: true, pro: true },
   { name: "Trending Tickers", free: true, pro: true },
   { name: "Earnings Calendar", free: true, pro: true },
-] as const;
+];
 
 export const COMING_SOON = [
   'Options Flow Screening',
