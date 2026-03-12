@@ -50,7 +50,7 @@ export function SelectableListLayout({
 
       {/* Preview Section - Mobile (bottom sheet style) */}
       {hasSelection && previewContent && (
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 p-4 bg-background border-t shadow-lg animate-in slide-in-from-bottom duration-200">
+        <div className="lg:hidden fixed bottom-16 md:bottom-0 left-0 right-0 z-40 p-4 bg-background border-t shadow-lg animate-in slide-in-from-bottom duration-200">
           <div className="max-h-[50vh] overflow-y-auto">{previewContent}</div>
         </div>
       )}
