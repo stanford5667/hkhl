@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Camera, Loader2, User, Wifi, Trash2, LogOut, Settings as SettingsIcon, Shield, Sparkles, Crown, Palette, CreditCard, ExternalLink, AlertTriangle, Key, Mail, Lock } from "lucide-react";
+import { Camera, Loader2, User, Wifi, Trash2, LogOut, Settings as SettingsIcon, Shield, Sparkles, Crown, Palette, CreditCard, ExternalLink, AlertTriangle, Key, Mail, Lock, LinkIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
