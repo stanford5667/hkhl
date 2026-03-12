@@ -222,7 +222,7 @@ export function IndustryNews({ companyId, companyName, industry }: IndustryNewsP
         </div>
       ) : !error && !isLoading && (
         <Card className="p-8 flex flex-col items-center justify-center gap-3">
-          <Crown className="h-12 w-12 text-amber-500/50" />
+          <Crown className="h-12 w-12 text-primary/50" />
           <p className="font-medium text-lg">Premium Feature</p>
           <p className="text-sm text-muted-foreground text-center">Industry news requires premium access</p>
           <PremiumBadge />

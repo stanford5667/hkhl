@@ -801,9 +801,9 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
 
             {/* Free user upgrade CTA after showing limited results */}
             {!isPro && hasScreened && displayedPortfolios.length > FREE_RESULTS_LIMIT && (
-              <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-amber-500/5 cursor-pointer hover:border-primary/50 transition-colors" onClick={() => showUpgradeModal('screenerSearches')}>
+              <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-primary/3 cursor-pointer hover:border-primary/50 transition-colors" onClick={() => showUpgradeModal('screenerSearches')}>
                 <CardContent className="p-6 text-center">
-                  <Crown className="h-10 w-10 mx-auto text-amber-500 mb-3" />
+                  <Crown className="h-10 w-10 mx-auto text-primary mb-3" />
                   <p className="text-3xl font-bold text-primary mb-1">
                     {expandedTotalCount > 0 ? expandedTotalCount.toLocaleString() : '100,000'}+
                   </p>
@@ -818,7 +818,7 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
                   </p>
                   <Button 
                     onClick={() => showUpgradeModal('screenerSearches')}
-                    className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white"
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground"
                   >
                     <Crown className="h-4 w-4 mr-2" />
                     Unlock All Results

@@ -942,9 +942,9 @@ function SubscriptionManagement() {
       <CardContent className="relative space-y-4">
         {isPro ? (
           <>
-            <div className="p-4 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20">
+            <div className="p-4 rounded-xl bg-primary/10 border border-primary/20">
               <div className="flex items-center gap-2 mb-2">
-                <Crown className="h-4 w-4 text-amber-400" />
+                <Crown className="h-4 w-4 text-primary" />
                 <span className="font-semibold text-foreground">Pro Member</span>
               </div>
               <p className="text-sm text-muted-foreground">
