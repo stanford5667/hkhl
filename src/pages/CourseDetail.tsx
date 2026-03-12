@@ -707,7 +707,7 @@ export default function CourseDetail() {
                     Continue Learning
                   </Button>
                   {progressPercentage >= 100 && (
-                    <Button variant="outline" className="w-full">
+                    <Button variant="outline" className="w-full" onClick={() => toast.success('Congratulations! Your certificate is ready. 🎉')}>
                       <Award className="w-4 h-4 mr-2" />
                       Get Certificate
                     </Button>
@@ -825,7 +825,7 @@ export default function CourseDetail() {
       </div>
       {/* Sticky Bottom CTA - mobile */}
       {!hasAccess && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#0B0E14]/90 backdrop-blur-md border-t border-border/40 p-3 sm:p-4 lg:hidden">
+        <div className="fixed bottom-16 md:bottom-0 left-0 right-0 z-40 bg-[#0B0E14]/90 backdrop-blur-md border-t border-border/40 p-3 sm:p-4 lg:hidden">
           <Button
             className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm h-11"
             onClick={() => {
