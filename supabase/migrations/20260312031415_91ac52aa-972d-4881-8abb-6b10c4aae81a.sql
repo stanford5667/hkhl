@@ -1,0 +1,1 @@
+UPDATE public.affiliates SET status = 'approved', approved_at = now() WHERE status = 'pending';
