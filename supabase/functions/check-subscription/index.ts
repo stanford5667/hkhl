@@ -20,9 +20,11 @@ const PRO_PRODUCT_IDS = [
 ];
 
 const RESEARCH_EDUCATION_PRODUCT_IDS = [
-  "prod_U58L8r27VPBg1T",   // Research & Education Plan (monthly)
-  "prod_U7X8ELiM8teiz5",   // Research & Education Annual
+  "prod_U58L8r27VPBg1T",   // Research & Education Plan (monthly, legacy $100)
+  "prod_U7X8ELiM8teiz5",   // Research & Education Annual (legacy $700)
   "prod_U76PEWCvnIs6Y1",   // Research & Education Plan - Annual (alt)
+  "prod_U8DecDg6PAn1rs",   // Research & Education Plan (monthly, new $150)
+  "prod_U8DfxoZZ3zohLN",   // Research & Education Annual (new $1,000)
 ];
 
 function determinePlan(productId: string | null): string {
