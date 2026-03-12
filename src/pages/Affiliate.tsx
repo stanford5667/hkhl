@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Loader2, Copy, DollarSign, MousePointerClick, UserPlus, TrendingUp, LinkIcon, CheckCircle2, Clock, XCircle } from "lucide-react";
-import { PageHeader, PAGE_ICON_PRESETS } from "@/components/layout/PageHeader";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 interface AffiliateData {
   id: string;
@@ -72,7 +72,6 @@ export default function Affiliate() {
       setAffiliate(data as any);
       setPaymentEmail(data.payment_email || "");
       
-      // Fetch referrals
       const { data: refs } = await supabase
         .from("affiliate_referrals")
         .select("id, click_at, signed_up_at, converted_at, conversion_amount, commission_amount, commission_status")
@@ -89,7 +88,6 @@ export default function Affiliate() {
     if (!user) return;
     setApplying(true);
     try {
-      // Generate a unique code
       const code = user.email?.split("@")[0]?.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8) 
         || Math.random().toString(36).slice(2, 10).toUpperCase();
 
@@ -150,12 +148,8 @@ export default function Affiliate() {
   if (!affiliate) {
     return (
       <div className="p-6 lg:p-8 max-w-3xl mx-auto">
-        <PageHeader
-          title="Affiliate Program"
-          description="Earn recurring commissions by referring new members"
-          icon={PAGE_ICON_PRESETS.community}
-        />
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+        <PageHeader icon={DollarSign} title="Affiliate Program" subtitle="Earn recurring commissions by referring new members" />
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-6">
           <Card className="border-primary/20">
             <CardHeader className="text-center">
               <div className="mx-auto p-4 rounded-full bg-primary/10 border border-primary/20 w-fit mb-4">
@@ -203,12 +197,8 @@ export default function Affiliate() {
   if (affiliate.status === "pending") {
     return (
       <div className="p-6 lg:p-8 max-w-3xl mx-auto">
-        <PageHeader
-          title="Affiliate Program"
-          description="Your application is under review"
-          icon={PAGE_ICON_PRESETS.community}
-        />
-        <Card>
+        <PageHeader icon={Clock} title="Affiliate Program" subtitle="Your application is under review" />
+        <Card className="mt-6">
           <CardContent className="text-center py-12">
             <Clock className="h-12 w-12 mx-auto mb-4 text-amber-500" />
             <h2 className="text-xl font-semibold mb-2">Application Pending</h2>
@@ -227,8 +217,8 @@ export default function Affiliate() {
   if (affiliate.status === "rejected") {
     return (
       <div className="p-6 lg:p-8 max-w-3xl mx-auto">
-        <PageHeader title="Affiliate Program" description="" icon={PAGE_ICON_PRESETS.community} />
-        <Card>
+        <PageHeader icon={XCircle} title="Affiliate Program" subtitle="Application status" />
+        <Card className="mt-6">
           <CardContent className="text-center py-12">
             <XCircle className="h-12 w-12 mx-auto mb-4 text-destructive" />
             <h2 className="text-xl font-semibold mb-2">Application Not Approved</h2>
@@ -250,9 +240,11 @@ export default function Affiliate() {
   return (
     <div className="p-6 lg:p-8 max-w-6xl mx-auto space-y-6">
       <PageHeader
+        icon={TrendingUp}
         title="Affiliate Dashboard"
-        description="Track your referrals, earnings, and manage your affiliate account"
-        icon={PAGE_ICON_PRESETS.community}
+        subtitle="Track your referrals, earnings, and manage your affiliate account"
+        iconColor="text-emerald-400"
+        iconBgGradient="bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border-emerald-500/30"
       />
 
       {/* Stats Cards */}
@@ -260,8 +252,8 @@ export default function Affiliate() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-500/10">
-                <MousePointerClick className="h-5 w-5 text-blue-500" />
+              <div className="p-2 rounded-lg bg-primary/10">
+                <MousePointerClick className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{affiliate.total_clicks}</p>
@@ -273,8 +265,8 @@ export default function Affiliate() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-500/10">
-                <UserPlus className="h-5 w-5 text-green-500" />
+              <div className="p-2 rounded-lg bg-accent">
+                <UserPlus className="h-5 w-5 text-accent-foreground" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{affiliate.total_referrals}</p>
@@ -299,8 +291,8 @@ export default function Affiliate() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-amber-500/10">
-                <TrendingUp className="h-5 w-5 text-amber-500" />
+              <div className="p-2 rounded-lg bg-accent">
+                <TrendingUp className="h-5 w-5 text-accent-foreground" />
               </div>
               <div>
                 <p className="text-2xl font-bold">${unpaidEarnings.toFixed(2)}</p>
@@ -338,7 +330,7 @@ export default function Affiliate() {
         </CardContent>
       </Card>
 
-      {/* Tabs for referrals and settings */}
+      {/* Tabs */}
       <Tabs defaultValue="referrals">
         <TabsList>
           <TabsTrigger value="referrals">Referrals</TabsTrigger>
@@ -371,7 +363,7 @@ export default function Affiliate() {
                         </TableCell>
                         <TableCell>
                           {ref.converted_at ? (
-                            <Badge variant="default" className="bg-green-500/10 text-green-500 border-green-500/20">
+                            <Badge variant="default" className="bg-primary/10 text-primary border-primary/20">
                               <CheckCircle2 className="h-3 w-3 mr-1" /> Converted
                             </Badge>
                           ) : ref.signed_up_at ? (

@@ -6211,6 +6211,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_affiliate_clicks: {
+        Args: { aff_id: string }
+        Returns: undefined
+      }
+      increment_affiliate_referrals: {
+        Args: { aff_id: string }
+        Returns: undefined
+      }
       increment_usage: {
         Args: { p_field: string; p_user_id: string }
         Returns: number
@@ -6323,6 +6331,10 @@ export type Database = {
           source_type: string
           source_url: string
         }[]
+      }
+      update_affiliate_earnings: {
+        Args: { aff_id: string; earning_amount: number }
+        Returns: undefined
       }
     }
     Enums: {
