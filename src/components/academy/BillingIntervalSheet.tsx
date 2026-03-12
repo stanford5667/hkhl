@@ -42,16 +42,16 @@ function PriceIncreaseCountdown() {
   const pad = (n: number) => String(n).padStart(2, '0');
 
   return (
-    <div className="mt-4 rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3">
+    <div className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3">
       <div className="flex items-center gap-2 mb-1.5">
-        <TrendingUp className="w-3.5 h-3.5 text-rose-400" />
-        <span className="text-rose-300 text-xs font-semibold uppercase tracking-wide">Price increasing soon</span>
+        <TrendingUp className="w-3.5 h-3.5 text-destructive" />
+        <span className="text-destructive text-xs font-semibold uppercase tracking-wide">Price increasing soon</span>
       </div>
       <p className="text-muted-foreground text-xs mb-2">
         Lock in today's rate before the price goes up. This offer expires in:
       </p>
       <div className="flex items-center gap-1.5">
-        <Clock className="w-3.5 h-3.5 text-rose-400" />
+        <Clock className="w-3.5 h-3.5 text-destructive" />
         <span className="font-mono text-sm font-bold text-foreground">
           {pad(timeLeft.hours)}:{pad(timeLeft.minutes)}:{pad(timeLeft.seconds)}
         </span>
@@ -136,10 +136,10 @@ export function BillingIntervalSheet({ open, onOpenChange, returnPath }: Billing
         </SheetHeader>
 
         {isProUpgrade && (
-          <div className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3">
+          <div className="mb-4 rounded-lg border border-success/30 bg-success/10 px-4 py-3">
             <div className="flex items-center gap-2 mb-1">
-              <ArrowUp className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="text-emerald-300 text-xs font-semibold uppercase tracking-wide">Pro → Research & Education</span>
+              <ArrowUp className="w-3.5 h-3.5 text-success" />
+              <span className="text-success text-xs font-semibold uppercase tracking-wide">Pro → Research & Education</span>
             </div>
             <p className="text-muted-foreground text-xs">
               Your current Pro subscription will be upgraded. Stripe will automatically prorate the cost — you only pay the difference for the remaining billing period.
@@ -174,7 +174,7 @@ export function BillingIntervalSheet({ open, onOpenChange, returnPath }: Billing
               </span>
               <div className="flex justify-center">
                 {f.free ? (
-                  <Check className="h-3.5 w-3.5 text-green-500" />
+                  <Check className="h-3.5 w-3.5 text-success" />
                 ) : (
                   <X className="h-3.5 w-3.5 text-muted-foreground/40" />
                 )}
@@ -212,7 +212,7 @@ export function BillingIntervalSheet({ open, onOpenChange, returnPath }: Billing
                   ${PLANS.annual.price}<span className="text-sm text-muted-foreground">/mo</span>
                 </p>
                 {PLANS.annual.savings && (
-                  <p className="text-green-400 text-xs font-medium">{PLANS.annual.savings}</p>
+                  <p className="text-success text-xs font-medium">{PLANS.annual.savings}</p>
                 )}
               </div>
             </div>

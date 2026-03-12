@@ -112,7 +112,7 @@ export function PortfolioNews() {
           
           {(!news || news.length === 0) && (
             <div className="text-center py-8 flex flex-col items-center gap-2">
-              <Crown className="h-8 w-8 text-amber-500/50" />
+              <Crown className="h-8 w-8 text-primary/50" />
               <p className="text-sm font-medium">Premium Feature</p>
               <p className="text-xs text-muted-foreground">Real-time news requires premium</p>
               <PremiumBadge variant="inline" />

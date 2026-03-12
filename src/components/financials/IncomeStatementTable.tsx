@@ -672,8 +672,8 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
             >
               <div className="absolute inset-0 bg-gradient-to-r from-background/40 via-background/80 to-background/95" />
               <div className="relative flex flex-col items-center gap-2 p-4 text-center">
-                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/30">
-                  <Crown className="h-5 w-5 text-white" />
+                <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/30">
+                  <Crown className="h-5 w-5 text-primary-foreground" />
                 </div>
                 <p className="text-xs font-semibold text-foreground">Unlock Projections</p>
                 <p className="text-[10px] text-muted-foreground max-w-[120px]">
@@ -681,7 +681,7 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
                 </p>
                 <Button
                   size="sm"
-                  className="h-7 text-[10px] px-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold shadow-lg shadow-orange-500/20"
+                  className="h-7 text-[10px] px-3 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-lg shadow-primary/20"
                 >
                   Upgrade to Pro
                 </Button>

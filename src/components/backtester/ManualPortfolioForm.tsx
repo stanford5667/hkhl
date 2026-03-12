@@ -171,7 +171,7 @@ export function ManualPortfolioForm({ onComplete }: ManualPortfolioFormProps) {
 
         {/* Settings Card with colored accents */}
         <Card className="overflow-hidden border-border/50 bg-card/80 backdrop-blur-sm">
-          <div className="h-1 bg-gradient-to-r from-primary via-cyan-500 to-primary" />
+          <div className="h-1 bg-gradient-to-r from-primary via-primary/60 to-primary" />
           <CardContent className="p-4 space-y-4">
             {/* Settings row */}
             <div className="grid grid-cols-2 gap-4">
@@ -196,13 +196,13 @@ export function ManualPortfolioForm({ onComplete }: ManualPortfolioFormProps) {
               </div>
 
               {/* Time Horizon */}
-              <div className="p-3 rounded-lg bg-cyan-500/5 border border-cyan-500/10">
-                <Label className="text-xs mb-1.5 flex items-center justify-between text-cyan-500 font-medium">
+              <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
+                <Label className="text-xs mb-1.5 flex items-center justify-between text-primary font-medium">
                   <span className="flex items-center gap-1.5">
                     <Clock className="h-3.5 w-3.5" />
                     Time Horizon
                   </span>
-                  <Badge className="text-xs h-5 bg-cyan-500/20 text-cyan-400 border-0">{horizon} years</Badge>
+                  <Badge className="text-xs h-5 bg-primary/20 text-primary border-0">{horizon} years</Badge>
                 </Label>
                 <Slider
                   value={[horizon]}
@@ -226,8 +226,8 @@ export function ManualPortfolioForm({ onComplete }: ManualPortfolioFormProps) {
             {/* Assets Header with instructions */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-cyan-500 flex items-center justify-center">
-                  <Scale className="h-4 w-4 text-white" />
+                <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+                  <Scale className="h-4 w-4 text-primary-foreground" />
                 </div>
                 <div>
                   <Label className="text-sm font-semibold">Your Assets</Label>

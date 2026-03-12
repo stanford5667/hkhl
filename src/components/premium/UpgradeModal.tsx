@@ -72,16 +72,16 @@ function PriceIncreaseCountdown() {
   const pad = (n: number) => String(n).padStart(2, '0');
 
   return (
-    <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3">
+    <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3">
       <div className="flex items-center gap-2 mb-1.5">
-        <TrendingUp className="w-3.5 h-3.5 text-rose-400" />
-        <span className="text-rose-300 text-xs font-semibold uppercase tracking-wide">Price increasing soon</span>
+        <TrendingUp className="w-3.5 h-3.5 text-destructive" />
+        <span className="text-destructive text-xs font-semibold uppercase tracking-wide">Price increasing soon</span>
       </div>
       <p className="text-muted-foreground text-xs mb-2">
         Lock in today's rate before the price goes up. This offer expires in:
       </p>
       <div className="flex items-center gap-1.5">
-        <Clock className="w-3.5 h-3.5 text-rose-400" />
+        <Clock className="w-3.5 h-3.5 text-destructive" />
         <span className="font-mono text-sm font-bold text-foreground">
           {pad(timeLeft.hours)}:{pad(timeLeft.minutes)}:{pad(timeLeft.seconds)}
         </span>
@@ -184,7 +184,7 @@ export function UpgradeModal({ isOpen, feature, onClose, onUpgrade }: UpgradeMod
             </span>
             <div className="flex justify-center">
               {f.free ? (
-                <Check className="h-3.5 w-3.5 text-green-500" />
+                <Check className="h-3.5 w-3.5 text-success" />
               ) : (
                 <X className="h-3.5 w-3.5 text-muted-foreground/40" />
               )}
@@ -222,7 +222,7 @@ export function UpgradeModal({ isOpen, feature, onClose, onUpgrade }: UpgradeMod
                 ${PLANS.annual.price}<span className="text-sm text-muted-foreground">/mo</span>
               </p>
               {PLANS.annual.savings && (
-                <p className="text-green-400 text-xs font-medium">{PLANS.annual.savings}</p>
+                <p className="text-success text-xs font-medium">{PLANS.annual.savings}</p>
               )}
             </div>
           </div>

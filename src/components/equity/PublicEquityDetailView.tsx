@@ -529,7 +529,7 @@ export function PublicEquityDetailView({ company, onUpdate, showOnlyTransactions
             </div>
           ) : (
             <div className="flex flex-col items-center gap-2 py-4">
-              <Crown className="h-8 w-8 text-amber-500/50" />
+              <Crown className="h-8 w-8 text-primary/50" />
               <p className="font-medium">Premium Feature</p>
               <PremiumBadge variant="inline" />
             </div>
@@ -578,7 +578,7 @@ export function PublicEquityDetailView({ company, onUpdate, showOnlyTransactions
             />
           ) : (
             <div className="h-80 flex flex-col items-center justify-center gap-2">
-              <Crown className="h-10 w-10 text-amber-500/50" />
+              <Crown className="h-10 w-10 text-primary/50" />
               <p className="font-medium">Premium Feature</p>
               <p className="text-sm text-muted-foreground">Chart data requires premium access</p>
               <PremiumBadge variant="inline" />

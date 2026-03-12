@@ -116,7 +116,7 @@ export function MembershipStep({ onComplete, onBack, isStandalone = false }: Mem
               </span>
               <div className="flex justify-center">
                 {f.free ? (
-                  <Check className="h-3.5 w-3.5 text-green-500" />
+                  <Check className="h-3.5 w-3.5 text-success" />
                 ) : (
                   <X className="h-3.5 w-3.5 text-muted-foreground/40" />
                 )}
@@ -151,7 +151,7 @@ export function MembershipStep({ onComplete, onBack, isStandalone = false }: Mem
                 <p className="text-foreground text-2xl font-bold">
                   ${PRICING.annualPerMonth}<span className="text-sm text-muted-foreground">/mo</span>
                 </p>
-                <p className="text-green-400 text-xs font-medium">Save ${PRICING.annualSavings.toLocaleString()}/yr</p>
+                <p className="text-success text-xs font-medium">Save ${PRICING.annualSavings.toLocaleString()}/yr</p>
               </div>
             </div>
           </Card>
