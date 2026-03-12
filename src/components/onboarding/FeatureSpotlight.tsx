@@ -26,11 +26,11 @@ export function FeatureSpotlight({ show, onDismiss, hasCompletedAssessment = fal
         initial={{ opacity: 0, y: 20, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 20, scale: 0.95 }}
-        className="fixed bottom-20 right-2 left-2 sm:left-auto sm:right-6 sm:bottom-6 z-50 sm:max-w-xs"
+        className="fixed bottom-20 right-2 left-2 sm:left-auto sm:right-6 sm:bottom-6 z-40 sm:max-w-xs"
       >
         <div className="relative bg-background/95 backdrop-blur-xl border border-border rounded-xl shadow-2xl overflow-hidden">
           {/* Gradient accent */}
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-purple-500/5 to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-primary/3 to-transparent pointer-events-none" />
           
           {/* Close button */}
           <Button 
