@@ -174,7 +174,7 @@ export function BillingIntervalSheet({ open, onOpenChange, returnPath }: Billing
               </span>
               <div className="flex justify-center">
                 {f.free ? (
-                  <Check className="h-3.5 w-3.5 text-green-500" />
+                  <Check className="h-3.5 w-3.5 text-success" />
                 ) : (
                   <X className="h-3.5 w-3.5 text-muted-foreground/40" />
                 )}
