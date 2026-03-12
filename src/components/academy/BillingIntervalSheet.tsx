@@ -3,7 +3,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, Sparkles, Loader2, Clock, TrendingUp, ArrowUp, Check, X } from 'lucide-react';
+import { CheckCircle2, Sparkles, Loader2, Clock, TrendingUp, ArrowUp, Check, X, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useUsage } from '@/contexts/UsageContext';
