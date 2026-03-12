@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Shield, Users, Database, Settings, BarChart3, Loader2, Zap, GraduationCap } from 'lucide-react';
+import { Shield, Users, Database, Settings, BarChart3, Loader2, Zap, GraduationCap, LinkIcon } from 'lucide-react';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useAuth } from '@/contexts/AuthContext';
 import { AdminUsersTab } from '@/components/admin/AdminUsersTab';
@@ -11,6 +11,7 @@ import { AdminSettingsTab } from '@/components/admin/AdminSettingsTab';
 import { AdminAnalyticsTab } from '@/components/admin/AdminAnalyticsTab';
 import { AdminApiUsageTab } from '@/components/admin/AdminApiUsageTab';
 import { AdminCoursesTab } from '@/components/admin/AdminCoursesTab';
+import { AdminAffiliatesTab } from '@/components/admin/AdminAffiliatesTab';
 
 export default function AdminPortal() {
   const { user, loading: authLoading } = useAuth();
@@ -50,13 +51,13 @@ export default function AdminPortal() {
         </div>
         <div>
           <h1 className="text-2xl font-bold text-foreground">Admin Portal</h1>
-          <p className="text-muted-foreground">Manage users, content, courses, and view analytics</p>
+          <p className="text-muted-foreground">Manage users, content, courses, affiliates, and view analytics</p>
         </div>
       </div>
 
       {/* Main Tabs */}
       <Tabs defaultValue="courses" className="w-full">
-        <TabsList className="grid w-full grid-cols-6 bg-muted/50">
+        <TabsList className="grid w-full grid-cols-7 bg-muted/50">
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
             <span className="hidden sm:inline">Users</span>
@@ -64,6 +65,10 @@ export default function AdminPortal() {
           <TabsTrigger value="courses" className="flex items-center gap-2">
             <GraduationCap className="h-4 w-4" />
             <span className="hidden sm:inline">Courses</span>
+          </TabsTrigger>
+          <TabsTrigger value="affiliates" className="flex items-center gap-2">
+            <LinkIcon className="h-4 w-4" />
+            <span className="hidden sm:inline">Affiliates</span>
           </TabsTrigger>
           <TabsTrigger value="content" className="flex items-center gap-2">
             <Database className="h-4 w-4" />
@@ -89,6 +94,10 @@ export default function AdminPortal() {
 
         <TabsContent value="courses" className="mt-6">
           <AdminCoursesTab />
+        </TabsContent>
+
+        <TabsContent value="affiliates" className="mt-6">
+          <AdminAffiliatesTab />
         </TabsContent>
 
         <TabsContent value="content" className="mt-6">

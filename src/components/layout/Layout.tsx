@@ -42,6 +42,7 @@ export function Layout({ children }: LayoutProps) {
   } = useOnboarding();
   const [createMenuOpen, setCreateMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  useAffiliateTracking();
 
   // Keyboard shortcut for search (Cmd+K / Ctrl+K)
   useEffect(() => {
