@@ -226,8 +226,8 @@ export function ManualPortfolioForm({ onComplete }: ManualPortfolioFormProps) {
             {/* Assets Header with instructions */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-cyan-500 flex items-center justify-center">
-                  <Scale className="h-4 w-4 text-white" />
+                <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+                  <Scale className="h-4 w-4 text-primary-foreground" />
                 </div>
                 <div>
                   <Label className="text-sm font-semibold">Your Assets</Label>
