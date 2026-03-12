@@ -526,18 +526,78 @@ export default function Affiliate() {
         </TabsContent>
 
         <TabsContent value="settings" className="mt-4 space-y-4">
+          {/* Stripe Connect - Primary Option */}
+          <Card className="border-primary/20">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <CreditCard className="h-5 w-5 text-primary" />
+                Stripe Connect — Recommended
+              </CardTitle>
+              <CardDescription>
+                Get paid directly to your bank account via Stripe. You'll set up your own Stripe Express account where you securely provide your bank details and tax information — we never see or store any of it.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {connectStatus.onboarded ? (
+                <div className="space-y-4">
+                  <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 flex items-center gap-3">
+                    <CheckCircle2 className="h-5 w-5 text-primary shrink-0" />
+                    <div>
+                      <p className="font-medium text-sm">Stripe account connected & verified</p>
+                      <p className="text-xs text-muted-foreground">Payouts will be sent directly to your bank via Stripe.</p>
+                    </div>
+                  </div>
+                  <Button variant="outline" onClick={() => startStripeConnect("dashboard")} disabled={connectLoading} className="gap-2">
+                    {connectLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
+                    Open Stripe Dashboard
+                  </Button>
+                </div>
+              ) : connectStatus.connected ? (
+                <div className="space-y-4">
+                  <div className="p-4 rounded-lg bg-amber-500/5 border border-amber-500/20 flex items-center gap-3">
+                    <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0" />
+                    <div>
+                      <p className="font-medium text-sm">Setup incomplete</p>
+                      <p className="text-xs text-muted-foreground">Your Stripe account was created but onboarding isn't finished. Complete it to receive payouts.</p>
+                    </div>
+                  </div>
+                  <Button onClick={() => startStripeConnect("onboarding")} disabled={connectLoading} className="gap-2">
+                    {connectLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
+                    Complete Stripe Setup
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="p-4 rounded-lg bg-muted/50 border space-y-2">
+                    <p className="text-sm font-medium">How it works:</p>
+                    <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+                      <li>Click the button below to create your Stripe Express account</li>
+                      <li>Stripe will securely collect your bank info and tax details (W-9 / W-8BEN)</li>
+                      <li>Once verified, we can send payouts directly to your bank</li>
+                    </ol>
+                  </div>
+                  <Button onClick={() => startStripeConnect("onboarding")} disabled={connectLoading} className="gap-2">
+                    {connectLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CreditCard className="h-4 w-4" />}
+                    Set Up Stripe Payouts
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Alternative Payment Methods */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Wallet className="h-5 w-5" />
-                Payment Information
+                Alternative Payment Method
               </CardTitle>
-              <CardDescription>Configure how you'd like to receive your commission payouts. We use third-party payment platforms so we never store your sensitive financial information.</CardDescription>
+              <CardDescription>If you prefer not to use Stripe, you can receive payouts via PayPal, Venmo, or Zelle instead. Note: these are processed manually and may take longer.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
                 <Label>Payment Method</Label>
-                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                <Select value={paymentMethod === "stripe_connect" ? "paypal" : paymentMethod} onValueChange={setPaymentMethod}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select payment method" />
                   </SelectTrigger>
@@ -547,13 +607,10 @@ export default function Affiliate() {
                     <SelectItem value="zelle">Zelle</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-muted-foreground">
-                  All payouts are sent via the selected platform. We never collect or store bank account or card numbers.
-                </p>
               </div>
               <div className="space-y-2">
                 <Label>
-                  {paymentMethod === "paypal" ? "PayPal Email" :
+                  {paymentMethod === "paypal" || paymentMethod === "stripe_connect" ? "PayPal Email" :
                    paymentMethod === "venmo" ? "Venmo Username or Phone" :
                    "Zelle Email or Phone"}
                 </Label>
@@ -561,7 +618,7 @@ export default function Affiliate() {
                   value={paymentEmail}
                   onChange={(e) => setPaymentEmail(e.target.value)}
                   placeholder={
-                    paymentMethod === "paypal" ? "your@paypal.com" :
+                    paymentMethod === "paypal" || paymentMethod === "stripe_connect" ? "your@paypal.com" :
                     paymentMethod === "venmo" ? "@username or phone number" :
                     "email or phone number"
                   }
@@ -585,14 +642,14 @@ export default function Affiliate() {
                   </div>
                   <div>
                     <span className="text-muted-foreground">Method:</span>
-                    <span className="ml-2 capitalize">{affiliate.payment_method || "Not set"}</span>
+                    <span className="ml-2 capitalize">{affiliate.payment_method === "stripe_connect" ? "Stripe Connect" : affiliate.payment_method || "Not set"}</span>
                   </div>
                 </div>
               </div>
 
               <Button onClick={savePaymentInfo} disabled={savingPayment}>
                 {savingPayment ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                Save Payment Info
+                Save Alternative Payment Info
               </Button>
             </CardContent>
           </Card>
@@ -604,7 +661,7 @@ export default function Affiliate() {
                 <ShieldCheck className="h-5 w-5 text-amber-500" />
                 Tax Information
               </CardTitle>
-              <CardDescription>Important tax compliance information for US-based affiliates.</CardDescription>
+              <CardDescription>Important tax compliance information for affiliates.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="p-4 rounded-lg bg-amber-500/5 border border-amber-500/20 space-y-3">
@@ -614,11 +671,13 @@ export default function Affiliate() {
                     <p className="font-medium">IRS Reporting Requirements</p>
                     <p className="text-muted-foreground">
                       Per IRS regulations, if your total affiliate earnings reach <span className="font-semibold text-foreground">$600 or more</span> in a calendar year, 
-                      we are required to issue you a <span className="font-semibold text-foreground">1099-NEC</span> form and report your earnings to the IRS.
+                      we are required to issue you a <span className="font-semibold text-foreground">1099-NEC</span> form.
                     </p>
                     <p className="text-muted-foreground">
-                      Before your first payout, we may request a <span className="font-semibold text-foreground">W-9 form</span> (for US persons) or <span className="font-semibold text-foreground">W-8BEN</span> (for non-US persons) 
-                      to collect your legal name, address, and taxpayer identification number. This information is required by law and will be handled securely.
+                      {connectStatus.onboarded 
+                        ? "Since you're using Stripe Connect, your tax information is already handled securely by Stripe."
+                        : "If you use Stripe Connect, tax documentation (W-9/W-8BEN) is handled automatically during Stripe onboarding. For alternative methods, we may request this separately before your first payout."
+                      }
                     </p>
                   </div>
                 </div>
