@@ -208,7 +208,7 @@ export function MembershipStep({ onComplete, onBack, isStandalone = false }: Mem
         </div>
 
         {/* Coming Soon */}
-        <div className="max-w-md mx-auto bg-gradient-to-r from-primary/10 to-amber-500/10 rounded-lg p-3 border border-primary/20">
+        <div className="max-w-md mx-auto bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-3 border border-primary/20">
           <p className="text-xs font-semibold text-primary uppercase tracking-wide mb-2 flex items-center gap-1">
             <Sparkles className="h-3 w-3" />
             Coming Soon

@@ -37,7 +37,7 @@ export function FeatureComparisonPanel() {
                 )}
               </span>
               <span className="w-12 flex justify-center">
-                <Check className={cn("h-3.5 w-3.5", feature.highlight ? "text-amber-400" : "text-primary")} />
+                <Check className={cn("h-3.5 w-3.5", feature.highlight ? "text-primary" : "text-primary")} />
               </span>
             </div>
           ))}
