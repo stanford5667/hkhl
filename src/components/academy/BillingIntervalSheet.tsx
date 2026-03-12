@@ -125,7 +125,7 @@ export function BillingIntervalSheet({ open, onOpenChange, returnPath }: Billing
       <SheetContent side="bottom" className="rounded-t-2xl bg-card border-border px-4 pb-8 pt-6 sm:max-w-lg sm:mx-auto max-h-[90dvh] overflow-y-auto">
         <SheetHeader className="text-center mb-5">
           <SheetTitle className="text-xl text-foreground flex items-center justify-center gap-2">
-            <Sparkles className="w-5 h-5 text-amber-400" />
+            <Sparkles className="w-5 h-5 text-primary" />
             {isProUpgrade ? 'Upgrade Your Plan' : 'Choose Your Plan'}
           </SheetTitle>
           <SheetDescription className="text-muted-foreground text-sm">
