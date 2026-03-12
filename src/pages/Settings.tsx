@@ -339,7 +339,7 @@ export default function Settings() {
 
       <div className="p-6 lg:p-8 max-w-4xl mx-auto">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-secondary/50 p-1">
+          <TabsList className="grid w-full grid-cols-5 bg-secondary/50 p-1">
             <TabsTrigger value="profile" className="gap-2 data-[state=active]:bg-background">
               <User className="h-4 w-4" />
               <span className="hidden sm:inline">Profile</span>
@@ -355,6 +355,10 @@ export default function Settings() {
             <TabsTrigger value="security" className="gap-2 data-[state=active]:bg-background">
               <Shield className="h-4 w-4" />
               <span className="hidden sm:inline">Security</span>
+            </TabsTrigger>
+            <TabsTrigger value="affiliate" className="gap-2 data-[state=active]:bg-background">
+              <LinkIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">Affiliate</span>
             </TabsTrigger>
           </TabsList>
 
