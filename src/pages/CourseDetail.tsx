@@ -827,7 +827,7 @@ export default function CourseDetail() {
       {!hasAccess && (
         <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#0B0E14]/90 backdrop-blur-md border-t border-border/40 p-3 sm:p-4 lg:hidden">
           <Button
-            className="w-full bg-cyan-500 hover:bg-cyan-600 text-white font-semibold text-sm h-11"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm h-11"
             onClick={() => {
               if (!user) {
                 setShowAuthSheet(true);
