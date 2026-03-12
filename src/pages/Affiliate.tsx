@@ -91,13 +91,13 @@ export default function Affiliate() {
       const code = user.email?.split("@")[0]?.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8) 
         || Math.random().toString(36).slice(2, 10).toUpperCase();
 
-      const { error } = await supabase.from("affiliates").insert({
+      const { data: insertedData, error } = await supabase.from("affiliates").insert({
         user_id: user.id,
         affiliate_code: code,
         payment_email: user.email,
         status: "approved",
         approved_at: new Date().toISOString(),
-      });
+      }).select("id, affiliate_code").single();
 
       if (error) {
         if (error.code === "23505") {
@@ -105,8 +105,21 @@ export default function Affiliate() {
         } else {
           throw error;
         }
-      } else {
-        toast.success("You're now an affiliate! Your link is ready.");
+      } else if (insertedData) {
+        // Create Stripe promotion code for this affiliate (10% off first month)
+        try {
+          await supabase.functions.invoke("create-affiliate-promo", {
+            body: {
+              affiliate_id: insertedData.id,
+              affiliate_code: insertedData.affiliate_code,
+            },
+          });
+        } catch (promoErr) {
+          console.error("Failed to create promo code:", promoErr);
+          // Non-fatal — affiliate still works, promo can be created later
+        }
+
+        toast.success("You're now an affiliate! Your link and promo code are ready.");
         fetchAffiliateData();
       }
     } catch (err: any) {
@@ -267,29 +280,42 @@ export default function Affiliate() {
         </Card>
       </div>
 
-      {/* Affiliate Link */}
+      {/* Affiliate Link & Promo Code */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <LinkIcon className="h-5 w-5" />
-            Your Affiliate Link
+            Your Affiliate Link & Promo Code
           </CardTitle>
-          <CardDescription>Share this link to earn {affiliate.commission_rate}% recurring commission</CardDescription>
+          <CardDescription>Share your link or promo code to earn {affiliate.commission_rate}% recurring commission. Referrals get 10% off their first month!</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="flex gap-2">
-            <Input value={affiliateLink} readOnly className="font-mono text-sm" />
-            <Button onClick={copyLink} variant="outline" className="shrink-0">
-              <Copy className="h-4 w-4 mr-2" />
-              Copy
-            </Button>
+        <CardContent className="space-y-4">
+          <div>
+            <Label className="text-xs text-muted-foreground mb-1.5 block">Referral Link</Label>
+            <div className="flex gap-2">
+              <Input value={affiliateLink} readOnly className="font-mono text-sm" />
+              <Button onClick={copyLink} variant="outline" className="shrink-0">
+                <Copy className="h-4 w-4 mr-2" />
+                Copy
+              </Button>
+            </div>
           </div>
-          <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
-            <span>Code: <code className="font-mono font-semibold text-foreground">{affiliate.affiliate_code}</code></span>
-            <span>•</span>
+          <div>
+            <Label className="text-xs text-muted-foreground mb-1.5 block">Promo Code (users can enter this at checkout)</Label>
+            <div className="flex gap-2">
+              <Input value={affiliate.affiliate_code} readOnly className="font-mono text-sm font-bold tracking-wider" />
+              <Button onClick={() => { navigator.clipboard.writeText(affiliate.affiliate_code); toast.success("Promo code copied!"); }} variant="outline" className="shrink-0">
+                <Copy className="h-4 w-4 mr-2" />
+                Copy
+              </Button>
+            </div>
+          </div>
+          <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <span>Commission: {affiliate.commission_rate}% {affiliate.commission_type}</span>
             <span>•</span>
             <span>90-day cookie</span>
+            <span>•</span>
+            <span>10% discount for referrals</span>
           </div>
         </CardContent>
       </Card>

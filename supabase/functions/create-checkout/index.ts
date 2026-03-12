@@ -40,6 +40,12 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_ANON_KEY") ?? ""
     );
 
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false } }
+    );
+
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No authorization header provided");
 
@@ -47,6 +53,7 @@ serve(async (req) => {
     let selectedPlan = "research_education";
     let billingInterval = "monthly";
     let returnPath = "/quant-lab";
+    let affiliateCode: string | null = null;
     try {
       const body = await req.json();
       if (body?.plan && PLAN_PRICES[body.plan]) {
@@ -58,12 +65,15 @@ serve(async (req) => {
       if (body?.return_path && typeof body.return_path === 'string') {
         returnPath = body.return_path.startsWith('/') ? body.return_path : '/quant-lab';
       }
+      if (body?.affiliate_code && typeof body.affiliate_code === 'string') {
+        affiliateCode = body.affiliate_code.trim().toUpperCase();
+      }
     } catch {
       // No body or invalid JSON - use defaults
     }
 
     const priceId = PLAN_PRICES[selectedPlan][billingInterval];
-    logStep("Selected plan", { plan: selectedPlan, billingInterval, priceId, returnPath });
+    logStep("Selected plan", { plan: selectedPlan, billingInterval, priceId, returnPath, affiliateCode });
 
     const token = authHeader.replace("Bearer ", "");
     const { data } = await supabaseClient.auth.getUser(token);
@@ -105,13 +115,8 @@ serve(async (req) => {
     }
 
     // Always use production URL for Stripe redirects (preview URLs won't work)
-    const productionUrl = "https://hkhl.lovable.app";
+    const productionUrl = "https://assetlabs.ai";
     
-    const planNames: Record<string, string> = {
-      pro: "Pro",
-      research_education: "Research & Education",
-    };
-
     const planDescriptions: Record<string, string> = {
       pro: "Your Pro subscription includes:\n• Unlimited portfolio analysis\n• Advanced risk metrics & correlations\n• AI-powered insights & recommendations\n• Real-time market data\n• Priority support\n\nSubscription auto-renews monthly. Cancel anytime from your account settings.",
       research_education: "Elite education, proprietary trade ideas, and the tools to execute them. Unlock our comprehensive AI and investment video course, join the exclusive community chat for real-time trade setups, and get your all-access pass to our AI-powered backtester and 30+ years of institutional data.\n\nSubscription auto-renews monthly. Cancel anytime from your account settings.",
@@ -140,6 +145,39 @@ serve(async (req) => {
       },
     };
 
+    // Look up affiliate promotion code and apply discount
+    if (affiliateCode) {
+      try {
+        const { data: affiliateData } = await supabaseAdmin
+          .from("affiliates")
+          .select("id, stripe_promo_code_id, status")
+          .eq("affiliate_code", affiliateCode)
+          .eq("status", "approved")
+          .maybeSingle();
+
+        if (affiliateData?.stripe_promo_code_id) {
+          // Apply the promotion code discount
+          sessionParams.discounts = [{ promotion_code: affiliateData.stripe_promo_code_id }];
+          // Store affiliate info in metadata for webhook attribution
+          sessionParams.metadata = {
+            affiliate_id: affiliateData.id,
+            affiliate_code: affiliateCode,
+          };
+          logStep("Affiliate promo applied", { affiliate_id: affiliateData.id, promo_id: affiliateData.stripe_promo_code_id });
+        } else {
+          logStep("Affiliate code not found or no promo code", { affiliateCode });
+          // Still allow checkout, just enable manual promo code entry
+          sessionParams.allow_promotion_codes = true;
+        }
+      } catch (err) {
+        logStep("Error looking up affiliate", { error: String(err) });
+        sessionParams.allow_promotion_codes = true;
+      }
+    } else {
+      // No affiliate code provided - allow manual promo code entry at checkout
+      sessionParams.allow_promotion_codes = true;
+    }
+
     // When reusing an existing customer, allow Stripe to update their name for tax ID collection
     if (customerId) {
       sessionParams.customer_update = {
@@ -149,7 +187,7 @@ serve(async (req) => {
 
     const session = await stripe.checkout.sessions.create(sessionParams);
 
-    logStep("Checkout session created", { sessionId: session.id, plan: selectedPlan });
+    logStep("Checkout session created", { sessionId: session.id, plan: selectedPlan, hasAffiliate: !!affiliateCode });
 
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
