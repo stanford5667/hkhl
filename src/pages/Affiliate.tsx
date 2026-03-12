@@ -52,7 +52,7 @@ export default function Affiliate() {
 
   useEffect(() => {
     if (!authLoading && !user) {
-      navigate("/auth?redirect=/affiliate");
+      navigate("/auth");
     }
   }, [user, authLoading, navigate]);
 
