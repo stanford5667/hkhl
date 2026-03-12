@@ -169,7 +169,7 @@ export function BillingIntervalSheet({ open, onOpenChange, returnPath }: Billing
                   ? "text-foreground font-semibold flex items-center gap-1"
                   : "text-foreground/80"
               )}>
-                {f.highlight && <Star className="h-2.5 w-2.5 text-amber-400 fill-amber-400 flex-shrink-0" />}
+                {f.highlight && <Star className="h-2.5 w-2.5 text-primary fill-primary flex-shrink-0" />}
                 {f.name}
               </span>
               <div className="flex justify-center">
