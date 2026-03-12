@@ -196,13 +196,13 @@ export function ManualPortfolioForm({ onComplete }: ManualPortfolioFormProps) {
               </div>
 
               {/* Time Horizon */}
-              <div className="p-3 rounded-lg bg-cyan-500/5 border border-cyan-500/10">
-                <Label className="text-xs mb-1.5 flex items-center justify-between text-cyan-500 font-medium">
+              <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
+                <Label className="text-xs mb-1.5 flex items-center justify-between text-primary font-medium">
                   <span className="flex items-center gap-1.5">
                     <Clock className="h-3.5 w-3.5" />
                     Time Horizon
                   </span>
-                  <Badge className="text-xs h-5 bg-cyan-500/20 text-cyan-400 border-0">{horizon} years</Badge>
+                  <Badge className="text-xs h-5 bg-primary/20 text-primary border-0">{horizon} years</Badge>
                 </Label>
                 <Slider
                   value={[horizon]}
