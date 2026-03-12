@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Copy, DollarSign, MousePointerClick, UserPlus, TrendingUp, LinkIcon, CheckCircle2, Wallet, BanknoteIcon, ShieldCheck, AlertTriangle } from "lucide-react";
+import { Loader2, Copy, DollarSign, MousePointerClick, UserPlus, TrendingUp, LinkIcon, CheckCircle2, Wallet, BanknoteIcon, ShieldCheck, AlertTriangle, ExternalLink, CreditCard } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 
 interface AffiliateData {
@@ -29,6 +29,8 @@ interface AffiliateData {
   payment_method: string | null;
   applied_at: string;
   approved_at: string | null;
+  stripe_connect_account_id: string | null;
+  stripe_connect_onboarded: boolean;
 }
 
 interface Referral {
@@ -54,17 +56,27 @@ interface Payout {
   notes: string | null;
 }
 
+interface ConnectStatus {
+  connected: boolean;
+  onboarded: boolean;
+  details_submitted?: boolean;
+  payouts_enabled?: boolean;
+}
+
 export default function Affiliate() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [affiliate, setAffiliate] = useState<AffiliateData | null>(null);
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [payouts, setPayouts] = useState<Payout[]>([]);
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
   const [paymentEmail, setPaymentEmail] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("paypal");
+  const [paymentMethod, setPaymentMethod] = useState("stripe_connect");
   const [savingPayment, setSavingPayment] = useState(false);
+  const [connectStatus, setConnectStatus] = useState<ConnectStatus>({ connected: false, onboarded: false });
+  const [connectLoading, setConnectLoading] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
