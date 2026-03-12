@@ -32,7 +32,7 @@ export function PremiumFeatureBlock({
       }
 
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { plan: 'research_education' },
+        body: { plan: 'research_education', billing_interval: 'annual' },
       });
       
       if (error) {
@@ -113,7 +113,7 @@ export function PremiumFeatureInline({ className }: { className?: string }) {
       }
 
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { plan: 'research_education' },
+        body: { plan: 'research_education', billing_interval: 'annual' },
       });
       
       if (error) {

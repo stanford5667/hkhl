@@ -3,24 +3,12 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, Sparkles, Loader2, Clock, TrendingUp, ArrowUp, Check, X, Star } from 'lucide-react';
+import { Sparkles, Loader2, Clock, TrendingUp, ArrowUp, Check, X, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useUsage } from '@/contexts/UsageContext';
 import { toast } from 'sonner';
-
-const COMPARISON_FEATURES = [
-  { name: "Full Video Course Library", free: false, pro: true, highlight: true },
-  { name: "Live Trade Ideas Chatroom", free: false, pro: true, highlight: true },
-  { name: "AI Stock Backtesting", free: false, pro: true, highlight: true },
-  { name: "Strategy Builder (20+ indicators)", free: false, pro: true, highlight: true },
-  { name: "AI Trading Bot", free: false, pro: true },
-  { name: "AI Stock Analysis", free: false, pro: true },
-  { name: "Market Screener", free: false, pro: true },
-  { name: "Stock Overview & Charts", free: true, pro: true },
-  { name: "Trending Tickers", free: true, pro: true },
-  { name: "Earnings Calendar", free: true, pro: true },
-];
+import { PRICING, COMPARISON_FEATURES } from '@/config/pricing';
 
 function PriceIncreaseCountdown() {
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
@@ -81,15 +69,15 @@ interface BillingIntervalSheetProps {
 const PLANS = {
   annual: {
     label: 'Annual',
-    price: 83,
-    billed: '$1,000/year',
-    savings: 'Save $800/yr',
+    price: PRICING.annualPerMonth,
+    billed: `$${PRICING.annualTotal.toLocaleString()}/year`,
+    savings: `Save $${PRICING.annualSavings.toLocaleString()}/yr`,
     badge: 'Best Value',
   },
   monthly: {
     label: 'Monthly',
-    price: 150,
-    billed: '$150/month',
+    price: PRICING.monthly,
+    billed: `$${PRICING.monthly}/month`,
     savings: null,
     badge: null,
   },
@@ -129,6 +117,8 @@ export function BillingIntervalSheet({ open, onOpenChange, returnPath }: Billing
       setIsLoading(false);
     }
   };
+
+  const selectedPrice = PLANS[selected].price;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -260,9 +250,9 @@ export function BillingIntervalSheet({ open, onOpenChange, returnPath }: Billing
           {isLoading ? (
             <Loader2 className="w-5 h-5 animate-spin" />
           ) : isProUpgrade ? (
-            `Upgrade Now — $${selected === 'annual' ? '58' : '100'}/mo`
+            `Upgrade Now — $${selectedPrice}/mo`
           ) : (
-            `Continue — $${selected === 'annual' ? '58' : '100'}/mo`
+            `Continue — $${selectedPrice}/mo`
           )}
         </Button>
 
