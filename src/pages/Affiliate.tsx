@@ -139,8 +139,31 @@ export default function Affiliate() {
       
       setReferrals((refsResult.data as any[]) || []);
       setPayouts((payoutsResult.data as any[]) || []);
+
+      // Check Stripe Connect status if they have an account
+      if (data.stripe_connect_account_id) {
+        checkConnectStatus();
+      }
     }
     setLoading(false);
+  };
+
+  const startStripeConnect = async (linkType: "onboarding" | "dashboard" = "onboarding") => {
+    setConnectLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("stripe-connect-onboard", {
+        body: { link_type: linkType },
+      });
+      if (error) throw error;
+      if (data?.url) {
+        window.open(data.url, "_blank");
+        toast.success("Opening Stripe in a new tab...");
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Failed to start Stripe Connect setup");
+    } finally {
+      setConnectLoading(false);
+    }
   };
 
   const applyAsAffiliate = async () => {
