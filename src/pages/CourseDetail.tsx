@@ -733,10 +733,10 @@ export default function CourseDetail() {
               ) : (
                 <div className="space-y-4">
                   {!course.is_free && (
-                    <div className="p-3 rounded-lg bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30">
-                      <div className="flex items-center gap-2 text-amber-400 mb-1">
-                        <Lock className="w-4 h-4" />
-                        <span className="text-xs sm:text-sm font-medium">Premium Course</span>
+                     <div className="p-3 rounded-lg bg-primary/10 border border-primary/30">
+                       <div className="flex items-center gap-2 text-primary mb-1">
+                         <Lock className="w-4 h-4" />
+                         <span className="text-xs sm:text-sm font-medium">Premium Course</span>
                       </div>
                       <p className="text-xs text-muted-foreground">
                         Requires Research & Education membership
