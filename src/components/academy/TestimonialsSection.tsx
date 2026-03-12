@@ -8,7 +8,7 @@ const TESTIMONIALS = [
     avatar: 'MR',
     rating: 5,
     text: 'This course completely changed how I analyze investments. The portfolio frameworks are invaluable.',
-    gradient: 'from-cyan-500 to-blue-600',
+    gradient: 'from-primary to-primary/70',
   },
   {
     name: 'Sarah K.',
