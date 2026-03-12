@@ -234,30 +234,8 @@ export default function LessonView() {
   };
 
   const handlePlayClick = () => {
-    if (hasVideoAccess) return; // Access granted, video plays normally
+    if (hasVideoAccess) return;
     setShowUpgradeModal(true);
-  };
-
-  const handleSubscribe = async (skipAuthCheck = false) => {
-    if (!user && !skipAuthCheck) {
-      setShowUpgradeModal(false);
-      setShowAuthSheet(true);
-      return;
-    }
-    setIsCheckoutLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { plan: 'research_education', return_path: `/academy/lesson/${lessonId}` }
-      });
-      if (error) throw error;
-      if (data?.url) {
-        window.location.href = data.url;
-      }
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to start checkout');
-    } finally {
-      setIsCheckoutLoading(false);
-    }
   };
 
   const totalLessons = allLessons?.reduce((acc, m) => acc + (m.lessons?.length || 0), 0) || 0;
