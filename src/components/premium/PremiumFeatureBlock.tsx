@@ -137,7 +137,7 @@ export function PremiumFeatureInline({ className }: { className?: string }) {
         onClick={handleUpgrade}
         disabled={isLoading}
         className={cn(
-          "flex items-center gap-1.5 text-amber-500/70 hover:text-amber-500 transition-colors cursor-pointer",
+          "flex items-center gap-1.5 text-primary/70 hover:text-primary transition-colors cursor-pointer",
           className
         )}
       >

@@ -187,7 +187,7 @@ export function PremiumDataPlaceholder({
             <button 
               onClick={handleUpgrade}
               disabled={isLoading}
-              className="inline-flex items-center gap-1 text-xs text-amber-500 hover:text-amber-400 transition-colors"
+              className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
             >
               {isLoading ? (
                 <Loader2 className="h-3 w-3 animate-spin" />
