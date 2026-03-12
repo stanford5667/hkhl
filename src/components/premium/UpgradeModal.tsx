@@ -208,7 +208,7 @@ export function UpgradeModal({ isOpen, feature, onClose, onUpgrade }: UpgradeMod
           onClick={() => setSelected('annual')}
         >
           {PLANS.annual.badge && (
-            <Badge className="absolute -top-2.5 left-4 bg-amber-600 text-white text-[10px] font-semibold px-2">
+            <Badge className="absolute -top-2.5 left-4 bg-primary text-primary-foreground text-[10px] font-semibold px-2">
               {PLANS.annual.badge}
             </Badge>
           )}
