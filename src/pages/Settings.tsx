@@ -886,6 +886,15 @@ function SubscriptionManagement() {
         throw new Error(error.message);
       }
       
+      if (data?.error === 'no_customer') {
+        toast({
+          title: "No subscription found",
+          description: "You don't have an active Stripe subscription to manage. Try upgrading first.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       if (data?.url) {
         window.open(data.url, '_blank');
         toast({
