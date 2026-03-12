@@ -567,7 +567,7 @@ export default function CourseDetail() {
                         </p>
                         <Button
                           size="sm"
-                          className="bg-cyan-500 hover:bg-cyan-600 text-white text-xs h-8 shrink-0"
+                          className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs h-8 shrink-0"
                           onClick={() => handleSubscribe()}
                           disabled={isCheckoutLoading}
                         >
