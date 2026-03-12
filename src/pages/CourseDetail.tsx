@@ -536,8 +536,8 @@ export default function CourseDetail() {
                         </AccordionItem>
                         {/* Inline CTA after every 2nd module for non-pro */}
                         {!hasAccess && moduleIndex > 0 && moduleIndex % 2 === 1 && moduleIndex < (modules?.length || 0) - 1 && (
-                          <div className="mx-4 sm:mx-6 my-2 p-3 rounded-lg bg-gradient-to-r from-cyan-500/5 to-blue-500/5 border border-cyan-500/20 flex items-center gap-3">
-                            <Flame className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                          <div className="mx-4 sm:mx-6 my-2 p-3 rounded-lg bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/20 flex items-center gap-3">
+                            <Flame className="w-4 h-4 text-primary flex-shrink-0" />
                             <p className="text-xs text-muted-foreground flex-1">
                               <span className="text-foreground font-medium">Don't stop here.</span> Unlock the full curriculum and accelerate your growth.
                             </p>
