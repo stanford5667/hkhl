@@ -151,10 +151,24 @@ export default function Affiliate() {
   const startStripeConnect = async (linkType: "onboarding" | "dashboard" = "onboarding") => {
     setConnectLoading(true);
     try {
+      // Ensure we have a valid session before calling the edge function
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error("Please log in again to set up Stripe payouts.");
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke("stripe-connect-onboard", {
         body: { link_type: linkType },
       });
+
       if (error) throw error;
+
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+
       if (data?.url) {
         window.open(data.url, "_blank");
         toast.success("Opening Stripe in a new tab...");
