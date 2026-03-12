@@ -52,7 +52,7 @@ export function TestimonialsSection() {
                     </div>
                     <div className="flex gap-0.5">
                       {Array.from({ length: testimonial.rating }).map((_, i) => (
-                        <Star key={i} className="w-3 h-3 fill-amber-400 text-amber-400" />
+                        <Star key={i} className="w-3 h-3 fill-primary text-primary" />
                       ))}
                     </div>
                   </div>
