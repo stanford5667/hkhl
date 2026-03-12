@@ -110,7 +110,7 @@ export function PremiumBadge({ className, variant = 'badge', onUpgrade }: Premiu
               onClick={handleUpgrade}
               disabled={isLoading}
               className={cn(
-                "inline-flex items-center gap-1 text-xs text-amber-500 hover:text-amber-400 transition-colors cursor-pointer",
+                "inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors cursor-pointer",
                 className
               )}
             >
