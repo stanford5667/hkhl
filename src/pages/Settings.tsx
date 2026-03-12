@@ -661,6 +661,35 @@ export default function Settings() {
             </motion.div>
           </TabsContent>
         </Tabs>
+
+        {/* Affiliate Program Card */}
+        {user && (
+          <motion.div variants={cardVariants} initial="hidden" animate="visible">
+            <Card className="border-primary/20">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <LinkIcon className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">Affiliate Program</CardTitle>
+                    <CardDescription>Earn recurring commissions by referring new users</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Join our affiliate program to earn 20% recurring commission on every referral. Get your unique link, track clicks &amp; conversions, and grow your earnings.
+                </p>
+                <Button onClick={() => navigate('/affiliate')} variant="outline" className="gap-2">
+                  <LinkIcon className="h-4 w-4" />
+                  Go to Affiliate Dashboard
+                  <ExternalLink className="h-3 w-3 ml-1" />
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
       </div>
     </div>
   );
