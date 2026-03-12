@@ -54,7 +54,7 @@ export function BacktestPromoToast() {
         <div className="flex items-center gap-3">
           <button
             onClick={handleCTA}
-            className="bg-cyan-500 hover:bg-cyan-400 text-white text-xs font-semibold px-4 py-2 rounded-md transition-colors"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold px-4 py-2 rounded-md transition-colors"
           >
             Start Free Backtest
           </button>
