@@ -134,7 +134,7 @@ export function MembershipStep({ onComplete, onBack, isStandalone = false }: Mem
             className={cn(
               'relative p-4 cursor-pointer border-2 transition-all bg-muted/30',
               selectedInterval === 'annual'
-                ? 'border-amber-500 ring-1 ring-amber-500/30'
+                ? 'border-primary ring-1 ring-primary/30'
                 : 'border-border hover:border-primary/30'
             )}
             onClick={() => setSelectedInterval('annual')}
