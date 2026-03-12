@@ -10,16 +10,16 @@ import { useUsage } from '@/contexts/UsageContext';
 import { toast } from 'sonner';
 
 const COMPARISON_FEATURES = [
+  { name: "Full Video Course Library", free: false, pro: true, highlight: true },
+  { name: "Live Trade Ideas Chatroom", free: false, pro: true, highlight: true },
+  { name: "AI Stock Backtesting", free: false, pro: true, highlight: true },
+  { name: "Strategy Builder (20+ indicators)", free: false, pro: true, highlight: true },
+  { name: "AI Trading Bot", free: false, pro: true },
+  { name: "AI Stock Analysis", free: false, pro: true },
+  { name: "Market Screener", free: false, pro: true },
   { name: "Stock Overview & Charts", free: true, pro: true },
   { name: "Trending Tickers", free: true, pro: true },
   { name: "Earnings Calendar", free: true, pro: true },
-  { name: "AI Stock Analysis", free: false, pro: true },
-  { name: "AI Trading Bot", free: false, pro: true },
-  { name: "AI Stock Backtesting", free: false, pro: true },
-  { name: "Strategy Builder (20+ indicators)", free: false, pro: true },
-  { name: "Trade Ideas & Signals", free: false, pro: true },
-  { name: "Full Video Course Library", free: false, pro: true },
-  { name: "Market Screener", free: false, pro: true },
 ];
 
 function PriceIncreaseCountdown() {
