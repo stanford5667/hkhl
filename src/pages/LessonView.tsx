@@ -359,75 +359,11 @@ export default function LessonView() {
             </div>
           </div>
 
-          {/* ─── Upgrade Modal (Dialog) ─── */}
-          <Dialog open={showUpgradeModal} onOpenChange={setShowUpgradeModal}>
-            <DialogContent className="sm:max-w-md border-white/10 bg-[hsl(230,25%,9%)] p-0 gap-0 overflow-hidden" aria-describedby={undefined}>
-              <DialogTitle className="sr-only">Unlock the Masterclass</DialogTitle>
-              {/* Top accent line */}
-              <div className="h-1 w-full bg-gradient-to-r from-primary via-cyan-400 to-primary" />
-
-              <div className="p-8 text-center">
-                {/* Icon */}
-                <div className="mx-auto mb-5 w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                  <Sparkles className="w-7 h-7 text-primary" />
-                </div>
-
-                {/* Headline */}
-                <h2 className="text-2xl font-bold tracking-tight text-foreground mb-2">
-                  Unlock the Masterclass
-                </h2>
-
-                {/* Subtext */}
-                <p className="text-muted-foreground text-sm leading-relaxed mb-6 max-w-xs mx-auto">
-                  Get instant access to <span className="text-foreground font-medium">{lesson.title}</span> and{' '}
-                  <span className="text-foreground font-medium">{totalLessons}+ lessons</span> for{' '}
-                  <span className="text-primary font-semibold">$100/month</span>
-                </p>
-
-                {/* Features */}
-                <div className="flex flex-col gap-2 mb-7 text-left max-w-xs mx-auto">
-                  {[
-                    'Full video course library',
-                    'Trade signals & community research',
-                    'Strategy backtesting tools',
-                    'Priority support'
-                  ].map((feature) => (
-                    <div key={feature} className="flex items-center gap-2.5 text-sm text-muted-foreground">
-                      <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
-                      <span>{feature}</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* CTA */}
-                <Button
-                  onClick={() => handleSubscribe()}
-                  disabled={isCheckoutLoading}
-                  className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-lg shadow-primary/20 transition-all"
-                >
-                  {isCheckoutLoading ? (
-                    <span className="flex items-center gap-2">
-                      <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                      Loading...
-                    </span>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      {user ? 'Subscribe & Start Learning' : 'Sign Up & Subscribe'}
-                    </>
-                  )}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          {/* Auth sheet – shown when unauthenticated user hits subscribe */}
-          <MobileAuthSheet
-            open={showAuthSheet}
-            onOpenChange={setShowAuthSheet}
-            title="Create your account"
-            description="Sign up first, then complete your Research & Education subscription."
-            onSuccess={() => handleSubscribe(true)}
+          {/* ─── Upgrade Modal ─── */}
+          <UpgradeModal
+            isOpen={showUpgradeModal}
+            feature="courses"
+            onClose={() => setShowUpgradeModal(false)}
           />
 
           {/* ─── Lesson Info ─── */}
