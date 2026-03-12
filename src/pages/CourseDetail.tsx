@@ -602,8 +602,8 @@ export default function CourseDetail() {
                   {!hasAccess && (
                     <>
                       <Separator className="my-4" />
-                      <div className="flex items-center gap-3 p-3 rounded-lg bg-cyan-500/5 border border-cyan-500/20">
-                        <Sparkles className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+                      <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
+                        <Sparkles className="w-4 h-4 text-primary flex-shrink-0" />
                         <p className="text-xs sm:text-sm text-muted-foreground flex-1">Ready to start learning?</p>
                         <Button
                           size="sm"
