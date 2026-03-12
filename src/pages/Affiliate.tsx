@@ -91,13 +91,13 @@ export default function Affiliate() {
       const code = user.email?.split("@")[0]?.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8) 
         || Math.random().toString(36).slice(2, 10).toUpperCase();
 
-      const { error } = await supabase.from("affiliates").insert({
+      const { data: insertedData, error } = await supabase.from("affiliates").insert({
         user_id: user.id,
         affiliate_code: code,
         payment_email: user.email,
         status: "approved",
         approved_at: new Date().toISOString(),
-      });
+      }).select("id, affiliate_code").single();
 
       if (error) {
         if (error.code === "23505") {
@@ -105,8 +105,21 @@ export default function Affiliate() {
         } else {
           throw error;
         }
-      } else {
-        toast.success("You're now an affiliate! Your link is ready.");
+      } else if (insertedData) {
+        // Create Stripe promotion code for this affiliate (10% off first month)
+        try {
+          await supabase.functions.invoke("create-affiliate-promo", {
+            body: {
+              affiliate_id: insertedData.id,
+              affiliate_code: insertedData.affiliate_code,
+            },
+          });
+        } catch (promoErr) {
+          console.error("Failed to create promo code:", promoErr);
+          // Non-fatal — affiliate still works, promo can be created later
+        }
+
+        toast.success("You're now an affiliate! Your link and promo code are ready.");
         fetchAffiliateData();
       }
     } catch (err: any) {
