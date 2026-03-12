@@ -151,7 +151,7 @@ export function MembershipStep({ onComplete, onBack, isStandalone = false }: Mem
                 <p className="text-foreground text-2xl font-bold">
                   ${PRICING.annualPerMonth}<span className="text-sm text-muted-foreground">/mo</span>
                 </p>
-                <p className="text-green-400 text-xs font-medium">Save ${PRICING.annualSavings.toLocaleString()}/yr</p>
+                <p className="text-success text-xs font-medium">Save ${PRICING.annualSavings.toLocaleString()}/yr</p>
               </div>
             </div>
           </Card>

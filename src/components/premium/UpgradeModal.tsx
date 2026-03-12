@@ -222,7 +222,7 @@ export function UpgradeModal({ isOpen, feature, onClose, onUpgrade }: UpgradeMod
                 ${PLANS.annual.price}<span className="text-sm text-muted-foreground">/mo</span>
               </p>
               {PLANS.annual.savings && (
-                <p className="text-green-400 text-xs font-medium">{PLANS.annual.savings}</p>
+                <p className="text-success text-xs font-medium">{PLANS.annual.savings}</p>
               )}
             </div>
           </div>

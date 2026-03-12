@@ -31,7 +31,7 @@ export function FeatureComparisonPanel() {
               </span>
               <span className="w-12 flex justify-center">
                 {feature.free ? (
-                  <Check className="h-3.5 w-3.5 text-green-500" />
+                  <Check className="h-3.5 w-3.5 text-success" />
                 ) : (
                   <X className="h-3.5 w-3.5 text-muted-foreground/40" />
                 )}
