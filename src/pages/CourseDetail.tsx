@@ -723,7 +723,7 @@ export default function CourseDetail() {
                      </p>
                   </div>
                   <Button 
-                    className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600" 
+                     className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                     onClick={() => handleSubscribe()}
                     disabled={isCheckoutLoading}
                   >
