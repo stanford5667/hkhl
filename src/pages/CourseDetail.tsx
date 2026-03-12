@@ -678,7 +678,7 @@ export default function CourseDetail() {
           <Card className="lg:sticky lg:top-6">
             <CardHeader className="p-4 sm:p-6">
               <div className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-amber-400" />
+                <Sparkles className="w-5 h-5 text-primary" />
                 <div className="text-lg sm:text-xl font-bold">Research & Education</div>
               </div>
               <p className="text-xs sm:text-sm text-muted-foreground mt-1">
