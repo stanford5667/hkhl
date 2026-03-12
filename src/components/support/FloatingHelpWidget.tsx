@@ -211,7 +211,7 @@ export function FloatingHelpWidget() {
   return (
     <>
       {/* Floating Button - Desktop only */}
-      <div className="fixed right-6 bottom-6 z-50">
+      <div className="fixed right-6 bottom-20 md:bottom-6 z-40">
         <Popover open={isOpen} onOpenChange={setIsOpen}>
           <PopoverTrigger asChild>
             <Button
