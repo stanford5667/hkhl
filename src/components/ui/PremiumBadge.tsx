@@ -32,7 +32,7 @@ async function handleStripeCheckout(
     }
 
     const { data, error } = await supabase.functions.invoke('create-checkout', {
-      body: { plan: 'research_education' },
+      body: { plan: 'research_education', billing_interval: 'annual' },
     });
     
     if (error) {
