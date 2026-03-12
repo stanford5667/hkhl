@@ -9,11 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
@@ -28,6 +23,7 @@ import {
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MobileAuthSheet } from '@/components/auth/MobileAuthSheet';
+import { UpgradeModal } from '@/components/premium/UpgradeModal';
 
 // Premium dark thumbnail gradients
 const THUMB_GRADIENTS = [
