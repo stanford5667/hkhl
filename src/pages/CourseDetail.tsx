@@ -544,7 +544,7 @@ export default function CourseDetail() {
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="text-cyan-400 hover:text-cyan-300 text-xs h-7 px-2 shrink-0"
+                              className="text-primary hover:text-primary/80 text-xs h-7 px-2 shrink-0"
                               onClick={() => {
                                 if (!user) { setShowAuthSheet(true); return; }
                                 handleSubscribe();
