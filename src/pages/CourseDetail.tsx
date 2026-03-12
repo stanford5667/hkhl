@@ -521,7 +521,7 @@ export default function CourseDetail() {
                                       </div>
                                     </div>
                                     {lesson.is_preview && !hasAccess && lessonIndex === 0 ? (
-                                      <Badge className="text-[10px] sm:text-xs flex-shrink-0 ml-2 bg-cyan-500/15 text-cyan-400 border-cyan-500/30 gap-1">
+                                      <Badge className="text-[10px] sm:text-xs flex-shrink-0 ml-2 bg-primary/15 text-primary border-primary/30 gap-1">
                                         <Play className="w-2.5 h-2.5" />
                                         Free Preview
                                       </Badge>
