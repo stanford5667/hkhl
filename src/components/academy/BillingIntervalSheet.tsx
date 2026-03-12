@@ -192,7 +192,7 @@ export function BillingIntervalSheet({ open, onOpenChange, returnPath }: Billing
             className={cn(
               'relative p-4 cursor-pointer border-2 transition-all bg-muted/30',
               selected === 'annual'
-                ? 'border-amber-500 ring-1 ring-amber-500/30'
+                ? 'border-primary ring-1 ring-primary/30'
                 : 'border-border hover:border-primary/30'
             )}
             onClick={() => setSelected('annual')}
