@@ -371,10 +371,10 @@ export default function CourseDetail() {
                 {course.description}
               </CardDescription>
               {course.description && course.description.length > 150 && (
-                <button
-                  onClick={() => setDescExpanded(!descExpanded)}
-                  className="text-xs text-cyan-400 hover:text-cyan-300 font-medium mt-1 transition-colors"
-                >
+                  <button
+                    onClick={() => setDescExpanded(!descExpanded)}
+                    className="text-xs text-primary hover:text-primary/80 font-medium mt-1 transition-colors"
+                  >
                   {descExpanded ? 'Show less' : 'Read more'}
                 </button>
               )}
