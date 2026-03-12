@@ -339,7 +339,7 @@ export default function Settings() {
 
       <div className="p-6 lg:p-8 max-w-4xl mx-auto">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-secondary/50 p-1">
+          <TabsList className="grid w-full grid-cols-5 bg-secondary/50 p-1">
             <TabsTrigger value="profile" className="gap-2 data-[state=active]:bg-background">
               <User className="h-4 w-4" />
               <span className="hidden sm:inline">Profile</span>
@@ -355,6 +355,10 @@ export default function Settings() {
             <TabsTrigger value="security" className="gap-2 data-[state=active]:bg-background">
               <Shield className="h-4 w-4" />
               <span className="hidden sm:inline">Security</span>
+            </TabsTrigger>
+            <TabsTrigger value="affiliate" className="gap-2 data-[state=active]:bg-background">
+              <LinkIcon className="h-4 w-4" />
+              <span className="hidden sm:inline">Affiliate</span>
             </TabsTrigger>
           </TabsList>
 
@@ -660,36 +664,43 @@ export default function Settings() {
               </motion.div>
             </motion.div>
           </TabsContent>
+          {/* Affiliate Tab */}
+          <TabsContent value="affiliate">
+            <motion.div 
+              className="space-y-6"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              <motion.div variants={cardVariants}>
+                <Card className="glass-card overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/10 to-transparent rounded-bl-full" />
+                  <CardHeader className="relative">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-gradient-to-br from-primary/20 to-violet-500/20 border border-primary/30">
+                        <LinkIcon className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">Affiliate Program</CardTitle>
+                        <CardDescription>Earn recurring commissions by referring new users</CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="relative space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      Join our affiliate program to earn 20% recurring commission on every referral. Get your unique link, track clicks &amp; conversions, and grow your earnings.
+                    </p>
+                    <Button onClick={() => navigate('/affiliate')} variant="outline" className="gap-2">
+                      <LinkIcon className="h-4 w-4" />
+                      Go to Affiliate Dashboard
+                      <ExternalLink className="h-3 w-3 ml-1" />
+                    </Button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </motion.div>
+          </TabsContent>
         </Tabs>
-
-        {/* Affiliate Program Card */}
-        {user && (
-          <motion.div variants={cardVariants} initial="hidden" animate="visible">
-            <Card className="border-primary/20">
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <LinkIcon className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">Affiliate Program</CardTitle>
-                    <CardDescription>Earn recurring commissions by referring new users</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Join our affiliate program to earn 20% recurring commission on every referral. Get your unique link, track clicks &amp; conversions, and grow your earnings.
-                </p>
-                <Button onClick={() => navigate('/affiliate')} variant="outline" className="gap-2">
-                  <LinkIcon className="h-4 w-4" />
-                  Go to Affiliate Dashboard
-                  <ExternalLink className="h-3 w-3 ml-1" />
-                </Button>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
       </div>
     </div>
   );
