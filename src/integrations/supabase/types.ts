@@ -227,6 +227,8 @@ export type Database = {
           payment_email: string | null
           payment_method: string | null
           status: string
+          stripe_coupon_id: string | null
+          stripe_promo_code_id: string | null
           total_clicks: number
           total_earnings: number
           total_paid: number
@@ -247,6 +249,8 @@ export type Database = {
           payment_email?: string | null
           payment_method?: string | null
           status?: string
+          stripe_coupon_id?: string | null
+          stripe_promo_code_id?: string | null
           total_clicks?: number
           total_earnings?: number
           total_paid?: number
@@ -267,6 +271,8 @@ export type Database = {
           payment_email?: string | null
           payment_method?: string | null
           status?: string
+          stripe_coupon_id?: string | null
+          stripe_promo_code_id?: string | null
           total_clicks?: number
           total_earnings?: number
           total_paid?: number
