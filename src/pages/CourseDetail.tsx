@@ -716,11 +716,11 @@ export default function CourseDetail() {
               ) : enrollment && !isResearchTier ? (
                 // Enrolled but subscription expired
                 <div className="space-y-4">
-                  <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-center">
-                    <Lock className="w-5 h-5 text-amber-400 mx-auto mb-2" />
-                    <p className="text-xs sm:text-sm text-amber-200">
-                      Subscribe to continue learning
-                    </p>
+                   <div className="p-3 rounded-lg bg-primary/10 border border-primary/30 text-center">
+                     <Lock className="w-5 h-5 text-primary mx-auto mb-2" />
+                     <p className="text-xs sm:text-sm text-muted-foreground">
+                       Subscribe to continue learning
+                     </p>
                   </div>
                   <Button 
                     className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600" 
