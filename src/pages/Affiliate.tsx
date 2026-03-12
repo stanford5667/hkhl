@@ -369,7 +369,7 @@ export default function Affiliate() {
             <LinkIcon className="h-5 w-5" />
             Your Promo Code
           </CardTitle>
-          <CardDescription>Share your promo code to earn {affiliate.commission_rate}% recurring commission. Referrals get 10% off their first month!</CardDescription>
+          <CardDescription>Share this code with people you refer — they enter it during checkout to get 10% off their first month, and you earn {affiliate.commission_rate}% recurring commission on every payment they make.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
