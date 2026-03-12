@@ -162,7 +162,7 @@ export function UpgradeModal({ isOpen, feature, onClose, onUpgrade }: UpgradeMod
         <div className="grid grid-cols-[1fr_48px_48px] items-center gap-0 px-3 py-2 bg-muted/50 border-b border-border">
           <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Feature</span>
           <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider text-center">Free</span>
-          <span className="text-[10px] font-semibold text-amber-400 uppercase tracking-wider text-center">Pro</span>
+          <span className="text-[10px] font-semibold text-primary uppercase tracking-wider text-center">Pro</span>
         </div>
         {COMPARISON_FEATURES.map((f, i) => (
           <div
