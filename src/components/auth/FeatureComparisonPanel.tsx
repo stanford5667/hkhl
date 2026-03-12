@@ -42,7 +42,7 @@ export function FeatureComparisonPanel() {
         </div>
       </div>
       <p className="text-center text-[10px] text-muted-foreground">
-        Pro starts at <span className="font-semibold text-foreground">$58/mo</span> (billed annually)
+        Pro starts at <span className="font-semibold text-foreground">$83/mo</span> (billed annually)
       </p>
     </div>
   );
