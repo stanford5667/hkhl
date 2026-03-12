@@ -59,7 +59,7 @@ export default function Auth() {
         // Trigger checkout immediately after login/signup
         import('@/integrations/supabase/client').then(({ supabase }) => {
           supabase.functions.invoke('create-checkout', {
-            body: { plan: checkoutPlan, return_path: checkoutReturnPath || from },
+            body: { plan: checkoutPlan, billing_interval: 'annual', return_path: checkoutReturnPath || from },
           }).then(({ data, error }) => {
             if (!error && data?.url) {
               window.location.href = data.url;
