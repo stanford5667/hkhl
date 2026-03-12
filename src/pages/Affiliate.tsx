@@ -95,20 +95,22 @@ export default function Affiliate() {
         user_id: user.id,
         affiliate_code: code,
         payment_email: user.email,
+        status: "approved",
+        approved_at: new Date().toISOString(),
       });
 
       if (error) {
         if (error.code === "23505") {
-          toast.error("You've already applied to the affiliate program.");
+          toast.error("You're already an affiliate.");
         } else {
           throw error;
         }
       } else {
-        toast.success("Application submitted! We'll review it shortly.");
+        toast.success("You're now an affiliate! Your link is ready.");
         fetchAffiliateData();
       }
     } catch (err: any) {
-      toast.error(err.message || "Failed to apply");
+      toast.error(err.message || "Failed to join");
     } finally {
       setApplying(false);
     }
