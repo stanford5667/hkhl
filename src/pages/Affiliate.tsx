@@ -146,7 +146,7 @@ export default function Affiliate() {
     );
   }
 
-  // Not yet an affiliate - show application
+  // Not yet an affiliate - show instant join
   if (!affiliate) {
     return (
       <div className="p-6 lg:p-8 max-w-3xl mx-auto">
@@ -183,52 +183,14 @@ export default function Affiliate() {
               </div>
               <Button onClick={applyAsAffiliate} disabled={applying} className="w-full" size="lg">
                 {applying ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                Apply Now
+                Join Now — It's Free
               </Button>
               <p className="text-xs text-muted-foreground text-center">
-                Applications are typically reviewed within 24 hours.
+                Instant activation. No approval needed.
               </p>
             </CardContent>
           </Card>
         </motion.div>
-      </div>
-    );
-  }
-
-  // Pending state
-  if (affiliate.status === "pending") {
-    return (
-      <div className="p-6 lg:p-8 max-w-3xl mx-auto">
-        <PageHeader icon={Clock} title="Affiliate Program" subtitle="Your application is under review" />
-        <Card className="mt-6">
-          <CardContent className="text-center py-12">
-            <Clock className="h-12 w-12 mx-auto mb-4 text-amber-500" />
-            <h2 className="text-xl font-semibold mb-2">Application Pending</h2>
-            <p className="text-muted-foreground">
-              Your affiliate application is being reviewed. You'll be notified once it's approved.
-            </p>
-            <p className="text-sm text-muted-foreground mt-2">
-              Applied on {new Date(affiliate.applied_at).toLocaleDateString()}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (affiliate.status === "rejected") {
-    return (
-      <div className="p-6 lg:p-8 max-w-3xl mx-auto">
-        <PageHeader icon={XCircle} title="Affiliate Program" subtitle="Application status" />
-        <Card className="mt-6">
-          <CardContent className="text-center py-12">
-            <XCircle className="h-12 w-12 mx-auto mb-4 text-destructive" />
-            <h2 className="text-xl font-semibold mb-2">Application Not Approved</h2>
-            <p className="text-muted-foreground">
-              Unfortunately, your application wasn't approved at this time. Feel free to reach out to support for details.
-            </p>
-          </CardContent>
-        </Card>
       </div>
     );
   }
