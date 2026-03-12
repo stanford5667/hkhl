@@ -382,6 +382,9 @@ export default function Affiliate() {
               </Button>
             </div>
           </div>
+          <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">How it works:</span> Tell your referral to enter this code on the <span className="font-medium text-foreground">checkout page</span> when they subscribe. The discount applies automatically, and you'll earn commission on every payment they make going forward.
+          </div>
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <span>Commission: {affiliate.commission_rate}% {affiliate.commission_type}</span>
             <span>•</span>
