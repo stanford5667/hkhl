@@ -1,13 +1,13 @@
 /**
  * FinancialsSection - Complete Financials View for Company Details
- * Includes Income Statement, Balance Sheet, and Cash Flow tabs
+ * Includes Income Statement, Balance Sheet, Cash Flow, and Valuation Suite tabs
  * With margins, growth rates, expense breakdown, and clickable sourced data
  */
 
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart3, Scale, Coins, GraduationCap } from 'lucide-react';
+import { BarChart3, Scale, Coins, GraduationCap, Target } from 'lucide-react';
 import { IncomeStatementTable } from './IncomeStatementTable';
 import { BalanceSheetTable } from './BalanceSheetTable';
 import { CashFlowTable } from './CashFlowTable';
@@ -16,6 +16,7 @@ import { ExpenseBreakdownCard } from './ExpenseBreakdownCard';
 import { RevenueSegmentsCard } from '@/components/research/RevenueSegmentsCard';
 import { useProductSegments } from '@/hooks/useProductSegments';
 import { useComprehensiveFundamentals } from '@/hooks/useComprehensiveFundamentals';
+import { ValuationSuite } from './valuation/ValuationSuite';
 
 interface FinancialsSectionProps {
   ticker: string;
@@ -69,6 +70,13 @@ export function FinancialsSection({ ticker, companyName }: FinancialsSectionProp
               <Coins className="h-3.5 w-3.5 mr-1.5" />
               Cash Flow
             </TabsTrigger>
+            <TabsTrigger 
+              value="valuation" 
+              className="text-xs px-3 data-[state=active]:bg-background"
+            >
+              <Target className="h-3.5 w-3.5 mr-1.5" />
+              Valuation
+            </TabsTrigger>
           </TabsList>
         </div>
         
@@ -83,26 +91,32 @@ export function FinancialsSection({ ticker, companyName }: FinancialsSectionProp
         <TabsContent value="cashflow" className="mt-0">
           <CashFlowTable ticker={ticker} companyName={companyName} />
         </TabsContent>
+        
+        <TabsContent value="valuation" className="mt-0">
+          <ValuationSuite ticker={ticker} companyName={companyName} />
+        </TabsContent>
       </Tabs>
       
-      {/* Revenue Segmentation & Expense Breakdown */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <RevenueSegmentsCard 
-          segments={segmentsData?.segments}
-          isLoading={segmentsLoading}
-          useMockData={segmentsData?.useMockData}
-          ticker={ticker}
-        />
-        
-        <ExpenseBreakdownCard
-          revenue={fundamentals.revenue}
-          costOfRevenue={fundamentals.costOfRevenue}
-          operatingExpenses={fundamentals.operatingExpenses}
-          interestExpense={fundamentals.interestExpense}
-          incomeTax={fundamentals.incomeTax}
-          isLoading={fundamentals.isLoading}
-        />
-      </div>
+      {/* Revenue Segmentation & Expense Breakdown (hide on valuation tab) */}
+      {activeStatement !== 'valuation' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <RevenueSegmentsCard 
+            segments={segmentsData?.segments}
+            isLoading={segmentsLoading}
+            useMockData={segmentsData?.useMockData}
+            ticker={ticker}
+          />
+          
+          <ExpenseBreakdownCard
+            revenue={fundamentals.revenue}
+            costOfRevenue={fundamentals.costOfRevenue}
+            operatingExpenses={fundamentals.operatingExpenses}
+            interestExpense={fundamentals.interestExpense}
+            incomeTax={fundamentals.incomeTax}
+            isLoading={fundamentals.isLoading}
+          />
+        </div>
+      )}
       
       {/* Learning Center */}
       <Card className="bg-card/50 border-border/50">
