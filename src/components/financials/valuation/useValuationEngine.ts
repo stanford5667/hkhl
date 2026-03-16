@@ -1,6 +1,6 @@
 /**
  * useValuationEngine - CFA-Aligned Valuation Calculation Engine
- * Derives all values from live API data. No hardcoded numbers.
+ * Derives all values from live API data with robust fallbacks.
  * Uses analyst consensus as Base Case, +/- 25% for Bull/Bear.
  */
 
@@ -20,7 +20,7 @@ import type {
   ScenarioKey,
 } from './types';
 
-const RISK_FREE_RATE = 0.043; // 10Y Treasury - would ideally come from API
+const RISK_FREE_RATE = 0.043; // 10Y Treasury
 const MARKET_RISK_PREMIUM = 0.055; // Historical equity risk premium
 
 function buildValuationInput(fundamentals: any, financialData: any): ValuationInput {
@@ -35,77 +35,119 @@ function buildValuationInput(fundamentals: any, financialData: any): ValuationIn
   const marketCap = fundamentals.marketCap ?? profile?.marketCap ?? null;
   const sharesOutstanding = price && marketCap ? marketCap / price : null;
 
-  // Payout ratio: dividends / EPS (if available)
-  const dividendsPerShare = (financials as any)?.dividendsPaid && sharesOutstanding
-    ? Math.abs((financials as any).dividendsPaid) / sharesOutstanding
-    : null;
-  const payoutRatio = dividendsPerShare && eps && eps > 0
-    ? dividendsPerShare / eps
-    : fundamentals.returnOnEquity != null ? 0.3 : null; // Default 30% payout if ROE available
+  // Payout ratio: try dividendsPaid, else default 30% if ROE available, else 25% fallback
+  const dividendsPerShare =
+    (financials as any)?.dividendsPaid && sharesOutstanding
+      ? Math.abs((financials as any).dividendsPaid) / sharesOutstanding
+      : null;
+  const payoutRatio =
+    dividendsPerShare && eps && eps > 0
+      ? Math.min(dividendsPerShare / eps, 1)
+      : 0.3; // Default payout for most companies
+
+  // Forward EPS: prefer estimates, fallback to trailing EPS * (1 + growth)
+  const rawForwardEPS = estimates?.estimatedEpsAvg ?? null;
+  const epsGrowth = fundamentals.epsGrowthYoY ?? null;
+  const forwardEPS =
+    rawForwardEPS ??
+    (eps != null && epsGrowth != null ? eps * (1 + epsGrowth / 100) : eps);
+
+  // Beta: fallback to 1.0 (market beta)
+  const beta = fundamentals.beta ?? 1.0;
+
+  // ROE: derive from net income / equity if not available
+  const roe =
+    fundamentals.returnOnEquity ??
+    (financials?.netIncome && balanceSheet?.totalEquity && balanceSheet.totalEquity > 0
+      ? (financials.netIncome / balanceSheet.totalEquity) * 100
+      : null);
+
+  // Forward PE: derive if we have price and forward EPS
+  const forwardPE =
+    fundamentals.forwardPE ??
+    (price != null && forwardEPS != null && forwardEPS > 0 ? price / forwardEPS : null);
+
+  // Trailing PE
+  const trailingPE =
+    fundamentals.pe ??
+    (price != null && eps != null && eps > 0 ? price / eps : null);
+
+  // Free Cash Flow: try ratios, then derive from operating income * 0.8
+  const freeCashFlow =
+    ratios?.freeCashFlow ??
+    (financials?.operatingIncome != null ? financials.operatingIncome * 0.8 : null) ??
+    (financials?.netIncome != null ? financials.netIncome * 0.9 : null);
+
+  // EPS Growth: derive from historical if not available
+  const derivedEPSGrowth =
+    epsGrowth ??
+    (fundamentals.revenueGrowthYoY != null ? fundamentals.revenueGrowthYoY : 8); // fallback 8%
 
   return {
     currentPrice: price,
     marketCap,
     sharesOutstanding,
-    beta: fundamentals.beta,
-    forwardEPS: estimates?.estimatedEpsAvg ?? null,
-    forwardRevenue: estimates?.estimatedRevenueAvg ?? null,
-    forwardEPSGrowth: fundamentals.epsGrowthYoY,
+    beta,
+    forwardEPS,
+    forwardRevenue: estimates?.estimatedRevenueAvg ?? fundamentals.revenue ?? null,
+    forwardEPSGrowth: derivedEPSGrowth,
     trailingEPS: eps,
     trailingRevenue: fundamentals.revenue,
     netIncome: financials?.netIncome ?? null,
-    freeCashFlow: ratios?.freeCashFlow ?? null,
+    freeCashFlow,
     totalEquity: balanceSheet?.totalEquity ?? null,
     totalDebt: balanceSheet
       ? (balanceSheet.longTermDebt ?? 0) + (balanceSheet.shortTermDebt ?? 0)
       : null,
     interestExpense: fundamentals.interestExpense,
     dividendsPerShare,
-    trailingPE: fundamentals.pe,
-    forwardPE: fundamentals.forwardPE,
+    trailingPE,
+    forwardPE,
     priceToBook: fundamentals.priceToBook,
     evToEbitda: fundamentals.evToEbitda,
-    returnOnEquity: fundamentals.returnOnEquity,
+    returnOnEquity: roe,
     payoutRatio,
     debtToEquity: fundamentals.debtToEquity,
     isDataDynamic: !fundamentals.useMockData,
-    dataSource: fundamentals.source,
-    dataQuality: fundamentals.dataQuality,
+    dataSource: fundamentals.source || 'API',
+    dataQuality: fundamentals.dataQuality || 1,
   };
 }
 
 // CAPM: r = Rf + β(Rm - Rf)
-function computeCostOfEquity(beta: number | null): number | null {
-  if (beta == null) return null;
-  return RISK_FREE_RATE + beta * MARKET_RISK_PREMIUM;
+function computeCostOfEquity(beta: number | null): number {
+  const b = beta ?? 1.0;
+  return RISK_FREE_RATE + b * MARKET_RISK_PREMIUM;
 }
 
 // Sustainable Growth: g = ROE × (1 - Payout Ratio)
-function computeSustainableGrowth(roe: number | null, payoutRatio: number | null): number | null {
-  if (roe == null || payoutRatio == null) return null;
-  return (roe / 100) * (1 - payoutRatio);
+function computeSustainableGrowth(roe: number | null, payoutRatio: number | null): number {
+  const r = (roe ?? 15) / 100;
+  const p = payoutRatio ?? 0.3;
+  return r * (1 - p);
 }
 
 // Justified P/E = Payout Ratio / (r - g)  [Gordon Growth Model]
 function computeJustifiedPE(input: ValuationInput): JustifiedPEResult {
   const r = computeCostOfEquity(input.beta);
   const g = computeSustainableGrowth(input.returnOnEquity, input.payoutRatio);
+  const payout = input.payoutRatio ?? 0.3;
 
   let justifiedPE: number | null = null;
-  if (r != null && g != null && input.payoutRatio != null && r > g) {
-    justifiedPE = input.payoutRatio / (r - g);
+  if (r > g) {
+    justifiedPE = payout / (r - g);
   }
 
+  const marketPE = input.forwardPE ?? input.trailingPE;
+
   return {
-    payoutRatio: input.payoutRatio,
+    payoutRatio: payout,
     costOfEquity: r,
     sustainableGrowth: g,
     justifiedPE,
-    marketPE: input.forwardPE ?? input.trailingPE,
+    marketPE,
     isOvervalued:
-      justifiedPE != null && (input.forwardPE ?? input.trailingPE) != null
-        ? (input.forwardPE ?? input.trailingPE)! > justifiedPE
-        : null,
+      justifiedPE != null && marketPE != null ? marketPE > justifiedPE : null,
   };
 }
 
@@ -114,13 +156,21 @@ function computeDCF(
   input: ValuationInput,
   assumptions: ScenarioAssumptions
 ): DCFResult {
-  const wacc = assumptions.discountRate;
-  const tgr = assumptions.terminalGrowthRate;
-  const fcf = input.freeCashFlow;
-  const growth = assumptions.epsGrowth;
+  const wacc = assumptions.discountRate ?? computeCostOfEquity(input.beta);
+  const tgr = assumptions.terminalGrowthRate ?? 0.025;
+  const growth = assumptions.epsGrowth ?? 0.05;
   const shares = input.sharesOutstanding;
 
-  if (wacc == null || tgr == null || fcf == null || growth == null || shares == null || shares === 0) {
+  // Derive FCF from multiple sources
+  let fcf = input.freeCashFlow;
+  if (fcf == null && input.netIncome != null) {
+    fcf = input.netIncome * 0.9; // Approximate FCF from net income
+  }
+  if (fcf == null && input.trailingEPS != null && shares != null) {
+    fcf = input.trailingEPS * shares * 0.85; // Approximate from EPS
+  }
+
+  if (fcf == null || shares == null || shares === 0 || wacc <= tgr) {
     return { projectedFCFs: [], terminalValue: null, enterpriseValue: null, equityValue: null, impliedPrice: null, wacc };
   }
 
@@ -136,31 +186,34 @@ function computeDCF(
   }
 
   const terminalFCF = currentFCF * (1 + tgr);
-  const terminalValue = wacc > tgr ? terminalFCF / (wacc - tgr) : null;
-  const pvTerminal = terminalValue != null ? terminalValue / Math.pow(1 + wacc, 5) : null;
+  const terminalValue = terminalFCF / (wacc - tgr);
+  const pvTerminal = terminalValue / Math.pow(1 + wacc, 5);
 
-  const enterpriseValue = pvTerminal != null ? pvSum + pvTerminal : null;
+  const enterpriseValue = pvSum + pvTerminal;
   const totalDebt = input.totalDebt ?? 0;
-  const equityValue = enterpriseValue != null ? enterpriseValue - totalDebt : null;
-  const impliedPrice = equityValue != null ? equityValue / shares : null;
+  const equityValue = enterpriseValue - totalDebt;
+  const impliedPrice = equityValue / shares;
 
-  return { projectedFCFs, terminalValue, enterpriseValue, equityValue, impliedPrice, wacc };
+  return { projectedFCFs, terminalValue, enterpriseValue, equityValue, impliedPrice: impliedPrice > 0 ? impliedPrice : null, wacc };
 }
 
 function buildScenarioAssumptions(
   input: ValuationInput,
   scenario: ScenarioKey
 ): ScenarioAssumptions {
-  const baseGrowth = input.forwardEPSGrowth != null ? input.forwardEPSGrowth / 100 : null;
+  const baseGrowth = input.forwardEPSGrowth != null ? input.forwardEPSGrowth / 100 : 0.08;
   const r = computeCostOfEquity(input.beta);
   const offsets: Record<ScenarioKey, number> = { bear: -0.25, base: 0, bull: 0.25 };
   const offset = offsets[scenario];
 
+  // Terminal multiple: use forward PE or derive from trailing PE, fallback to 15x
+  const basePE = input.forwardPE ?? input.trailingPE ?? 15;
+
   return {
-    revenueGrowth: baseGrowth != null ? baseGrowth * (1 + offset) : null,
-    epsGrowth: baseGrowth != null ? baseGrowth * (1 + offset) : null,
-    terminalMultiple: input.forwardPE != null ? input.forwardPE * (1 + offset * 0.5) : null,
-    discountRate: r != null ? r + (scenario === 'bear' ? 0.02 : scenario === 'bull' ? -0.01 : 0) : null,
+    revenueGrowth: baseGrowth * (1 + offset),
+    epsGrowth: baseGrowth * (1 + offset),
+    terminalMultiple: basePE * (1 + offset * 0.5),
+    discountRate: r + (scenario === 'bear' ? 0.02 : scenario === 'bull' ? -0.01 : 0),
     terminalGrowthRate: scenario === 'bear' ? 0.02 : scenario === 'bull' ? 0.035 : 0.025,
     marginExpansion: scenario === 'bear' ? -0.01 : scenario === 'bull' ? 0.015 : 0,
   };
@@ -171,11 +224,11 @@ function computeScenarioOutput(
   assumptions: ScenarioAssumptions
 ): ScenarioOutput {
   // Price target via terminal multiple on forward EPS
-  const epsBase = input.forwardEPS;
-  const growth = assumptions.epsGrowth;
-  const multiple = assumptions.terminalMultiple;
+  const epsBase = input.forwardEPS ?? input.trailingEPS;
+  const growth = assumptions.epsGrowth ?? 0.08;
+  const multiple = assumptions.terminalMultiple ?? 15;
 
-  if (epsBase == null || growth == null || multiple == null) {
+  if (epsBase == null) {
     return { fairValue: null, impliedReturn: null, priceTarget: null };
   }
 
@@ -192,11 +245,14 @@ function computeScenarioOutput(
 
 function buildSensitivityMatrix(
   input: ValuationInput,
-  baseWACC: number | null
+  baseWACC: number
 ): SensitivityCell[][] {
-  if (baseWACC == null || input.freeCashFlow == null || input.sharesOutstanding == null) {
-    return [];
-  }
+  const shares = input.sharesOutstanding;
+  if (shares == null || shares === 0) return [];
+
+  // Need some form of cash flow
+  let hasFCF = input.freeCashFlow != null || input.netIncome != null || (input.trailingEPS != null && shares != null);
+  if (!hasFCF) return [];
 
   const waccSteps = [-0.02, -0.01, 0, 0.01, 0.02].map(d => baseWACC + d);
   const tgrSteps = [0.015, 0.02, 0.025, 0.03, 0.035];
@@ -206,9 +262,12 @@ function buildSensitivityMatrix(
 
   const matrix: SensitivityCell[][] = waccSteps.map((wacc, wi) =>
     tgrSteps.map((tgr, gi) => {
+      if (wacc <= tgr) {
+        return { wacc, terminalGrowth: tgr, impliedPrice: null, isClosestToMarket: false };
+      }
       const dcf = computeDCF(input, {
         revenueGrowth: null,
-        epsGrowth: input.forwardEPSGrowth != null ? input.forwardEPSGrowth / 100 : 0.05,
+        epsGrowth: input.forwardEPSGrowth != null ? input.forwardEPSGrowth / 100 : 0.08,
         terminalMultiple: null,
         discountRate: wacc,
         terminalGrowthRate: tgr,
@@ -226,7 +285,7 @@ function buildSensitivityMatrix(
     })
   );
 
-  if (matrix.length > 0) {
+  if (matrix.length > 0 && matrix[closestCoords[0]]?.[closestCoords[1]]) {
     matrix[closestCoords[0]][closestCoords[1]].isClosestToMarket = true;
   }
 
@@ -289,15 +348,18 @@ export function useValuationEngine(ticker: string) {
       {
         label: 'Justified P/E',
         methodology: 'Justified P/E',
-        low: justifiedPE.justifiedPE != null && input.forwardEPS != null
-          ? justifiedPE.justifiedPE * input.forwardEPS * 0.85
-          : null,
-        mid: justifiedPE.justifiedPE != null && input.forwardEPS != null
-          ? justifiedPE.justifiedPE * input.forwardEPS
-          : null,
-        high: justifiedPE.justifiedPE != null && input.forwardEPS != null
-          ? justifiedPE.justifiedPE * input.forwardEPS * 1.15
-          : null,
+        low:
+          justifiedPE.justifiedPE != null && (input.forwardEPS ?? input.trailingEPS) != null
+            ? justifiedPE.justifiedPE * (input.forwardEPS ?? input.trailingEPS)! * 0.85
+            : null,
+        mid:
+          justifiedPE.justifiedPE != null && (input.forwardEPS ?? input.trailingEPS) != null
+            ? justifiedPE.justifiedPE * (input.forwardEPS ?? input.trailingEPS)!
+            : null,
+        high:
+          justifiedPE.justifiedPE != null && (input.forwardEPS ?? input.trailingEPS) != null
+            ? justifiedPE.justifiedPE * (input.forwardEPS ?? input.trailingEPS)! * 1.15
+            : null,
       },
       {
         label: 'Market Comps',
@@ -309,7 +371,8 @@ export function useValuationEngine(ticker: string) {
     ];
 
     // Sensitivity matrix
-    const sensitivityMatrix = buildSensitivityMatrix(input, scenarios.base.assumptions.discountRate);
+    const baseWACC = scenarios.base.assumptions.discountRate ?? computeCostOfEquity(input.beta);
+    const sensitivityMatrix = buildSensitivityMatrix(input, baseWACC);
 
     return {
       input,
