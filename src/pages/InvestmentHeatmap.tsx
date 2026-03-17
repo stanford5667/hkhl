@@ -72,6 +72,29 @@ function HeatmapContent() {
     return themes;
   }, [allThemes, searchQuery, themeFilter]);
 
+  const uniqueFilteredThemes = useMemo(() => {
+    const seen = new Set<string>();
+    return filteredThemes.filter((theme) => {
+      const key = `${theme.id}::${theme.title}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [filteredThemes]);
+
+  const selectedCountryThemes = useMemo(() => {
+    if (!selectedCountry || selectedCountry.activeThemes.length === 0) return [] as MarketTheme[];
+    const titles = new Set(selectedCountry.activeThemes);
+    const seen = new Set<string>();
+    return allThemes.filter(theme => {
+      if (!titles.has(theme.title)) return false;
+      const key = `${theme.id}::${theme.title}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [selectedCountry, allThemes]);
+
   const handleThemeSelect = useCallback((theme: MarketTheme) => {
     toggleTheme(theme);
     setSheetOpen(true);

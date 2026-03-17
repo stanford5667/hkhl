@@ -2,12 +2,14 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
 import {
-  Globe, TrendingUp, TrendingDown, BarChart3, Building2,
-  DollarSign, Activity, Users, Factory, Landmark,
+  Globe, TrendingUp, BarChart3, Building2,
+  DollarSign, Activity, Users, Factory, Landmark, ArrowRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { RegionThemeData } from '@/hooks/useInvestmentHeatmap';
+import type { MarketTheme } from '@/data/marketThemes';
 
 // Static economic snapshot data per country
 const COUNTRY_ECON_DATA: Record<string, {
