@@ -216,6 +216,11 @@ export default function ResearchPage() {
           <MarketThemesSection />
         </motion.div>
 
+        {/* Global Investment Themes Widget */}
+        <motion.div variants={fadeUp}>
+          <GlobalThemesWidget />
+        </motion.div>
+
         {/* Market Intelligence — gated clicks */}
         <motion.div id="market-intelligence" variants={fadeUp} onClick={(e) => handleSectionClick(e, 'view-screener')}>
           <MarketIntelligenceSection />
