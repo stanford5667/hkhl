@@ -13,7 +13,6 @@ interface Props {
   selectedTheme: MarketTheme | null;
 }
 
-// Simplified SVG paths for major countries (viewBox: 0 0 1000 500)
 const COUNTRY_PATHS: Record<string, { d: string; cx: number; cy: number }> = {
   US: { d: 'M130,160 L260,160 L260,220 L130,220 Z', cx: 195, cy: 190 },
   CA: { d: 'M130,100 L280,100 L280,155 L130,155 Z', cx: 205, cy: 127 },
@@ -74,23 +73,21 @@ export function WorldMapVisualization({ regionData, selectedTheme }: Props) {
   }, [regionData]);
 
   return (
-    <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-4 md:p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-foreground">Global Theme Exposure</h2>
-        <span className="text-xs text-muted-foreground">
+    <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-3 sm:p-4 md:p-6">
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
+        <h2 className="text-base sm:text-lg font-semibold text-foreground">Global Theme Exposure</h2>
+        <span className="text-[10px] sm:text-xs text-muted-foreground">
           {regionData.length} active regions
         </span>
       </div>
 
       <svg
         viewBox="0 0 1000 460"
-        className="w-full h-auto"
-        style={{ minHeight: 280 }}
+        className="w-full h-auto touch-pan-x touch-pan-y"
+        style={{ minHeight: 200 }}
       >
-        {/* Background */}
         <rect width="1000" height="460" className="fill-muted/20" rx="8" />
 
-        {/* Grid lines */}
         {[100, 200, 300, 400].map(y => (
           <line key={y} x1="0" y1={y} x2="1000" y2={y} className="stroke-border/20" strokeDasharray="4" />
         ))}
@@ -98,7 +95,6 @@ export function WorldMapVisualization({ regionData, selectedTheme }: Props) {
           <line key={x} x1={x} y1="0" x2={x} y2="460" className="stroke-border/20" strokeDasharray="4" />
         ))}
 
-        {/* Country shapes */}
         {Object.entries(COUNTRY_PATHS).map(([code, path]) => {
           const region = regionMap.get(code);
           const isHovered = hoveredCountry === code;
@@ -115,6 +111,8 @@ export function WorldMapVisualization({ regionData, selectedTheme }: Props) {
                   strokeWidth={isHovered ? 2 : 1}
                   onMouseEnter={() => setHoveredCountry(code)}
                   onMouseLeave={() => setHoveredCountry(null)}
+                  onTouchStart={() => setHoveredCountry(code)}
+                  onTouchEnd={() => setHoveredCountry(null)}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: region ? (isHovered ? 1 : 0.85) : 0.4 }}
                   transition={{ duration: 0.3 }}
@@ -150,7 +148,6 @@ export function WorldMapVisualization({ regionData, selectedTheme }: Props) {
           );
         })}
 
-        {/* Country labels */}
         {Object.entries(COUNTRY_PATHS).map(([code, path]) => {
           const region = regionMap.get(code);
           if (!region) return null;
@@ -161,7 +158,7 @@ export function WorldMapVisualization({ regionData, selectedTheme }: Props) {
               y={path.cy}
               textAnchor="middle"
               dominantBaseline="middle"
-              className="fill-foreground text-[8px] font-semibold pointer-events-none"
+              className="fill-foreground font-semibold pointer-events-none select-none"
               style={{ fontSize: '8px' }}
             >
               {code}
