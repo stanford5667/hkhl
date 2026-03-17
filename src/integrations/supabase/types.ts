@@ -2540,6 +2540,63 @@ export type Database = {
           },
         ]
       }
+      heatmap_micro_themes: {
+        Row: {
+          affected_countries: string[] | null
+          affected_tickers: Json | null
+          ai_analysis: string | null
+          asset_class_impacts: Json | null
+          category: string
+          created_at: string
+          expires_at: string
+          headline: string
+          id: string
+          impact_score: number
+          published_at: string | null
+          sentiment: string
+          source: string | null
+          source_url: string | null
+          summary: string
+          updated_at: string
+        }
+        Insert: {
+          affected_countries?: string[] | null
+          affected_tickers?: Json | null
+          ai_analysis?: string | null
+          asset_class_impacts?: Json | null
+          category?: string
+          created_at?: string
+          expires_at?: string
+          headline: string
+          id?: string
+          impact_score?: number
+          published_at?: string | null
+          sentiment?: string
+          source?: string | null
+          source_url?: string | null
+          summary: string
+          updated_at?: string
+        }
+        Update: {
+          affected_countries?: string[] | null
+          affected_tickers?: Json | null
+          ai_analysis?: string | null
+          asset_class_impacts?: Json | null
+          category?: string
+          created_at?: string
+          expires_at?: string
+          headline?: string
+          id?: string
+          impact_score?: number
+          published_at?: string | null
+          sentiment?: string
+          source?: string | null
+          source_url?: string | null
+          summary?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       historical_outcomes: {
         Row: {
           final_pre_resolution_probability: number | null
