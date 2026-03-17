@@ -222,61 +222,58 @@ export function D3WorldMap({ regionData, onCountryClick }: Props) {
           );
         })}
 
-        {/* Spotlight pulsing markers for top countries */}
-        {!hintDismissed && spotlightCountries.map((sc) => {
+        {/* Spotlight pulsing dots */}
+        {spotlightCountries.map((sc) => {
           const feat = worldData.features.find(f => NUMERIC_TO_ALPHA2[(f as CountryFeature).id] === sc.countryCode) as CountryFeature | undefined;
           if (!feat) return null;
           const centroid = pathGenerator.centroid(feat as GeoPermissibleObjects);
           if (!centroid || isNaN(centroid[0])) return null;
           const fill = SENTIMENT_FILLS[sc.sentiment] || SENTIMENT_FILLS.neutral;
-          const topTheme = sc.activeThemes[0] || '';
           return (
-            <g
-              key={`spot-${sc.countryCode}`}
-              className="cursor-pointer"
-              onClick={() => handleClickWithHint(sc.countryCode)}
-            >
-              {/* Pulsing ring */}
+            <g key={`spot-${sc.countryCode}`} className="cursor-pointer" onClick={() => handleClickWithHint(sc.countryCode)}>
               <circle cx={centroid[0]} cy={centroid[1]} r="12" fill={fill} fillOpacity="0.15">
-                <animate attributeName="r" values="8;14;8" dur="2.5s" repeatCount="indefinite" />
-                <animate attributeName="fill-opacity" values="0.2;0.05;0.2" dur="2.5s" repeatCount="indefinite" />
+                <animate attributeName="r" values="8;16;8" dur="2.5s" repeatCount="indefinite" />
+                <animate attributeName="fill-opacity" values="0.25;0.05;0.25" dur="2.5s" repeatCount="indefinite" />
               </circle>
-              {/* Solid dot */}
-              <circle cx={centroid[0]} cy={centroid[1]} r="4" fill={fill} fillOpacity="0.9" stroke="hsl(var(--background))" strokeWidth="1.5" />
-              {/* Label */}
-              <rect
-                x={centroid[0] + 9}
-                y={centroid[1] - 14}
-                width={Math.max(sc.countryName.length * 7.5 + 16, topTheme.length * 5.2 + 16)}
-                height="32"
-                rx="5"
-                fill="hsl(var(--popover))"
-                fillOpacity="0.92"
-                stroke={fill}
-                strokeWidth="0.5"
-                strokeOpacity="0.5"
-              />
-              <text
-                x={centroid[0] + 16}
-                y={centroid[1] + 1}
-                fontSize="10"
-                fontWeight="600"
-                fill="hsl(var(--foreground))"
-              >
-                {sc.countryName}
-              </text>
-              <text
-                x={centroid[0] + 16}
-                y={centroid[1] + 12}
-                fontSize="8"
-                fill="hsl(var(--muted-foreground))"
-              >
-                {topTheme.length > 28 ? topTheme.slice(0, 26) + '…' : topTheme}
-              </text>
+              <circle cx={centroid[0]} cy={centroid[1]} r="5" fill={fill} fillOpacity="0.9" stroke="hsl(var(--background))" strokeWidth="1.5" />
             </g>
           );
         })}
       </svg>
+
+      {/* HTML spotlight labels — rendered over the SVG for crisp readable text */}
+      {spotlightCountries.map((sc) => {
+        const feat = worldData.features.find(f => NUMERIC_TO_ALPHA2[(f as CountryFeature).id] === sc.countryCode) as CountryFeature | undefined;
+        if (!feat) return null;
+        const centroid = pathGenerator.centroid(feat as GeoPermissibleObjects);
+        if (!centroid || isNaN(centroid[0])) return null;
+        const fill = SENTIMENT_FILLS[sc.sentiment] || SENTIMENT_FILLS.neutral;
+        const topTheme = sc.activeThemes[0] || '';
+        // Convert SVG coords to percentage positions
+        const leftPct = (centroid[0] / width) * 100;
+        const topPct = (centroid[1] / height) * 100;
+        return (
+          <div
+            key={`label-${sc.countryCode}`}
+            className="absolute z-10 cursor-pointer group"
+            style={{ left: `${leftPct}%`, top: `${topPct}%`, transform: 'translate(8px, -50%)' }}
+            onClick={() => handleClickWithHint(sc.countryCode)}
+          >
+            <div
+              className="bg-popover/95 backdrop-blur-sm border rounded-md px-2.5 py-1.5 shadow-md transition-all group-hover:scale-105 group-hover:shadow-lg"
+              style={{ borderColor: `${fill}50` }}
+            >
+              <div className="flex items-center gap-1.5">
+                <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: fill }} />
+                <span className="text-xs sm:text-sm font-semibold text-foreground whitespace-nowrap">{sc.countryName}</span>
+              </div>
+              <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 max-w-[180px] leading-tight">
+                {topTheme.length > 35 ? topTheme.slice(0, 33) + '…' : topTheme}
+              </p>
+            </div>
+          </div>
+        );
+      })}
 
       {/* Interactive hint callout */}
       {!hintDismissed && !tooltip && (
