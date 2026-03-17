@@ -221,6 +221,61 @@ export function D3WorldMap({ regionData, onCountryClick }: Props) {
             />
           );
         })}
+
+        {/* Spotlight pulsing markers for top countries */}
+        {!hintDismissed && spotlightCountries.map((sc) => {
+          const feat = worldData.features.find(f => NUMERIC_TO_ALPHA2[(f as CountryFeature).id] === sc.countryCode) as CountryFeature | undefined;
+          if (!feat) return null;
+          const centroid = pathGenerator.centroid(feat as GeoPermissibleObjects);
+          if (!centroid || isNaN(centroid[0])) return null;
+          const fill = SENTIMENT_FILLS[sc.sentiment] || SENTIMENT_FILLS.neutral;
+          const topTheme = sc.activeThemes[0] || '';
+          return (
+            <g
+              key={`spot-${sc.countryCode}`}
+              className="cursor-pointer"
+              onClick={() => handleClickWithHint(sc.countryCode)}
+            >
+              {/* Pulsing ring */}
+              <circle cx={centroid[0]} cy={centroid[1]} r="12" fill={fill} fillOpacity="0.15">
+                <animate attributeName="r" values="8;14;8" dur="2.5s" repeatCount="indefinite" />
+                <animate attributeName="fill-opacity" values="0.2;0.05;0.2" dur="2.5s" repeatCount="indefinite" />
+              </circle>
+              {/* Solid dot */}
+              <circle cx={centroid[0]} cy={centroid[1]} r="4" fill={fill} fillOpacity="0.9" stroke="hsl(var(--background))" strokeWidth="1.5" />
+              {/* Label */}
+              <rect
+                x={centroid[0] + 7}
+                y={centroid[1] - 10}
+                width={Math.max(sc.countryName.length * 5.5 + 12, topTheme.length * 3.8 + 12)}
+                height="22"
+                rx="4"
+                fill="hsl(var(--popover))"
+                fillOpacity="0.92"
+                stroke={fill}
+                strokeWidth="0.5"
+                strokeOpacity="0.5"
+              />
+              <text
+                x={centroid[0] + 13}
+                y={centroid[1] - 1}
+                fontSize="7"
+                fontWeight="600"
+                fill="hsl(var(--foreground))"
+              >
+                {sc.countryName}
+              </text>
+              <text
+                x={centroid[0] + 13}
+                y={centroid[1] + 7}
+                fontSize="5.5"
+                fill="hsl(var(--muted-foreground))"
+              >
+                {topTheme.length > 28 ? topTheme.slice(0, 26) + '…' : topTheme}
+              </text>
+            </g>
+          );
+        })}
       </svg>
 
       {/* Interactive hint callout */}
