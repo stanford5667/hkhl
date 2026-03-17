@@ -265,15 +265,15 @@ function HeatmapContent() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredThemes.map((theme) => (
+            {uniqueFilteredThemes.map((theme, index) => (
               <ThemeCard
-                key={theme.id}
+                key={`${theme.id}-${index}`}
                 theme={theme}
                 isSelected={selectedTheme?.id === theme.id}
                 onClick={() => handleThemeSelect(theme)}
               />
             ))}
-            {filteredThemes.length === 0 && (
+            {uniqueFilteredThemes.length === 0 && (
               <div className="col-span-full text-center py-16 text-muted-foreground">
                 <Globe className="h-8 w-8 mx-auto mb-3 opacity-40" />
                 <p className="text-sm">No themes match your search.</p>
