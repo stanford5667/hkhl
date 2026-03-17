@@ -195,8 +195,15 @@ export function CountryDetailSheet({ country, themes = [], open, onOpenChange, o
                     <div className="flex items-center gap-2 mt-1">
                       <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
                         <div
-                          className={cn('h-full rounded-full', colors.bg.replace('/10', ''))}
-                          style={{ width: `${country.themeIntensity}%`, backgroundColor: country.sentiment === 'bullish' ? '#10b981' : country.sentiment === 'bearish' ? '#f43f5e' : '#3b82f6' }}
+                          className={cn(
+                            'h-full rounded-full',
+                            country.sentiment === 'bullish'
+                              ? 'bg-primary'
+                              : country.sentiment === 'bearish'
+                                ? 'bg-destructive'
+                                : 'bg-muted-foreground'
+                          )}
+                          style={{ width: `${country.themeIntensity}%` }}
                         />
                       </div>
                       <span className="text-xs font-bold text-foreground">{country.themeIntensity}</span>
