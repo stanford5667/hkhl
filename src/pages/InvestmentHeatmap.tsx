@@ -5,6 +5,7 @@ import { useMicroThemes, useGenerateMicroThemes, microThemesToMarketThemes } fro
 import { D3WorldMap } from '@/components/heatmap/D3WorldMap';
 import { ThemeCard } from '@/components/heatmap/ThemeCard';
 import { ThemeDetailSheet } from '@/components/heatmap/ThemeDetailSheet';
+import { CountryDetailSheet } from '@/components/heatmap/CountryDetailSheet';
 import { SectorPerformancePanel } from '@/components/heatmap/SectorPerformancePanel';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -15,6 +16,7 @@ import { Search, RefreshCw, Zap, Globe, Layers, Activity, Filter } from 'lucide-
 import { useHeatmapStore } from '@/stores/heatmapStore';
 import { useToast } from '@/hooks/use-toast';
 import type { ThemeFilter } from '@/stores/heatmapStore';
+import type { RegionThemeData } from '@/hooks/useInvestmentHeatmap';
 import { cn } from '@/lib/utils';
 
 function HeatmapContent() {
@@ -25,6 +27,8 @@ function HeatmapContent() {
   } = useHeatmapStore();
   const { toast } = useToast();
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [countrySheetOpen, setCountrySheetOpen] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState<RegionThemeData | null>(null);
 
   const { themes: macroThemes, isLoading: themesLoading } = useHeatmapThemes();
   const { data: microThemesRaw, isLoading: microLoading } = useMicroThemes();
@@ -42,6 +46,15 @@ function HeatmapContent() {
   const { data: regionData, isLoading: mapLoading } = useRegionHeatData(allThemes);
   const { data: themeTickers, isLoading: tickersLoading } = useThemeTickers(selectedTheme);
   const { data: sectorStats, isLoading: sectorsLoading } = useSectorPerformance();
+
+  // Build a region lookup for country click
+  const regionMap = useMemo(() => {
+    const map = new Map<string, RegionThemeData>();
+    if (regionData) {
+      for (const r of regionData) map.set(r.countryCode, r);
+    }
+    return map;
+  }, [regionData]);
 
   const filteredThemes = useMemo(() => {
     let themes = allThemes;
@@ -64,6 +77,21 @@ function HeatmapContent() {
     setSheetOpen(true);
   }, [toggleTheme]);
 
+  const handleCountryClick = useCallback((countryCode: string) => {
+    const region = regionMap.get(countryCode);
+    // Build a minimal region object even if no themes
+    const countryData: RegionThemeData = region || {
+      countryCode,
+      countryName: countryCode,
+      sentiment: 'neutral',
+      activeThemes: [],
+      themeIntensity: 0,
+      keyStats: [],
+    };
+    setSelectedCountry(countryData);
+    setCountrySheetOpen(true);
+  }, [regionMap]);
+
   const handleRefreshNews = useCallback(async () => {
     try {
       await generateMutation.mutateAsync();
@@ -81,7 +109,6 @@ function HeatmapContent() {
   }, [generateMutation, toast]);
 
   const liveCount = allThemes.filter(t => (t as any)._micro).length;
-  const macroCount = allThemes.filter(t => !(t as any)._micro).length;
   const isLoading = themesLoading && microLoading;
 
   return (
@@ -96,7 +123,7 @@ function HeatmapContent() {
                 Global Investment Themes
               </h1>
               <p className="text-sm text-muted-foreground mt-1 max-w-lg">
-                Real-time macro and news-driven themes shaping global markets. Click any theme to explore the full research brief.
+                Real-time macro and news-driven themes shaping global markets. Click any country to explore its regional dashboard.
               </p>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
@@ -138,7 +165,10 @@ function HeatmapContent() {
           {mapLoading || isLoading ? (
             <Skeleton className="h-[300px] sm:h-[400px] lg:h-[520px] w-full" />
           ) : (
-            <D3WorldMap regionData={regionData || []} />
+            <D3WorldMap
+              regionData={regionData || []}
+              onCountryClick={handleCountryClick}
+            />
           )}
         </div>
       </div>
@@ -162,7 +192,6 @@ function HeatmapContent() {
               />
             </div>
             <div className="flex gap-1.5">
-              {/* Filter pills */}
               {(['all', 'news', 'macro'] as ThemeFilter[]).map((f) => (
                 <Button
                   key={f}
@@ -224,7 +253,7 @@ function HeatmapContent() {
           </div>
         )}
 
-        {/* Sector Rotation — compact at bottom */}
+        {/* Sector Rotation */}
         <SectorPerformancePanel
           sectors={sectorStats || []}
           isLoading={sectorsLoading}
@@ -241,6 +270,13 @@ function HeatmapContent() {
           setSheetOpen(open);
           if (!open) toggleTheme(selectedTheme!);
         }}
+      />
+
+      {/* ═══ Country Dashboard Sheet ═══ */}
+      <CountryDetailSheet
+        country={selectedCountry}
+        open={countrySheetOpen}
+        onOpenChange={setCountrySheetOpen}
       />
     </div>
   );

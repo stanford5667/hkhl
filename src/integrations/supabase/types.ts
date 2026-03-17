@@ -4532,6 +4532,45 @@ export type Database = {
         }
         Relationships: []
       }
+      saved_theme_reports: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          theme_category: string | null
+          theme_data: Json
+          theme_id: string
+          theme_title: string
+          tickers_data: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          theme_category?: string | null
+          theme_data?: Json
+          theme_id: string
+          theme_title: string
+          tickers_data?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          theme_category?: string | null
+          theme_data?: Json
+          theme_id?: string
+          theme_title?: string
+          tickers_data?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       screened_portfolios_cache: {
         Row: {
           cagr: number

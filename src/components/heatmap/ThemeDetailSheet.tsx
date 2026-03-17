@@ -4,14 +4,15 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import {
   TrendingUp, TrendingDown, Zap, Globe, Clock, ExternalLink,
   BarChart3, Target, Newspaper, Shield, AlertTriangle, ArrowRight,
+  Bookmark, BookmarkCheck, Loader2,
 } from 'lucide-react';
 import type { MarketTheme } from '@/data/marketThemes';
 import type { ThemeTicker } from '@/hooks/useInvestmentHeatmap';
 import { useNavigate } from 'react-router-dom';
+import { useSaveReport, useIsReportSaved } from '@/hooks/useSavedReports';
 
 interface Props {
   theme: MarketTheme | null;
@@ -23,6 +24,8 @@ interface Props {
 
 export function ThemeDetailSheet({ theme, tickers, tickersLoading, open, onOpenChange }: Props) {
   const navigate = useNavigate();
+  const saveReport = useSaveReport();
+  const isSaved = useIsReportSaved(theme?.id);
   
   if (!theme) return null;
 
@@ -45,20 +48,38 @@ export function ThemeDetailSheet({ theme, tickers, tickersLoading, open, onOpenC
           <div className="p-5 sm:p-6 space-y-6">
             {/* ─── Header ─── */}
             <SheetHeader className="space-y-3 text-left">
-              <div className="flex items-center gap-2 flex-wrap">
-                {isMicro ? (
-                  <Badge variant="outline" className="text-[10px] border-primary/30 text-primary bg-primary/5 gap-1">
-                    <Zap className="h-2.5 w-2.5" />LIVE
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {isMicro ? (
+                    <Badge variant="outline" className="text-[10px] border-primary/30 text-primary bg-primary/5 gap-1">
+                      <Zap className="h-2.5 w-2.5" />LIVE
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="text-[10px] gap-1">
+                      <Globe className="h-2.5 w-2.5" />MACRO
+                    </Badge>
+                  )}
+                  <Badge variant="secondary" className="text-[10px]">{theme.category}</Badge>
+                  <Badge variant="outline" className={cn('text-[10px]', sentimentColor)}>
+                    {sentimentLabel}
                   </Badge>
-                ) : (
-                  <Badge variant="secondary" className="text-[10px] gap-1">
-                    <Globe className="h-2.5 w-2.5" />MACRO
-                  </Badge>
-                )}
-                <Badge variant="secondary" className="text-[10px]">{theme.category}</Badge>
-                <Badge variant="outline" className={cn('text-[10px]', sentimentColor)}>
-                  {sentimentLabel}
-                </Badge>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  disabled={isSaved || saveReport.isPending}
+                  onClick={() => saveReport.mutate({ theme, tickers })}
+                  title={isSaved ? 'Already saved' : 'Save this report'}
+                >
+                  {saveReport.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : isSaved ? (
+                    <BookmarkCheck className="h-4 w-4 text-primary" />
+                  ) : (
+                    <Bookmark className="h-4 w-4" />
+                  )}
+                </Button>
               </div>
               <div className="flex items-start gap-3">
                 <div className={cn('p-2.5 rounded-xl shrink-0', sentimentBg, sentimentColor)}>
@@ -185,7 +206,6 @@ export function ThemeDetailSheet({ theme, tickers, tickersLoading, open, onOpenC
                   ))}
                 </div>
               ) : tickers.length === 0 && theme.tickers?.length > 0 ? (
-                /* Fall back to theme's built-in tickers */
                 <div className="space-y-2">
                   {theme.tickers.map(t => (
                     <TickerRow
