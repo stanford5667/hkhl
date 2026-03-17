@@ -1,18 +1,26 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useMemo, useCallback } from 'react';
 import type { MarketTheme } from '@/data/marketThemes';
 import { useHeatmapThemes, useRegionHeatData, useThemeTickers, useSectorPerformance } from '@/hooks/useInvestmentHeatmap';
-import { WorldMapVisualization } from '@/components/heatmap/WorldMapVisualization';
+import { D3WorldMap } from '@/components/heatmap/D3WorldMap';
 import { ThemesPanel } from '@/components/heatmap/ThemesPanel';
 import { ImpactedTickersTable } from '@/components/heatmap/ImpactedTickersTable';
 import { SectorPerformancePanel } from '@/components/heatmap/SectorPerformancePanel';
 import { HeatmapHeader } from '@/components/heatmap/HeatmapHeader';
+import { TimeLapseSlider } from '@/components/heatmap/TimeLapseSlider';
+import { CorrelationMatrix } from '@/components/heatmap/CorrelationMatrix';
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Search, GitCompareArrows } from 'lucide-react';
+import { useHeatmapStore } from '@/stores/heatmapStore';
 
-export default function InvestmentHeatmap() {
-  const [selectedTheme, setSelectedTheme] = useState<MarketTheme | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+function HeatmapContent() {
+  const {
+    selectedTheme, toggleTheme,
+    searchQuery, setSearchQuery,
+    showCorrelationMatrix, setShowCorrelationMatrix,
+  } = useHeatmapStore();
 
   const { themes, isLoading: themesLoading } = useHeatmapThemes();
   const { data: regionData, isLoading: mapLoading } = useRegionHeatData(themes);
@@ -30,8 +38,8 @@ export default function InvestmentHeatmap() {
   }, [themes, searchQuery]);
 
   const handleThemeSelect = useCallback((theme: MarketTheme) => {
-    setSelectedTheme(prev => prev?.id === theme.id ? null : theme);
-  }, []);
+    toggleTheme(theme);
+  }, [toggleTheme]);
 
   return (
     <div className="min-h-screen p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 max-w-[1600px] mx-auto pb-20 md:pb-6">
@@ -41,20 +49,33 @@ export default function InvestmentHeatmap() {
         totalRegions={regionData?.length || 0}
       />
 
-      {/* Search bar */}
-      <div className="relative w-full sm:max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search themes, tickers, sectors..."
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          className="pl-9 bg-card/50 border-border/50"
-        />
+      {/* Controls row */}
+      <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+        <div className="relative flex-1 sm:max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search themes, tickers, sectors..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="pl-9 bg-card/50 border-border/50"
+          />
+        </div>
+        <Button
+          variant={showCorrelationMatrix ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setShowCorrelationMatrix(!showCorrelationMatrix)}
+          className="gap-1.5 text-xs"
+        >
+          <GitCompareArrows className="h-3.5 w-3.5" />
+          Correlation Matrix
+        </Button>
       </div>
 
-      {/* Mobile: Themes first, then Map. Desktop: Map + Themes side by side */}
+      {/* Time-lapse slider */}
+      <TimeLapseSlider />
+
+      {/* Map + Themes side-by-side */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-        {/* Themes Panel - shows first on mobile */}
         <div className="lg:col-span-1 order-1 lg:order-2">
           {themesLoading ? (
             <div className="space-y-3">
@@ -71,18 +92,22 @@ export default function InvestmentHeatmap() {
           )}
         </div>
 
-        {/* World Map */}
         <div className="lg:col-span-2 order-2 lg:order-1">
           {mapLoading || themesLoading ? (
-            <Skeleton className="h-[250px] sm:h-[350px] lg:h-[450px] w-full rounded-xl" />
+            <Skeleton className="h-[250px] sm:h-[350px] lg:h-[500px] w-full rounded-xl" />
           ) : (
-            <WorldMapVisualization
-              regionData={regionData || []}
-              selectedTheme={selectedTheme}
-            />
+            <D3WorldMap regionData={regionData || []} />
           )}
         </div>
       </div>
+
+      {/* Correlation Matrix */}
+      {showCorrelationMatrix && (
+        <CorrelationMatrix
+          themes={filteredThemes}
+          selectedTheme={selectedTheme}
+        />
+      )}
 
       {/* Bottom grid: Tickers + Sector Stats */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
@@ -101,5 +126,13 @@ export default function InvestmentHeatmap() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function InvestmentHeatmap() {
+  return (
+    <ErrorBoundary variant="default">
+      <HeatmapContent />
+    </ErrorBoundary>
   );
 }
