@@ -131,7 +131,41 @@ export function CountryDetailSheet({ country, themes = [], open, onOpenChange, o
                 <h3 className="text-sm font-semibold text-foreground">Active Investment Themes</h3>
               </div>
               <div className="space-y-2">
-                {country.activeThemes.map((theme, i) => (
+                {hasThemeDetails ? themes.map((theme, index) => (
+                  <div key={`${theme.id}-${index}`} className="p-3 rounded-lg bg-card border border-border/30 space-y-2.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm text-foreground font-semibold leading-snug">{theme.title}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                          {theme.summary}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs gap-1 shrink-0"
+                        onClick={() => onThemeSelect?.(theme)}
+                      >
+                        Deep Dive
+                        <ArrowRight className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    {theme.tickers?.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {theme.tickers.slice(0, 4).map((ticker) => (
+                          <Badge key={`${theme.id}-${ticker.symbol}`} variant="secondary" className="text-[10px] font-mono px-1.5 py-0 h-5">
+                            {ticker.symbol}
+                          </Badge>
+                        ))}
+                        {theme.tickers.length > 4 && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5">
+                            +{theme.tickers.length - 4}
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )) : country.activeThemes.map((theme, i) => (
                   <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-card border border-border/30">
                     <div className={cn('p-1.5 rounded-md shrink-0', colors.bg)}>
                       <Activity className={cn('h-3 w-3', colors.text)} />

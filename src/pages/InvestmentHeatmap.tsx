@@ -304,8 +304,10 @@ function HeatmapContent() {
       {/* ═══ Country Dashboard Sheet ═══ */}
       <CountryDetailSheet
         country={selectedCountry}
+        themes={selectedCountryThemes}
         open={countrySheetOpen}
         onOpenChange={setCountrySheetOpen}
+        onThemeSelect={handleCountryThemeSelect}
       />
     </div>
   );
