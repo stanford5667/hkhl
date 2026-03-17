@@ -258,6 +258,14 @@ function HeatmapContent() {
           </div>
         </div>
 
+        {/* Callouts */}
+        <ThemeCallouts
+          callouts={callouts}
+          onAdd={addCallout}
+          onDismiss={dismissCallout}
+          onTogglePin={togglePinCallout}
+        />
+
         {/* Theme Grid */}
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
