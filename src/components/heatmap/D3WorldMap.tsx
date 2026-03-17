@@ -99,13 +99,7 @@ export function D3WorldMap({ regionData }: Props) {
   }
 
   return (
-    <div className="relative bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-3 sm:p-4 md:p-6 overflow-hidden">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-base sm:text-lg font-semibold text-foreground">Global Theme Exposure</h2>
-        <span className="text-[10px] sm:text-xs text-muted-foreground">
-          {regionData.length} active regions
-        </span>
-      </div>
+    <div className="relative overflow-hidden bg-card/30">
 
       <svg
         ref={svgRef}
