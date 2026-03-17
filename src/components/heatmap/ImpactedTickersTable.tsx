@@ -69,12 +69,12 @@ export function ImpactedTickersTable({ tickers, isLoading, selectedTheme }: Prop
 
   if (!selectedTheme) {
     return (
-      <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-6">
+      <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-4 sm:p-6">
         <div className="flex items-center gap-2 mb-4">
           <BarChart3 className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-semibold text-foreground">Impacted Tickers</h2>
+          <h2 className="text-base sm:text-lg font-semibold text-foreground">Impacted Tickers</h2>
         </div>
-        <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">
+        <div className="flex items-center justify-center h-28 sm:h-40 text-muted-foreground text-sm">
           Select a theme to view impacted tickers
         </div>
       </div>
@@ -82,16 +82,16 @@ export function ImpactedTickersTable({ tickers, isLoading, selectedTheme }: Prop
   }
 
   return (
-    <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-4 md:p-6">
+    <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-3 sm:p-4 md:p-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <BarChart3 className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-semibold text-foreground">Impacted Tickers</h2>
+          <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+          <h2 className="text-base sm:text-lg font-semibold text-foreground">Impacted Tickers</h2>
           <Badge variant="outline" className="text-xs">{tickers.length}</Badge>
         </div>
-        <Button variant="outline" size="sm" onClick={exportCSV} className="gap-1.5 text-xs">
+        <Button variant="outline" size="sm" onClick={exportCSV} className="gap-1.5 text-xs h-8">
           <Download className="h-3.5 w-3.5" />
-          CSV
+          <span className="hidden sm:inline">CSV</span>
         </Button>
       </div>
 
@@ -102,54 +102,90 @@ export function ImpactedTickersTable({ tickers, isLoading, selectedTheme }: Prop
           ))}
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border/30">
-                <th className="py-2 px-2 text-left"><SortHeader field="symbol" label="Ticker" /></th>
-                <th className="py-2 px-2 text-left text-xs font-medium text-muted-foreground">Company</th>
-                <th className="py-2 px-2 text-left text-xs font-medium text-muted-foreground hidden md:table-cell">Sector</th>
-                <th className="py-2 px-2 text-left text-xs font-medium text-muted-foreground hidden lg:table-cell">Exposure</th>
-                <th className="py-2 px-2 text-right"><SortHeader field="price" label="Price" /></th>
-                <th className="py-2 px-2 text-right"><SortHeader field="changePercent" label="% Chg" /></th>
-                <th className="py-2 px-2 text-right hidden md:table-cell"><SortHeader field="volume" label="Volume" /></th>
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map(t => (
-                <tr
-                  key={t.symbol}
-                  className="border-b border-border/10 hover:bg-muted/20 cursor-pointer transition-colors"
-                  onClick={() => navigate(`/stock/${t.symbol}`)}
-                >
-                  <td className="py-2.5 px-2 font-semibold text-foreground">{t.symbol}</td>
-                  <td className="py-2.5 px-2 text-muted-foreground truncate max-w-[140px]">{t.name}</td>
-                  <td className="py-2.5 px-2 text-muted-foreground hidden md:table-cell">
-                    <Badge variant="secondary" className="text-[10px]">{t.sector}</Badge>
-                  </td>
-                  <td className="py-2.5 px-2 text-muted-foreground text-xs hidden lg:table-cell">{t.themeExposure}</td>
-                  <td className="py-2.5 px-2 text-right font-medium text-foreground">
+        <>
+          {/* Mobile: Card layout */}
+          <div className="md:hidden space-y-2">
+            {sorted.map(t => (
+              <div
+                key={t.symbol}
+                onClick={() => navigate(`/stock/${t.symbol}`)}
+                className="p-3 rounded-lg bg-card/30 border border-border/20 active:bg-muted/30 transition-colors cursor-pointer"
+              >
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-sm text-foreground">{t.symbol}</span>
+                    <Badge variant="secondary" className="text-[9px] px-1 py-0 h-3.5">{t.sector}</Badge>
+                  </div>
+                  {t.changePercent != null && (
+                    <span className={cn(
+                      'flex items-center gap-0.5 text-xs font-semibold',
+                      t.changePercent > 0 ? 'text-emerald-400' : t.changePercent < 0 ? 'text-rose-400' : 'text-muted-foreground'
+                    )}>
+                      {t.changePercent > 0 ? <TrendingUp className="h-3 w-3" /> : t.changePercent < 0 ? <TrendingDown className="h-3 w-3" /> : null}
+                      {t.changePercent > 0 ? '+' : ''}{t.changePercent.toFixed(2)}%
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground truncate max-w-[60%]">{t.name}</span>
+                  <span className="text-sm font-medium text-foreground">
                     {t.price != null ? `$${t.price.toFixed(2)}` : '—'}
-                  </td>
-                  <td className="py-2.5 px-2 text-right">
-                    {t.changePercent != null ? (
-                      <span className={cn(
-                        'flex items-center justify-end gap-1 font-medium',
-                        t.changePercent > 0 ? 'text-emerald-400' : t.changePercent < 0 ? 'text-rose-400' : 'text-muted-foreground'
-                      )}>
-                        {t.changePercent > 0 ? <TrendingUp className="h-3 w-3" /> : t.changePercent < 0 ? <TrendingDown className="h-3 w-3" /> : null}
-                        {t.changePercent > 0 ? '+' : ''}{t.changePercent.toFixed(2)}%
-                      </span>
-                    ) : '—'}
-                  </td>
-                  <td className="py-2.5 px-2 text-right text-muted-foreground hidden md:table-cell">
-                    {t.volume != null ? formatVolume(t.volume) : '—'}
-                  </td>
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop: Table layout */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border/30">
+                  <th className="py-2 px-2 text-left"><SortHeader field="symbol" label="Ticker" /></th>
+                  <th className="py-2 px-2 text-left text-xs font-medium text-muted-foreground">Company</th>
+                  <th className="py-2 px-2 text-left text-xs font-medium text-muted-foreground">Sector</th>
+                  <th className="py-2 px-2 text-left text-xs font-medium text-muted-foreground hidden lg:table-cell">Exposure</th>
+                  <th className="py-2 px-2 text-right"><SortHeader field="price" label="Price" /></th>
+                  <th className="py-2 px-2 text-right"><SortHeader field="changePercent" label="% Chg" /></th>
+                  <th className="py-2 px-2 text-right"><SortHeader field="volume" label="Volume" /></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {sorted.map(t => (
+                  <tr
+                    key={t.symbol}
+                    className="border-b border-border/10 hover:bg-muted/20 cursor-pointer transition-colors"
+                    onClick={() => navigate(`/stock/${t.symbol}`)}
+                  >
+                    <td className="py-2.5 px-2 font-semibold text-foreground">{t.symbol}</td>
+                    <td className="py-2.5 px-2 text-muted-foreground truncate max-w-[140px]">{t.name}</td>
+                    <td className="py-2.5 px-2 text-muted-foreground">
+                      <Badge variant="secondary" className="text-[10px]">{t.sector}</Badge>
+                    </td>
+                    <td className="py-2.5 px-2 text-muted-foreground text-xs hidden lg:table-cell">{t.themeExposure}</td>
+                    <td className="py-2.5 px-2 text-right font-medium text-foreground">
+                      {t.price != null ? `$${t.price.toFixed(2)}` : '—'}
+                    </td>
+                    <td className="py-2.5 px-2 text-right">
+                      {t.changePercent != null ? (
+                        <span className={cn(
+                          'flex items-center justify-end gap-1 font-medium',
+                          t.changePercent > 0 ? 'text-emerald-400' : t.changePercent < 0 ? 'text-rose-400' : 'text-muted-foreground'
+                        )}>
+                          {t.changePercent > 0 ? <TrendingUp className="h-3 w-3" /> : t.changePercent < 0 ? <TrendingDown className="h-3 w-3" /> : null}
+                          {t.changePercent > 0 ? '+' : ''}{t.changePercent.toFixed(2)}%
+                        </span>
+                      ) : '—'}
+                    </td>
+                    <td className="py-2.5 px-2 text-right text-muted-foreground">
+                      {t.volume != null ? formatVolume(t.volume) : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );
