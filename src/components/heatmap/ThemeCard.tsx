@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import {
-  TrendingUp, TrendingDown, Zap, Globe, Clock, ArrowRight,
+  TrendingUp, TrendingDown, Zap, Globe, Clock, ArrowRight, ChevronRight,
 } from 'lucide-react';
 import type { MarketTheme } from '@/data/marketThemes';
 
@@ -31,6 +31,8 @@ export function ThemeCard({ theme, isSelected, onClick }: Props) {
     ? 'bg-rose-500/10'
     : 'bg-amber-500/10';
 
+  const tickers = theme.tickers || [];
+
   return (
     <motion.button
       initial={{ opacity: 0, y: 12 }}
@@ -38,87 +40,98 @@ export function ThemeCard({ theme, isSelected, onClick }: Props) {
       transition={{ duration: 0.25 }}
       onClick={onClick}
       className={cn(
-        'group w-full text-left rounded-xl border p-4 transition-all duration-200',
-        'bg-card hover:shadow-md',
+        'group w-full text-left rounded-xl border transition-all duration-200',
+        'bg-card hover:shadow-lg hover:shadow-primary/5',
         isSelected
           ? 'border-primary/40 ring-1 ring-primary/20 shadow-sm'
           : 'border-border/50 hover:border-border',
       )}
     >
-      {/* Top row: type badge + sentiment */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-1.5">
-          {isMicro ? (
-            <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 border-primary/30 text-primary bg-primary/5 gap-1">
-              <Zap className="h-2.5 w-2.5" />
-              LIVE
-            </Badge>
-          ) : (
-            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5 gap-1">
-              <Globe className="h-2.5 w-2.5" />
-              MACRO
-            </Badge>
-          )}
-          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5">
-            {theme.category}
-          </Badge>
+      {/* Header */}
+      <div className="p-4 pb-3">
+        <div className="flex items-center justify-between mb-2.5">
+          <div className="flex items-center gap-1.5">
+            {isMicro ? (
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 border-primary/30 text-primary bg-primary/5 gap-1">
+                <Zap className="h-2.5 w-2.5" />LIVE
+              </Badge>
+            ) : (
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5 gap-1">
+                <Globe className="h-2.5 w-2.5" />MACRO
+              </Badge>
+            )}
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5">{theme.category}</Badge>
+          </div>
+          <div className={cn('flex items-center gap-1 text-xs font-semibold', sentimentColor)}>
+            {isBullish ? <TrendingUp className="h-3.5 w-3.5" /> : isBearish ? <TrendingDown className="h-3.5 w-3.5" /> : null}
+            {isMicro && impactScore ? `${impactScore}/10` : `${theme.impactPercent > 0 ? '+' : ''}${theme.impactPercent.toFixed(1)}%`}
+          </div>
         </div>
-        <div className={cn('flex items-center gap-1 text-xs font-semibold', sentimentColor)}>
-          {isBullish ? <TrendingUp className="h-3.5 w-3.5" /> : isBearish ? <TrendingDown className="h-3.5 w-3.5" /> : null}
-          {theme.impactPercent > 0 ? '+' : ''}{theme.impactPercent.toFixed(1)}%
-        </div>
-      </div>
 
-      {/* Title + Icon */}
-      <div className="flex items-start gap-3 mb-2">
-        <div className={cn('p-2 rounded-lg shrink-0', sentimentBg, sentimentColor)}>
-          <Icon className="h-4 w-4" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-semibold text-foreground leading-snug line-clamp-2">
+        {/* Title */}
+        <div className="flex items-start gap-3 mb-2">
+          <div className={cn('p-2 rounded-lg shrink-0', sentimentBg, sentimentColor)}>
+            <Icon className="h-4 w-4" />
+          </div>
+          <h3 className="text-sm font-semibold text-foreground leading-snug line-clamp-2 pt-0.5">
             {theme.title}
           </h3>
         </div>
+
+        {/* Summary */}
+        <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">
+          {theme.detailedSummary || theme.summary}
+        </p>
       </div>
 
-      {/* Summary */}
-      <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3 mb-3">
-        {theme.summary}
-      </p>
-
-      {/* Bottom row: tickers + impact + source */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {theme.tickers && theme.tickers.length > 0 && (
-            <div className="flex items-center gap-1">
-              {theme.tickers.slice(0, 3).map(t => (
-                <span key={t.symbol} className="text-[10px] font-mono font-medium text-foreground bg-muted/50 rounded px-1 py-0.5">
-                  {t.symbol}
-                </span>
-              ))}
-              {theme.tickers.length > 3 && (
-                <span className="text-[10px] text-muted-foreground">+{theme.tickers.length - 3}</span>
-              )}
+      {/* Tickers Section */}
+      {tickers.length > 0 && (
+        <div className="border-t border-border/30 px-4 py-2.5 space-y-1.5">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Related Tickers</span>
+            <span className="text-[10px] text-muted-foreground">{tickers.length} total</span>
+          </div>
+          {tickers.slice(0, 4).map(t => {
+            const tickerBullish = t.sentiment === 'bullish' || (t.change != null && t.change > 0);
+            const tickerBearish = t.sentiment === 'bearish' || (t.change != null && t.change < 0);
+            const tickerColor = tickerBullish ? 'text-emerald-500' : tickerBearish ? 'text-rose-500' : 'text-muted-foreground';
+            return (
+              <div key={t.symbol} className="flex items-center justify-between py-1">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-xs font-mono font-bold text-foreground shrink-0">{t.symbol}</span>
+                  <span className="text-[11px] text-muted-foreground truncate">{t.name}</span>
+                </div>
+                <div className={cn('flex items-center gap-1 text-[11px] font-semibold shrink-0', tickerColor)}>
+                  {tickerBullish ? <TrendingUp className="h-2.5 w-2.5" /> : tickerBearish ? <TrendingDown className="h-2.5 w-2.5" /> : null}
+                  {t.change != null ? `${t.change > 0 ? '+' : ''}${t.change.toFixed(1)}%` : t.sentiment}
+                </div>
+              </div>
+            );
+          })}
+          {tickers.length > 4 && (
+            <div className="text-[10px] text-muted-foreground pt-0.5">
+              +{tickers.length - 4} more tickers
             </div>
           )}
-          {isMicro && impactScore && (
-            <span className="text-[10px] font-semibold text-muted-foreground">
-              Impact {impactScore}/10
-            </span>
-          )}
-        </div>
-        <ArrowRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-      </div>
-
-      {/* Source attribution for live themes */}
-      {isMicro && theme.headlines?.[0] && (
-        <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-border/30 text-[10px] text-muted-foreground">
-          <Clock className="h-2.5 w-2.5" />
-          <span>{theme.headlines[0].source}</span>
-          <span className="opacity-50">·</span>
-          <span>{theme.headlines[0].time}</span>
         </div>
       )}
+
+      {/* Footer CTA */}
+      <div className="border-t border-border/30 px-4 py-2.5 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {isMicro && theme.headlines?.[0] && (
+            <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+              <Clock className="h-2.5 w-2.5" />
+              <span>{theme.headlines[0].source}</span>
+              <span className="opacity-50">·</span>
+              <span>{theme.headlines[0].time}</span>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-1 text-xs font-medium text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+          Deep Dive <ChevronRight className="h-3.5 w-3.5" />
+        </div>
+      </div>
     </motion.button>
   );
 }
