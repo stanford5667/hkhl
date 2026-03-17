@@ -243,6 +243,36 @@ export function useRegionHeatData(themes: MarketTheme[] | null) {
         }
       }
 
+      // Inject geopolitical overlays — these ensure region-specific themes
+      for (const overlay of GEOPOLITICAL_OVERLAYS) {
+        for (const code of overlay.countries) {
+          const existing = countryMap.get(code);
+          if (existing) {
+            // Only add if this specific theme isn't already present
+            if (!existing.activeThemes.includes(overlay.theme)) {
+              existing.activeThemes.unshift(overlay.theme); // Put geo theme first
+              existing.themeIntensity = Math.min(100, Math.max(existing.themeIntensity, overlay.intensity));
+              // Geo themes can override sentiment if more intense
+              if (overlay.intensity > 65) {
+                existing.sentiment = overlay.sentiment;
+              }
+            }
+          } else {
+            countryMap.set(code, {
+              countryCode: code,
+              countryName: COUNTRY_NAMES[code] || code,
+              sentiment: overlay.sentiment,
+              activeThemes: [overlay.theme],
+              themeIntensity: overlay.intensity,
+              keyStats: [
+                { label: 'Intensity', value: `${overlay.intensity}/100` },
+                { label: 'Type', value: 'Geopolitical' },
+              ],
+            });
+          }
+        }
+      }
+
       return Array.from(countryMap.values());
     },
     enabled: !!themes && themes.length > 0,
