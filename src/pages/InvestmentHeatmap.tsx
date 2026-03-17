@@ -25,6 +25,7 @@ function HeatmapContent() {
     selectedTheme, toggleTheme,
     searchQuery, setSearchQuery,
     themeFilter, setThemeFilter,
+    callouts, addCallout, dismissCallout, togglePinCallout,
   } = useHeatmapStore();
   const { toast } = useToast();
   const [sheetOpen, setSheetOpen] = useState(false);
