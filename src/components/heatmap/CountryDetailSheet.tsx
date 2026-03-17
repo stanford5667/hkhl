@@ -2,12 +2,14 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
 import {
-  Globe, TrendingUp, TrendingDown, BarChart3, Building2,
-  DollarSign, Activity, Users, Factory, Landmark,
+  Globe, TrendingUp, BarChart3, Building2,
+  DollarSign, Activity, Users, Factory, Landmark, ArrowRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { RegionThemeData } from '@/hooks/useInvestmentHeatmap';
+import type { MarketTheme } from '@/data/marketThemes';
 
 // Static economic snapshot data per country
 const COUNTRY_ECON_DATA: Record<string, {
@@ -45,16 +47,19 @@ const SENTIMENT_COLORS: Record<string, { text: string; bg: string }> = {
 
 interface Props {
   country: RegionThemeData | null;
+  themes?: MarketTheme[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onThemeSelect?: (theme: MarketTheme) => void;
 }
 
-export function CountryDetailSheet({ country, open, onOpenChange }: Props) {
+export function CountryDetailSheet({ country, themes = [], open, onOpenChange, onThemeSelect }: Props) {
   if (!country) return null;
 
   const econ = COUNTRY_ECON_DATA[country.countryCode];
   const colors = SENTIMENT_COLORS[country.sentiment] || SENTIMENT_COLORS.neutral;
   const gdpGrowthPositive = econ?.gdpGrowth?.startsWith('+');
+  const hasThemeDetails = themes.length > 0;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -126,7 +131,41 @@ export function CountryDetailSheet({ country, open, onOpenChange }: Props) {
                 <h3 className="text-sm font-semibold text-foreground">Active Investment Themes</h3>
               </div>
               <div className="space-y-2">
-                {country.activeThemes.map((theme, i) => (
+                {hasThemeDetails ? themes.map((theme, index) => (
+                  <div key={`${theme.id}-${index}`} className="p-3 rounded-lg bg-card border border-border/30 space-y-2.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm text-foreground font-semibold leading-snug">{theme.title}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                          {theme.summary}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs gap-1 shrink-0"
+                        onClick={() => onThemeSelect?.(theme)}
+                      >
+                        Deep Dive
+                        <ArrowRight className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    {theme.tickers?.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {theme.tickers.slice(0, 4).map((ticker) => (
+                          <Badge key={`${theme.id}-${ticker.symbol}`} variant="secondary" className="text-[10px] font-mono px-1.5 py-0 h-5">
+                            {ticker.symbol}
+                          </Badge>
+                        ))}
+                        {theme.tickers.length > 4 && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5">
+                            +{theme.tickers.length - 4}
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )) : country.activeThemes.map((theme, i) => (
                   <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-card border border-border/30">
                     <div className={cn('p-1.5 rounded-md shrink-0', colors.bg)}>
                       <Activity className={cn('h-3 w-3', colors.text)} />
@@ -156,8 +195,15 @@ export function CountryDetailSheet({ country, open, onOpenChange }: Props) {
                     <div className="flex items-center gap-2 mt-1">
                       <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
                         <div
-                          className={cn('h-full rounded-full', colors.bg.replace('/10', ''))}
-                          style={{ width: `${country.themeIntensity}%`, backgroundColor: country.sentiment === 'bullish' ? '#10b981' : country.sentiment === 'bearish' ? '#f43f5e' : '#3b82f6' }}
+                          className={cn(
+                            'h-full rounded-full',
+                            country.sentiment === 'bullish'
+                              ? 'bg-primary'
+                              : country.sentiment === 'bearish'
+                                ? 'bg-destructive'
+                                : 'bg-muted-foreground'
+                          )}
+                          style={{ width: `${country.themeIntensity}%` }}
                         />
                       </div>
                       <span className="text-xs font-bold text-foreground">{country.themeIntensity}</span>
@@ -186,7 +232,7 @@ function StatCard({ icon: Icon, label, value, sub, subPositive, small, highlight
         {value}
       </div>
       {sub && (
-        <div className={cn('text-[11px] font-semibold mt-0.5', subPositive ? 'text-emerald-500' : 'text-rose-500')}>
+        <div className={cn('text-[11px] font-semibold mt-0.5', subPositive ? 'text-primary' : 'text-destructive')}>
           {sub}
         </div>
       )}

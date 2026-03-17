@@ -72,6 +72,29 @@ function HeatmapContent() {
     return themes;
   }, [allThemes, searchQuery, themeFilter]);
 
+  const uniqueFilteredThemes = useMemo(() => {
+    const seen = new Set<string>();
+    return filteredThemes.filter((theme) => {
+      const key = `${theme.id}::${theme.title}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [filteredThemes]);
+
+  const selectedCountryThemes = useMemo(() => {
+    if (!selectedCountry || selectedCountry.activeThemes.length === 0) return [] as MarketTheme[];
+    const titles = new Set(selectedCountry.activeThemes);
+    const seen = new Set<string>();
+    return allThemes.filter(theme => {
+      if (!titles.has(theme.title)) return false;
+      const key = `${theme.id}::${theme.title}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [selectedCountry, allThemes]);
+
   const handleThemeSelect = useCallback((theme: MarketTheme) => {
     toggleTheme(theme);
     setSheetOpen(true);
@@ -107,6 +130,12 @@ function HeatmapContent() {
       });
     }
   }, [generateMutation, toast]);
+
+  const handleCountryThemeSelect = useCallback((theme: MarketTheme) => {
+    setCountrySheetOpen(false);
+    toggleTheme(theme);
+    setSheetOpen(true);
+  }, [toggleTheme]);
 
   const liveCount = allThemes.filter(t => (t as any)._micro).length;
   const isLoading = themesLoading && microLoading;
@@ -179,7 +208,7 @@ function HeatmapContent() {
         <div className="flex flex-col sm:flex-row gap-3 sm:items-center justify-between">
           <div className="flex items-center gap-2">
             <h2 className="text-lg sm:text-xl font-semibold text-foreground">Active Themes</h2>
-            <Badge variant="secondary" className="text-xs">{filteredThemes.length}</Badge>
+            <Badge variant="secondary" className="text-xs">{uniqueFilteredThemes.length}</Badge>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
             <div className="relative sm:w-72">
@@ -236,15 +265,15 @@ function HeatmapContent() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredThemes.map((theme) => (
+            {uniqueFilteredThemes.map((theme, index) => (
               <ThemeCard
-                key={theme.id}
+                key={`${theme.id}-${index}`}
                 theme={theme}
                 isSelected={selectedTheme?.id === theme.id}
                 onClick={() => handleThemeSelect(theme)}
               />
             ))}
-            {filteredThemes.length === 0 && (
+            {uniqueFilteredThemes.length === 0 && (
               <div className="col-span-full text-center py-16 text-muted-foreground">
                 <Globe className="h-8 w-8 mx-auto mb-3 opacity-40" />
                 <p className="text-sm">No themes match your search.</p>
@@ -275,8 +304,10 @@ function HeatmapContent() {
       {/* ═══ Country Dashboard Sheet ═══ */}
       <CountryDetailSheet
         country={selectedCountry}
+        themes={selectedCountryThemes}
         open={countrySheetOpen}
         onOpenChange={setCountrySheetOpen}
+        onThemeSelect={handleCountryThemeSelect}
       />
     </div>
   );
