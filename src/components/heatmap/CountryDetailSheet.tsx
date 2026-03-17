@@ -132,7 +132,11 @@ export function CountryDetailSheet({ country, themes = [], open, onOpenChange, o
               </div>
               <div className="space-y-2">
                 {hasThemeDetails ? themes.map((theme, index) => (
-                  <div key={`${theme.id}-${index}`} className="p-3 rounded-lg bg-card border border-border/30 space-y-2.5">
+                  <button
+                    key={`${theme.id}-${index}`}
+                    onClick={() => onThemeSelect?.(theme)}
+                    className="w-full text-left p-3 rounded-lg bg-card border border-border/30 hover:border-border/60 transition-colors space-y-2.5 group/theme cursor-pointer"
+                  >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <p className="text-sm text-foreground font-semibold leading-snug">{theme.title}</p>
@@ -140,15 +144,9 @@ export function CountryDetailSheet({ country, themes = [], open, onOpenChange, o
                           {theme.summary}
                         </p>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 text-xs gap-1 shrink-0"
-                        onClick={() => onThemeSelect?.(theme)}
-                      >
-                        Deep Dive
-                        <ArrowRight className="h-3 w-3" />
-                      </Button>
+                      <div className="flex items-center gap-1 text-xs font-medium text-primary opacity-0 group-hover/theme:opacity-100 transition-opacity shrink-0">
+                        Deep Dive <ArrowRight className="h-3 w-3" />
+                      </div>
                     </div>
                     {theme.tickers?.length > 0 && (
                       <div className="flex flex-wrap gap-1.5">
@@ -164,7 +162,7 @@ export function CountryDetailSheet({ country, themes = [], open, onOpenChange, o
                         )}
                       </div>
                     )}
-                  </div>
+                  </button>
                 )) : country.activeThemes.map((theme, i) => (
                   <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-card border border-border/30">
                     <div className={cn('p-1.5 rounded-md shrink-0', colors.bg)}>
