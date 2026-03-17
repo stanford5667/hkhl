@@ -53,12 +53,13 @@ interface Props {
   onThemeSelect?: (theme: MarketTheme) => void;
 }
 
-export function CountryDetailSheet({ country, open, onOpenChange }: Props) {
+export function CountryDetailSheet({ country, themes = [], open, onOpenChange, onThemeSelect }: Props) {
   if (!country) return null;
 
   const econ = COUNTRY_ECON_DATA[country.countryCode];
   const colors = SENTIMENT_COLORS[country.sentiment] || SENTIMENT_COLORS.neutral;
   const gdpGrowthPositive = econ?.gdpGrowth?.startsWith('+');
+  const hasThemeDetails = themes.length > 0;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
