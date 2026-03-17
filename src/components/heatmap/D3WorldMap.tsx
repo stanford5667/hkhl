@@ -245,11 +245,11 @@ export function D3WorldMap({ regionData, onCountryClick }: Props) {
               <circle cx={centroid[0]} cy={centroid[1]} r="4" fill={fill} fillOpacity="0.9" stroke="hsl(var(--background))" strokeWidth="1.5" />
               {/* Label */}
               <rect
-                x={centroid[0] + 7}
-                y={centroid[1] - 10}
-                width={Math.max(sc.countryName.length * 5.5 + 12, topTheme.length * 3.8 + 12)}
-                height="22"
-                rx="4"
+                x={centroid[0] + 9}
+                y={centroid[1] - 14}
+                width={Math.max(sc.countryName.length * 7.5 + 16, topTheme.length * 5.2 + 16)}
+                height="32"
+                rx="5"
                 fill="hsl(var(--popover))"
                 fillOpacity="0.92"
                 stroke={fill}
@@ -257,18 +257,18 @@ export function D3WorldMap({ regionData, onCountryClick }: Props) {
                 strokeOpacity="0.5"
               />
               <text
-                x={centroid[0] + 13}
-                y={centroid[1] - 1}
-                fontSize="7"
+                x={centroid[0] + 16}
+                y={centroid[1] + 1}
+                fontSize="10"
                 fontWeight="600"
                 fill="hsl(var(--foreground))"
               >
                 {sc.countryName}
               </text>
               <text
-                x={centroid[0] + 13}
-                y={centroid[1] + 7}
-                fontSize="5.5"
+                x={centroid[0] + 16}
+                y={centroid[1] + 12}
+                fontSize="8"
                 fill="hsl(var(--muted-foreground))"
               >
                 {topTheme.length > 28 ? topTheme.slice(0, 26) + '…' : topTheme}
