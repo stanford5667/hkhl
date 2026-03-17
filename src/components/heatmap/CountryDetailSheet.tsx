@@ -47,8 +47,10 @@ const SENTIMENT_COLORS: Record<string, { text: string; bg: string }> = {
 
 interface Props {
   country: RegionThemeData | null;
+  themes?: MarketTheme[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onThemeSelect?: (theme: MarketTheme) => void;
 }
 
 export function CountryDetailSheet({ country, open, onOpenChange }: Props) {
