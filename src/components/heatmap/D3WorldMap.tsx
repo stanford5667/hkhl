@@ -88,11 +88,21 @@ export function D3WorldMap({ regionData, onCountryClick }: Props) {
     return map;
   }, [regionData]);
 
-  // Top spotlight countries — highest theme intensity, max 5 for global coverage
+  // Pinned spotlight countries that always show + top dynamic ones
+  const PINNED_SPOTLIGHTS = ['US', 'CN', 'JP', 'IR'];
   const spotlightCountries = useMemo(() => {
-    return [...regionData]
-      .sort((a, b) => b.themeIntensity - a.themeIntensity || b.activeThemes.length - a.activeThemes.length)
-      .slice(0, 5);
+    const pinned: RegionThemeData[] = [];
+    const rest: RegionThemeData[] = [];
+    for (const r of regionData) {
+      if (PINNED_SPOTLIGHTS.includes(r.countryCode)) pinned.push(r);
+      else rest.push(r);
+    }
+    // Sort pinned in the defined order
+    pinned.sort((a, b) => PINNED_SPOTLIGHTS.indexOf(a.countryCode) - PINNED_SPOTLIGHTS.indexOf(b.countryCode));
+    // Fill remaining slots from top dynamic
+    rest.sort((a, b) => b.themeIntensity - a.themeIntensity);
+    const dynamic = rest.slice(0, Math.max(0, 6 - pinned.length));
+    return [...pinned, ...dynamic];
   }, [regionData]);
 
   // Country name lookup for non-themed countries
