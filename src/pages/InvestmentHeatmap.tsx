@@ -208,7 +208,7 @@ function HeatmapContent() {
         <div className="flex flex-col sm:flex-row gap-3 sm:items-center justify-between">
           <div className="flex items-center gap-2">
             <h2 className="text-lg sm:text-xl font-semibold text-foreground">Active Themes</h2>
-            <Badge variant="secondary" className="text-xs">{filteredThemes.length}</Badge>
+            <Badge variant="secondary" className="text-xs">{uniqueFilteredThemes.length}</Badge>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
             <div className="relative sm:w-72">
