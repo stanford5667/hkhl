@@ -280,6 +280,9 @@ export function D3WorldMap({ regionData, onCountryClick }: Props) {
               <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5 max-w-[180px] leading-tight">
                 {topTheme.length > 35 ? topTheme.slice(0, 33) + '…' : topTheme}
               </p>
+              <span className="text-[10px] font-medium mt-1 inline-block opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: fill }}>
+                Click to explore →
+              </span>
             </div>
           </div>
         );
