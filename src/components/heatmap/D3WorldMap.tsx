@@ -88,6 +88,13 @@ export function D3WorldMap({ regionData, onCountryClick }: Props) {
     return map;
   }, [regionData]);
 
+  // Top spotlight countries — highest theme intensity
+  const spotlightCountries = useMemo(() => {
+    return [...regionData]
+      .sort((a, b) => b.themeIntensity - a.themeIntensity || b.activeThemes.length - a.activeThemes.length)
+      .slice(0, 3);
+  }, [regionData]);
+
   // Country name lookup for non-themed countries
   const COUNTRY_NAMES: Record<string, string> = useMemo(() => ({
     US: 'United States', CN: 'China', JP: 'Japan', KR: 'South Korea',
