@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { GlobalThemesWidget } from '@/components/research/GlobalThemesWidget';
 import { useNavigate } from 'react-router-dom';
 import { 
   TrendingUp, Loader2, FileText, ArrowRight
@@ -213,6 +214,11 @@ export default function ResearchPage() {
         {/* Major Market Themes — gated clicks */}
         <motion.div variants={fadeUp} onClick={(e) => handleSectionClick(e, 'view-theme')}>
           <MarketThemesSection />
+        </motion.div>
+
+        {/* Global Investment Themes Widget */}
+        <motion.div variants={fadeUp}>
+          <GlobalThemesWidget />
         </motion.div>
 
         {/* Market Intelligence — gated clicks */}
