@@ -146,6 +146,42 @@ export function useRegionHeatData(themes: MarketTheme[] | null) {
       const countryMap = new Map<string, RegionThemeData>();
 
       for (const theme of themes) {
+        const isMicro = !!(theme as any)._micro;
+        
+        // For micro-themes, use AI-extracted countries directly
+        if (isMicro && (theme as any)._countries?.length > 0) {
+          const microCountries: string[] = (theme as any)._countries;
+          const sentiment = theme.sentimentScore > 0.6 ? 'bullish' as const :
+                           theme.sentimentScore < 0.4 ? 'bearish' as const : 'neutral' as const;
+          
+          for (const code of microCountries) {
+            const existing = countryMap.get(code);
+            if (existing) {
+              existing.activeThemes.push(theme.title);
+              existing.themeIntensity = Math.min(100, existing.themeIntensity + 20);
+              if (sentiment === 'bullish' && existing.sentiment !== 'bullish') {
+                existing.sentiment = 'bullish';
+              } else if (sentiment === 'bearish' && existing.sentiment === 'neutral') {
+                existing.sentiment = 'bearish';
+              }
+            } else {
+              countryMap.set(code, {
+                countryCode: code,
+                countryName: COUNTRY_NAMES[code] || code,
+                sentiment,
+                activeThemes: [theme.title],
+                themeIntensity: Math.min(100, 40 + ((theme as any)._impactScore || 5) * 6),
+                keyStats: [
+                  { label: 'Impact', value: `${(theme as any)._impactScore || 5}/10` },
+                  { label: 'Source', value: 'Live News' },
+                ],
+              });
+            }
+          }
+          continue;
+        }
+
+        // For macro themes, use static mapping
         const category = theme.category || 'Technology';
         const mapping = THEME_COUNTRY_MAP[category] || THEME_COUNTRY_MAP['Technology'];
 
@@ -154,7 +190,6 @@ export function useRegionHeatData(themes: MarketTheme[] | null) {
           if (existing) {
             existing.activeThemes.push(theme.title);
             existing.themeIntensity = Math.min(100, existing.themeIntensity + 15);
-            // Upgrade sentiment priority: bullish > emerging > neutral > bearish
             if (mapping.sentiment === 'bullish' && existing.sentiment !== 'bullish') {
               existing.sentiment = 'bullish';
             } else if (mapping.sentiment === 'emerging' && existing.sentiment === 'neutral') {
