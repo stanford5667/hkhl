@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import type { MarketTheme } from '@/data/marketThemes';
-import type { RegionThemeData, ThemeTicker, SectorStat } from '@/hooks/useInvestmentHeatmap';
 
 export type TimeRange = '1M' | '3M' | '6M' | '1Y';
+export type ThemeFilter = 'all' | 'macro' | 'news';
 
 interface HeatmapState {
   // Selection
@@ -11,7 +11,8 @@ interface HeatmapState {
   searchQuery: string;
   timeRange: TimeRange;
   isPlaying: boolean;
-  playbackMonth: number; // 0 = current, negative = months ago
+  playbackMonth: number;
+  themeFilter: ThemeFilter;
   
   // UI
   showCorrelationMatrix: boolean;
@@ -25,6 +26,7 @@ interface HeatmapState {
   setTimeRange: (range: TimeRange) => void;
   setIsPlaying: (playing: boolean) => void;
   setPlaybackMonth: (month: number) => void;
+  setThemeFilter: (filter: ThemeFilter) => void;
   setShowCorrelationMatrix: (show: boolean) => void;
   setExpandedTicker: (ticker: string | null) => void;
   reset: () => void;
@@ -37,6 +39,7 @@ const initialState = {
   timeRange: '3M' as TimeRange,
   isPlaying: false,
   playbackMonth: 0,
+  themeFilter: 'all' as ThemeFilter,
   showCorrelationMatrix: false,
   expandedTicker: null,
 };
@@ -54,6 +57,7 @@ export const useHeatmapStore = create<HeatmapState>((set) => ({
   setTimeRange: (range) => set({ timeRange: range, playbackMonth: 0, isPlaying: false }),
   setIsPlaying: (playing) => set({ isPlaying: playing }),
   setPlaybackMonth: (month) => set({ playbackMonth: month }),
+  setThemeFilter: (filter) => set({ themeFilter: filter }),
   setShowCorrelationMatrix: (show) => set({ showCorrelationMatrix: show }),
   setExpandedTicker: (ticker) => set((state) => ({
     expandedTicker: state.expandedTicker === ticker ? null : ticker,
