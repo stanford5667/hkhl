@@ -6,6 +6,7 @@ import type { FeatureCollection, Feature, Geometry } from 'geojson';
 import { useHeatmapStore } from '@/stores/heatmapStore';
 import type { RegionThemeData } from '@/hooks/useInvestmentHeatmap';
 import { Skeleton } from '@/components/ui/skeleton';
+import { MousePointerClick } from 'lucide-react';
 
 const WORLD_TOPO_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json';
 
