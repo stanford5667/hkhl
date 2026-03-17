@@ -23,6 +23,7 @@ interface Props {
 
 export function ThemeDetailSheet({ theme, tickers, tickersLoading, open, onOpenChange }: Props) {
   const navigate = useNavigate();
+  
   if (!theme) return null;
 
   const isMicro = !!(theme as any)._micro;

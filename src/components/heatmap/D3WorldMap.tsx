@@ -95,7 +95,7 @@ export function D3WorldMap({ regionData }: Props) {
   }, []);
 
   if (loading || !worldData) {
-    return <Skeleton className="h-[300px] sm:h-[400px] lg:h-[500px] w-full rounded-xl" />;
+    return <Skeleton className="h-[300px] sm:h-[400px] lg:h-[520px] w-full" />;
   }
 
   return (
