@@ -60,6 +60,7 @@ import {
   Users,
   CreditCard,
   Flame,
+  Globe,
 } from "lucide-react";
 
 interface NavItem {
