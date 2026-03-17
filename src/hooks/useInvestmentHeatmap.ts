@@ -98,6 +98,7 @@ const COUNTRY_NAMES: Record<string, string> = {
 
 // Theme → Representative tickers
 const THEME_TICKERS: Record<string, { symbol: string; name: string; sector: string }[]> = {
+  // ── Macro themes ──
   'Technology': [
     { symbol: 'AAPL', name: 'Apple Inc.', sector: 'Technology' },
     { symbol: 'MSFT', name: 'Microsoft Corp.', sector: 'Technology' },
@@ -141,6 +142,18 @@ const THEME_TICKERS: Record<string, { symbol: string; name: string; sector: stri
     { symbol: 'COP', name: 'ConocoPhillips', sector: 'Energy' },
     { symbol: 'SLB', name: 'Schlumberger', sector: 'Energy' },
   ],
+  'Consumer': [
+    { symbol: 'AMZN', name: 'Amazon.com', sector: 'Consumer Cyclical' },
+    { symbol: 'PDD', name: 'PDD Holdings', sector: 'Consumer Cyclical' },
+    { symbol: 'LVMUY', name: 'LVMH', sector: 'Consumer Cyclical' },
+    { symbol: 'NKE', name: 'Nike Inc.', sector: 'Consumer Cyclical' },
+  ],
+  'Real Estate': [
+    { symbol: 'AMT', name: 'American Tower', sector: 'Real Estate' },
+    { symbol: 'PLD', name: 'Prologis', sector: 'Real Estate' },
+    { symbol: 'SPG', name: 'Simon Property Group', sector: 'Real Estate' },
+    { symbol: 'EQIX', name: 'Equinix', sector: 'Real Estate' },
+  ],
   'EV & Mobility': [
     { symbol: 'TSLA', name: 'Tesla Inc.', sector: 'Consumer Cyclical' },
     { symbol: 'RIVN', name: 'Rivian Automotive', sector: 'Consumer Cyclical' },
@@ -153,11 +166,162 @@ const THEME_TICKERS: Record<string, { symbol: string; name: string; sector: stri
     { symbol: 'NOC', name: 'Northrop Grumman', sector: 'Industrials' },
     { symbol: 'GD', name: 'General Dynamics', sector: 'Industrials' },
   ],
+  'Commodities': [
+    { symbol: 'BHP', name: 'BHP Group', sector: 'Materials' },
+    { symbol: 'RIO', name: 'Rio Tinto', sector: 'Materials' },
+    { symbol: 'FCX', name: 'Freeport-McMoRan', sector: 'Materials' },
+    { symbol: 'NEM', name: 'Newmont Corp.', sector: 'Materials' },
+  ],
+  'Infrastructure': [
+    { symbol: 'CAT', name: 'Caterpillar', sector: 'Industrials' },
+    { symbol: 'VMC', name: 'Vulcan Materials', sector: 'Materials' },
+    { symbol: 'URI', name: 'United Rentals', sector: 'Industrials' },
+    { symbol: 'PWR', name: 'Quanta Services', sector: 'Industrials' },
+  ],
+  'Crypto & Blockchain': [
+    { symbol: 'COIN', name: 'Coinbase', sector: 'Financials' },
+    { symbol: 'MARA', name: 'Marathon Digital', sector: 'Technology' },
+    { symbol: 'MSTR', name: 'MicroStrategy', sector: 'Technology' },
+    { symbol: 'SQ', name: 'Block Inc.', sector: 'Financials' },
+  ],
   'Biotech': [
     { symbol: 'AMGN', name: 'Amgen Inc.', sector: 'Healthcare' },
     { symbol: 'GILD', name: 'Gilead Sciences', sector: 'Healthcare' },
     { symbol: 'REGN', name: 'Regeneron', sector: 'Healthcare' },
     { symbol: 'VRTX', name: 'Vertex Pharma', sector: 'Healthcare' },
+  ],
+  // ── Geopolitical themes ──
+  'Middle East Conflict & Sanctions': [
+    { symbol: 'LMT', name: 'Lockheed Martin', sector: 'Defense' },
+    { symbol: 'RTX', name: 'RTX Corp.', sector: 'Defense' },
+    { symbol: 'XOM', name: 'Exxon Mobil', sector: 'Energy' },
+    { symbol: 'OXY', name: 'Occidental Petroleum', sector: 'Energy' },
+  ],
+  'Sanctions & Economic Isolation': [
+    { symbol: 'XOM', name: 'Exxon Mobil', sector: 'Energy' },
+    { symbol: 'BP', name: 'BP plc', sector: 'Energy' },
+    { symbol: 'LMT', name: 'Lockheed Martin', sector: 'Defense' },
+    { symbol: 'GD', name: 'General Dynamics', sector: 'Defense' },
+  ],
+  'War & Reconstruction Demand': [
+    { symbol: 'RTX', name: 'RTX Corp.', sector: 'Defense' },
+    { symbol: 'NOC', name: 'Northrop Grumman', sector: 'Defense' },
+    { symbol: 'CAT', name: 'Caterpillar', sector: 'Industrials' },
+    { symbol: 'DE', name: 'Deere & Company', sector: 'Industrials' },
+  ],
+  'US-China Trade Tensions': [
+    { symbol: 'BABA', name: 'Alibaba Group', sector: 'Consumer Cyclical' },
+    { symbol: 'JD', name: 'JD.com', sector: 'Consumer Cyclical' },
+    { symbol: 'AAPL', name: 'Apple Inc.', sector: 'Technology' },
+    { symbol: 'QCOM', name: 'Qualcomm', sector: 'Semiconductors' },
+  ],
+  'Chip Export Controls & Geopolitical Risk': [
+    { symbol: 'TSM', name: 'TSMC', sector: 'Semiconductors' },
+    { symbol: 'ASML', name: 'ASML Holding', sector: 'Semiconductors' },
+    { symbol: 'NVDA', name: 'NVIDIA Corp.', sector: 'Semiconductors' },
+    { symbol: 'LRCX', name: 'Lam Research', sector: 'Semiconductors' },
+  ],
+  'Demographic Dividend & Manufacturing Shift': [
+    { symbol: 'INFY', name: 'Infosys', sector: 'Technology' },
+    { symbol: 'WIT', name: 'Wipro', sector: 'Technology' },
+    { symbol: 'IBN', name: 'ICICI Bank', sector: 'Financials' },
+    { symbol: 'INDA', name: 'iShares MSCI India ETF', sector: 'ETF' },
+  ],
+  'Oil Diversification & Vision 2030': [
+    { symbol: 'XOM', name: 'Exxon Mobil', sector: 'Energy' },
+    { symbol: 'SLB', name: 'Schlumberger', sector: 'Energy' },
+    { symbol: 'FLNC', name: 'Fluence Energy', sector: 'Clean Energy' },
+    { symbol: 'ACWA', name: 'ACWA Power (OTC)', sector: 'Utilities' },
+  ],
+  'African Fintech & Mobile Banking Boom': [
+    { symbol: 'SQ', name: 'Block Inc.', sector: 'Financials' },
+    { symbol: 'NU', name: 'Nu Holdings', sector: 'Financials' },
+    { symbol: 'AFK', name: 'VanEck Africa Index ETF', sector: 'ETF' },
+    { symbol: 'PYPL', name: 'PayPal Holdings', sector: 'Financials' },
+  ],
+  'Agribusiness & Commodity Supercycle': [
+    { symbol: 'ADM', name: 'Archer-Daniels-Midland', sector: 'Consumer Staples' },
+    { symbol: 'BG', name: 'Bunge Ltd.', sector: 'Consumer Staples' },
+    { symbol: 'MOS', name: 'Mosaic Company', sector: 'Materials' },
+    { symbol: 'NTR', name: 'Nutrien Ltd.', sector: 'Materials' },
+  ],
+  'Yen Weakness & Corporate Governance Reform': [
+    { symbol: 'TM', name: 'Toyota Motor', sector: 'Consumer Cyclical' },
+    { symbol: 'SONY', name: 'Sony Group', sector: 'Technology' },
+    { symbol: 'EWJ', name: 'iShares MSCI Japan ETF', sector: 'ETF' },
+    { symbol: 'MUFG', name: 'Mitsubishi UFJ Financial', sector: 'Financials' },
+  ],
+  'Inflation Crisis & Lira Depreciation': [
+    { symbol: 'TUR', name: 'iShares MSCI Turkey ETF', sector: 'ETF' },
+    { symbol: 'GLD', name: 'SPDR Gold Shares', sector: 'Commodities' },
+    { symbol: 'UUP', name: 'Invesco DB US Dollar ETF', sector: 'ETF' },
+    { symbol: 'DBA', name: 'Invesco DB Agriculture ETF', sector: 'Commodities' },
+  ],
+  'Nearshoring & US Supply Chain Shift': [
+    { symbol: 'EWW', name: 'iShares MSCI Mexico ETF', sector: 'ETF' },
+    { symbol: 'CAT', name: 'Caterpillar', sector: 'Industrials' },
+    { symbol: 'PCAR', name: 'PACCAR Inc.', sector: 'Industrials' },
+    { symbol: 'AMX', name: 'América Móvil', sector: 'Communication' },
+  ],
+  'Southeast Asia Manufacturing Migration': [
+    { symbol: 'VNM', name: 'VanEck Vietnam ETF', sector: 'ETF' },
+    { symbol: 'THD', name: 'iShares MSCI Thailand ETF', sector: 'ETF' },
+    { symbol: 'EIDO', name: 'iShares MSCI Indonesia ETF', sector: 'ETF' },
+    { symbol: 'NKE', name: 'Nike Inc.', sector: 'Consumer Cyclical' },
+  ],
+  'EU Eastern Expansion & NATO Frontline': [
+    { symbol: 'EPOL', name: 'iShares MSCI Poland ETF', sector: 'ETF' },
+    { symbol: 'LMT', name: 'Lockheed Martin', sector: 'Defense' },
+    { symbol: 'BA', name: 'Boeing Co.', sector: 'Industrials' },
+    { symbol: 'IEUR', name: 'iShares Core Europe ETF', sector: 'ETF' },
+  ],
+  'Economic Reform & Peso Restructuring': [
+    { symbol: 'ARGT', name: 'Global X MSCI Argentina ETF', sector: 'ETF' },
+    { symbol: 'YPF', name: 'YPF SA', sector: 'Energy' },
+    { symbol: 'GGAL', name: 'Grupo Financiero Galicia', sector: 'Financials' },
+    { symbol: 'PAM', name: 'Pampa Energía', sector: 'Utilities' },
+  ],
+  'EU Industrial Policy & Energy Transition': [
+    { symbol: 'SIEGY', name: 'Siemens AG', sector: 'Industrials' },
+    { symbol: 'TTE', name: 'TotalEnergies', sector: 'Energy' },
+    { symbol: 'EQNR', name: 'Equinor ASA', sector: 'Energy' },
+    { symbol: 'VWS.CO', name: 'Vestas Wind Systems', sector: 'Clean Energy' },
+  ],
+  'Post-Brexit Financial Realignment': [
+    { symbol: 'HSBC', name: 'HSBC Holdings', sector: 'Financials' },
+    { symbol: 'SHEL', name: 'Shell plc', sector: 'Energy' },
+    { symbol: 'AZN', name: 'AstraZeneca', sector: 'Healthcare' },
+    { symbol: 'EWU', name: 'iShares MSCI UK ETF', sector: 'ETF' },
+  ],
+  'China Decoupling & Critical Minerals': [
+    { symbol: 'BHP', name: 'BHP Group', sector: 'Materials' },
+    { symbol: 'RIO', name: 'Rio Tinto', sector: 'Materials' },
+    { symbol: 'FMG', name: 'Fortescue Metals', sector: 'Materials' },
+    { symbol: 'EWA', name: 'iShares MSCI Australia ETF', sector: 'ETF' },
+  ],
+  'Central Asia Resource Corridor': [
+    { symbol: 'URA', name: 'Global X Uranium ETF', sector: 'ETF' },
+    { symbol: 'CCJ', name: 'Cameco Corp.', sector: 'Energy' },
+    { symbol: 'FCX', name: 'Freeport-McMoRan', sector: 'Materials' },
+    { symbol: 'COPX', name: 'Global X Copper Miners ETF', sector: 'ETF' },
+  ],
+  'Suez Canal Revenue & IMF Reforms': [
+    { symbol: 'EGPT', name: 'VanEck Egypt Index ETF', sector: 'ETF' },
+    { symbol: 'ZIM', name: 'ZIM Integrated Shipping', sector: 'Industrials' },
+    { symbol: 'MATX', name: 'Matson Inc.', sector: 'Industrials' },
+    { symbol: 'GLD', name: 'SPDR Gold Shares', sector: 'Commodities' },
+  ],
+  'IMF Bailout & Political Instability': [
+    { symbol: 'PAK', name: 'Global X MSCI Pakistan ETF', sector: 'ETF' },
+    { symbol: 'GLD', name: 'SPDR Gold Shares', sector: 'Commodities' },
+    { symbol: 'EEM', name: 'iShares MSCI Emerging Markets', sector: 'ETF' },
+    { symbol: 'UUP', name: 'Invesco DB US Dollar ETF', sector: 'ETF' },
+  ],
+  'K-Culture Export & Battery Tech Leadership': [
+    { symbol: 'EWY', name: 'iShares MSCI South Korea ETF', sector: 'ETF' },
+    { symbol: 'LG', name: 'LG Energy Solution (OTC)', sector: 'Industrials' },
+    { symbol: 'HYMTF', name: 'Hyundai Motor', sector: 'Consumer Cyclical' },
+    { symbol: '005930.KS', name: 'Samsung Electronics', sector: 'Technology' },
   ],
 };
 
