@@ -97,7 +97,7 @@ const COUNTRY_NAMES: Record<string, string> = {
 };
 
 // Theme → Representative tickers
-const THEME_TICKERS: Record<string, { symbol: string; name: string; sector: string }[]> = {
+export const THEME_TICKERS: Record<string, { symbol: string; name: string; sector: string }[]> = {
   // ── Macro themes ──
   'Technology': [
     { symbol: 'AAPL', name: 'Apple Inc.', sector: 'Technology' },
