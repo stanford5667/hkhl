@@ -232,7 +232,7 @@ function StatCard({ icon: Icon, label, value, sub, subPositive, small, highlight
         {value}
       </div>
       {sub && (
-        <div className={cn('text-[11px] font-semibold mt-0.5', subPositive ? 'text-emerald-500' : 'text-rose-500')}>
+        <div className={cn('text-[11px] font-semibold mt-0.5', subPositive ? 'text-primary' : 'text-destructive')}>
           {sub}
         </div>
       )}
