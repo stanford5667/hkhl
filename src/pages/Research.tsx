@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { GlobalThemesWidget } from '@/components/research/GlobalThemesWidget';
 import { useNavigate } from 'react-router-dom';
 import { 
   TrendingUp, Loader2, FileText, ArrowRight
