@@ -60,6 +60,7 @@ import {
   Users,
   CreditCard,
   Flame,
+  Globe,
 } from "lucide-react";
 
 interface NavItem {
@@ -132,7 +133,12 @@ export function Sidebar() {
         icon: PieChart,
         isPremium: true,
       },
-      // AI Assistant hidden per user request
+      { 
+        label: "Themes Map", 
+        subtitle: "Global Heat Map",
+        href: "/investment-heatmap", 
+        icon: Globe,
+      },
       // { 
       //   label: "AI Assistant", 
       //   subtitle: "Chat & Signals",
