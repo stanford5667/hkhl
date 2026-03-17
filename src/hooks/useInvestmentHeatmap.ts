@@ -89,6 +89,11 @@ const COUNTRY_NAMES: Record<string, string> = {
   SA: 'Saudi Arabia', AE: 'UAE', RU: 'Russia', MX: 'Mexico',
   ID: 'Indonesia', ZA: 'South Africa', CL: 'Chile', PE: 'Peru',
   IE: 'Ireland', IT: 'Italy', ES: 'Spain',
+  IR: 'Iran', IQ: 'Iraq', SY: 'Syria', YE: 'Yemen',
+  UA: 'Ukraine', TR: 'Turkey', PK: 'Pakistan', NG: 'Nigeria',
+  KE: 'Kenya', GH: 'Ghana', VN: 'Vietnam', TH: 'Thailand',
+  PL: 'Poland', CZ: 'Czech Republic', AR: 'Argentina', EG: 'Egypt',
+  KZ: 'Kazakhstan', UZ: 'Uzbekistan',
 };
 
 // Theme → Representative tickers
