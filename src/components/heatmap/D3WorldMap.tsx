@@ -21,7 +21,14 @@ const NUMERIC_TO_ALPHA2: Record<string, string> = {
   '040': 'AT', '056': 'BE', '620': 'PT', '300': 'GR', '792': 'TR', '586': 'PK',
   '050': 'BD', '818': 'EG', '012': 'DZ', '504': 'MA', '288': 'GH', '834': 'TZ',
   '231': 'ET', '554': 'NZ', '152': 'CL', '858': 'UY', '600': 'PY', '068': 'BO',
-  '862': 'VE',
+  '862': 'VE', '716': 'ZW', '800': 'UG', '024': 'AO', '508': 'MZ',
+  '748': 'SZ', '426': 'LS', '072': 'BW', '516': 'NA', '894': 'ZM',
+  '180': 'CD', '178': 'CG', '120': 'CM', '266': 'GA', '226': 'GQ',
+  '148': 'TD', '562': 'NE', '854': 'BF', '466': 'ML', '324': 'GN',
+  '694': 'SL', '430': 'LR', '384': 'CI', '288': 'GH',
+  '364': 'IR', '368': 'IQ', '760': 'SY', '422': 'LB', '400': 'JO',
+  '512': 'OM', '887': 'YE', '004': 'AF', '860': 'UZ', '398': 'KZ',
+  '496': 'MN', '104': 'MM', '418': 'LA', '116': 'KH',
 };
 
 const SENTIMENT_FILLS: Record<string, string> = {
@@ -31,8 +38,16 @@ const SENTIMENT_FILLS: Record<string, string> = {
   emerging: '#3b82f6',
 };
 
+// Base fill for countries without active themes — visible in both light and dark
+const BASE_FILL = 'hsl(var(--muted))';
+const BASE_FILL_OPACITY = 0.45;
+const BORDER_COLOR = 'hsl(var(--foreground))';
+const BORDER_OPACITY = 0.15;
+const BORDER_OPACITY_HOVER = 0.6;
+
 interface Props {
   regionData: RegionThemeData[];
+  onCountryClick?: (countryCode: string) => void;
 }
 
 interface CountryFeature extends Feature<Geometry> {
@@ -40,12 +55,12 @@ interface CountryFeature extends Feature<Geometry> {
   properties: { name: string };
 }
 
-export function D3WorldMap({ regionData }: Props) {
+export function D3WorldMap({ regionData, onCountryClick }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [worldData, setWorldData] = useState<FeatureCollection | null>(null);
   const [loading, setLoading] = useState(true);
   const [tooltip, setTooltip] = useState<{
-    x: number; y: number; data: RegionThemeData;
+    x: number; y: number; data: RegionThemeData | { countryCode: string; countryName: string };
   } | null>(null);
 
   const { hoveredCountry, setHoveredCountry } = useHeatmapStore();
@@ -72,6 +87,24 @@ export function D3WorldMap({ regionData }: Props) {
     return map;
   }, [regionData]);
 
+  // Country name lookup for non-themed countries
+  const COUNTRY_NAMES: Record<string, string> = useMemo(() => ({
+    US: 'United States', CN: 'China', JP: 'Japan', KR: 'South Korea',
+    TW: 'Taiwan', DE: 'Germany', GB: 'United Kingdom', FR: 'France',
+    CA: 'Canada', AU: 'Australia', IN: 'India', BR: 'Brazil',
+    IL: 'Israel', CH: 'Switzerland', NL: 'Netherlands', SG: 'Singapore',
+    HK: 'Hong Kong', DK: 'Denmark', NO: 'Norway', SE: 'Sweden',
+    SA: 'Saudi Arabia', AE: 'UAE', RU: 'Russia', MX: 'Mexico',
+    ID: 'Indonesia', ZA: 'South Africa', CL: 'Chile', PE: 'Peru',
+    IE: 'Ireland', IT: 'Italy', ES: 'Spain', AR: 'Argentina',
+    CO: 'Colombia', NG: 'Nigeria', KE: 'Kenya', TH: 'Thailand',
+    VN: 'Vietnam', PH: 'Philippines', MY: 'Malaysia', PL: 'Poland',
+    CZ: 'Czech Republic', AT: 'Austria', BE: 'Belgium', PT: 'Portugal',
+    GR: 'Greece', TR: 'Turkey', PK: 'Pakistan', BD: 'Bangladesh',
+    EG: 'Egypt', NZ: 'New Zealand', IR: 'Iran', IQ: 'Iraq',
+    KZ: 'Kazakhstan', MN: 'Mongolia', MM: 'Myanmar',
+  }), []);
+
   // Projection
   const width = 960;
   const height = 500;
@@ -83,16 +116,22 @@ export function D3WorldMap({ regionData }: Props) {
 
   const pathGenerator = useMemo(() => geoPath().projection(projection), [projection]);
 
-  const handleMouseMove = useCallback((e: React.MouseEvent, region: RegionThemeData) => {
+  const handleMouseMove = useCallback((e: React.MouseEvent, data: any) => {
     const svg = svgRef.current;
     if (!svg) return;
     const rect = svg.getBoundingClientRect();
     setTooltip({
       x: e.clientX - rect.left,
       y: e.clientY - rect.top - 10,
-      data: region,
+      data,
     });
   }, []);
+
+  const handleClick = useCallback((alpha2: string) => {
+    if (alpha2 && onCountryClick) {
+      onCountryClick(alpha2);
+    }
+  }, [onCountryClick]);
 
   if (loading || !worldData) {
     return <Skeleton className="h-[300px] sm:h-[400px] lg:h-[520px] w-full" />;
@@ -100,7 +139,6 @@ export function D3WorldMap({ regionData }: Props) {
 
   return (
     <div className="relative overflow-hidden bg-card/30">
-
       <svg
         ref={svgRef}
         viewBox={`0 0 ${width} ${height}`}
@@ -108,10 +146,10 @@ export function D3WorldMap({ regionData }: Props) {
         style={{ minHeight: 200 }}
       >
         {/* Ocean background */}
-        <rect width={width} height={height} className="fill-muted/10" rx="8" />
+        <rect width={width} height={height} fill="hsl(var(--background))" rx="8" />
 
         {/* Graticule lines */}
-        <g className="stroke-border/10" strokeWidth="0.5" fill="none">
+        <g strokeWidth="0.3" fill="none" stroke="hsl(var(--border))" strokeOpacity="0.2">
           {[-60, -30, 0, 30, 60].map(lat => {
             const d = pathGenerator({
               type: 'LineString',
@@ -137,12 +175,13 @@ export function D3WorldMap({ regionData }: Props) {
           const d = pathGenerator(f as GeoPermissibleObjects);
           if (!d) return null;
 
-          const fill = region
+          const hasTheme = !!region;
+          const fill = hasTheme
             ? SENTIMENT_FILLS[region.sentiment]
-            : 'hsl(var(--muted))';
-          const opacity = region
-            ? (isHovered ? 0.95 : 0.7 + (region.themeIntensity / 400))
-            : (isHovered ? 0.35 : 0.2);
+            : BASE_FILL;
+          const opacity = hasTheme
+            ? (isHovered ? 0.95 : 0.55 + (region.themeIntensity / 300))
+            : (isHovered ? 0.55 : BASE_FILL_OPACITY);
 
           return (
             <path
@@ -150,13 +189,17 @@ export function D3WorldMap({ regionData }: Props) {
               d={d}
               fill={fill}
               fillOpacity={opacity}
-              stroke={isHovered ? 'hsl(var(--foreground))' : 'hsl(var(--border))'}
-              strokeWidth={isHovered ? 1.5 : 0.5}
-              strokeOpacity={isHovered ? 0.8 : 0.3}
+              stroke={BORDER_COLOR}
+              strokeWidth={isHovered ? 1.2 : 0.4}
+              strokeOpacity={isHovered ? BORDER_OPACITY_HOVER : BORDER_OPACITY}
               className="cursor-pointer transition-all duration-150"
               onMouseEnter={() => setHoveredCountry(alpha2)}
               onMouseLeave={() => { setHoveredCountry(null); setTooltip(null); }}
-              onMouseMove={(e) => region && handleMouseMove(e, region)}
+              onMouseMove={(e) => {
+                const tooltipData = region || { countryCode: alpha2, countryName: COUNTRY_NAMES[alpha2] || f.properties.name || alpha2 };
+                handleMouseMove(e, tooltipData);
+              }}
+              onClick={() => handleClick(alpha2)}
               onTouchStart={() => setHoveredCountry(alpha2)}
               onTouchEnd={() => { setHoveredCountry(null); setTooltip(null); }}
             />
@@ -173,30 +216,37 @@ export function D3WorldMap({ regionData }: Props) {
             top: tooltip.y - 80,
           }}
         >
-          <div className="flex items-center gap-2 mb-1.5">
-            <div
-              className="h-2.5 w-2.5 rounded-full"
-              style={{ backgroundColor: SENTIMENT_FILLS[tooltip.data.sentiment] }}
-            />
-            <span className="font-semibold text-sm text-foreground">{tooltip.data.countryName}</span>
-            <span className="text-[10px] text-muted-foreground capitalize ml-auto">{tooltip.data.sentiment}</span>
-          </div>
-          <div className="text-xs text-muted-foreground mb-1">
-            <span className="font-medium">Themes:</span>{' '}
-            {tooltip.data.activeThemes.slice(0, 3).join(', ')}
-            {tooltip.data.activeThemes.length > 3 && ` +${tooltip.data.activeThemes.length - 3}`}
-          </div>
-          <div className="flex gap-3 text-xs">
-            {tooltip.data.keyStats.map(s => (
-              <span key={s.label}>
-                <span className="text-muted-foreground">{s.label}:</span>{' '}
-                <span className="font-medium text-foreground">{s.value}</span>
-              </span>
-            ))}
-          </div>
-          <div className="text-[10px] text-muted-foreground mt-1">
-            Intensity: {tooltip.data.themeIntensity}/100
-          </div>
+          {'sentiment' in tooltip.data ? (
+            <>
+              <div className="flex items-center gap-2 mb-1.5">
+                <div
+                  className="h-2.5 w-2.5 rounded-full"
+                  style={{ backgroundColor: SENTIMENT_FILLS[(tooltip.data as RegionThemeData).sentiment] }}
+                />
+                <span className="font-semibold text-sm text-foreground">{(tooltip.data as RegionThemeData).countryName}</span>
+                <span className="text-[10px] text-muted-foreground capitalize ml-auto">{(tooltip.data as RegionThemeData).sentiment}</span>
+              </div>
+              <div className="text-xs text-muted-foreground mb-1">
+                <span className="font-medium">Themes:</span>{' '}
+                {(tooltip.data as RegionThemeData).activeThemes.slice(0, 3).join(', ')}
+                {(tooltip.data as RegionThemeData).activeThemes.length > 3 && ` +${(tooltip.data as RegionThemeData).activeThemes.length - 3}`}
+              </div>
+              <div className="flex gap-3 text-xs">
+                {(tooltip.data as RegionThemeData).keyStats.map(s => (
+                  <span key={s.label}>
+                    <span className="text-muted-foreground">{s.label}:</span>{' '}
+                    <span className="font-medium text-foreground">{s.value}</span>
+                  </span>
+                ))}
+              </div>
+              <div className="text-[10px] text-primary mt-1.5 font-medium">Click for regional dashboard →</div>
+            </>
+          ) : (
+            <div>
+              <span className="font-semibold text-sm text-foreground">{(tooltip.data as any).countryName}</span>
+              <div className="text-[10px] text-muted-foreground mt-0.5">No active themes · Click to explore</div>
+            </div>
+          )}
         </div>
       )}
     </div>
