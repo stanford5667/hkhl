@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { MarketTheme } from '@/data/marketThemes';
 import type { RegionThemeData } from '@/hooks/useInvestmentHeatmap';
 import {
@@ -7,6 +7,11 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  Swords, CloudRain, BarChart3, TrendingUp, TrendingDown,
+  ShieldAlert, Factory, Zap, Wheat, Cpu, Landmark, Flame,
+  DollarSign, AlertTriangle, Globe, Rocket, Anchor, Scale
+} from 'lucide-react';
 
 interface Props {
   regionData: RegionThemeData[];
@@ -45,13 +50,69 @@ const COUNTRY_PATHS: Record<string, { d: string; cx: number; cy: number }> = {
   AU: { d: 'M800,340 L890,340 L890,410 L800,410 Z', cx: 845, cy: 375 },
   ZA: { d: 'M520,370 L570,370 L570,410 L520,410 Z', cx: 545, cy: 390 },
   ID: { d: 'M750,300 L830,300 L830,325 L750,325 Z', cx: 790, cy: 312 },
+  UA: { d: 'M530,135 L555,135 L555,155 L530,155 Z', cx: 542, cy: 145 },
+  IR: { d: 'M590,195 L630,195 L630,225 L590,225 Z', cx: 610, cy: 210 },
+  TR: { d: 'M530,175 L570,175 L570,195 L530,195 Z', cx: 550, cy: 185 },
+  PK: { d: 'M640,220 L665,220 L665,250 L640,250 Z', cx: 652, cy: 235 },
+  EG: { d: 'M520,225 L545,225 L545,255 L520,255 Z', cx: 532, cy: 240 },
+  NG: { d: 'M470,280 L500,280 L500,305 L470,305 Z', cx: 485, cy: 292 },
+  AR: { d: 'M275,380 L305,380 L305,435 L275,435 Z', cx: 290, cy: 407 },
+  VN: { d: 'M755,250 L770,250 L770,280 L755,280 Z', cx: 762, cy: 265 },
+  TH: { d: 'M735,255 L752,255 L752,280 L735,280 Z', cx: 743, cy: 267 },
+  PL: { d: 'M505,130 L530,130 L530,148 L505,148 Z', cx: 517, cy: 139 },
 };
 
-const SENTIMENT_COLORS: Record<string, string> = {
-  bullish: 'fill-emerald-500/70 stroke-emerald-400',
-  bearish: 'fill-rose-500/70 stroke-rose-400',
-  neutral: 'fill-amber-500/60 stroke-amber-400',
-  emerging: 'fill-sky-500/70 stroke-sky-400',
+// Event icons mapped to countries based on geopolitical themes
+type EventType = 'war' | 'sanctions' | 'gdp_report' | 'earnings' | 'weather' | 'tech' | 'energy' | 'trade' | 'inflation' | 'reform' | 'growth' | 'commodity' | 'geopolitical';
+
+const EVENT_ICON_MAP: Record<EventType, typeof Swords> = {
+  war: Swords,
+  sanctions: ShieldAlert,
+  gdp_report: BarChart3,
+  earnings: DollarSign,
+  weather: CloudRain,
+  tech: Cpu,
+  energy: Zap,
+  trade: Scale,
+  inflation: Flame,
+  reform: Landmark,
+  growth: Rocket,
+  commodity: Wheat,
+  geopolitical: AlertTriangle,
+};
+
+const COUNTRY_EVENTS: Record<string, { type: EventType; label: string; urgent?: boolean }[]> = {
+  UA: [{ type: 'war', label: 'Active Conflict', urgent: true }],
+  RU: [{ type: 'sanctions', label: 'Sanctions Active', urgent: true }, { type: 'energy', label: 'Energy Exports' }],
+  IR: [{ type: 'sanctions', label: 'Nuclear Sanctions', urgent: true }, { type: 'geopolitical', label: 'Regional Tensions' }],
+  US: [{ type: 'gdp_report', label: 'GDP Report' }, { type: 'tech', label: 'AI Leadership' }, { type: 'earnings', label: 'Earnings Season' }],
+  CN: [{ type: 'trade', label: 'Trade War' }, { type: 'tech', label: 'Tech Rivalry' }],
+  JP: [{ type: 'reform', label: 'Corp Reform' }, { type: 'gdp_report', label: 'GDP Data' }],
+  DE: [{ type: 'energy', label: 'Energy Crisis' }, { type: 'gdp_report', label: 'GDP Contraction' }],
+  GB: [{ type: 'gdp_report', label: 'Post-Brexit GDP' }],
+  IN: [{ type: 'growth', label: 'GDP +7.2%' }, { type: 'tech', label: 'Tech Hub' }],
+  BR: [{ type: 'commodity', label: 'Agri Exports' }, { type: 'growth', label: 'Growth Rebound' }],
+  SA: [{ type: 'energy', label: 'Oil Policy' }, { type: 'reform', label: 'Vision 2030' }],
+  TW: [{ type: 'tech', label: 'Chip Exports' }, { type: 'geopolitical', label: 'Strait Tensions' }],
+  KR: [{ type: 'tech', label: 'Battery Tech' }],
+  AU: [{ type: 'commodity', label: 'Mining Exports' }, { type: 'weather', label: 'Climate Events' }],
+  TR: [{ type: 'inflation', label: 'Inflation 50%+', urgent: true }],
+  EG: [{ type: 'trade', label: 'Suez Revenue' }],
+  NG: [{ type: 'growth', label: 'Fintech Boom' }],
+  AR: [{ type: 'inflation', label: 'Peso Crisis', urgent: true }, { type: 'reform', label: 'Milei Reforms' }],
+  IL: [{ type: 'war', label: 'Regional Conflict', urgent: true }, { type: 'tech', label: 'Cyber/Defense' }],
+  MX: [{ type: 'trade', label: 'Nearshoring' }],
+  PK: [{ type: 'geopolitical', label: 'IMF Bailout' }],
+  VN: [{ type: 'growth', label: 'Mfg Migration' }],
+  SG: [{ type: 'growth', label: 'Finance Hub' }],
+  ZA: [{ type: 'energy', label: 'Power Crisis' }],
+};
+
+const SENTIMENT_FILLS: Record<string, { base: string; glow: string; stroke: string }> = {
+  bullish:  { base: 'hsl(160 84% 39% / 0.55)', glow: 'hsl(160 84% 50% / 0.4)', stroke: 'hsl(160 84% 55%)' },
+  bearish:  { base: 'hsl(0 72% 51% / 0.55)',    glow: 'hsl(0 72% 60% / 0.4)',    stroke: 'hsl(0 72% 60%)' },
+  neutral:  { base: 'hsl(45 93% 47% / 0.45)',   glow: 'hsl(45 93% 55% / 0.3)',   stroke: 'hsl(45 93% 55%)' },
+  emerging: { base: 'hsl(199 89% 48% / 0.55)',  glow: 'hsl(199 89% 58% / 0.4)',  stroke: 'hsl(199 89% 58%)' },
 };
 
 const SENTIMENT_BG: Record<string, string> = {
@@ -66,19 +127,31 @@ export function WorldMapVisualization({ regionData, selectedTheme }: Props) {
 
   const regionMap = useMemo(() => {
     const map = new Map<string, RegionThemeData>();
-    for (const r of regionData) {
-      map.set(r.countryCode, r);
-    }
+    for (const r of regionData) map.set(r.countryCode, r);
     return map;
   }, [regionData]);
 
   return (
-    <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-3 sm:p-4 md:p-6">
+    <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-xl p-3 sm:p-4 md:p-6 overflow-hidden">
       <div className="flex items-center justify-between mb-3 sm:mb-4">
-        <h2 className="text-base sm:text-lg font-semibold text-foreground">Global Theme Exposure</h2>
-        <span className="text-[10px] sm:text-xs text-muted-foreground">
-          {regionData.length} active regions
-        </span>
+        <div className="flex items-center gap-2">
+          <Globe className="h-4 w-4 text-primary animate-pulse" />
+          <h2 className="text-base sm:text-lg font-semibold text-foreground">Global Theme Exposure</h2>
+        </div>
+        <div className="flex items-center gap-3">
+          {/* Legend */}
+          <div className="hidden sm:flex items-center gap-2 text-[10px] text-muted-foreground">
+            {(['bullish', 'bearish', 'neutral', 'emerging'] as const).map(s => (
+              <span key={s} className="flex items-center gap-1">
+                <span className={`h-2 w-2 rounded-full ${SENTIMENT_BG[s]}`} />
+                {s}
+              </span>
+            ))}
+          </div>
+          <span className="text-[10px] sm:text-xs text-muted-foreground">
+            {regionData.length} active regions
+          </span>
+        </div>
       </div>
 
       <svg
@@ -86,37 +159,103 @@ export function WorldMapVisualization({ regionData, selectedTheme }: Props) {
         className="w-full h-auto touch-pan-x touch-pan-y"
         style={{ minHeight: 200 }}
       >
-        <rect width="1000" height="460" className="fill-muted/20" rx="8" />
+        <defs>
+          {/* Animated glow filters per sentiment */}
+          {Object.entries(SENTIMENT_FILLS).map(([key, val]) => (
+            <filter key={key} id={`glow-${key}`} x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur" />
+              <feFlood floodColor={val.glow} result="color" />
+              <feComposite in="color" in2="blur" operator="in" result="shadow" />
+              <feMerge>
+                <feMergeNode in="shadow" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          ))}
+          {/* Urgent pulse filter */}
+          <filter id="glow-urgent" x="-80%" y="-80%" width="260%" height="260%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
+            <feFlood floodColor="hsl(0 72% 60% / 0.6)" result="color" />
+            <feComposite in="color" in2="blur" operator="in" result="shadow" />
+            <feMerge>
+              <feMergeNode in="shadow" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          {/* Radial gradient for background */}
+          <radialGradient id="map-bg" cx="50%" cy="50%" r="60%">
+            <stop offset="0%" stopColor="hsl(217 91% 60% / 0.04)" />
+            <stop offset="100%" stopColor="transparent" />
+          </radialGradient>
+        </defs>
 
+        {/* Background with subtle radial glow */}
+        <rect width="1000" height="460" className="fill-muted/20" rx="8" />
+        <rect width="1000" height="460" fill="url(#map-bg)" rx="8" />
+
+        {/* Grid lines */}
         {[100, 200, 300, 400].map(y => (
-          <line key={y} x1="0" y1={y} x2="1000" y2={y} className="stroke-border/20" strokeDasharray="4" />
+          <line key={y} x1="0" y1={y} x2="1000" y2={y} className="stroke-border/15" strokeDasharray="4" />
         ))}
         {[200, 400, 600, 800].map(x => (
-          <line key={x} x1={x} y1="0" x2={x} y2="460" className="stroke-border/20" strokeDasharray="4" />
+          <line key={x} x1={x} y1="0" x2={x} y2="460" className="stroke-border/15" strokeDasharray="4" />
         ))}
 
+        {/* Country shapes with animated glow */}
         {Object.entries(COUNTRY_PATHS).map(([code, path]) => {
           const region = regionMap.get(code);
           const isHovered = hoveredCountry === code;
-          const colorClass = region
-            ? SENTIMENT_COLORS[region.sentiment]
-            : 'fill-muted/30 stroke-border/40';
+          const sentiment = region?.sentiment || 'neutral';
+          const colors = SENTIMENT_FILLS[sentiment];
+          const hasUrgent = COUNTRY_EVENTS[code]?.some(e => e.urgent);
+          const intensity = region?.themeIntensity || 30;
 
           return (
             <Tooltip key={code}>
               <TooltipTrigger asChild>
-                <motion.path
-                  d={path.d}
-                  className={`${colorClass} cursor-pointer transition-all duration-200 ${isHovered ? 'brightness-125' : ''}`}
-                  strokeWidth={isHovered ? 2 : 1}
-                  onMouseEnter={() => setHoveredCountry(code)}
-                  onMouseLeave={() => setHoveredCountry(null)}
-                  onTouchStart={() => setHoveredCountry(code)}
-                  onTouchEnd={() => setHoveredCountry(null)}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: region ? (isHovered ? 1 : 0.85) : 0.4 }}
-                  transition={{ duration: 0.3 }}
-                />
+                <g>
+                  {/* Animated outer glow ring for active regions */}
+                  {region && (
+                    <motion.path
+                      d={path.d}
+                      fill="none"
+                      stroke={colors.stroke}
+                      strokeWidth={hasUrgent ? 3 : 2}
+                      strokeOpacity={0}
+                      filter={hasUrgent ? 'url(#glow-urgent)' : `url(#glow-${sentiment})`}
+                      animate={{
+                        strokeOpacity: [0.2, 0.6, 0.2],
+                        ...(hasUrgent ? { strokeWidth: [2, 4, 2] } : {}),
+                      }}
+                      transition={{
+                        duration: hasUrgent ? 1.5 : 3,
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                        delay: Math.random() * 2,
+                      }}
+                    />
+                  )}
+                  {/* Country fill */}
+                  <motion.path
+                    d={path.d}
+                    fill={region ? colors.base : 'hsl(222 47% 20% / 0.3)'}
+                    stroke={region ? colors.stroke : 'hsl(222 47% 30% / 0.4)'}
+                    strokeWidth={isHovered ? 2.5 : 1}
+                    className="cursor-pointer"
+                    onMouseEnter={() => setHoveredCountry(code)}
+                    onMouseLeave={() => setHoveredCountry(null)}
+                    onTouchStart={() => setHoveredCountry(code)}
+                    onTouchEnd={() => setHoveredCountry(null)}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{
+                      opacity: region ? (isHovered ? 1 : 0.85) : 0.4,
+                      scale: isHovered ? 1.02 : 1,
+                      fill: isHovered && region ? colors.stroke.replace(')', ' / 0.7)') : undefined,
+                    }}
+                    transition={{ duration: 0.3 }}
+                    style={{ transformOrigin: `${path.cx}px ${path.cy}px` }}
+                  />
+                </g>
               </TooltipTrigger>
               {region && (
                 <TooltipContent side="top" className="max-w-xs">
@@ -125,6 +264,19 @@ export function WorldMapVisualization({ regionData, selectedTheme }: Props) {
                       <div className={`h-2.5 w-2.5 rounded-full ${SENTIMENT_BG[region.sentiment]}`} />
                       <span className="font-semibold text-sm">{region.countryName}</span>
                     </div>
+                    {COUNTRY_EVENTS[code] && (
+                      <div className="flex flex-wrap gap-1">
+                        {COUNTRY_EVENTS[code].map((evt, i) => {
+                          const Icon = EVENT_ICON_MAP[evt.type];
+                          return (
+                            <span key={i} className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full ${evt.urgent ? 'bg-destructive/20 text-destructive' : 'bg-muted text-muted-foreground'}`}>
+                              <Icon className="h-2.5 w-2.5" />
+                              {evt.label}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
                     <div className="text-xs text-muted-foreground">
                       <span className="font-medium">Active Themes:</span>{' '}
                       {region.activeThemes.slice(0, 3).join(', ')}
@@ -138,8 +290,15 @@ export function WorldMapVisualization({ regionData, selectedTheme }: Props) {
                         </span>
                       ))}
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      Intensity: {region.themeIntensity}/100
+                    <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      Intensity:
+                      <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${SENTIMENT_BG[region.sentiment]}`}
+                          style={{ width: `${region.themeIntensity}%` }}
+                        />
+                      </div>
+                      <span className="font-medium">{region.themeIntensity}/100</span>
                     </div>
                   </div>
                 </TooltipContent>
@@ -148,6 +307,7 @@ export function WorldMapVisualization({ regionData, selectedTheme }: Props) {
           );
         })}
 
+        {/* Country labels */}
         {Object.entries(COUNTRY_PATHS).map(([code, path]) => {
           const region = regionMap.get(code);
           if (!region) return null;
@@ -155,17 +315,136 @@ export function WorldMapVisualization({ regionData, selectedTheme }: Props) {
             <text
               key={`label-${code}`}
               x={path.cx}
-              y={path.cy}
+              y={path.cy + 12}
               textAnchor="middle"
               dominantBaseline="middle"
               className="fill-foreground font-semibold pointer-events-none select-none"
-              style={{ fontSize: '8px' }}
+              style={{ fontSize: '7px', opacity: 0.7 }}
             >
               {code}
             </text>
           );
         })}
+
+        {/* Animated event icons on map */}
+        {Object.entries(COUNTRY_PATHS).map(([code, path]) => {
+          const events = COUNTRY_EVENTS[code];
+          const region = regionMap.get(code);
+          if (!events || !region) return null;
+
+          // Show first event icon (most important)
+          const primaryEvent = events[0];
+          const Icon = EVENT_ICON_MAP[primaryEvent.type];
+
+          return (
+            <g key={`icon-${code}`}>
+              {/* Icon background pulse */}
+              {primaryEvent.urgent && (
+                <motion.circle
+                  cx={path.cx}
+                  cy={path.cy - 4}
+                  r={8}
+                  fill="hsl(0 72% 51% / 0.15)"
+                  stroke="hsl(0 72% 51% / 0.3)"
+                  strokeWidth={1}
+                  animate={{
+                    r: [8, 14, 8],
+                    opacity: [0.6, 0, 0.6],
+                  }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                />
+              )}
+              {/* Icon container */}
+              <motion.foreignObject
+                x={path.cx - 7}
+                y={path.cy - 11}
+                width={14}
+                height={14}
+                className="pointer-events-none overflow-visible"
+                animate={primaryEvent.urgent ? {
+                  y: [path.cy - 11, path.cy - 13, path.cy - 11],
+                } : {}}
+                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+              >
+                <div className={`w-3.5 h-3.5 flex items-center justify-center rounded-full ${
+                  primaryEvent.urgent 
+                    ? 'bg-destructive/80 text-destructive-foreground' 
+                    : 'bg-card/80 text-foreground border border-border/50'
+                }`} style={{ backdropFilter: 'blur(4px)' }}>
+                  <Icon style={{ width: 8, height: 8 }} />
+                </div>
+              </motion.foreignObject>
+
+              {/* Badge count for multiple events */}
+              {events.length > 1 && (
+                <motion.foreignObject
+                  x={path.cx + 3}
+                  y={path.cy - 16}
+                  width={12}
+                  height={12}
+                  className="pointer-events-none"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.5 }}
+                >
+                  <div className="w-3 h-3 rounded-full bg-primary text-primary-foreground flex items-center justify-center" style={{ fontSize: 6, fontWeight: 700 }}>
+                    {events.length}
+                  </div>
+                </motion.foreignObject>
+              )}
+            </g>
+          );
+        })}
+
+        {/* Animated connection lines between trade-linked countries */}
+        <motion.line
+          x1={195} y1={190} x2={750} y2={210}
+          stroke="hsl(45 93% 55% / 0.15)"
+          strokeWidth={1}
+          strokeDasharray="6 4"
+          animate={{ strokeDashoffset: [0, -20] }}
+          transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
+        />
+        <motion.line
+          x1={195} y1={190} x2={842} y2={190}
+          stroke="hsl(199 89% 48% / 0.12)"
+          strokeWidth={1}
+          strokeDasharray="6 4"
+          animate={{ strokeDashoffset: [0, -20] }}
+          transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+        />
+        <motion.line
+          x1={542} y1={145} x2={665} y2={110}
+          stroke="hsl(0 72% 51% / 0.2)"
+          strokeWidth={1.5}
+          strokeDasharray="4 3"
+          animate={{ strokeDashoffset: [0, -14], opacity: [0.3, 0.7, 0.3] }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+        />
       </svg>
+
+      {/* Bottom event legend */}
+      <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-border/30">
+        <span className="text-[10px] text-muted-foreground font-medium mr-1">Events:</span>
+        {[
+          { type: 'war' as EventType, label: 'Conflict' },
+          { type: 'sanctions' as EventType, label: 'Sanctions' },
+          { type: 'gdp_report' as EventType, label: 'GDP Data' },
+          { type: 'earnings' as EventType, label: 'Earnings' },
+          { type: 'trade' as EventType, label: 'Trade' },
+          { type: 'inflation' as EventType, label: 'Inflation' },
+          { type: 'tech' as EventType, label: 'Tech' },
+          { type: 'energy' as EventType, label: 'Energy' },
+        ].map(({ type, label }) => {
+          const Icon = EVENT_ICON_MAP[type];
+          return (
+            <span key={type} className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+              <Icon className="h-2.5 w-2.5" />
+              {label}
+            </span>
+          );
+        })}
+      </div>
     </div>
   );
 }
