@@ -34,24 +34,51 @@ export interface SectorStat {
   flow: 'inflow' | 'outflow' | 'neutral';
 }
 
-// Country mapping from themes
+// Country mapping from themes — region-specific geopolitical & economic themes
 const THEME_COUNTRY_MAP: Record<string, { countries: string[]; sentiment: 'bullish' | 'bearish' | 'neutral' | 'emerging' }> = {
-  'Technology': { countries: ['US', 'TW', 'KR', 'JP', 'CN', 'IE', 'NL'], sentiment: 'bullish' },
-  'AI & Machine Learning': { countries: ['US', 'CN', 'GB', 'CA', 'IL'], sentiment: 'bullish' },
-  'Clean Energy': { countries: ['US', 'CN', 'DE', 'DK', 'NO', 'SE', 'AU'], sentiment: 'emerging' },
-  'Semiconductors': { countries: ['US', 'TW', 'KR', 'NL', 'JP'], sentiment: 'bullish' },
-  'Healthcare': { countries: ['US', 'CH', 'GB', 'DK', 'JP', 'DE'], sentiment: 'neutral' },
-  'Finance': { countries: ['US', 'GB', 'SG', 'HK', 'CH', 'JP'], sentiment: 'neutral' },
-  'Energy': { countries: ['US', 'SA', 'RU', 'CA', 'NO', 'AE', 'BR'], sentiment: 'bearish' },
-  'Consumer': { countries: ['US', 'CN', 'JP', 'FR', 'DE', 'IN'], sentiment: 'neutral' },
-  'Real Estate': { countries: ['US', 'CN', 'AU', 'SG', 'HK', 'GB'], sentiment: 'bearish' },
-  'Defense': { countries: ['US', 'GB', 'IL', 'FR', 'KR', 'SE'], sentiment: 'bullish' },
-  'Commodities': { countries: ['AU', 'BR', 'CA', 'ZA', 'CL', 'PE', 'RU'], sentiment: 'neutral' },
-  'EV & Mobility': { countries: ['US', 'CN', 'DE', 'KR', 'JP', 'SE'], sentiment: 'emerging' },
-  'Crypto & Blockchain': { countries: ['US', 'SG', 'CH', 'AE', 'GB'], sentiment: 'emerging' },
-  'Infrastructure': { countries: ['US', 'CN', 'IN', 'BR', 'MX', 'ID'], sentiment: 'bullish' },
-  'Biotech': { countries: ['US', 'CH', 'DK', 'GB', 'DE', 'JP'], sentiment: 'emerging' },
+  'Technology': { countries: ['US', 'TW', 'KR', 'JP', 'IE', 'NL'], sentiment: 'bullish' },
+  'AI & Machine Learning': { countries: ['US', 'GB', 'CA', 'IL'], sentiment: 'bullish' },
+  'Clean Energy': { countries: ['DK', 'NO', 'SE', 'DE'], sentiment: 'emerging' },
+  'Semiconductors': { countries: ['TW', 'KR', 'NL'], sentiment: 'bullish' },
+  'Healthcare': { countries: ['CH', 'DK', 'DE'], sentiment: 'neutral' },
+  'Finance': { countries: ['SG', 'HK', 'CH'], sentiment: 'neutral' },
+  'Energy': { countries: ['SA', 'AE', 'NO', 'CA'], sentiment: 'bearish' },
+  'Consumer': { countries: ['CN', 'IN', 'FR'], sentiment: 'neutral' },
+  'Real Estate': { countries: ['AU', 'SG', 'HK'], sentiment: 'bearish' },
+  'Defense': { countries: ['US', 'IL', 'KR', 'SE'], sentiment: 'bullish' },
+  'Commodities': { countries: ['AU', 'BR', 'ZA', 'CL', 'PE'], sentiment: 'neutral' },
+  'EV & Mobility': { countries: ['CN', 'DE', 'SE'], sentiment: 'emerging' },
+  'Crypto & Blockchain': { countries: ['SG', 'CH', 'AE'], sentiment: 'emerging' },
+  'Infrastructure': { countries: ['IN', 'BR', 'MX', 'ID'], sentiment: 'bullish' },
+  'Biotech': { countries: ['US', 'CH', 'DK'], sentiment: 'emerging' },
 };
+
+// Region-specific geopolitical & economic overlays that always render
+// These ensure every region gets unique, relevant themes
+const GEOPOLITICAL_OVERLAYS: { countries: string[]; theme: string; sentiment: 'bullish' | 'bearish' | 'neutral' | 'emerging'; intensity: number }[] = [
+  { countries: ['IR', 'IQ', 'SY', 'YE'], theme: 'Middle East Conflict & Sanctions', sentiment: 'bearish', intensity: 85 },
+  { countries: ['RU'], theme: 'Sanctions & Economic Isolation', sentiment: 'bearish', intensity: 80 },
+  { countries: ['UA'], theme: 'War & Reconstruction Demand', sentiment: 'bearish', intensity: 90 },
+  { countries: ['CN'], theme: 'US-China Trade Tensions', sentiment: 'bearish', intensity: 70 },
+  { countries: ['TW'], theme: 'Chip Export Controls & Geopolitical Risk', sentiment: 'neutral', intensity: 75 },
+  { countries: ['IN'], theme: 'Demographic Dividend & Manufacturing Shift', sentiment: 'bullish', intensity: 72 },
+  { countries: ['SA', 'AE'], theme: 'Oil Diversification & Vision 2030', sentiment: 'emerging', intensity: 65 },
+  { countries: ['NG', 'KE', 'GH', 'ZA'], theme: 'African Fintech & Mobile Banking Boom', sentiment: 'emerging', intensity: 60 },
+  { countries: ['BR'], theme: 'Agribusiness & Commodity Supercycle', sentiment: 'bullish', intensity: 58 },
+  { countries: ['JP'], theme: 'Yen Weakness & Corporate Governance Reform', sentiment: 'bullish', intensity: 68 },
+  { countries: ['TR'], theme: 'Inflation Crisis & Lira Depreciation', sentiment: 'bearish', intensity: 62 },
+  { countries: ['MX'], theme: 'Nearshoring & US Supply Chain Shift', sentiment: 'bullish', intensity: 64 },
+  { countries: ['VN', 'TH', 'ID'], theme: 'Southeast Asia Manufacturing Migration', sentiment: 'emerging', intensity: 58 },
+  { countries: ['PL', 'CZ'], theme: 'EU Eastern Expansion & NATO Frontline', sentiment: 'neutral', intensity: 52 },
+  { countries: ['AR'], theme: 'Economic Reform & Peso Restructuring', sentiment: 'emerging', intensity: 55 },
+  { countries: ['DE', 'FR'], theme: 'EU Industrial Policy & Energy Transition', sentiment: 'neutral', intensity: 50 },
+  { countries: ['GB'], theme: 'Post-Brexit Financial Realignment', sentiment: 'neutral', intensity: 48 },
+  { countries: ['AU'], theme: 'China Decoupling & Critical Minerals', sentiment: 'neutral', intensity: 52 },
+  { countries: ['KZ', 'UZ'], theme: 'Central Asia Resource Corridor', sentiment: 'emerging', intensity: 45 },
+  { countries: ['EG'], theme: 'Suez Canal Revenue & IMF Reforms', sentiment: 'bearish', intensity: 50 },
+  { countries: ['PK'], theme: 'IMF Bailout & Political Instability', sentiment: 'bearish', intensity: 55 },
+  { countries: ['KR'], theme: 'K-Culture Export & Battery Tech Leadership', sentiment: 'bullish', intensity: 60 },
+];
 
 const COUNTRY_NAMES: Record<string, string> = {
   US: 'United States', CN: 'China', JP: 'Japan', KR: 'South Korea',
