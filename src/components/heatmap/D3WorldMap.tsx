@@ -134,6 +134,14 @@ export function D3WorldMap({ regionData, onCountryClick }: Props) {
     }
   }, [onCountryClick]);
 
+  // Dismiss the hint once user clicks any country
+  const [hintDismissed, setHintDismissed] = useState(false);
+
+  const handleClickWithHint = useCallback((alpha2: string) => {
+    setHintDismissed(true);
+    if (alpha2 && onCountryClick) onCountryClick(alpha2);
+  }, [onCountryClick]);
+
   if (loading || !worldData) {
     return <Skeleton className="h-[300px] sm:h-[400px] lg:h-[520px] w-full" />;
   }
@@ -200,13 +208,25 @@ export function D3WorldMap({ regionData, onCountryClick }: Props) {
                 const tooltipData = region || { countryCode: alpha2, countryName: COUNTRY_NAMES[alpha2] || f.properties.name || alpha2 };
                 handleMouseMove(e, tooltipData);
               }}
-              onClick={() => handleClick(alpha2)}
+              onClick={() => handleClickWithHint(alpha2)}
               onTouchStart={() => setHoveredCountry(alpha2)}
               onTouchEnd={() => { setHoveredCountry(null); setTooltip(null); }}
             />
           );
         })}
       </svg>
+
+      {/* Interactive hint callout */}
+      {!hintDismissed && !tooltip && (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 animate-bounce-slow pointer-events-none">
+          <div className="flex items-center gap-2 bg-popover/95 backdrop-blur-sm border border-primary/30 rounded-full px-4 py-2 shadow-lg shadow-primary/10">
+            <MousePointerClick className="h-4 w-4 text-primary shrink-0" />
+            <span className="text-xs font-medium text-foreground whitespace-nowrap">
+              Click any country to explore its regional themes
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Tooltip */}
       {tooltip && (
