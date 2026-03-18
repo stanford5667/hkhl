@@ -184,7 +184,7 @@ export function MarketingLandingPage() {
           initial="hidden"
           animate="visible"
         >
-          <motion.h1 variants={fadeUp} custom={0} className="text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-6xl">
+          <motion.h1 variants={fadeUp} custom={0} className="text-3xl font-bold leading-tight tracking-tight sm:text-4xl lg:text-5xl">
             Build AI Investment Strategies in Mins.{' '}
             <span className="text-gray-500">No Coding Required.</span>
           </motion.h1>
