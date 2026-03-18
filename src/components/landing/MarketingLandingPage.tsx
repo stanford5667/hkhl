@@ -107,6 +107,79 @@ export function MarketingLandingPage() {
   const [isRunning, setIsRunning] = useState(false);
   const [results, setResults] = useState<BacktestResult | null>(null);
 
+  const MODULE_THUMBNAIL_MAP: Record<string, string> = {
+    'portfolio': modPortImg, 'option': modOptsImg, 'stock': modTechImg, 'financial': modFundImg,
+    'accounting': modFundImg, 'risk': modRiskImg, 'macro': modMacroImg, 'economic': modMacroImg,
+    'advanced': modAdvImg, 'quant': modAdvImg, 'algorithm': modAdvImg, 'intro': modIntroImg,
+    'fundamental': modFundImg, 'technical': modTechImg,
+  };
+
+  const MODULE_DESC_MAP: Record<string, string> = {
+    'portfolio': 'Learn to build, diversify, and rebalance a portfolio aligned with your risk tolerance.',
+    'option': 'Master options pricing, the Greeks, and practical strategies like covered calls and spreads.',
+    'stock': 'Understand how stock markets function — from order flow to reading charts and timing entries.',
+    'financial': 'Decode financial statements like an analyst to evaluate company health and uncover value.',
+    'accounting': 'Build a solid foundation in financial accounting and the key ratios that drive decisions.',
+    'risk': 'Master position sizing, stop-loss strategies, hedging, and drawdown management.',
+    'macro': 'Connect Fed policy, yield curves, CPI prints, and global trade flows to market cycles.',
+    'economic': 'Understand how GDP, inflation, and central bank actions drive asset prices.',
+    'advanced': 'Go beyond buy-and-hold with factor investing, pairs trading, and systematic methods.',
+    'quant': 'Explore data-driven approaches — signal generation, backtesting, and systematic strategy development.',
+    'intro': 'Start your journey: how markets work, asset classes, brokerage accounts, and order types.',
+    'fundamental': 'Dissect real 10-K filings to evaluate growth, margins, and free cash flow.',
+    'technical': 'Read candlestick charts like a pro. Identify breakouts and combine RSI, MACD, and Bollinger Bands.',
+  };
+
+  function enrichModule(title: string, field: 'thumbnail' | 'description'): string | null {
+    const t = title.toLowerCase();
+    const map = field === 'thumbnail' ? MODULE_THUMBNAIL_MAP : MODULE_DESC_MAP;
+    for (const [key, value] of Object.entries(map)) {
+      if (t.includes(key)) return value;
+    }
+    return null;
+  }
+
+  const MODULE_GRADIENTS = [
+    'from-cyan-600 to-blue-700', 'from-violet-600 to-purple-800', 'from-amber-500 to-orange-700',
+    'from-emerald-600 to-teal-800', 'from-rose-600 to-pink-800', 'from-sky-500 to-indigo-700',
+    'from-fuchsia-600 to-purple-800', 'from-teal-500 to-cyan-800',
+  ];
+
+  const { data: modules } = useQuery({
+    queryKey: ['landing-modules'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('course_modules')
+        .select(`id, title, description, order_index,
+          course:courses!inner(id, title, is_published, thumbnail_url),
+          lessons:course_lessons(id, title, description, video_duration)`)
+        .eq('courses.is_published', true)
+        .order('order_index', { ascending: true })
+        .limit(8);
+      return (data || []).map((m: any, idx: number) => ({
+        id: m.id, title: m.title,
+        description: (m.description && m.description.length > 10 ? m.description : null) || enrichModule(m.title, 'description') || 'Explore key concepts and practical techniques.',
+        orderIndex: m.order_index, courseTitle: m.course?.title, courseId: m.course?.id,
+        thumbnailUrl: enrichModule(m.title, 'thumbnail') || m.course?.thumbnail_url,
+        lessonCount: m.lessons?.length ?? 0,
+        totalDuration: (m.lessons || []).reduce((sum: number, l: any) => sum + (l.video_duration || 0), 0),
+        lessonTitles: (m.lessons || []).slice(0, 3).map((l: any) => l.title),
+        gradient: MODULE_GRADIENTS[idx % MODULE_GRADIENTS.length],
+      }));
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const FALLBACK_MODULES = [
+    { id: '1', title: 'Introduction to Investing', description: 'Start your journey with the building blocks: how markets work, asset classes, and order types.', orderIndex: 1, courseTitle: 'Masterclass', courseId: null, thumbnailUrl: modIntroImg, lessonCount: 8, totalDuration: 2400, lessonTitles: ['How Markets Actually Work', 'Stocks vs. Bonds vs. ETFs', 'Placing Your First Trade'], gradient: 'from-cyan-600 to-blue-700' },
+    { id: '2', title: 'Fundamental Analysis', description: 'Dissect real 10-K filings to evaluate revenue growth, profit margins, and free cash flow.', orderIndex: 2, courseTitle: 'Masterclass', courseId: null, thumbnailUrl: modFundImg, lessonCount: 12, totalDuration: 4200, lessonTitles: ['Reading a 10-K Filing', 'Building a DCF Model', 'Earnings Red Flags'], gradient: 'from-violet-600 to-purple-800' },
+    { id: '3', title: 'Technical Analysis', description: 'Read candlestick charts like a pro. Identify breakouts and combine RSI, MACD, and Bollinger Bands.', orderIndex: 3, courseTitle: 'Masterclass', courseId: null, thumbnailUrl: modTechImg, lessonCount: 15, totalDuration: 5400, lessonTitles: ['Candlestick Reversal Patterns', 'Support & Resistance Levels', 'RSI + MACD Combo Signals'], gradient: 'from-amber-500 to-orange-700' },
+    { id: '4', title: 'Portfolio Construction', description: 'Apply Modern Portfolio Theory to build an efficient frontier and diversify.', orderIndex: 4, courseTitle: 'Masterclass', courseId: null, thumbnailUrl: modPortImg, lessonCount: 10, totalDuration: 3600, lessonTitles: ['The Efficient Frontier', 'Correlation & Diversification', 'Rebalancing Strategies'], gradient: 'from-emerald-600 to-teal-800' },
+    { id: '5', title: 'Risk Management', description: 'Master position sizing, stop-loss strategies, hedging, and drawdown management.', orderIndex: 5, courseTitle: 'Masterclass', courseId: null, thumbnailUrl: modRiskImg, lessonCount: 9, totalDuration: 3000, lessonTitles: ['Kelly Criterion Sizing', 'Trailing Stop Techniques', '2008 vs 2020 Case Studies'], gradient: 'from-rose-600 to-pink-800' },
+    { id: '6', title: 'Options & Derivatives', description: 'Master the Greeks, covered calls, protective puts, and vertical spreads.', orderIndex: 6, courseTitle: 'Masterclass', courseId: null, thumbnailUrl: modOptsImg, lessonCount: 11, totalDuration: 4800, lessonTitles: ['The Greeks Explained', 'Covered Calls for Income', 'Vertical Spread Setups'], gradient: 'from-sky-500 to-indigo-700' },
+    { id: '7', title: 'Macro Economics', description: 'Connect Fed policy, yield curves, CPI prints, and global trade flows to market cycles.', orderIndex: 7, courseTitle: 'Masterclass', courseId: null, thumbnailUrl: modMacroImg, lessonCount: 7, totalDuration: 2100, lessonTitles: ['Reading FOMC Statements', 'Yield Curve Inversions', 'Trading the CPI Print'], gradient: 'from-fuchsia-600 to-purple-800' },
+    { id: '8', title: 'Advanced Strategies', description: 'Factor investing, pairs trading, and systematic mean-reversion models.', orderIndex: 8, courseTitle: 'Masterclass', courseId: null, thumbnailUrl: modAdvImg, lessonCount: 14, totalDuration: 6000, lessonTitles: ['Factor Investing Framework', 'Pairs Trading Setup', 'Backtesting Your Strategy'], gradient: 'from-teal-500 to-cyan-800' },
+  ];
   const runBacktest = useCallback(async () => {
     if (!selectedTicker || !selectedStrategy) {
       toast.error('Select a ticker and strategy first');
