@@ -1,6 +1,6 @@
 import { lazy, Suspense, useState, useCallback } from 'react';
 import { motion, type Easing } from 'framer-motion';
-import { Zap, Database, GraduationCap, ChevronRight, Loader2, AlertTriangle } from 'lucide-react';
+import { ChevronRight, Loader2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
