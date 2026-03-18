@@ -295,7 +295,7 @@ export default function CourseDetail() {
   };
 
   // Check if user has access (enrolled + subscribed, or free course)
-  const hasAccess = enrollment && (isResearchTier || course?.is_free);
+  const hasAccess = enrollment && (isPro || course?.is_free);
 
   if (isLoading) {
     return (
