@@ -107,7 +107,7 @@ export default function CourseDetail() {
   const { courseId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isResearchTier, isPro, refreshUsage, isLoading: isUsageLoading } = useUsage();
+  const { isPro, refreshUsage, isLoading: isUsageLoading } = useUsage();
   const queryClient = useQueryClient();
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
