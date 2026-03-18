@@ -1,10 +1,11 @@
 import { useState, useCallback } from 'react';
 import { motion, type Easing } from 'framer-motion';
-import { Zap, Database, Brain, ChevronRight, Loader2, TrendingUp } from 'lucide-react';
+import { Zap, Database, Brain, ChevronRight, Loader2, TrendingUp, GraduationCap, Play, Clock, Users, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { AuthGateDialog } from '@/components/auth/AuthGateDialog';
 import { useTrendingTickers } from '@/hooks/useTrendingTickers';
@@ -12,9 +13,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { retryWithBackoff } from '@/utils/retryWithBackoff';
 import { DEFAULT_ADVANCED_PARAMS } from '@/lib/backtesting/types';
 import { AssetLabsLogo } from '@/components/brand/AssetLabsLogo';
+import { TickerCarousel } from '@/components/research/TickerCarousel';
+import { MARKET_THEMES } from '@/data/marketThemes';
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { cn } from '@/lib/utils';
 
 const ease: Easing = [0.25, 0.1, 0.25, 1];
 
@@ -70,14 +76,33 @@ interface BacktestResult {
   portfolioHistory?: { date: string; value: number }[];
 }
 
+// Pick top 6 themes for the landing page preview
+const PREVIEW_THEMES = MARKET_THEMES.slice(0, 6);
+
 export function MarketingLandingPage() {
   const { requireAuth, showAuthDialog, closeAuthDialog } = useRequireAuth();
   const { tickers, isLoading: tickersLoading } = useTrendingTickers(20);
+  const navigate = useNavigate();
 
   const [selectedTicker, setSelectedTicker] = useState('');
   const [selectedStrategy, setSelectedStrategy] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [results, setResults] = useState<BacktestResult | null>(null);
+
+  // Fetch courses for Academy preview
+  const { data: courses } = useQuery({
+    queryKey: ['landing-courses'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('courses')
+        .select('id, title, description, thumbnail_url, level, duration_hours, student_count, rating, is_published')
+        .eq('is_published', true)
+        .order('student_count', { ascending: false })
+        .limit(3);
+      return data || [];
+    },
+    staleTime: 10 * 60 * 1000,
+  });
 
   const runBacktest = useCallback(async () => {
     if (!selectedTicker || !selectedStrategy) {
@@ -158,7 +183,7 @@ export function MarketingLandingPage() {
         </div>
       </nav>
 
-      {/* ─── Hero Section ─── */}
+      {/* ─── Hero Section (Backtest Sandbox) ─── */}
       <section className="mx-auto grid max-w-7xl gap-12 px-4 py-16 sm:px-8 lg:grid-cols-2 lg:py-24">
         {/* Left column */}
         <motion.div
@@ -299,6 +324,233 @@ export function MarketingLandingPage() {
         </motion.div>
       </section>
 
+      {/* ─── Trending Tickers (Live) ─── */}
+      <section className="border-t border-white/[0.04] bg-slate-950 py-16 px-4 sm:px-8">
+        <div className="mx-auto max-w-7xl">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            className="mb-8"
+          >
+            <motion.div variants={fadeUp} custom={0} className="flex items-center gap-3 mb-2">
+              <TrendingUp className="h-5 w-5 text-cyan-400" />
+              <h2 className="text-2xl font-bold sm:text-3xl">Trending Now</h2>
+              <Badge variant="outline" className="text-[10px] border-cyan-500/30 text-cyan-400 bg-cyan-500/5">
+                LIVE
+              </Badge>
+            </motion.div>
+            <motion.p variants={fadeUp} custom={1} className="text-gray-400">
+              Real-time market movers tracked across 10,000+ equities and ETFs.
+            </motion.p>
+          </motion.div>
+
+          {tickersLoading ? (
+            <div className="flex gap-3 overflow-hidden">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-40 w-60 shrink-0 rounded-xl bg-slate-800" />
+              ))}
+            </div>
+          ) : (
+            <TickerCarousel
+              tickers={tickers.map((t) => ({
+                symbol: t.symbol,
+                name: t.name,
+                price: t.price,
+                changePercent: t.changePercent,
+                marketCap: t.marketCap ?? undefined,
+              }))}
+              onTickerClick={(symbol) => navigate(`/stock/${symbol}`)}
+            />
+          )}
+        </div>
+      </section>
+
+      {/* ─── Investment Themes ─── */}
+      <section className="border-t border-white/[0.04] bg-slate-950 py-16 px-4 sm:px-8">
+        <div className="mx-auto max-w-7xl">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            className="mb-8"
+          >
+            <motion.div variants={fadeUp} custom={0} className="flex items-center gap-3 mb-2">
+              <Globe className="h-5 w-5 text-purple-400" />
+              <h2 className="text-2xl font-bold sm:text-3xl">Investment Themes</h2>
+            </motion.div>
+            <motion.p variants={fadeUp} custom={1} className="text-gray-400">
+              Macro and micro themes shaping global markets — with AI-driven sentiment and related tickers.
+            </motion.p>
+          </motion.div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {PREVIEW_THEMES.map((theme, i) => {
+              const isBullish = theme.sentimentScore > 0.6;
+              const isBearish = theme.sentimentScore < 0.4;
+              const sentimentColor = isBullish ? 'text-emerald-500' : isBearish ? 'text-rose-500' : 'text-amber-500';
+              const sentimentBg = isBullish ? 'bg-emerald-500/10' : isBearish ? 'bg-rose-500/10' : 'bg-amber-500/10';
+              const Icon = theme.icon;
+
+              return (
+                <motion.div
+                  key={theme.id}
+                  variants={fadeUp}
+                  custom={i}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true, margin: '-40px' }}
+                  onClick={() => navigate('/investment-heatmap')}
+                  className="group cursor-pointer rounded-xl border border-slate-800 bg-slate-900/60 p-5 transition-all hover:-translate-y-1 hover:border-slate-700"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5 bg-slate-800 text-gray-400 border-0">
+                        {theme.category}
+                      </Badge>
+                    </div>
+                    <span className={cn('text-xs font-semibold', sentimentColor)}>
+                      {theme.impactPercent > 0 ? '+' : ''}{theme.impactPercent.toFixed(1)}%
+                    </span>
+                  </div>
+
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className={cn('p-2 rounded-lg shrink-0', sentimentBg, sentimentColor)}>
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <h3 className="text-sm font-semibold leading-snug line-clamp-2">{theme.title}</h3>
+                  </div>
+
+                  <p className="text-xs text-gray-500 leading-relaxed line-clamp-2 mb-3">
+                    {theme.summary}
+                  </p>
+
+                  {/* Ticker pills */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {theme.tickers.slice(0, 4).map((t) => (
+                      <span
+                        key={t.symbol}
+                        className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-800 text-gray-300"
+                      >
+                        {t.symbol}
+                      </span>
+                    ))}
+                    {theme.tickers.length > 4 && (
+                      <span className="text-[10px] text-gray-600 px-1.5 py-0.5">
+                        +{theme.tickers.length - 4}
+                      </span>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+
+          <div className="mt-8 text-center">
+            <Button
+              variant="outline"
+              onClick={() => navigate('/investment-heatmap')}
+              className="border-purple-500/30 text-gray-300 hover:bg-purple-500/10 hover:text-white"
+            >
+              Explore All Themes
+              <ChevronRight className="ml-1 h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Academy Preview ─── */}
+      <section className="border-t border-white/[0.04] bg-slate-950 py-16 px-4 sm:px-8">
+        <div className="mx-auto max-w-7xl">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            className="mb-8"
+          >
+            <motion.div variants={fadeUp} custom={0} className="flex items-center gap-3 mb-2">
+              <GraduationCap className="h-5 w-5 text-amber-400" />
+              <h2 className="text-2xl font-bold sm:text-3xl">Learn from the Pros</h2>
+            </motion.div>
+            <motion.p variants={fadeUp} custom={1} className="text-gray-400">
+              Master portfolio management with our 90+ lesson masterclass led by a Private Equity investor.
+            </motion.p>
+          </motion.div>
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {(courses && courses.length > 0 ? courses : [
+              // Fallback if no published courses
+              { id: '1', title: 'Complete Portfolio Management', description: 'From fundamentals to advanced strategies', level: 'All Levels', duration_hours: 40, student_count: 1200, rating: 4.9, thumbnail_url: null },
+            ]).map((course, i) => (
+              <motion.div
+                key={course.id}
+                variants={fadeUp}
+                custom={i}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, margin: '-40px' }}
+                onClick={() => navigate(`/academy/course/${course.id}`)}
+                className="group cursor-pointer rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden transition-all hover:-translate-y-1 hover:border-slate-700"
+              >
+                {/* Thumbnail */}
+                <div className="relative h-40 bg-gradient-to-br from-amber-500/20 via-slate-800 to-purple-500/20 flex items-center justify-center">
+                  {course.thumbnail_url ? (
+                    <img src={course.thumbnail_url} alt={course.title} className="absolute inset-0 w-full h-full object-cover" />
+                  ) : (
+                    <GraduationCap className="h-12 w-12 text-amber-400/40" />
+                  )}
+                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <div className="h-12 w-12 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
+                      <Play className="h-5 w-5 text-white ml-0.5" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-5">
+                  <h3 className="font-semibold text-sm mb-2 line-clamp-2">{course.title}</h3>
+                  {course.description && (
+                    <p className="text-xs text-gray-500 line-clamp-2 mb-3">{course.description}</p>
+                  )}
+                  <div className="flex items-center gap-3 text-[11px] text-gray-500">
+                    {course.duration_hours && (
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {course.duration_hours}h
+                      </span>
+                    )}
+                    {course.student_count != null && (
+                      <span className="flex items-center gap-1">
+                        <Users className="h-3 w-3" />
+                        {course.student_count.toLocaleString()}
+                      </span>
+                    )}
+                    {course.rating != null && (
+                      <span className="text-amber-400 font-semibold">★ {course.rating.toFixed(1)}</span>
+                    )}
+                    {course.level && (
+                      <Badge variant="secondary" className="text-[10px] h-4 bg-slate-800 text-gray-400 border-0">
+                        {course.level}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="mt-8 text-center">
+            <Button
+              variant="outline"
+              onClick={() => navigate('/academy')}
+              className="border-amber-500/30 text-gray-300 hover:bg-amber-500/10 hover:text-white"
+            >
+              Browse Academy
+              <ChevronRight className="ml-1 h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </section>
+
       {/* ─── Features Grid ─── */}
       <section id="features" className="border-t border-white/[0.04] bg-slate-950 py-20 px-4 sm:px-8">
         <div className="mx-auto max-w-7xl">
@@ -347,7 +599,6 @@ export function MarketingLandingPage() {
           className="mx-auto max-w-3xl"
         >
           <Card className="relative overflow-hidden border-slate-800 bg-slate-900/50">
-            {/* Blurred background sim */}
             <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/[0.05] via-transparent to-purple-500/[0.05]" />
             <div className="absolute inset-0 backdrop-blur-[2px]" />
             <CardContent className="relative z-10 flex flex-col items-center px-8 py-14 text-center">
