@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { motion, type Easing } from 'framer-motion';
-import { Zap, Database, Brain, ChevronRight, Loader2, TrendingUp, GraduationCap, Play, Clock, Users, Globe } from 'lucide-react';
+import { Zap, Database, Brain, ChevronRight, Loader2, TrendingUp, GraduationCap, Play, Clock, Users, Globe, BookOpen, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
