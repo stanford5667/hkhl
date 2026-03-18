@@ -352,7 +352,7 @@ export default function CourseDetail() {
               {course.is_free && (
                 <Badge className="absolute top-2 left-2 sm:top-4 sm:left-4 bg-green-500 text-white text-xs">Free Course</Badge>
               )}
-              {!course.is_free && !isResearchTier && (
+              {!course.is_free && !isPro && (
                 <Badge className="absolute top-2 right-2 sm:top-4 sm:right-4 bg-primary/90 text-primary-foreground text-xs flex items-center gap-1">
                   <Lock className="w-3 h-3" />
                   <span className="hidden sm:inline">Premium</span>
