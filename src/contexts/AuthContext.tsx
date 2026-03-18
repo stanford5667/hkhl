@@ -21,54 +21,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
+    let isMounted = true;
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    const applySession = (nextSession: Session | null) => {
+      if (!isMounted) return;
+      setSession(nextSession);
+      setUser(nextSession?.user ?? null);
       setLoading(false);
+    };
+
+    // Rely on the auth client's built-in auto refresh flow.
+    // Avoid manual refresh timers/visibility refresh to prevent race conditions.
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      applySession(nextSession);
     });
 
-    // Proactively refresh token every 10 minutes to prevent expiry
-    const refreshInterval = setInterval(async () => {
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
-      if (currentSession) {
-        await supabase.auth.refreshSession();
-      }
-    }, 10 * 60 * 1000);
-
-    // Refresh session when tab becomes visible again (e.g. user returns after hours)
-    const handleVisibility = async () => {
-      if (document.visibilityState === 'visible') {
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        if (currentSession) {
-          // Only refresh if the token is close to expiring (within 5 minutes)
-          const expiresAt = currentSession.expires_at;
-          const now = Math.floor(Date.now() / 1000);
-          if (expiresAt && expiresAt - now < 300) {
-            const { error } = await supabase.auth.refreshSession();
-            if (error) {
-              console.warn('Session refresh failed on visibility change:', error.message);
-            }
-            // onAuthStateChange listener will handle state updates
-          }
-        }
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibility);
+    // Hydrate current session on first mount.
+    supabase.auth
+      .getSession()
+      .then(({ data: { session: currentSession } }) => {
+        applySession(currentSession);
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setLoading(false);
+      });
 
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
-      clearInterval(refreshInterval);
-      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, []);
 
