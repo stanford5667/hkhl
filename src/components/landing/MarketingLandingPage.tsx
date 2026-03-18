@@ -171,7 +171,7 @@ export function MarketingLandingPage() {
         orderIndex: m.order_index,
         courseTitle: m.course?.title,
         courseId: m.course?.id,
-        thumbnailUrl: m.course?.thumbnail_url || enrichModule(m.title, 'thumbnail'),
+        thumbnailUrl: enrichModule(m.title, 'thumbnail') || m.course?.thumbnail_url,
         lessonCount: m.lessons?.length ?? 0,
         totalDuration: (m.lessons || []).reduce((sum: number, l: any) => sum + (l.video_duration || 0), 0),
         lessonTitles: (m.lessons || []).slice(0, 3).map((l: any) => l.title),
