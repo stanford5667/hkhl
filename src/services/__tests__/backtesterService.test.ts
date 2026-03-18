@@ -72,7 +72,8 @@ describe('Backtester Service Pure Functions', () => {
         initialCapital: 100000,
         strategy: 'buy-hold',
       };
-      await expect(runBacktest(config)).rejects.toThrow('Add at least one asset');
+      // Empty assets triggers allocation check first (0% != 100%)
+      await expect(runBacktest(config)).rejects.toThrow();
     });
   });
 

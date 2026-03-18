@@ -182,7 +182,7 @@ describe('Portfolio Metrics Service', () => {
       const values = [100, 90, 110];
       const result = calculateMaxDrawdown(values);
       expect(result.drawdownSeries).toHaveLength(3);
-      expect(result.drawdownSeries[0]).toBe(0); // No DD at peak
+      expect(result.drawdownSeries[0]).toBeCloseTo(0, 4); // No DD at peak (handles -0)
       expect(result.drawdownSeries[1]).toBeCloseTo(-10, 4); // -10%
     });
 
