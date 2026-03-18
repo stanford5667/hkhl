@@ -713,7 +713,7 @@ export default function CourseDetail() {
                     </Button>
                   )}
                 </>
-              ) : enrollment && !isResearchTier ? (
+              ) : enrollment && !isPro ? (
                 // Enrolled but subscription expired
                 <div className="space-y-4">
                    <div className="p-3 rounded-lg bg-primary/10 border border-primary/30 text-center">
