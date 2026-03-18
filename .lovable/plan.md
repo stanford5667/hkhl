@@ -1,46 +1,45 @@
 
 
-# Simplifying the Landing Page
+# Bulk Video Upload for Academy Admin
 
-## Problem
-The landing page currently has 5 dense sections stacked vertically, each with heavy content:
-1. **Hero** with backtest sandbox (dropdowns, chart, 4 metrics)
-2. **Trending Tickers** carousel
-3. **Investment Themes** — 6 detailed cards with sentiment, tickers, summaries
-4. **Academy** — 8 module cards with thumbnails, descriptions, lesson lists
-5. **Features Grid** — 3 feature cards + CTA footer
+## What We're Building
 
-This creates information overload and dilutes the core message.
+A "Bulk Upload Videos" button on each module that opens a dialog where admins can drag-and-drop multiple video files. Videos upload sequentially to the `course-videos` bucket, each showing individual progress. On completion, lessons are auto-created from filenames (e.g., `01-Introduction.mp4` becomes lesson "Introduction" at order index 1).
 
-## Proposed Changes
+## New File
 
-### 1. Consolidate to 3 sections (Hero, Social Proof strip, CTA)
+**`src/components/admin/BulkVideoUpload.tsx`** -- A self-contained dialog component:
 
-- **Hero** stays as-is — it's the core product demo and strongest section
-- **Replace** Trending Tickers, Investment Themes, and Academy with a single compact "What You Get" section: 3 short feature cards (Backtesting, AI Insights, Academy) in a single row — icon, one-liner, and a link. No thumbnails, no lesson lists, no theme cards.
-- **Remove** the separate Features Grid (redundant with the consolidated row)
-- **Add** a slim social-proof strip (e.g., "10,000+ stocks · 30+ years of data · 90+ lessons") between hero and features
+- Props: `moduleId`, `existingLessonCount`, `onComplete` callback
+- Multi-file drag-and-drop zone accepting `video/*` (max 5GB each)
+- File queue state: `Array<{ file, name, status, progress, parsedTitle, parsedOrder }>`
+- Filename parser: strips extension, splits on `-` or `_`, detects leading number for `order_index`, title-cases the rest
+- Preview table showing each file with parsed title, order, size, and editable title field
+- "Upload & Create Lessons" button that processes files sequentially:
+  1. Upload each file to `course-videos/lessons/{timestamp}-{sanitized_name}`
+  2. Simulate progress per file (same pattern as existing single upload)
+  3. On success, insert into `course_lessons` with `module_id`, parsed title, `video_url`, `video_provider: 'custom'`, and `order_index` (based on parsed number + existing lesson count offset)
+- Status indicators per file: pending / uploading / done / error
+- Summary toast on completion ("5 of 6 videos uploaded successfully")
 
-### 2. Keep Academy and Themes as dedicated pages only
-The detailed module cards and theme grid already exist on `/academy` and `/investment-heatmap`. The landing page should tease them, not replicate them.
+## Modified File
 
-### 3. Streamlined footer CTA
-Keep the existing "Start Building Your Edge" CTA block and footer.
+**`src/components/admin/AdminCoursesTab.tsx`**:
 
-## Result
-The page goes from ~700 lines and 5 scroll-heavy sections to roughly 3 focused sections: **Hero → Social Proof → CTA**, with a compact feature row bridging them. Faster load, clearer funnel.
+- Import `BulkVideoUpload` component
+- Add a "Bulk Upload" button next to the existing "Add Lesson" button in each module's action bar (around line 939-946)
+- Pass `moduleId`, existing lesson count, and a refresh callback (`fetchLessons`)
 
-## Technical Details
+## No Database Changes
 
-**File:** `src/components/landing/MarketingLandingPage.tsx`
+Uses existing `course_lessons` table and `course-videos` storage bucket. Lessons are inserted with `video_provider: 'custom'` (matching the existing DB constraint).
 
-- Remove the Trending Tickers section (lines 404-444)
-- Remove the Investment Themes section (lines 446-537)
-- Remove the Academy section (lines 539-648)
-- Remove the Features Grid section (lines 650-700)
-- Remove unused imports (module images, theme data, icons like Globe, GraduationCap, Video, BookOpen, Play, Clock)
-- Remove enrichment maps, MODULE_GRADIENTS, fallback module data, and the `useQuery` for modules
-- Add a compact social-proof stat strip below the hero
-- Add a single-row "What You Get" section with 3 minimal cards linking to `/academy`, `/investment-heatmap`, and the backtest sandbox
-- Keep the CTA footer and auth dialog
+## Filename Parsing Logic
+
+```text
+"01-Introduction.mp4"       → order: 1,  title: "Introduction"
+"02_Market_Analysis.mp4"    → order: 2,  title: "Market Analysis"
+"Getting Started.mp4"       → order: 0,  title: "Getting Started"
+"03 - Risk Management.webm" → order: 3,  title: "Risk Management"
+```
 

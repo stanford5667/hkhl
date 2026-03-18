@@ -1,19 +1,10 @@
 import { useState, useCallback } from 'react';
 import { motion, type Easing } from 'framer-motion';
-import { Zap, Database, Brain, ChevronRight, Loader2, TrendingUp, GraduationCap, Play, Clock, Users, Globe, BookOpen, Video } from 'lucide-react';
-import modIntroImg from '@/assets/modules/mod-intro-investing.jpg';
-import modFundImg from '@/assets/modules/mod-fundamental-analysis.jpg';
-import modTechImg from '@/assets/modules/mod-technical-analysis.jpg';
-import modPortImg from '@/assets/modules/mod-portfolio-construction.jpg';
-import modRiskImg from '@/assets/modules/mod-risk-management.jpg';
-import modOptsImg from '@/assets/modules/mod-options-derivatives.jpg';
-import modMacroImg from '@/assets/modules/mod-macro-economics.jpg';
-import modAdvImg from '@/assets/modules/mod-advanced-strategies.jpg';
+import { Zap, Database, Brain, ChevronRight, Loader2, TrendingUp, GraduationCap, Globe, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { AuthGateDialog } from '@/components/auth/AuthGateDialog';
 import { useTrendingTickers } from '@/hooks/useTrendingTickers';
@@ -21,14 +12,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { retryWithBackoff } from '@/utils/retryWithBackoff';
 import { DEFAULT_ADVANCED_PARAMS } from '@/lib/backtesting/types';
 import { AssetLabsLogo } from '@/components/brand/AssetLabsLogo';
-import { TickerCarousel } from '@/components/research/TickerCarousel';
-import { MARKET_THEMES } from '@/data/marketThemes';
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { cn } from '@/lib/utils';
 
 const ease: Easing = [0.25, 0.1, 0.25, 1];
 
@@ -52,30 +39,6 @@ const STRATEGY_OPTIONS = [
   { id: 'volatility_breakout', name: 'Volatility Breakout' },
 ] as const;
 
-const features = [
-  {
-    icon: Zap,
-    color: 'text-cyan-400',
-    glow: 'shadow-[0_0_20px_hsl(185_80%_50%/0.3)]',
-    title: 'Powerful AI Backtesting',
-    text: 'Validate your edge across decades of market history with no coding.',
-  },
-  {
-    icon: Database,
-    color: 'text-purple-400',
-    glow: 'shadow-[0_0_20px_hsl(270_70%_55%/0.3)]',
-    title: 'Curated Datasets',
-    text: 'Instant access to institutional-grade financial and alternative data.',
-  },
-  {
-    icon: Brain,
-    color: 'text-amber-400',
-    glow: 'shadow-[0_0_20px_hsl(38_90%_55%/0.3)]',
-    title: 'AI Insights',
-    text: 'Get instant, actionable market context with AI predictions.',
-  },
-];
-
 interface BacktestResult {
   totalReturn: number;
   maxDrawdown: number;
@@ -84,8 +47,45 @@ interface BacktestResult {
   portfolioHistory?: { date: string; value: number }[];
 }
 
-// Pick top 6 themes for the landing page preview
-const PREVIEW_THEMES = MARKET_THEMES.slice(0, 6);
+const SOCIAL_PROOF = [
+  { value: '10,000+', label: 'Stocks & ETFs' },
+  { value: '30+', label: 'Years of Data' },
+  { value: '90+', label: 'Video Lessons' },
+  { value: '8', label: 'Strategies' },
+];
+
+const WHAT_YOU_GET = [
+  {
+    icon: Zap,
+    title: 'No-Code Backtesting',
+    description: 'Validate strategies across decades of market data — no programming required.',
+    cta: 'Try it above ↑',
+    color: 'text-cyan-400',
+    borderColor: 'border-cyan-500/20 hover:border-cyan-500/40',
+    glow: 'hover:shadow-[0_0_24px_hsl(185_80%_50%/0.08)]',
+    href: null,
+  },
+  {
+    icon: Globe,
+    title: 'Investment Themes',
+    description: 'AI-driven macro and sector themes with sentiment scores and related tickers.',
+    cta: 'Explore themes',
+    color: 'text-purple-400',
+    borderColor: 'border-purple-500/20 hover:border-purple-500/40',
+    glow: 'hover:shadow-[0_0_24px_hsl(270_70%_55%/0.08)]',
+    href: '/investment-heatmap',
+  },
+  {
+    icon: GraduationCap,
+    title: 'Academy',
+    description: '90+ structured video lessons from fundamentals to advanced portfolio strategy.',
+    cta: 'Browse curriculum',
+    color: 'text-amber-400',
+    borderColor: 'border-amber-500/20 hover:border-amber-500/40',
+    glow: 'hover:shadow-[0_0_24px_hsl(38_90%_55%/0.08)]',
+    href: '/academy',
+  },
+];
 
 export function MarketingLandingPage() {
   const { requireAuth, showAuthDialog, closeAuthDialog } = useRequireAuth();
@@ -96,90 +96,6 @@ export function MarketingLandingPage() {
   const [selectedStrategy, setSelectedStrategy] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [results, setResults] = useState<BacktestResult | null>(null);
-
-  // Enrichment maps for live DB modules that lack descriptions/thumbnails
-  const MODULE_THUMBNAIL_MAP: Record<string, string> = {
-    'portfolio': modPortImg,
-    'option': modOptsImg,
-    'stock': modTechImg,
-    'financial': modFundImg,
-    'accounting': modFundImg,
-    'risk': modRiskImg,
-    'macro': modMacroImg,
-    'economic': modMacroImg,
-    'advanced': modAdvImg,
-    'quant': modAdvImg,
-    'algorithm': modAdvImg,
-    'intro': modIntroImg,
-    'fundamental': modFundImg,
-    'technical': modTechImg,
-  };
-
-  const MODULE_DESC_MAP: Record<string, string> = {
-    'portfolio': 'Learn to build, diversify, and rebalance a portfolio aligned with your risk tolerance. Covers Modern Portfolio Theory, asset allocation frameworks, and real-world optimization techniques.',
-    'option': 'Master options pricing, the Greeks, and practical strategies like covered calls, protective puts, and vertical spreads. Includes live P&L scenarios and risk-defined trade structures.',
-    'stock': 'Understand how stock markets function — from order flow and market microstructure to reading charts, identifying trends, and timing entries using technical indicators.',
-    'financial': 'Decode financial statements like an analyst. Learn to read income statements, balance sheets, and cash flow reports to evaluate company health and uncover hidden value.',
-    'accounting': 'Build a solid foundation in financial accounting — revenue recognition, depreciation, working capital, and the key ratios that drive investment decisions.',
-    'risk': 'The #1 skill separating survivors from blowups. Master position sizing, stop-loss strategies, hedging with derivatives, and drawdown management with real crisis case studies.',
-    'macro': 'Connect Fed policy, yield curves, CPI prints, and global trade flows to market cycles. Learn to interpret FOMC statements and position ahead of rate decisions.',
-    'economic': 'Understand how GDP, inflation, employment data, and central bank actions drive asset prices. Build a macro framework for informed top-down investing.',
-    'advanced': 'Go beyond buy-and-hold with factor investing, pairs trading, systematic mean-reversion, and quantitative methods used by professional fund managers.',
-    'quant': 'Explore data-driven approaches to market analysis — signal generation, backtesting methodology, and systematic strategy development for algorithmic trading.',
-    'intro': 'Start your journey with the building blocks: how markets work, asset classes, brokerage accounts, and order types. Place your first simulated trade with confidence.',
-    'fundamental': 'Dissect real 10-K filings to evaluate revenue growth, profit margins, and free cash flow. Build DCF models, compare multiples, and spot earnings red flags.',
-    'technical': 'Read candlestick charts like a pro. Identify head-and-shoulders, breakouts, and combine RSI, MACD, and Bollinger Bands to time entries with higher probability.',
-  };
-
-  function enrichModule(title: string, field: 'thumbnail' | 'description'): string | null {
-    const t = title.toLowerCase();
-    const map = field === 'thumbnail' ? MODULE_THUMBNAIL_MAP : MODULE_DESC_MAP;
-    for (const [key, value] of Object.entries(map)) {
-      if (t.includes(key)) return value;
-    }
-    return null;
-  }
-
-  const MODULE_GRADIENTS = [
-    'from-cyan-600 to-blue-700',
-    'from-violet-600 to-purple-800',
-    'from-amber-500 to-orange-700',
-    'from-emerald-600 to-teal-800',
-    'from-rose-600 to-pink-800',
-    'from-sky-500 to-indigo-700',
-    'from-fuchsia-600 to-purple-800',
-    'from-teal-500 to-cyan-800',
-  ];
-
-  const { data: modules } = useQuery({
-    queryKey: ['landing-modules'],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('course_modules')
-        .select(`
-          id, title, description, order_index,
-          course:courses!inner(id, title, is_published, thumbnail_url),
-          lessons:course_lessons(id, title, description, video_duration)
-        `)
-        .eq('courses.is_published', true)
-        .order('order_index', { ascending: true })
-        .limit(8);
-      return (data || []).map((m: any, idx: number) => ({
-        id: m.id,
-        title: m.title,
-        description: (m.description && m.description.length > 10 ? m.description : null) || enrichModule(m.title, 'description') || 'Explore key concepts and practical techniques in this comprehensive module.',
-        orderIndex: m.order_index,
-        courseTitle: m.course?.title,
-        courseId: m.course?.id,
-        thumbnailUrl: enrichModule(m.title, 'thumbnail') || m.course?.thumbnail_url,
-        lessonCount: m.lessons?.length ?? 0,
-        totalDuration: (m.lessons || []).reduce((sum: number, l: any) => sum + (l.video_duration || 0), 0),
-        lessonTitles: (m.lessons || []).slice(0, 3).map((l: any) => l.title),
-        gradient: MODULE_GRADIENTS[idx % MODULE_GRADIENTS.length],
-      }));
-    },
-    staleTime: 10 * 60 * 1000,
-  });
 
   const runBacktest = useCallback(async () => {
     if (!selectedTicker || !selectedStrategy) {
@@ -401,262 +317,37 @@ export function MarketingLandingPage() {
         </motion.div>
       </section>
 
-      {/* ─── Trending Tickers (Live) ─── */}
-      <section className="border-t border-white/[0.04] bg-slate-950 py-16 px-4 sm:px-8">
-        <div className="mx-auto max-w-7xl">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            className="mb-8"
-          >
-            <motion.div variants={fadeUp} custom={0} className="flex items-center gap-3 mb-2">
-              <TrendingUp className="h-5 w-5 text-cyan-400" />
-              <h2 className="text-2xl font-bold sm:text-3xl">Trending Now</h2>
-              <Badge variant="outline" className="text-[10px] border-cyan-500/30 text-cyan-400 bg-cyan-500/5">
-                LIVE
-              </Badge>
-            </motion.div>
-            <motion.p variants={fadeUp} custom={1} className="text-gray-400">
-              Real-time market movers tracked across 10,000+ equities and ETFs.
-            </motion.p>
-          </motion.div>
-
-          {tickersLoading ? (
-            <div className="flex gap-3 overflow-hidden">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-40 w-60 shrink-0 rounded-xl bg-slate-800" />
-              ))}
-            </div>
-          ) : (
-            <TickerCarousel
-              tickers={tickers.map((t) => ({
-                symbol: t.symbol,
-                name: t.name,
-                price: t.price,
-                changePercent: t.changePercent,
-                marketCap: t.marketCap ?? undefined,
-              }))}
-              onTickerClick={(symbol) => navigate(`/stock/${symbol}`)}
-            />
-          )}
-        </div>
-      </section>
-
-      {/* ─── Investment Themes ─── */}
-      <section className="border-t border-white/[0.04] bg-slate-950 py-16 px-4 sm:px-8">
-        <div className="mx-auto max-w-7xl">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            className="mb-8"
-          >
-            <motion.div variants={fadeUp} custom={0} className="flex items-center gap-3 mb-2">
-              <Globe className="h-5 w-5 text-purple-400" />
-              <h2 className="text-2xl font-bold sm:text-3xl">Investment Themes</h2>
-            </motion.div>
-            <motion.p variants={fadeUp} custom={1} className="text-gray-400">
-              Macro and micro themes shaping global markets — with AI-driven sentiment and related tickers.
-            </motion.p>
-          </motion.div>
-
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {PREVIEW_THEMES.map((theme, i) => {
-              const isBullish = theme.sentimentScore > 0.6;
-              const isBearish = theme.sentimentScore < 0.4;
-              const sentimentColor = isBullish ? 'text-emerald-500' : isBearish ? 'text-rose-500' : 'text-amber-500';
-              const sentimentBg = isBullish ? 'bg-emerald-500/10' : isBearish ? 'bg-rose-500/10' : 'bg-amber-500/10';
-              const Icon = theme.icon;
-
-              return (
-                <motion.div
-                  key={theme.id}
-                  variants={fadeUp}
-                  custom={i}
-                  initial="hidden"
-                  whileInView="visible"
-                  viewport={{ once: true, margin: '-40px' }}
-                  onClick={() => navigate('/investment-heatmap')}
-                  className="group cursor-pointer rounded-xl border border-slate-800 bg-slate-900/60 p-5 transition-all hover:-translate-y-1 hover:border-slate-700"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-5 bg-slate-800 text-gray-400 border-0">
-                        {theme.category}
-                      </Badge>
-                    </div>
-                    <span className={cn('text-xs font-semibold', sentimentColor)}>
-                      {theme.impactPercent > 0 ? '+' : ''}{theme.impactPercent.toFixed(1)}%
-                    </span>
-                  </div>
-
-                  <div className="flex items-start gap-3 mb-3">
-                    <div className={cn('p-2 rounded-lg shrink-0', sentimentBg, sentimentColor)}>
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <h3 className="text-sm font-semibold leading-snug line-clamp-2">{theme.title}</h3>
-                  </div>
-
-                  <p className="text-xs text-gray-500 leading-relaxed line-clamp-2 mb-3">
-                    {theme.summary}
-                  </p>
-
-                  {/* Ticker pills */}
-                  <div className="flex flex-wrap gap-1.5">
-                    {theme.tickers.slice(0, 4).map((t) => (
-                      <span
-                        key={t.symbol}
-                        className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-800 text-gray-300"
-                      >
-                        {t.symbol}
-                      </span>
-                    ))}
-                    {theme.tickers.length > 4 && (
-                      <span className="text-[10px] text-gray-600 px-1.5 py-0.5">
-                        +{theme.tickers.length - 4}
-                      </span>
-                    )}
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-
-          <div className="mt-8 text-center">
-            <Button
-              variant="outline"
-              onClick={() => navigate('/investment-heatmap')}
-              className="border-purple-500/30 text-gray-300 hover:bg-purple-500/10 hover:text-white"
-            >
-              Explore All Themes
-              <ChevronRight className="ml-1 h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* ─── Academy Preview — Course Sections ─── */}
-      <section className="border-t border-white/[0.04] bg-slate-950 py-16 px-4 sm:px-8">
-        <div className="mx-auto max-w-7xl">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            className="mb-8"
-          >
-            <motion.div variants={fadeUp} custom={0} className="flex items-center gap-3 mb-2">
-              <GraduationCap className="h-5 w-5 text-amber-400" />
-              <h2 className="text-2xl font-bold sm:text-3xl">Learn from the Pros</h2>
-            </motion.div>
-            <motion.p variants={fadeUp} custom={1} className="text-gray-400">
-              90+ lessons across structured modules — from fundamentals to advanced portfolio strategy.
-            </motion.p>
-          </motion.div>
-
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {(modules && modules.length > 0 ? modules : [
-              { id: '1', title: 'Introduction to Investing', description: 'Start your journey with the building blocks: how markets work, the difference between stocks, bonds, ETFs, and commodities, and how to open and fund your first brokerage account. You\'ll place a simulated trade and learn order types like market, limit, and stop.', orderIndex: 1, courseTitle: 'Masterclass', courseId: null, thumbnailUrl: modIntroImg, lessonCount: 8, totalDuration: 2400, lessonTitles: ['How Markets Actually Work', 'Stocks vs. Bonds vs. ETFs', 'Placing Your First Trade'], gradient: 'from-cyan-600 to-blue-700' },
-              { id: '2', title: 'Fundamental Analysis', description: 'Dissect real 10-K filings to evaluate revenue growth, profit margins, and free cash flow. Build a discounted cash flow (DCF) model from scratch, compare P/E and EV/EBITDA multiples across sectors, and learn to spot red flags in earnings reports.', orderIndex: 2, courseTitle: 'Masterclass', courseId: null, thumbnailUrl: modFundImg, lessonCount: 12, totalDuration: 4200, lessonTitles: ['Reading a 10-K Filing', 'Building a DCF Model', 'Earnings Red Flags'], gradient: 'from-violet-600 to-purple-800' },
-              { id: '3', title: 'Technical Analysis', description: 'Read candlestick charts like a professional trader. Identify head-and-shoulders, double bottoms, and breakout setups. Combine RSI, MACD histogram, and Bollinger Band squeezes to time entries and exits with higher probability.', orderIndex: 3, courseTitle: 'Masterclass', courseId: null, thumbnailUrl: modTechImg, lessonCount: 15, totalDuration: 5400, lessonTitles: ['Candlestick Reversal Patterns', 'Support & Resistance Levels', 'RSI + MACD Combo Signals'], gradient: 'from-amber-500 to-orange-700' },
-              { id: '4', title: 'Portfolio Construction', description: 'Apply Modern Portfolio Theory to build an efficient frontier. Learn strategic vs. tactical asset allocation, the role of correlation in diversification, and when to rebalance. Includes a hands-on exercise building a 60/40 portfolio and stress-testing it.', orderIndex: 4, courseTitle: 'Masterclass', courseId: null, thumbnailUrl: modPortImg, lessonCount: 10, totalDuration: 3600, lessonTitles: ['The Efficient Frontier', 'Correlation & Diversification', 'Rebalancing Strategies'], gradient: 'from-emerald-600 to-teal-800' },
-              { id: '5', title: 'Risk Management', description: 'The #1 skill that separates survivors from blowups. Master the Kelly Criterion for position sizing, set trailing stops that adapt to volatility, and learn hedging with inverse ETFs and protective puts. Includes real drawdown case studies from 2008 and 2020.', orderIndex: 5, courseTitle: 'Masterclass', courseId: null, thumbnailUrl: modRiskImg, lessonCount: 9, totalDuration: 3000, lessonTitles: ['Kelly Criterion Sizing', 'Trailing Stop Techniques', '2008 vs 2020 Case Studies'], gradient: 'from-rose-600 to-pink-800' },
-              { id: '6', title: 'Options & Derivatives', description: 'Understand intrinsic vs. extrinsic value, then master the Greeks (Delta, Gamma, Theta, Vega). Structure covered calls for income, protective puts for insurance, and vertical spreads for defined-risk directional bets. Includes live P&L scenario walkthroughs.', orderIndex: 6, courseTitle: 'Masterclass', courseId: null, thumbnailUrl: modOptsImg, lessonCount: 11, totalDuration: 4800, lessonTitles: ['The Greeks Explained', 'Covered Calls for Income', 'Vertical Spread Setups'], gradient: 'from-sky-500 to-indigo-700' },
-              { id: '7', title: 'Macro Economics', description: 'Connect the dots between Fed policy, yield curves, CPI prints, and stock market cycles. Learn to read FOMC statements, interpret leading indicators like PMI and jobless claims, and position your portfolio ahead of rate cuts or hikes.', orderIndex: 7, courseTitle: 'Masterclass', courseId: null, thumbnailUrl: modMacroImg, lessonCount: 7, totalDuration: 2100, lessonTitles: ['Reading FOMC Statements', 'Yield Curve Inversions', 'Trading the CPI Print'], gradient: 'from-fuchsia-600 to-purple-800' },
-              { id: '8', title: 'Advanced Strategies', description: 'Go beyond buy-and-hold with factor investing (value, momentum, quality), statistical pairs trading, and systematic mean-reversion models. Learn how quant funds construct and backtest strategies, and apply these frameworks to your own portfolio.', orderIndex: 8, courseTitle: 'Masterclass', courseId: null, thumbnailUrl: modAdvImg, lessonCount: 14, totalDuration: 6000, lessonTitles: ['Factor Investing Framework', 'Pairs Trading Setup', 'Backtesting Your Strategy'], gradient: 'from-teal-500 to-cyan-800' },
-            ]).map((mod, i) => (
+      {/* ─── Social Proof Strip ─── */}
+      <section className="border-y border-white/[0.06] bg-slate-900/40">
+        <div className="mx-auto max-w-5xl px-4 py-6 sm:px-8">
+          <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
+            {SOCIAL_PROOF.map((stat, i) => (
               <motion.div
-                key={mod.id}
-                variants={fadeUp}
-                custom={i % 4}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, margin: '-40px' }}
-                onClick={() => mod.courseId ? navigate(`/academy/course/${mod.courseId}`) : navigate('/academy')}
-                className="group cursor-pointer rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden transition-all hover:-translate-y-1 hover:border-amber-500/30 hover:shadow-lg hover:shadow-amber-500/5"
+                key={stat.label}
+                initial={{ opacity: 0, y: 12 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.08, duration: 0.4 }}
+                className="text-center"
               >
-                {/* Thumbnail / Gradient Header */}
-                <div className={cn(
-                  "relative h-32 w-full bg-gradient-to-br flex items-center justify-center overflow-hidden",
-                  mod.gradient
-                )}>
-                  {mod.thumbnailUrl ? (
-                    <img src={mod.thumbnailUrl} alt={mod.title} className="absolute inset-0 w-full h-full object-cover" />
-                  ) : (
-                    <>
-                      <div className="absolute inset-0 bg-black/20" />
-                      <div className="relative flex flex-col items-center gap-2">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm text-white font-bold text-lg">
-                          {mod.orderIndex}
-                        </div>
-                        <span className="text-[10px] uppercase tracking-widest text-white/70 font-medium">Module {mod.orderIndex}</span>
-                      </div>
-                    </>
-                  )}
-                  <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/50 backdrop-blur-sm px-2 py-0.5 text-[10px] text-white/80">
-                    <Clock className="h-2.5 w-2.5" />
-                    {mod.totalDuration >= 3600
-                      ? `${Math.floor(mod.totalDuration / 3600)}h ${Math.round((mod.totalDuration % 3600) / 60)}m`
-                      : `${Math.round(mod.totalDuration / 60)}m`
-                    }
-                  </div>
-                </div>
-
-                <div className="p-4 space-y-3">
-                  <h3 className="text-sm font-semibold leading-snug line-clamp-2 group-hover:text-amber-300 transition-colors">{mod.title}</h3>
-                  <p className="text-xs text-gray-400 line-clamp-3 leading-relaxed">{mod.description || 'Explore key concepts and practical techniques in this comprehensive module.'}</p>
-
-                  {mod.lessonTitles && mod.lessonTitles.length > 0 && (
-                    <ul className="space-y-1 pt-1">
-                      {mod.lessonTitles.map((title: string, li: number) => (
-                        <li key={li} className="flex items-center gap-2 text-[11px] text-gray-500">
-                          <Play className="h-2.5 w-2.5 text-amber-400/50 shrink-0" />
-                          <span className="line-clamp-1">{title}</span>
-                        </li>
-                      ))}
-                      {mod.lessonCount > 3 && (
-                        <li className="text-[11px] text-gray-600 pl-4">+{mod.lessonCount - 3} more lessons</li>
-                      )}
-                    </ul>
-                  )}
-
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-800">
-                    <span className="flex items-center gap-1 text-[11px] text-gray-500">
-                      <Video className="h-3 w-3" />
-                      {mod.lessonCount} lessons
-                    </span>
-                    <span className="text-[11px] text-amber-400 font-medium group-hover:text-amber-300 transition-colors">
-                      Explore →
-                    </span>
-                  </div>
-                </div>
+                <div className="text-2xl font-bold text-white sm:text-3xl">{stat.value}</div>
+                <div className="mt-1 text-xs text-gray-500 uppercase tracking-wider">{stat.label}</div>
               </motion.div>
             ))}
           </div>
-
-          <div className="mt-8 text-center">
-            <Button
-              variant="outline"
-              onClick={() => navigate('/academy')}
-              className="border-amber-500/30 text-gray-300 hover:bg-amber-500/10 hover:text-white"
-            >
-              Browse Full Curriculum
-              <ChevronRight className="ml-1 h-4 w-4" />
-            </Button>
-          </div>
         </div>
       </section>
 
-      {/* ─── Features Grid ─── */}
-      <section id="features" className="border-t border-white/[0.04] bg-slate-950 py-20 px-4 sm:px-8">
-        <div className="mx-auto max-w-7xl">
+      {/* ─── What You Get ─── */}
+      <section id="features" className="border-b border-white/[0.04] bg-slate-950 py-16 px-4 sm:px-8">
+        <div className="mx-auto max-w-5xl">
           <motion.h2
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
             variants={fadeUp}
             custom={0}
-            className="mb-14 text-center text-3xl font-bold sm:text-4xl"
+            className="mb-10 text-center text-2xl font-bold sm:text-3xl"
           >
             Everything you need to{' '}
             <span className="bg-gradient-to-r from-cyan-400 to-teal-400 bg-clip-text text-transparent">
@@ -664,22 +355,27 @@ export function MarketingLandingPage() {
             </span>
           </motion.h2>
 
-          <div className="grid gap-8 md:grid-cols-3">
-            {features.map((f, i) => (
+          <div className="grid gap-5 sm:grid-cols-3">
+            {WHAT_YOU_GET.map((item, i) => (
               <motion.div
-                key={f.title}
+                key={item.title}
                 variants={fadeUp}
                 custom={i}
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: true, margin: '-40px' }}
-                className="group rounded-2xl border border-slate-800 bg-slate-900/60 p-8 transition-all duration-300 hover:-translate-y-1 hover:border-slate-700 hover:bg-slate-900"
+                onClick={() => item.href && navigate(item.href)}
+                className={`group rounded-xl border bg-slate-900/60 p-6 transition-all ${item.borderColor} ${item.glow} ${item.href ? 'cursor-pointer hover:-translate-y-1' : ''}`}
               >
-                <div className={`mb-6 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-white/[0.05] ${f.glow}`}>
-                  <f.icon className={`h-6 w-6 ${f.color}`} />
+                <div className={`mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-white/[0.05] ${item.color}`}>
+                  <item.icon className="h-5 w-5" />
                 </div>
-                <h3 className="mb-3 text-xl font-semibold">{f.title}</h3>
-                <p className="leading-relaxed text-gray-400">{f.text}</p>
+                <h3 className="mb-2 text-base font-semibold">{item.title}</h3>
+                <p className="mb-4 text-sm leading-relaxed text-gray-400">{item.description}</p>
+                <span className={`text-xs font-semibold ${item.color} flex items-center gap-1`}>
+                  {item.cta}
+                  {item.href && <ChevronRight className="h-3 w-3" />}
+                </span>
               </motion.div>
             ))}
           </div>
@@ -687,7 +383,7 @@ export function MarketingLandingPage() {
       </section>
 
       {/* ─── Bottom CTA ─── */}
-      <section className="border-t border-white/[0.04] bg-slate-950 py-24 px-4 sm:px-8">
+      <section className="bg-slate-950 py-24 px-4 sm:px-8">
         <motion.div
           initial="hidden"
           whileInView="visible"
