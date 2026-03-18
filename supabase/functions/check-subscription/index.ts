@@ -164,8 +164,7 @@ serve(async (req) => {
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id' });
 
-    // Auto-enroll in courses for research_education tier
-    if (bestPlan === 'research_education') {
+    if (bestPlan === 'research_education' || bestPlan === 'pro') {
       try {
         const { data: courses } = await supabaseClient
           .from('courses')
