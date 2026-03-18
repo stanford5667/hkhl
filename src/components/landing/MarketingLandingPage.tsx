@@ -97,7 +97,49 @@ export function MarketingLandingPage() {
   const [isRunning, setIsRunning] = useState(false);
   const [results, setResults] = useState<BacktestResult | null>(null);
 
-  // Fetch course modules with full descriptions and lesson details
+  // Enrichment maps for live DB modules that lack descriptions/thumbnails
+  const MODULE_THUMBNAIL_MAP: Record<string, string> = {
+    'portfolio': modPortImg,
+    'option': modOptsImg,
+    'stock': modTechImg,
+    'financial': modFundImg,
+    'accounting': modFundImg,
+    'risk': modRiskImg,
+    'macro': modMacroImg,
+    'economic': modMacroImg,
+    'advanced': modAdvImg,
+    'quant': modAdvImg,
+    'algorithm': modAdvImg,
+    'intro': modIntroImg,
+    'fundamental': modFundImg,
+    'technical': modTechImg,
+  };
+
+  const MODULE_DESC_MAP: Record<string, string> = {
+    'portfolio': 'Learn to build, diversify, and rebalance a portfolio aligned with your risk tolerance. Covers Modern Portfolio Theory, asset allocation frameworks, and real-world optimization techniques.',
+    'option': 'Master options pricing, the Greeks, and practical strategies like covered calls, protective puts, and vertical spreads. Includes live P&L scenarios and risk-defined trade structures.',
+    'stock': 'Understand how stock markets function — from order flow and market microstructure to reading charts, identifying trends, and timing entries using technical indicators.',
+    'financial': 'Decode financial statements like an analyst. Learn to read income statements, balance sheets, and cash flow reports to evaluate company health and uncover hidden value.',
+    'accounting': 'Build a solid foundation in financial accounting — revenue recognition, depreciation, working capital, and the key ratios that drive investment decisions.',
+    'risk': 'The #1 skill separating survivors from blowups. Master position sizing, stop-loss strategies, hedging with derivatives, and drawdown management with real crisis case studies.',
+    'macro': 'Connect Fed policy, yield curves, CPI prints, and global trade flows to market cycles. Learn to interpret FOMC statements and position ahead of rate decisions.',
+    'economic': 'Understand how GDP, inflation, employment data, and central bank actions drive asset prices. Build a macro framework for informed top-down investing.',
+    'advanced': 'Go beyond buy-and-hold with factor investing, pairs trading, systematic mean-reversion, and quantitative methods used by professional fund managers.',
+    'quant': 'Explore data-driven approaches to market analysis — signal generation, backtesting methodology, and systematic strategy development for algorithmic trading.',
+    'intro': 'Start your journey with the building blocks: how markets work, asset classes, brokerage accounts, and order types. Place your first simulated trade with confidence.',
+    'fundamental': 'Dissect real 10-K filings to evaluate revenue growth, profit margins, and free cash flow. Build DCF models, compare multiples, and spot earnings red flags.',
+    'technical': 'Read candlestick charts like a pro. Identify head-and-shoulders, breakouts, and combine RSI, MACD, and Bollinger Bands to time entries with higher probability.',
+  };
+
+  function enrichModule(title: string, field: 'thumbnail' | 'description'): string | null {
+    const t = title.toLowerCase();
+    const map = field === 'thumbnail' ? MODULE_THUMBNAIL_MAP : MODULE_DESC_MAP;
+    for (const [key, value] of Object.entries(map)) {
+      if (t.includes(key)) return value;
+    }
+    return null;
+  }
+
   const MODULE_GRADIENTS = [
     'from-cyan-600 to-blue-700',
     'from-violet-600 to-purple-800',
@@ -125,11 +167,11 @@ export function MarketingLandingPage() {
       return (data || []).map((m: any, idx: number) => ({
         id: m.id,
         title: m.title,
-        description: m.description,
+        description: m.description || enrichModule(m.title, 'description') || 'Explore key concepts and practical techniques in this comprehensive module.',
         orderIndex: m.order_index,
         courseTitle: m.course?.title,
         courseId: m.course?.id,
-        thumbnailUrl: m.course?.thumbnail_url,
+        thumbnailUrl: m.course?.thumbnail_url || enrichModule(m.title, 'thumbnail'),
         lessonCount: m.lessons?.length ?? 0,
         totalDuration: (m.lessons || []).reduce((sum: number, l: any) => sum + (l.video_duration || 0), 0),
         lessonTitles: (m.lessons || []).slice(0, 3).map((l: any) => l.title),
