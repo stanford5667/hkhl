@@ -107,7 +107,7 @@ export default function CourseDetail() {
   const { courseId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isResearchTier, isPro, refreshUsage, isLoading: isUsageLoading } = useUsage();
+  const { isPro, refreshUsage, isLoading: isUsageLoading } = useUsage();
   const queryClient = useQueryClient();
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
@@ -115,7 +115,7 @@ export default function CourseDetail() {
   const [showBillingSheet, setShowBillingSheet] = useState(false);
 
   // Social proof toasts — show for guests/non-members
-  useSocialProofToasts(!isResearchTier);
+  useSocialProofToasts(!isPro);
 
   // Check for successful subscription and auto-enroll
   useEffect(() => {
@@ -269,7 +269,7 @@ export default function CourseDetail() {
       return;
     }
     
-    if (!isResearchTier && !course?.is_free) {
+    if (!isPro && !course?.is_free) {
       handleSubscribe();
       return;
     }
@@ -295,7 +295,7 @@ export default function CourseDetail() {
   };
 
   // Check if user has access (enrolled + subscribed, or free course)
-  const hasAccess = enrollment && (isResearchTier || course?.is_free);
+  const hasAccess = enrollment && (isPro || course?.is_free);
 
   if (isLoading) {
     return (
@@ -352,7 +352,7 @@ export default function CourseDetail() {
               {course.is_free && (
                 <Badge className="absolute top-2 left-2 sm:top-4 sm:left-4 bg-green-500 text-white text-xs">Free Course</Badge>
               )}
-              {!course.is_free && !isResearchTier && (
+              {!course.is_free && !isPro && (
                 <Badge className="absolute top-2 right-2 sm:top-4 sm:right-4 bg-primary/90 text-primary-foreground text-xs flex items-center gap-1">
                   <Lock className="w-3 h-3" />
                   <span className="hidden sm:inline">Premium</span>
@@ -713,7 +713,7 @@ export default function CourseDetail() {
                     </Button>
                   )}
                 </>
-              ) : enrollment && !isResearchTier ? (
+              ) : enrollment && !isPro ? (
                 // Enrolled but subscription expired
                 <div className="space-y-4">
                    <div className="p-3 rounded-lg bg-primary/10 border border-primary/30 text-center">
@@ -751,7 +751,7 @@ export default function CourseDetail() {
                         return;
                       }
                       if (isUsageLoading) return;
-                      if (!isResearchTier && !course?.is_free) {
+                      if (!isPro && !course?.is_free) {
                         handleSubscribe();
                         return;
                       }
@@ -765,7 +765,7 @@ export default function CourseDetail() {
                       'Loading...'
                     ) : course.is_free ? (
                       'Start Free Course'
-                    ) : isResearchTier ? (
+                    ) : isPro ? (
                       'Start Learning'
                     ) : (
                       <>

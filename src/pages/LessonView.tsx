@@ -39,7 +39,7 @@ export default function LessonView() {
   const { lessonId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isResearchTier } = useUsage();
+  const { isPro } = useUsage();
   const queryClient = useQueryClient();
   const videoRef = useRef<HTMLIFrameElement | HTMLVideoElement>(null);
   const [videoProgress, setVideoProgress] = useState(0);
@@ -252,7 +252,7 @@ export default function LessonView() {
   }
 
   const isFreeLesson = lesson?.is_preview;
-  const hasVideoAccess = user && (isResearchTier || isFreeLesson);
+  const hasVideoAccess = user && (isPro || isFreeLesson);
   const courseProgress = 45;
   const gradientIndex = (lesson.module?.order_index || 0) % THUMB_GRADIENTS.length;
 
