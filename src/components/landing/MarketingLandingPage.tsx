@@ -471,7 +471,7 @@ export function MarketingLandingPage() {
         </div>
       </section>
 
-      {/* ─── Academy Preview ─── */}
+      {/* ─── Academy Preview — Course Sections ─── */}
       <section className="border-t border-white/[0.04] bg-slate-950 py-16 px-4 sm:px-8">
         <div className="mx-auto max-w-7xl">
           <motion.div
@@ -485,66 +485,49 @@ export function MarketingLandingPage() {
               <h2 className="text-2xl font-bold sm:text-3xl">Learn from the Pros</h2>
             </motion.div>
             <motion.p variants={fadeUp} custom={1} className="text-gray-400">
-              Master portfolio management with our 90+ lesson masterclass led by a Private Equity investor.
+              90+ lessons across structured modules — from fundamentals to advanced portfolio strategy.
             </motion.p>
           </motion.div>
 
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {(courses && courses.length > 0 ? courses : [
-              // Fallback if no published courses
-              { id: '1', title: 'Complete Portfolio Management', description: 'From fundamentals to advanced strategies', level: 'All Levels', duration_hours: 40, student_count: 1200, rating: 4.9, thumbnail_url: null },
-            ]).map((course, i) => (
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {(modules && modules.length > 0 ? modules : [
+              { id: '1', title: 'Introduction to Investing', description: 'Core concepts and mindset', orderIndex: 1, courseTitle: 'Masterclass', courseId: null, lessonCount: 8 },
+              { id: '2', title: 'Fundamental Analysis', description: 'Reading financial statements', orderIndex: 2, courseTitle: 'Masterclass', courseId: null, lessonCount: 12 },
+              { id: '3', title: 'Technical Analysis', description: 'Charts, indicators, and patterns', orderIndex: 3, courseTitle: 'Masterclass', courseId: null, lessonCount: 15 },
+              { id: '4', title: 'Portfolio Construction', description: 'Building a diversified portfolio', orderIndex: 4, courseTitle: 'Masterclass', courseId: null, lessonCount: 10 },
+              { id: '5', title: 'Risk Management', description: 'Protecting your downside', orderIndex: 5, courseTitle: 'Masterclass', courseId: null, lessonCount: 9 },
+              { id: '6', title: 'Options & Derivatives', description: 'Hedging and income strategies', orderIndex: 6, courseTitle: 'Masterclass', courseId: null, lessonCount: 11 },
+              { id: '7', title: 'Macro Economics', description: 'Understanding the big picture', orderIndex: 7, courseTitle: 'Masterclass', courseId: null, lessonCount: 7 },
+              { id: '8', title: 'Advanced Strategies', description: 'Quant methods and factor investing', orderIndex: 8, courseTitle: 'Masterclass', courseId: null, lessonCount: 14 },
+            ]).map((mod, i) => (
               <motion.div
-                key={course.id}
+                key={mod.id}
                 variants={fadeUp}
-                custom={i}
+                custom={i % 4}
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: true, margin: '-40px' }}
-                onClick={() => navigate(`/academy/course/${course.id}`)}
-                className="group cursor-pointer rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden transition-all hover:-translate-y-1 hover:border-slate-700"
+                onClick={() => mod.courseId ? navigate(`/academy/course/${mod.courseId}`) : navigate('/academy')}
+                className="group cursor-pointer rounded-xl border border-slate-800 bg-slate-900/60 p-4 transition-all hover:-translate-y-1 hover:border-amber-500/30 hover:bg-slate-900"
               >
-                {/* Thumbnail */}
-                <div className="relative h-40 bg-gradient-to-br from-amber-500/20 via-slate-800 to-purple-500/20 flex items-center justify-center">
-                  {course.thumbnail_url ? (
-                    <img src={course.thumbnail_url} alt={course.title} className="absolute inset-0 w-full h-full object-cover" />
-                  ) : (
-                    <GraduationCap className="h-12 w-12 text-amber-400/40" />
-                  )}
-                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <div className="h-12 w-12 rounded-full bg-white/20 backdrop-blur flex items-center justify-center">
-                      <Play className="h-5 w-5 text-white ml-0.5" />
-                    </div>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10 text-amber-400 text-xs font-bold shrink-0">
+                    {mod.orderIndex}
                   </div>
+                  <h3 className="text-sm font-semibold leading-snug line-clamp-2">{mod.title}</h3>
                 </div>
-
-                <div className="p-5">
-                  <h3 className="font-semibold text-sm mb-2 line-clamp-2">{course.title}</h3>
-                  {course.description && (
-                    <p className="text-xs text-gray-500 line-clamp-2 mb-3">{course.description}</p>
-                  )}
-                  <div className="flex items-center gap-3 text-[11px] text-gray-500">
-                    {course.duration_hours && (
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {course.duration_hours}h
-                      </span>
-                    )}
-                    {course.student_count != null && (
-                      <span className="flex items-center gap-1">
-                        <Users className="h-3 w-3" />
-                        {course.student_count.toLocaleString()}
-                      </span>
-                    )}
-                    {course.rating != null && (
-                      <span className="text-amber-400 font-semibold">★ {course.rating.toFixed(1)}</span>
-                    )}
-                    {course.level && (
-                      <Badge variant="secondary" className="text-[10px] h-4 bg-slate-800 text-gray-400 border-0">
-                        {course.level}
-                      </Badge>
-                    )}
-                  </div>
+                {mod.description && (
+                  <p className="text-xs text-gray-500 line-clamp-2 mb-3">{mod.description}</p>
+                )}
+                <div className="flex items-center gap-3 text-[11px] text-gray-500">
+                  <span className="flex items-center gap-1">
+                    <Video className="h-3 w-3" />
+                    {mod.lessonCount} lessons
+                  </span>
+                  <span className="flex items-center gap-1 text-amber-400/60">
+                    <Play className="h-2.5 w-2.5" />
+                    Preview
+                  </span>
                 </div>
               </motion.div>
             ))}
@@ -556,7 +539,7 @@ export function MarketingLandingPage() {
               onClick={() => navigate('/academy')}
               className="border-amber-500/30 text-gray-300 hover:bg-amber-500/10 hover:text-white"
             >
-              Browse Academy
+              Browse Full Curriculum
               <ChevronRight className="ml-1 h-4 w-4" />
             </Button>
           </div>
