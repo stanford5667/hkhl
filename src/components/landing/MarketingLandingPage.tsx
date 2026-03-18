@@ -24,6 +24,8 @@ import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'rec
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { cn } from '@/lib/utils';
 
 const ease: Easing = [0.25, 0.1, 0.25, 1];
 
