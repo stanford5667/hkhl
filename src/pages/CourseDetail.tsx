@@ -751,7 +751,7 @@ export default function CourseDetail() {
                         return;
                       }
                       if (isUsageLoading) return;
-                      if (!isResearchTier && !course?.is_free) {
+                      if (!isPro && !course?.is_free) {
                         handleSubscribe();
                         return;
                       }
