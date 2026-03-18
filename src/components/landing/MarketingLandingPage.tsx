@@ -504,16 +504,16 @@ export function MarketingLandingPage() {
             </motion.p>
           </motion.div>
 
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {(modules && modules.length > 0 ? modules : [
-              { id: '1', title: 'Introduction to Investing', description: 'Core concepts and mindset', orderIndex: 1, courseTitle: 'Masterclass', courseId: null, lessonCount: 8 },
-              { id: '2', title: 'Fundamental Analysis', description: 'Reading financial statements', orderIndex: 2, courseTitle: 'Masterclass', courseId: null, lessonCount: 12 },
-              { id: '3', title: 'Technical Analysis', description: 'Charts, indicators, and patterns', orderIndex: 3, courseTitle: 'Masterclass', courseId: null, lessonCount: 15 },
-              { id: '4', title: 'Portfolio Construction', description: 'Building a diversified portfolio', orderIndex: 4, courseTitle: 'Masterclass', courseId: null, lessonCount: 10 },
-              { id: '5', title: 'Risk Management', description: 'Protecting your downside', orderIndex: 5, courseTitle: 'Masterclass', courseId: null, lessonCount: 9 },
-              { id: '6', title: 'Options & Derivatives', description: 'Hedging and income strategies', orderIndex: 6, courseTitle: 'Masterclass', courseId: null, lessonCount: 11 },
-              { id: '7', title: 'Macro Economics', description: 'Understanding the big picture', orderIndex: 7, courseTitle: 'Masterclass', courseId: null, lessonCount: 7 },
-              { id: '8', title: 'Advanced Strategies', description: 'Quant methods and factor investing', orderIndex: 8, courseTitle: 'Masterclass', courseId: null, lessonCount: 14 },
+              { id: '1', title: 'Introduction to Investing', description: 'Build the foundational mindset and vocabulary every investor needs. Covers market structure, asset classes, brokerage accounts, and your first trade.', orderIndex: 1, courseTitle: 'Masterclass', courseId: null, thumbnailUrl: null, lessonCount: 8, totalDuration: 2400, lessonTitles: ['What is Investing?', 'Asset Classes 101', 'Your First Trade'], gradient: 'from-cyan-600 to-blue-700' },
+              { id: '2', title: 'Fundamental Analysis', description: 'Learn to read balance sheets, income statements, and cash-flow reports like a Wall Street analyst. Valuation models, DCF, and ratio analysis included.', orderIndex: 2, courseTitle: 'Masterclass', courseId: null, thumbnailUrl: null, lessonCount: 12, totalDuration: 4200, lessonTitles: ['Income Statements', 'Balance Sheet Deep Dive', 'DCF Valuation'], gradient: 'from-violet-600 to-purple-800' },
+              { id: '3', title: 'Technical Analysis', description: 'Master candlestick patterns, moving averages, RSI, MACD, and Bollinger Bands. Learn to identify support/resistance and time your entries.', orderIndex: 3, courseTitle: 'Masterclass', courseId: null, thumbnailUrl: null, lessonCount: 15, totalDuration: 5400, lessonTitles: ['Candlestick Patterns', 'Moving Averages', 'RSI & MACD'], gradient: 'from-amber-500 to-orange-700' },
+              { id: '4', title: 'Portfolio Construction', description: 'Design a diversified portfolio aligned with your goals. Modern Portfolio Theory, asset allocation frameworks, and rebalancing strategies.', orderIndex: 4, courseTitle: 'Masterclass', courseId: null, thumbnailUrl: null, lessonCount: 10, totalDuration: 3600, lessonTitles: ['Modern Portfolio Theory', 'Asset Allocation', 'Rebalancing'], gradient: 'from-emerald-600 to-teal-800' },
+              { id: '5', title: 'Risk Management', description: 'Protect your capital with position sizing, stop-losses, hedging techniques, and drawdown management. Essential for long-term survival.', orderIndex: 5, courseTitle: 'Masterclass', courseId: null, thumbnailUrl: null, lessonCount: 9, totalDuration: 3000, lessonTitles: ['Position Sizing', 'Stop-Loss Strategies', 'Hedging'], gradient: 'from-rose-600 to-pink-800' },
+              { id: '6', title: 'Options & Derivatives', description: 'Understand calls, puts, spreads, and options Greeks. Income generation with covered calls and protective puts for advanced investors.', orderIndex: 6, courseTitle: 'Masterclass', courseId: null, thumbnailUrl: null, lessonCount: 11, totalDuration: 4800, lessonTitles: ['Options Basics', 'The Greeks', 'Spread Strategies'], gradient: 'from-sky-500 to-indigo-700' },
+              { id: '7', title: 'Macro Economics', description: 'Decode how interest rates, inflation, GDP, and central bank policy move markets. Connect macro trends to investment decisions.', orderIndex: 7, courseTitle: 'Masterclass', courseId: null, thumbnailUrl: null, lessonCount: 7, totalDuration: 2100, lessonTitles: ['Interest Rates', 'Inflation & GDP', 'Central Bank Policy'], gradient: 'from-fuchsia-600 to-purple-800' },
+              { id: '8', title: 'Advanced Strategies', description: 'Explore factor investing, quantitative methods, pairs trading, and systematic approaches used by professional fund managers.', orderIndex: 8, courseTitle: 'Masterclass', courseId: null, thumbnailUrl: null, lessonCount: 14, totalDuration: 6000, lessonTitles: ['Factor Investing', 'Pairs Trading', 'Quant Methods'], gradient: 'from-teal-500 to-cyan-800' },
             ]).map((mod, i) => (
               <motion.div
                 key={mod.id}
@@ -523,26 +523,62 @@ export function MarketingLandingPage() {
                 whileInView="visible"
                 viewport={{ once: true, margin: '-40px' }}
                 onClick={() => mod.courseId ? navigate(`/academy/course/${mod.courseId}`) : navigate('/academy')}
-                className="group cursor-pointer rounded-xl border border-slate-800 bg-slate-900/60 p-4 transition-all hover:-translate-y-1 hover:border-amber-500/30 hover:bg-slate-900"
+                className="group cursor-pointer rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden transition-all hover:-translate-y-1 hover:border-amber-500/30 hover:shadow-lg hover:shadow-amber-500/5"
               >
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10 text-amber-400 text-xs font-bold shrink-0">
-                    {mod.orderIndex}
+                {/* Thumbnail / Gradient Header */}
+                <div className={cn(
+                  "relative h-32 w-full bg-gradient-to-br flex items-center justify-center overflow-hidden",
+                  mod.gradient
+                )}>
+                  {mod.thumbnailUrl ? (
+                    <img src={mod.thumbnailUrl} alt={mod.title} className="absolute inset-0 w-full h-full object-cover" />
+                  ) : (
+                    <>
+                      <div className="absolute inset-0 bg-black/20" />
+                      <div className="relative flex flex-col items-center gap-2">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm text-white font-bold text-lg">
+                          {mod.orderIndex}
+                        </div>
+                        <span className="text-[10px] uppercase tracking-widest text-white/70 font-medium">Module {mod.orderIndex}</span>
+                      </div>
+                    </>
+                  )}
+                  <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/50 backdrop-blur-sm px-2 py-0.5 text-[10px] text-white/80">
+                    <Clock className="h-2.5 w-2.5" />
+                    {mod.totalDuration >= 3600
+                      ? `${Math.floor(mod.totalDuration / 3600)}h ${Math.round((mod.totalDuration % 3600) / 60)}m`
+                      : `${Math.round(mod.totalDuration / 60)}m`
+                    }
                   </div>
-                  <h3 className="text-sm font-semibold leading-snug line-clamp-2">{mod.title}</h3>
                 </div>
-                {mod.description && (
-                  <p className="text-xs text-gray-500 line-clamp-2 mb-3">{mod.description}</p>
-                )}
-                <div className="flex items-center gap-3 text-[11px] text-gray-500">
-                  <span className="flex items-center gap-1">
-                    <Video className="h-3 w-3" />
-                    {mod.lessonCount} lessons
-                  </span>
-                  <span className="flex items-center gap-1 text-amber-400/60">
-                    <Play className="h-2.5 w-2.5" />
-                    Preview
-                  </span>
+
+                <div className="p-4 space-y-3">
+                  <h3 className="text-sm font-semibold leading-snug line-clamp-2 group-hover:text-amber-300 transition-colors">{mod.title}</h3>
+                  <p className="text-xs text-gray-400 line-clamp-3 leading-relaxed">{mod.description || 'Explore key concepts and practical techniques in this comprehensive module.'}</p>
+
+                  {mod.lessonTitles && mod.lessonTitles.length > 0 && (
+                    <ul className="space-y-1 pt-1">
+                      {mod.lessonTitles.map((title: string, li: number) => (
+                        <li key={li} className="flex items-center gap-2 text-[11px] text-gray-500">
+                          <Play className="h-2.5 w-2.5 text-amber-400/50 shrink-0" />
+                          <span className="line-clamp-1">{title}</span>
+                        </li>
+                      ))}
+                      {mod.lessonCount > 3 && (
+                        <li className="text-[11px] text-gray-600 pl-4">+{mod.lessonCount - 3} more lessons</li>
+                      )}
+                    </ul>
+                  )}
+
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-800">
+                    <span className="flex items-center gap-1 text-[11px] text-gray-500">
+                      <Video className="h-3 w-3" />
+                      {mod.lessonCount} lessons
+                    </span>
+                    <span className="text-[11px] text-amber-400 font-medium group-hover:text-amber-300 transition-colors">
+                      Explore →
+                    </span>
+                  </div>
                 </div>
               </motion.div>
             ))}
