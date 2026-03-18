@@ -765,7 +765,7 @@ export default function CourseDetail() {
                       'Loading...'
                     ) : course.is_free ? (
                       'Start Free Course'
-                    ) : isResearchTier ? (
+                    ) : isPro ? (
                       'Start Learning'
                     ) : (
                       <>

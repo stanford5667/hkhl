@@ -252,7 +252,7 @@ export default function LessonView() {
   }
 
   const isFreeLesson = lesson?.is_preview;
-  const hasVideoAccess = user && (isResearchTier || isFreeLesson);
+  const hasVideoAccess = user && (isPro || isFreeLesson);
   const courseProgress = 45;
   const gradientIndex = (lesson.module?.order_index || 0) % THUMB_GRADIENTS.length;
 
