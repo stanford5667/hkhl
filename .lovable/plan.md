@@ -1,45 +1,67 @@
 
 
-# Bulk Video Upload for Academy Admin
+# Rebuild Marketing Landing Page
 
-## What We're Building
+## Overview
+Replace the existing `MarketingLandingPage.tsx` with a full-featured, dark-mode fintech landing page. Add a `/landing` route. The page will be fully self-contained with local state, live data fetching, and scoped dark styling.
 
-A "Bulk Upload Videos" button on each module that opens a dialog where admins can drag-and-drop multiple video files. Videos upload sequentially to the `course-videos` bucket, each showing individual progress. On completion, lessons are auto-created from filenames (e.g., `01-Introduction.mp4` becomes lesson "Introduction" at order index 1).
+## Architecture
 
-## New File
+- **Standalone component**: `src/components/landing/MarketingLandingPage.tsx` (full rewrite)
+- **New route**: Add `/landing` to `App.tsx`
+- **No global side effects**: Dark theme applied via root wrapper class, all state local
+- **Live data**: Reuse `useTrendingTickers` for ticker dropdown, use `PrebuiltStrategyId` list for strategy dropdown, invoke `strategy-backtest` edge function for results
 
-**`src/components/admin/BulkVideoUpload.tsx`** -- A self-contained dialog component:
+## Sections (top to bottom)
 
-- Props: `moduleId`, `existingLessonCount`, `onComplete` callback
-- Multi-file drag-and-drop zone accepting `video/*` (max 5GB each)
-- File queue state: `Array<{ file, name, status, progress, parsedTitle, parsedOrder }>`
-- Filename parser: strips extension, splits on `-` or `_`, detects leading number for `order_index`, title-cases the rest
-- Preview table showing each file with parsed title, order, size, and editable title field
-- "Upload & Create Lessons" button that processes files sequentially:
-  1. Upload each file to `course-videos/lessons/{timestamp}-{sanitized_name}`
-  2. Simulate progress per file (same pattern as existing single upload)
-  3. On success, insert into `course_lessons` with `module_id`, parsed title, `video_url`, `video_provider: 'custom'`, and `order_index` (based on parsed number + existing lesson count offset)
-- Status indicators per file: pending / uploading / done / error
-- Summary toast on completion ("5 of 6 videos uploaded successfully")
+### 1. Top Navigation Bar
+- Fixed/sticky nav with `bg-slate-950/90 backdrop-blur`
+- Left: Asset Labs logo (reuse `AssetLabsLogo` component with "Intelligent Investing" tagline)
+- Right: Text links (Features, Pricing, Learn, Log In) in `text-gray-400`
+- Far right: "Sign Up" button with `bg-cyan-400 text-black` rounded
 
-## Modified File
+### 2. Hero Section (2-Column)
+- **Left column**:
+  - H1: "Build AI Investment Strategies in Mins." (white) + "No Coding Required." (gray)
+  - Two `<Select>` dropdowns side by side:
+    - Ticker select: populated from `useTrendingTickers` (live Polygon data)
+    - Strategy select: populated from `PrebuiltStrategyId` mapped to display names
+  - Glowing cyan "RUN FREE BACKTEST" button triggers `strategy-backtest` edge function
+- **Right column**:
+  - Results dashboard card with `border-cyan-500/50` glow
+  - Loading skeleton state while backtest runs
+  - Recharts `AreaChart` fed from `portfolioHistory` response data (green gradient)
+  - Bottom metric grid: Total Return (green/red), Max Drawdown, Win Rate, Sharpe Ratio
 
-**`src/components/admin/AdminCoursesTab.tsx`**:
+### 3. Features Grid (3 columns)
+- Three dark cards (`bg-slate-900 border-slate-800`)
+- Card 1: Zap icon (cyan) — "Powerful AI Backtesting"
+- Card 2: Database icon (purple) — "Curated Datasets"
+- Card 3: Brain icon (gold) — "AI Insights"
 
-- Import `BulkVideoUpload` component
-- Add a "Bulk Upload" button next to the existing "Add Lesson" button in each module's action bar (around line 939-946)
-- Pass `moduleId`, existing lesson count, and a refresh callback (`fetchLessons`)
+### 4. Bottom CTA Section
+- Wide horizontal card with blurred dark background
+- Overlay: "Deep Dive & Customize Signals: Create Your Complete Workspace"
+- Outline button with cyan border: "Unlock the Full Platform"
+- Triggers auth gate on click
 
-## No Database Changes
-
-Uses existing `course_lessons` table and `course-videos` storage bucket. Lessons are inserted with `video_provider: 'custom'` (matching the existing DB constraint).
-
-## Filename Parsing Logic
+## Data Flow
 
 ```text
-"01-Introduction.mp4"       → order: 1,  title: "Introduction"
-"02_Market_Analysis.mp4"    → order: 2,  title: "Market Analysis"
-"Getting Started.mp4"       → order: 0,  title: "Getting Started"
-"03 - Risk Management.webm" → order: 3,  title: "Risk Management"
+useTrendingTickers() → ticker dropdown (live Polygon)
+PrebuiltStrategyId enum → strategy dropdown (static mapping)
+"Run Backtest" click → supabase.functions.invoke('strategy-backtest') → results card
+All state (selectedTicker, selectedStrategy, results, isLoading, error) local via useState
 ```
+
+## Files Changed
+
+1. **`src/components/landing/MarketingLandingPage.tsx`** — Full rewrite with all 4 sections
+2. **`src/App.tsx`** — Add `<Route path="/landing" element={<LandingPage />} />`
+
+## Key Constraints
+- No modifications to dashboard, global state, or existing components
+- Reuse existing hooks (`useTrendingTickers`, `useRequireAuth`) and services (edge function)
+- All styling scoped to component root (`bg-slate-950` wrapper)
+- Framer Motion animations matching existing patterns
 
