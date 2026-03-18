@@ -115,7 +115,7 @@ export default function CourseDetail() {
   const [showBillingSheet, setShowBillingSheet] = useState(false);
 
   // Social proof toasts — show for guests/non-members
-  useSocialProofToasts(!isResearchTier);
+  useSocialProofToasts(!isPro);
 
   // Check for successful subscription and auto-enroll
   useEffect(() => {
