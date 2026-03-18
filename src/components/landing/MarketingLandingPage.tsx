@@ -89,17 +89,29 @@ export function MarketingLandingPage() {
   const [isRunning, setIsRunning] = useState(false);
   const [results, setResults] = useState<BacktestResult | null>(null);
 
-  // Fetch courses for Academy preview
-  const { data: courses } = useQuery({
-    queryKey: ['landing-courses'],
+  // Fetch course modules (sections) for Academy preview
+  const { data: modules } = useQuery({
+    queryKey: ['landing-modules'],
     queryFn: async () => {
       const { data } = await supabase
-        .from('courses')
-        .select('id, title, description, thumbnail_url, level, duration_hours, student_count, rating, is_published')
-        .eq('is_published', true)
-        .order('student_count', { ascending: false })
-        .limit(3);
-      return data || [];
+        .from('course_modules')
+        .select(`
+          id, title, description, order_index,
+          course:courses!inner(id, title, is_published),
+          lessons:course_lessons(id)
+        `)
+        .eq('courses.is_published', true)
+        .order('order_index', { ascending: true })
+        .limit(8);
+      return (data || []).map((m: any) => ({
+        id: m.id,
+        title: m.title,
+        description: m.description,
+        orderIndex: m.order_index,
+        courseTitle: m.course?.title,
+        courseId: m.course?.id,
+        lessonCount: m.lessons?.length ?? 0,
+      }));
     },
     staleTime: 10 * 60 * 1000,
   });
