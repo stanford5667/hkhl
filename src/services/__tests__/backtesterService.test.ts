@@ -35,13 +35,17 @@ describe('Backtester Service Types & Constants', () => {
 
   it('does not contain hardcoded return values', async () => {
     const module = await import('../backtesterService');
-    const source = module.toString();
     // STRATEGY_INFO should only have names and descriptions, not expected returns
     expect(module.STRATEGY_INFO['buy-hold'].name).toBe('Buy & Hold');
     expect(module.STRATEGY_INFO['dca'].name).toBe('Dollar Cost Averaging');
     expect(module.STRATEGY_INFO['momentum'].name).toBe('Momentum');
     expect(module.STRATEGY_INFO['mean-reversion'].name).toBe('Mean Reversion');
     expect(module.STRATEGY_INFO['rsi'].name).toBe('RSI Strategy');
+    // Ensure no mock return data in strategy info
+    for (const info of Object.values(module.STRATEGY_INFO)) {
+      expect(info).not.toHaveProperty('expectedReturn');
+      expect(info).not.toHaveProperty('mockReturn');
+    }
   });
 });
 
