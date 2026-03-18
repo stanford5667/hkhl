@@ -167,7 +167,7 @@ export function MarketingLandingPage() {
       return (data || []).map((m: any, idx: number) => ({
         id: m.id,
         title: m.title,
-        description: m.description || enrichModule(m.title, 'description') || 'Explore key concepts and practical techniques in this comprehensive module.',
+        description: (m.description && m.description.length > 10 ? m.description : null) || enrichModule(m.title, 'description') || 'Explore key concepts and practical techniques in this comprehensive module.',
         orderIndex: m.order_index,
         courseTitle: m.course?.title,
         courseId: m.course?.id,
