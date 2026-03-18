@@ -89,7 +89,18 @@ export function MarketingLandingPage() {
   const [isRunning, setIsRunning] = useState(false);
   const [results, setResults] = useState<BacktestResult | null>(null);
 
-  // Fetch course modules (sections) for Academy preview
+  // Fetch course modules with full descriptions and lesson details
+  const MODULE_GRADIENTS = [
+    'from-cyan-600 to-blue-700',
+    'from-violet-600 to-purple-800',
+    'from-amber-500 to-orange-700',
+    'from-emerald-600 to-teal-800',
+    'from-rose-600 to-pink-800',
+    'from-sky-500 to-indigo-700',
+    'from-fuchsia-600 to-purple-800',
+    'from-teal-500 to-cyan-800',
+  ];
+
   const { data: modules } = useQuery({
     queryKey: ['landing-modules'],
     queryFn: async () => {
@@ -97,20 +108,24 @@ export function MarketingLandingPage() {
         .from('course_modules')
         .select(`
           id, title, description, order_index,
-          course:courses!inner(id, title, is_published),
-          lessons:course_lessons(id)
+          course:courses!inner(id, title, is_published, thumbnail_url),
+          lessons:course_lessons(id, title, description, video_duration)
         `)
         .eq('courses.is_published', true)
         .order('order_index', { ascending: true })
         .limit(8);
-      return (data || []).map((m: any) => ({
+      return (data || []).map((m: any, idx: number) => ({
         id: m.id,
         title: m.title,
         description: m.description,
         orderIndex: m.order_index,
         courseTitle: m.course?.title,
         courseId: m.course?.id,
+        thumbnailUrl: m.course?.thumbnail_url,
         lessonCount: m.lessons?.length ?? 0,
+        totalDuration: (m.lessons || []).reduce((sum: number, l: any) => sum + (l.video_duration || 0), 0),
+        lessonTitles: (m.lessons || []).slice(0, 3).map((l: any) => l.title),
+        gradient: MODULE_GRADIENTS[idx % MODULE_GRADIENTS.length],
       }));
     },
     staleTime: 10 * 60 * 1000,
