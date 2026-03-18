@@ -16,32 +16,6 @@ const VisualStrategyBuilder = lazy(() => import('@/components/builder/VisualStra
 
 const ease: Easing = [0.16, 1, 0.3, 1];
 
-const features = [
-  {
-    icon: Zap,
-    iconColor: 'text-[hsl(185_80%_55%)]',
-    glowBg: 'bg-[hsl(185_80%_50%/0.1)]',
-    borderColor: 'border-[hsl(185_80%_50%/0.2)]',
-    title: 'Lightning-Fast Backtesting',
-    text: 'Validate your edge across decades of market history in seconds.',
-  },
-  {
-    icon: Database,
-    iconColor: 'text-[hsl(270_70%_65%)]',
-    glowBg: 'bg-[hsl(270_70%_55%/0.1)]',
-    borderColor: 'border-[hsl(270_70%_55%/0.2)]',
-    title: 'Institutional-Grade Data',
-    text: 'Real-time SEC filings, fundamentals, and earnings — no Bloomberg required.',
-  },
-  {
-    icon: GraduationCap,
-    iconColor: 'text-[hsl(40_90%_60%)]',
-    glowBg: 'bg-[hsl(40_90%_55%/0.1)]',
-    borderColor: 'border-[hsl(40_90%_55%/0.2)]',
-    title: 'Learn from the Pros',
-    text: '90+ lesson masterclass from a Private Equity investor.',
-  },
-];
 
 const statItems = [
   { number: '10,000+', label: 'Equities & ETFs' },
