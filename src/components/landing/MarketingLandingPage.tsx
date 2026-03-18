@@ -1,6 +1,14 @@
 import { useState, useCallback } from 'react';
 import { motion, type Easing } from 'framer-motion';
 import { Zap, Database, Brain, ChevronRight, Loader2, TrendingUp, GraduationCap, Play, Clock, Users, Globe, BookOpen, Video } from 'lucide-react';
+import modIntroImg from '@/assets/modules/mod-intro-investing.jpg';
+import modFundImg from '@/assets/modules/mod-fundamental-analysis.jpg';
+import modTechImg from '@/assets/modules/mod-technical-analysis.jpg';
+import modPortImg from '@/assets/modules/mod-portfolio-construction.jpg';
+import modRiskImg from '@/assets/modules/mod-risk-management.jpg';
+import modOptsImg from '@/assets/modules/mod-options-derivatives.jpg';
+import modMacroImg from '@/assets/modules/mod-macro-economics.jpg';
+import modAdvImg from '@/assets/modules/mod-advanced-strategies.jpg';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
