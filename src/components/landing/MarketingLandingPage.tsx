@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { motion, type Easing } from 'framer-motion';
 import { Zap, ChevronRight, Loader2, TrendingUp, GraduationCap, Globe, Play, Clock, Video, Activity, Target, Shield, DollarSign, Award, BarChart3 } from 'lucide-react';
+import { LandingHeatmapPreview } from './LandingHeatmapPreview';
 import modIntroImg from '@/assets/modules/mod-intro-investing.jpg';
 import modFundImg from '@/assets/modules/mod-fundamental-analysis.jpg';
 import modTechImg from '@/assets/modules/mod-technical-analysis.jpg';
@@ -834,6 +835,9 @@ export function MarketingLandingPage() {
           </motion.div>
         </div>
       </section>
+
+      {/* ─── Investment Heatmap Preview ─── */}
+      <LandingHeatmapPreview onSignUp={() => requireAuth(() => navigate('/investment-heatmap'), 'signup')} />
 
       {/* ─── What You Get ─── */}
       <section id="features" className="border-b border-white/[0.04] bg-slate-950 py-16 px-4 sm:px-8">
