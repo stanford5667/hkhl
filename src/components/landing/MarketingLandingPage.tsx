@@ -57,6 +57,30 @@ interface BacktestResult {
   portfolioHistory?: { date: string; value: number }[];
 }
 
+// Sample demo data so the preview card isn't empty on load
+const DEMO_RESULT: BacktestResult = {
+  totalReturn: 47.32,
+  maxDrawdown: -12.65,
+  winRate: 58.3,
+  sharpeRatio: 1.42,
+  portfolioHistory: (() => {
+    const pts: { date: string; value: number }[] = [];
+    let v = 100000;
+    const start = new Date('2020-01-02');
+    for (let i = 0; i < 120; i++) {
+      const d = new Date(start);
+      d.setDate(d.getDate() + i * 7);
+      // Simulate a realistic equity curve with some drawdowns
+      const trend = 0.003;
+      const noise = (Math.sin(i * 0.4) * 0.012) + (Math.cos(i * 0.15) * 0.008);
+      const drawdown = i > 30 && i < 45 ? -0.006 : 0;
+      v *= (1 + trend + noise + drawdown);
+      pts.push({ date: d.toISOString().slice(0, 10), value: Math.round(v) });
+    }
+    return pts;
+  })(),
+};
+
 const SOCIAL_PROOF = [
   { value: '10,000+', label: 'Stocks & ETFs' },
   { value: '30+', label: 'Years of Data' },
