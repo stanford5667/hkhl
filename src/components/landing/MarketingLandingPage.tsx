@@ -754,21 +754,7 @@ export function MarketingLandingPage() {
         </div>
       </section>
 
-      {/* ─── Academy Preview ─── */}
-      <section className="border-b border-white/[0.04] bg-slate-950 py-16 px-4 sm:px-8">
-        <div className="mx-auto max-w-7xl">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} className="mb-8">
-            <motion.div variants={fadeUp} custom={0} className="flex items-center gap-3 mb-2">
-              <GraduationCap className="h-5 w-5 text-amber-400" />
-              <h2 className="text-2xl font-bold sm:text-3xl">Learn from the Pros</h2>
-            </motion.div>
-            <motion.p variants={fadeUp} custom={1} className="text-gray-400">
-              90+ lessons across structured modules — from fundamentals to advanced portfolio strategy.
-            </motion.p>
-          </motion.div>
 
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {(modules && modules.length > 0 ? modules : FALLBACK_MODULES).map((mod, i) => (
               <motion.div
                 key={mod.id}
                 variants={fadeUp}
