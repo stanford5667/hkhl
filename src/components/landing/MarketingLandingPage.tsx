@@ -355,9 +355,16 @@ export function MarketingLandingPage() {
         >
           <Card className="overflow-hidden border-cyan-500/30 bg-slate-900/80 shadow-[0_0_40px_hsl(185_80%_50%/0.1)]">
             <CardContent className="p-6">
-              <div className="mb-4 flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-cyan-400" />
-                <span className="text-sm font-semibold text-gray-300">Backtest Results Dashboard</span>
+              <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-cyan-400" />
+                  <span className="text-sm font-semibold text-gray-300">Backtest Results Dashboard</span>
+                </div>
+                {results === DEMO_RESULT && (
+                  <span className="text-[10px] uppercase tracking-wider text-gray-500 bg-slate-800/80 px-2 py-0.5 rounded">
+                    Sample Preview
+                  </span>
+                )}
               </div>
 
               {/* Chart area */}
