@@ -197,29 +197,29 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
                   >
                     <defs>
                       {/* Glow filters for each sentiment */}
-                      <filter id="glow-bullish" x="-50%" y="-50%" width="200%" height="200%">
-                        <feGaussianBlur stdDeviation="3" result="blur" />
-                        <feFlood floodColor="#10b981" floodOpacity="0.6" result="color" />
+                      <filter id="glow-bullish" x="-80%" y="-80%" width="260%" height="260%">
+                        <feGaussianBlur stdDeviation="6" result="blur" />
+                        <feFlood floodColor="#10b981" floodOpacity="0.7" result="color" />
                         <feComposite in="color" in2="blur" operator="in" result="shadow" />
-                        <feMerge><feMergeNode in="shadow" /><feMergeNode in="SourceGraphic" /></feMerge>
+                        <feMerge><feMergeNode in="shadow" /><feMergeNode in="shadow" /><feMergeNode in="SourceGraphic" /></feMerge>
                       </filter>
-                      <filter id="glow-bearish" x="-50%" y="-50%" width="200%" height="200%">
-                        <feGaussianBlur stdDeviation="3" result="blur" />
-                        <feFlood floodColor="#f43f5e" floodOpacity="0.6" result="color" />
+                      <filter id="glow-bearish" x="-80%" y="-80%" width="260%" height="260%">
+                        <feGaussianBlur stdDeviation="6" result="blur" />
+                        <feFlood floodColor="#f43f5e" floodOpacity="0.7" result="color" />
                         <feComposite in="color" in2="blur" operator="in" result="shadow" />
-                        <feMerge><feMergeNode in="shadow" /><feMergeNode in="SourceGraphic" /></feMerge>
+                        <feMerge><feMergeNode in="shadow" /><feMergeNode in="shadow" /><feMergeNode in="SourceGraphic" /></feMerge>
                       </filter>
-                      <filter id="glow-neutral" x="-50%" y="-50%" width="200%" height="200%">
-                        <feGaussianBlur stdDeviation="3" result="blur" />
-                        <feFlood floodColor="#f59e0b" floodOpacity="0.6" result="color" />
+                      <filter id="glow-neutral" x="-80%" y="-80%" width="260%" height="260%">
+                        <feGaussianBlur stdDeviation="6" result="blur" />
+                        <feFlood floodColor="#f59e0b" floodOpacity="0.7" result="color" />
                         <feComposite in="color" in2="blur" operator="in" result="shadow" />
-                        <feMerge><feMergeNode in="shadow" /><feMergeNode in="SourceGraphic" /></feMerge>
+                        <feMerge><feMergeNode in="shadow" /><feMergeNode in="shadow" /><feMergeNode in="SourceGraphic" /></feMerge>
                       </filter>
-                      <filter id="glow-emerging" x="-50%" y="-50%" width="200%" height="200%">
-                        <feGaussianBlur stdDeviation="3" result="blur" />
-                        <feFlood floodColor="#3b82f6" floodOpacity="0.6" result="color" />
+                      <filter id="glow-emerging" x="-80%" y="-80%" width="260%" height="260%">
+                        <feGaussianBlur stdDeviation="6" result="blur" />
+                        <feFlood floodColor="#3b82f6" floodOpacity="0.7" result="color" />
                         <feComposite in="color" in2="blur" operator="in" result="shadow" />
-                        <feMerge><feMergeNode in="shadow" /><feMergeNode in="SourceGraphic" /></feMerge>
+                        <feMerge><feMergeNode in="shadow" /><feMergeNode in="shadow" /><feMergeNode in="SourceGraphic" /></feMerge>
                       </filter>
                       {/* Soft ambient glow for the whole map */}
                       <filter id="glow-ambient" x="-20%" y="-20%" width="140%" height="140%">
