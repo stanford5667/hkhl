@@ -102,9 +102,19 @@ export function Layout({ children }: LayoutProps) {
     );
   }
 
-  // Auth page and verify-email page don't need the layout
-  if (location.pathname === "/auth" || location.pathname === "/verify-email") {
+  // Auth page, verify-email, and reset-password don't need the layout
+  if (location.pathname === "/auth" || location.pathname === "/verify-email" || location.pathname === "/reset-password") {
     return <>{children}</>;
+  }
+
+  // Unauthenticated users see only the landing page
+  if (!user) {
+    // Allow legal/public pages through without landing redirect
+    const publicPaths = ["/terms", "/privacy", "/disclosures", "/landing"];
+    if (publicPaths.includes(location.pathname)) {
+      return <>{children}</>;
+    }
+    return <MarketingLandingPage />;
   }
 
   // If user is logged in but email not verified, show verification pending screen
