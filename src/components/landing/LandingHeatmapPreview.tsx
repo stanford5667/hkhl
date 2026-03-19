@@ -197,29 +197,29 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
                   >
                     <defs>
                       {/* Glow filters for each sentiment */}
-                      <filter id="glow-bullish" x="-50%" y="-50%" width="200%" height="200%">
-                        <feGaussianBlur stdDeviation="3" result="blur" />
-                        <feFlood floodColor="#10b981" floodOpacity="0.6" result="color" />
+                      <filter id="glow-bullish" x="-80%" y="-80%" width="260%" height="260%">
+                        <feGaussianBlur stdDeviation="6" result="blur" />
+                        <feFlood floodColor="#10b981" floodOpacity="0.7" result="color" />
                         <feComposite in="color" in2="blur" operator="in" result="shadow" />
-                        <feMerge><feMergeNode in="shadow" /><feMergeNode in="SourceGraphic" /></feMerge>
+                        <feMerge><feMergeNode in="shadow" /><feMergeNode in="shadow" /><feMergeNode in="SourceGraphic" /></feMerge>
                       </filter>
-                      <filter id="glow-bearish" x="-50%" y="-50%" width="200%" height="200%">
-                        <feGaussianBlur stdDeviation="3" result="blur" />
-                        <feFlood floodColor="#f43f5e" floodOpacity="0.6" result="color" />
+                      <filter id="glow-bearish" x="-80%" y="-80%" width="260%" height="260%">
+                        <feGaussianBlur stdDeviation="6" result="blur" />
+                        <feFlood floodColor="#f43f5e" floodOpacity="0.7" result="color" />
                         <feComposite in="color" in2="blur" operator="in" result="shadow" />
-                        <feMerge><feMergeNode in="shadow" /><feMergeNode in="SourceGraphic" /></feMerge>
+                        <feMerge><feMergeNode in="shadow" /><feMergeNode in="shadow" /><feMergeNode in="SourceGraphic" /></feMerge>
                       </filter>
-                      <filter id="glow-neutral" x="-50%" y="-50%" width="200%" height="200%">
-                        <feGaussianBlur stdDeviation="3" result="blur" />
-                        <feFlood floodColor="#f59e0b" floodOpacity="0.6" result="color" />
+                      <filter id="glow-neutral" x="-80%" y="-80%" width="260%" height="260%">
+                        <feGaussianBlur stdDeviation="6" result="blur" />
+                        <feFlood floodColor="#f59e0b" floodOpacity="0.7" result="color" />
                         <feComposite in="color" in2="blur" operator="in" result="shadow" />
-                        <feMerge><feMergeNode in="shadow" /><feMergeNode in="SourceGraphic" /></feMerge>
+                        <feMerge><feMergeNode in="shadow" /><feMergeNode in="shadow" /><feMergeNode in="SourceGraphic" /></feMerge>
                       </filter>
-                      <filter id="glow-emerging" x="-50%" y="-50%" width="200%" height="200%">
-                        <feGaussianBlur stdDeviation="3" result="blur" />
-                        <feFlood floodColor="#3b82f6" floodOpacity="0.6" result="color" />
+                      <filter id="glow-emerging" x="-80%" y="-80%" width="260%" height="260%">
+                        <feGaussianBlur stdDeviation="6" result="blur" />
+                        <feFlood floodColor="#3b82f6" floodOpacity="0.7" result="color" />
                         <feComposite in="color" in2="blur" operator="in" result="shadow" />
-                        <feMerge><feMergeNode in="shadow" /><feMergeNode in="SourceGraphic" /></feMerge>
+                        <feMerge><feMergeNode in="shadow" /><feMergeNode in="shadow" /><feMergeNode in="SourceGraphic" /></feMerge>
                       </filter>
                       {/* Soft ambient glow for the whole map */}
                       <filter id="glow-ambient" x="-20%" y="-20%" width="140%" height="140%">
@@ -273,7 +273,7 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
                       const hasTheme = !!region;
                       const fill = hasTheme ? SENTIMENT_FILLS[region.sentiment] : 'rgba(148,163,184,0.08)';
                       const opacity = hasTheme
-                        ? (isSelected ? 1 : isHovered ? 0.9 : 0.4 + (region.intensity / 400))
+                        ? (isSelected ? 1 : isHovered ? 0.95 : 0.55 + (region.intensity / 300))
                         : (isHovered ? 0.2 : 0.08);
 
                       return (
@@ -282,9 +282,10 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
                           d={d}
                           fill={fill}
                           fillOpacity={opacity}
-                          stroke={isSelected ? SENTIMENT_FILLS[region?.sentiment || 'neutral'] : 'rgba(255,255,255,0.06)'}
-                          strokeWidth={isSelected ? 1.8 : isHovered ? 1 : 0.3}
-                          filter={hasTheme && (isHovered || isSelected) ? `url(#glow-${region.sentiment})` : undefined}
+                          stroke={hasTheme ? SENTIMENT_FILLS[region.sentiment] : 'rgba(255,255,255,0.06)'}
+                          strokeWidth={isSelected ? 2 : hasTheme ? (isHovered ? 1.2 : 0.6) : 0.3}
+                          strokeOpacity={hasTheme ? (isSelected ? 0.9 : isHovered ? 0.7 : 0.35) : 1}
+                          filter={hasTheme ? `url(#glow-${region.sentiment})` : undefined}
                           className="transition-all duration-200 cursor-pointer"
                           onMouseEnter={() => setHoveredCountry(alpha2)}
                           onMouseLeave={() => setHoveredCountry(null)}
