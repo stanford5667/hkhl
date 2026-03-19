@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { TeaserGateModal } from './TeaserGateModal';
 import { motion, type Easing } from 'framer-motion';
 import { Zap, ChevronRight, Loader2, TrendingUp, GraduationCap, Globe, Play, Clock, Video, Activity, Target, Shield, DollarSign, Award, BarChart3 } from 'lucide-react';
 import { LandingHeatmapPreview } from './LandingHeatmapPreview';
@@ -166,6 +167,8 @@ export function MarketingLandingPage() {
   const { requireAuth, showAuthDialog, closeAuthDialog } = useRequireAuth();
   const { tickers, isLoading: tickersLoading } = useTrendingTickers(20);
   const navigate = useNavigate();
+  const [teaserOpen, setTeaserOpen] = useState(false);
+  const openTeaser = () => setTeaserOpen(true);
 
   const [selectedTicker, setSelectedTicker] = useState('');
   const [selectedStrategy, setSelectedStrategy] = useState('');
@@ -311,7 +314,11 @@ export function MarketingLandingPage() {
     }
   }, [selectedTicker, selectedStrategy]);
 
-  const navLinks = ['Features', 'Pricing', 'Learn'];
+  const navLinks = [
+    { label: 'Features', href: '#features' },
+    { label: 'Pricing', href: '#pricing' },
+    { label: 'Academy', href: '#academy' },
+  ];
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
@@ -321,18 +328,18 @@ export function MarketingLandingPage() {
           <AssetLabsLogo size="md" showText showTagline />
           <div className="hidden items-center gap-8 md:flex">
             {navLinks.map((l) => (
-              <a key={l} href={`#${l.toLowerCase()}`} className="text-sm text-gray-400 transition hover:text-white">
-                {l}
+              <a key={l.label} href={l.href} className="text-sm text-gray-400 transition hover:text-white">
+                {l.label}
               </a>
             ))}
             <button
-              onClick={() => requireAuth(() => {}, 'login')}
+              onClick={() => navigate('/auth', { state: { mode: 'signin' } })}
               className="text-sm text-gray-400 transition hover:text-white"
             >
               Log In
             </button>
             <Button
-              onClick={() => requireAuth(() => {}, 'signup')}
+              onClick={() => navigate('/auth', { state: { mode: 'signup' } })}
               className="rounded-full bg-cyan-400 px-6 font-semibold text-black hover:bg-cyan-300"
             >
               Sign Up
@@ -600,7 +607,7 @@ export function MarketingLandingPage() {
       </section>
 
       {/* ─── Investment Heatmap Preview ─── */}
-      <LandingHeatmapPreview onSignUp={() => requireAuth(() => navigate('/investment-heatmap'), 'signup')} />
+      <LandingHeatmapPreview onSignUp={openTeaser} />
 
       {/* ─── Social Proof Strip ─── */}
       <section className="border-y border-white/[0.06] bg-slate-900/40">
@@ -624,7 +631,7 @@ export function MarketingLandingPage() {
       </section>
 
       {/* ─── Academy Preview ─── */}
-      <section className="border-b border-white/[0.04] bg-slate-950 py-16 px-4 sm:px-8">
+      <section id="academy" className="border-b border-white/[0.04] bg-slate-950 py-16 px-4 sm:px-8">
         <div className="mx-auto max-w-7xl">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} className="mb-8">
             <motion.div variants={fadeUp} custom={0} className="flex items-center gap-3 mb-2">
@@ -703,7 +710,7 @@ export function MarketingLandingPage() {
           <div className="mt-8 text-center">
             <Button
               variant="outline"
-              onClick={() => navigate('/academy')}
+              onClick={openTeaser}
               className="border-amber-500/30 text-gray-300 hover:bg-amber-500/10 hover:text-white"
             >
               Browse Full Curriculum
@@ -828,7 +835,7 @@ export function MarketingLandingPage() {
 
             <div className="mt-6 text-center">
               <Button
-                onClick={() => requireAuth(() => navigate('/community'), 'signup')}
+                onClick={openTeaser}
                 className="rounded-full bg-cyan-400 px-8 font-semibold text-black hover:bg-cyan-300"
               >
                 Join the Conversation
@@ -866,7 +873,7 @@ export function MarketingLandingPage() {
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: true, margin: '-40px' }}
-                onClick={() => item.href && navigate(item.href)}
+                onClick={() => item.href && openTeaser()}
                 className={`group rounded-xl border bg-slate-900/60 p-6 transition-all ${item.borderColor} ${item.glow} ${item.href ? 'cursor-pointer hover:-translate-y-1' : ''}`}
               >
                 <div className={`mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-white/[0.05] ${item.color}`}>
@@ -905,7 +912,7 @@ export function MarketingLandingPage() {
               </motion.p>
               <motion.div variants={fadeUp} custom={2} className="mt-8">
                 <Button
-                  onClick={() => requireAuth(() => {}, 'signup')}
+                  onClick={openTeaser}
                   variant="outline"
                   size="lg"
                   className="border-cyan-500/50 text-white hover:bg-cyan-500/10"
@@ -920,6 +927,7 @@ export function MarketingLandingPage() {
       </section>
 
       <AuthGateDialog open={showAuthDialog} onOpenChange={closeAuthDialog} />
+      <TeaserGateModal open={teaserOpen} onOpenChange={setTeaserOpen} />
     </div>
   );
 }
