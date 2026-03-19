@@ -883,6 +883,8 @@ export function MarketingLandingPage() {
         </div>
       </section>
 
+      {/* ─── Investment Heatmap Preview ─── */}
+      <LandingHeatmapPreview onSignUp={() => requireAuth(() => navigate('/investment-heatmap'), 'signup')} />
 
 
       {/* ─── Bottom CTA ─── */}
