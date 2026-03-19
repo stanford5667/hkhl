@@ -51,35 +51,75 @@ const STRATEGY_OPTIONS = [
 
 interface BacktestResult {
   totalReturn: number;
+  annualizedReturn: number;
   maxDrawdown: number;
   winRate: number;
   sharpeRatio: number;
-  portfolioHistory?: { date: string; value: number }[];
+  sortinoRatio: number;
+  totalTrades: number;
+  profitFactor: number;
+  buyHoldReturn: number;
+  outperformance: number;
+  initialCapital: number;
+  finalValue: number;
+  avgHoldingDays: number;
+  portfolioHistory?: { date: string; value: number; buyHold: number }[];
 }
 
 // Sample demo data so the preview card isn't empty on load
-const DEMO_RESULT: BacktestResult = {
-  totalReturn: 47.32,
-  maxDrawdown: -12.65,
-  winRate: 58.3,
-  sharpeRatio: 1.42,
-  portfolioHistory: (() => {
-    const pts: { date: string; value: number }[] = [];
-    let v = 100000;
-    const start = new Date('2020-01-02');
-    for (let i = 0; i < 120; i++) {
-      const d = new Date(start);
-      d.setDate(d.getDate() + i * 7);
-      // Simulate a realistic equity curve with some drawdowns
-      const trend = 0.003;
-      const noise = (Math.sin(i * 0.4) * 0.012) + (Math.cos(i * 0.15) * 0.008);
-      const drawdown = i > 30 && i < 45 ? -0.006 : 0;
-      v *= (1 + trend + noise + drawdown);
-      pts.push({ date: d.toISOString().slice(0, 10), value: Math.round(v) });
-    }
-    return pts;
-  })(),
-};
+const DEMO_RESULT: BacktestResult = (() => {
+  const initialCapital = 100000;
+  const pts: { date: string; value: number; buyHold: number }[] = [];
+  let v = initialCapital;
+  let bh = initialCapital;
+  const start = new Date('2020-01-02');
+  for (let i = 0; i < 120; i++) {
+    const d = new Date(start);
+    d.setDate(d.getDate() + i * 7);
+    const trend = 0.003;
+    const noise = (Math.sin(i * 0.4) * 0.012) + (Math.cos(i * 0.15) * 0.008);
+    const drawdown = i > 30 && i < 45 ? -0.006 : 0;
+    v *= (1 + trend + noise + drawdown);
+    bh *= (1 + 0.002 + Math.sin(i * 0.3) * 0.006);
+    pts.push({ date: d.toISOString().slice(0, 10), value: Math.round(v), buyHold: Math.round(bh) });
+  }
+  const finalValue = pts[pts.length - 1].value;
+  const buyHoldFinal = pts[pts.length - 1].buyHold;
+  const totalReturn = ((finalValue - initialCapital) / initialCapital) * 100;
+  const buyHoldReturn = ((buyHoldFinal - initialCapital) / initialCapital) * 100;
+  return {
+    totalReturn: Math.round(totalReturn * 100) / 100,
+    annualizedReturn: 18.74,
+    maxDrawdown: -12.65,
+    winRate: 58.3,
+    sharpeRatio: 1.42,
+    sortinoRatio: 1.98,
+    totalTrades: 47,
+    profitFactor: 1.87,
+    buyHoldReturn: Math.round(buyHoldReturn * 100) / 100,
+    outperformance: Math.round((totalReturn - buyHoldReturn) * 100) / 100,
+    initialCapital,
+    finalValue,
+    avgHoldingDays: 8.3,
+    portfolioHistory: pts,
+  };
+})();
+
+// Health score calculator matching the real dashboard
+function getHealthScore(r: BacktestResult): number {
+  let score = 50;
+  if (r.totalReturn > 0) score += 10;
+  if (r.winRate >= 50) score += 5;
+  if (r.sharpeRatio >= 1) score += 10;
+  if (r.sortinoRatio >= 1.5) score += 5;
+  if (r.profitFactor >= 1.5) score += 5;
+  if (r.outperformance > 0) score += 5;
+  if (Math.abs(r.maxDrawdown) > 20) score -= 10;
+  if (Math.abs(r.maxDrawdown) > 40) score -= 10;
+  if (r.winRate < 40) score -= 10;
+  if (r.totalTrades < 10) score -= 5;
+  return Math.max(0, Math.min(100, score));
+}
 
 const SOCIAL_PROOF = [
   { value: '10,000+', label: 'Stocks & ETFs' },
