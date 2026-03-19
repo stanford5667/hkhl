@@ -927,6 +927,7 @@ export function MarketingLandingPage() {
       </section>
 
       <AuthGateDialog open={showAuthDialog} onOpenChange={closeAuthDialog} />
+      <TeaserGateModal open={teaserOpen} onOpenChange={setTeaserOpen} />
     </div>
   );
 }
