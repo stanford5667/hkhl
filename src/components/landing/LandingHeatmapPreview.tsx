@@ -273,7 +273,7 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
                       const hasTheme = !!region;
                       const fill = hasTheme ? SENTIMENT_FILLS[region.sentiment] : 'rgba(148,163,184,0.08)';
                       const opacity = hasTheme
-                        ? (isSelected ? 1 : isHovered ? 0.9 : 0.4 + (region.intensity / 400))
+                        ? (isSelected ? 1 : isHovered ? 0.95 : 0.55 + (region.intensity / 300))
                         : (isHovered ? 0.2 : 0.08);
 
                       return (
@@ -282,9 +282,10 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
                           d={d}
                           fill={fill}
                           fillOpacity={opacity}
-                          stroke={isSelected ? SENTIMENT_FILLS[region?.sentiment || 'neutral'] : 'rgba(255,255,255,0.06)'}
-                          strokeWidth={isSelected ? 1.8 : isHovered ? 1 : 0.3}
-                          filter={hasTheme && (isHovered || isSelected) ? `url(#glow-${region.sentiment})` : undefined}
+                          stroke={hasTheme ? SENTIMENT_FILLS[region.sentiment] : 'rgba(255,255,255,0.06)'}
+                          strokeWidth={isSelected ? 2 : hasTheme ? (isHovered ? 1.2 : 0.6) : 0.3}
+                          strokeOpacity={hasTheme ? (isSelected ? 0.9 : isHovered ? 0.7 : 0.35) : 1}
+                          filter={hasTheme ? `url(#glow-${region.sentiment})` : undefined}
                           className="transition-all duration-200 cursor-pointer"
                           onMouseEnter={() => setHoveredCountry(alpha2)}
                           onMouseLeave={() => setHoveredCountry(null)}
