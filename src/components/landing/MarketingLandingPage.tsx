@@ -620,50 +620,6 @@ export function MarketingLandingPage() {
         </div>
       </section>
 
-      {/* ─── What You Get ─── */}
-      <section id="features" className="border-b border-white/[0.04] bg-slate-950 py-16 px-4 sm:px-8">
-        <div className="mx-auto max-w-5xl">
-          <motion.h2
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            variants={fadeUp}
-            custom={0}
-            className="mb-10 text-center text-2xl font-bold sm:text-3xl"
-          >
-            Everything you need to{' '}
-            <span className="bg-gradient-to-r from-cyan-400 to-teal-400 bg-clip-text text-transparent">
-              invest smarter.
-            </span>
-          </motion.h2>
-
-          <div className="grid gap-5 sm:grid-cols-3">
-            {WHAT_YOU_GET.map((item, i) => (
-              <motion.div
-                key={item.title}
-                variants={fadeUp}
-                custom={i}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, margin: '-40px' }}
-                onClick={() => item.href && navigate(item.href)}
-                className={`group rounded-xl border bg-slate-900/60 p-6 transition-all ${item.borderColor} ${item.glow} ${item.href ? 'cursor-pointer hover:-translate-y-1' : ''}`}
-              >
-                <div className={`mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-white/[0.05] ${item.color}`}>
-                  <item.icon className="h-5 w-5" />
-                </div>
-                <h3 className="mb-2 text-base font-semibold">{item.title}</h3>
-                <p className="mb-4 text-sm leading-relaxed text-gray-400">{item.description}</p>
-                <span className={`text-xs font-semibold ${item.color} flex items-center gap-1`}>
-                  {item.cta}
-                  {item.href && <ChevronRight className="h-3 w-3" />}
-                </span>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ─── Academy Preview ─── */}
       <section className="border-b border-white/[0.04] bg-slate-950 py-16 px-4 sm:px-8">
         <div className="mx-auto max-w-7xl">
@@ -753,6 +709,52 @@ export function MarketingLandingPage() {
           </div>
         </div>
       </section>
+
+      {/* ─── What You Get ─── */}
+      <section id="features" className="border-b border-white/[0.04] bg-slate-950 py-16 px-4 sm:px-8">
+        <div className="mx-auto max-w-5xl">
+          <motion.h2
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeUp}
+            custom={0}
+            className="mb-10 text-center text-2xl font-bold sm:text-3xl"
+          >
+            Everything you need to{' '}
+            <span className="bg-gradient-to-r from-cyan-400 to-teal-400 bg-clip-text text-transparent">
+              invest smarter.
+            </span>
+          </motion.h2>
+
+          <div className="grid gap-5 sm:grid-cols-3">
+            {WHAT_YOU_GET.map((item, i) => (
+              <motion.div
+                key={item.title}
+                variants={fadeUp}
+                custom={i}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, margin: '-40px' }}
+                onClick={() => item.href && navigate(item.href)}
+                className={`group rounded-xl border bg-slate-900/60 p-6 transition-all ${item.borderColor} ${item.glow} ${item.href ? 'cursor-pointer hover:-translate-y-1' : ''}`}
+              >
+                <div className={`mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-white/[0.05] ${item.color}`}>
+                  <item.icon className="h-5 w-5" />
+                </div>
+                <h3 className="mb-2 text-base font-semibold">{item.title}</h3>
+                <p className="mb-4 text-sm leading-relaxed text-gray-400">{item.description}</p>
+                <span className={`text-xs font-semibold ${item.color} flex items-center gap-1`}>
+                  {item.cta}
+                  {item.href && <ChevronRight className="h-3 w-3" />}
+                </span>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+
 
       {/* ─── Bottom CTA ─── */}
       <section className="bg-slate-950 py-24 px-4 sm:px-8">
