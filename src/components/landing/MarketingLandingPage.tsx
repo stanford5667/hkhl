@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { TeaserGateModal } from './TeaserGateModal';
+
 import { motion, type Easing } from 'framer-motion';
 import { Zap, ChevronRight, Loader2, TrendingUp, GraduationCap, Globe, Play, Clock, Video, Activity, Target, Shield, DollarSign, Award, BarChart3 } from 'lucide-react';
 import { LandingHeatmapPreview } from './LandingHeatmapPreview';
@@ -167,8 +167,7 @@ export function MarketingLandingPage() {
   const { requireAuth, showAuthDialog, closeAuthDialog } = useRequireAuth();
   const { tickers, isLoading: tickersLoading } = useTrendingTickers(20);
   const navigate = useNavigate();
-  const [teaserOpen, setTeaserOpen] = useState(false);
-  const openTeaser = () => setTeaserOpen(true);
+  const openTeaser = () => requireAuth(() => {});
 
   const [selectedTicker, setSelectedTicker] = useState('AAPL');
   const [selectedStrategy, setSelectedStrategy] = useState('rsi_oversold_bounce');
@@ -894,7 +893,6 @@ export function MarketingLandingPage() {
       </section>
 
       <AuthGateDialog open={showAuthDialog} onOpenChange={closeAuthDialog} />
-      <TeaserGateModal open={teaserOpen} onOpenChange={setTeaserOpen} />
     </div>
   );
 }
