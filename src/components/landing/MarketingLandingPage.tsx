@@ -20,7 +20,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { retryWithBackoff } from '@/utils/retryWithBackoff';
 import { DEFAULT_ADVANCED_PARAMS } from '@/lib/backtesting/types';
 import { AssetLabsLogo } from '@/components/brand/AssetLabsLogo';
-import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip, ComposedChart, Line, CartesianGrid, ReferenceLine, Tooltip as RechartsTooltip } from 'recharts';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
