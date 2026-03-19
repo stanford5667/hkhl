@@ -402,7 +402,7 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
                   <AnimatePresence>
                     {HUD_CALLOUTS.map((hud, idx) => {
                       const pos = hudPositions[idx];
-                      if (!pos || !visibleHuds.has(idx)) return null;
+                      if (!pos || idx !== activeHudIndex) return null;
                       const style = HUD_COLORS[hud.type];
                       const HudIcon = style.icon;
                       return (
