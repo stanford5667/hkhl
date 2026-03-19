@@ -912,7 +912,7 @@ export function MarketingLandingPage() {
               </motion.p>
               <motion.div variants={fadeUp} custom={2} className="mt-8">
                 <Button
-                  onClick={() => requireAuth(() => {}, 'signup')}
+                  onClick={openTeaser}
                   variant="outline"
                   size="lg"
                   className="border-cyan-500/50 text-white hover:bg-cyan-500/10"
