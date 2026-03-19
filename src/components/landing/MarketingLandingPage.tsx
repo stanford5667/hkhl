@@ -129,7 +129,7 @@ export function MarketingLandingPage() {
   const [selectedTicker, setSelectedTicker] = useState('');
   const [selectedStrategy, setSelectedStrategy] = useState('');
   const [isRunning, setIsRunning] = useState(false);
-  const [results, setResults] = useState<BacktestResult | null>(null);
+  const [results, setResults] = useState<BacktestResult | null>(DEMO_RESULT);
 
   const MODULE_THUMBNAIL_MAP: Record<string, string> = {
     'portfolio': modPortImg, 'option': modOptsImg, 'stock': modTechImg, 'financial': modFundImg,
