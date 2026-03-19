@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { motion, type Easing } from 'framer-motion';
-import { Zap, ChevronRight, Loader2, TrendingUp, GraduationCap, Globe, Play, Clock, Video } from 'lucide-react';
+import { Zap, ChevronRight, Loader2, TrendingUp, GraduationCap, Globe, Play, Clock, Video, Activity, Target, Shield, DollarSign, Award, BarChart3 } from 'lucide-react';
 import modIntroImg from '@/assets/modules/mod-intro-investing.jpg';
 import modFundImg from '@/assets/modules/mod-fundamental-analysis.jpg';
 import modTechImg from '@/assets/modules/mod-technical-analysis.jpg';
@@ -20,7 +20,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { retryWithBackoff } from '@/utils/retryWithBackoff';
 import { DEFAULT_ADVANCED_PARAMS } from '@/lib/backtesting/types';
 import { AssetLabsLogo } from '@/components/brand/AssetLabsLogo';
-import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip, ComposedChart, Line, CartesianGrid, ReferenceLine, Tooltip as RechartsTooltip } from 'recharts';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -51,35 +51,75 @@ const STRATEGY_OPTIONS = [
 
 interface BacktestResult {
   totalReturn: number;
+  annualizedReturn: number;
   maxDrawdown: number;
   winRate: number;
   sharpeRatio: number;
-  portfolioHistory?: { date: string; value: number }[];
+  sortinoRatio: number;
+  totalTrades: number;
+  profitFactor: number;
+  buyHoldReturn: number;
+  outperformance: number;
+  initialCapital: number;
+  finalValue: number;
+  avgHoldingDays: number;
+  portfolioHistory?: { date: string; value: number; buyHold: number }[];
 }
 
 // Sample demo data so the preview card isn't empty on load
-const DEMO_RESULT: BacktestResult = {
-  totalReturn: 47.32,
-  maxDrawdown: -12.65,
-  winRate: 58.3,
-  sharpeRatio: 1.42,
-  portfolioHistory: (() => {
-    const pts: { date: string; value: number }[] = [];
-    let v = 100000;
-    const start = new Date('2020-01-02');
-    for (let i = 0; i < 120; i++) {
-      const d = new Date(start);
-      d.setDate(d.getDate() + i * 7);
-      // Simulate a realistic equity curve with some drawdowns
-      const trend = 0.003;
-      const noise = (Math.sin(i * 0.4) * 0.012) + (Math.cos(i * 0.15) * 0.008);
-      const drawdown = i > 30 && i < 45 ? -0.006 : 0;
-      v *= (1 + trend + noise + drawdown);
-      pts.push({ date: d.toISOString().slice(0, 10), value: Math.round(v) });
-    }
-    return pts;
-  })(),
-};
+const DEMO_RESULT: BacktestResult = (() => {
+  const initialCapital = 100000;
+  const pts: { date: string; value: number; buyHold: number }[] = [];
+  let v = initialCapital;
+  let bh = initialCapital;
+  const start = new Date('2020-01-02');
+  for (let i = 0; i < 120; i++) {
+    const d = new Date(start);
+    d.setDate(d.getDate() + i * 7);
+    const trend = 0.003;
+    const noise = (Math.sin(i * 0.4) * 0.012) + (Math.cos(i * 0.15) * 0.008);
+    const drawdown = i > 30 && i < 45 ? -0.006 : 0;
+    v *= (1 + trend + noise + drawdown);
+    bh *= (1 + 0.002 + Math.sin(i * 0.3) * 0.006);
+    pts.push({ date: d.toISOString().slice(0, 10), value: Math.round(v), buyHold: Math.round(bh) });
+  }
+  const finalValue = pts[pts.length - 1].value;
+  const buyHoldFinal = pts[pts.length - 1].buyHold;
+  const totalReturn = ((finalValue - initialCapital) / initialCapital) * 100;
+  const buyHoldReturn = ((buyHoldFinal - initialCapital) / initialCapital) * 100;
+  return {
+    totalReturn: Math.round(totalReturn * 100) / 100,
+    annualizedReturn: 18.74,
+    maxDrawdown: -12.65,
+    winRate: 58.3,
+    sharpeRatio: 1.42,
+    sortinoRatio: 1.98,
+    totalTrades: 47,
+    profitFactor: 1.87,
+    buyHoldReturn: Math.round(buyHoldReturn * 100) / 100,
+    outperformance: Math.round((totalReturn - buyHoldReturn) * 100) / 100,
+    initialCapital,
+    finalValue,
+    avgHoldingDays: 8.3,
+    portfolioHistory: pts,
+  };
+})();
+
+// Health score calculator matching the real dashboard
+function getHealthScore(r: BacktestResult): number {
+  let score = 50;
+  if (r.totalReturn > 0) score += 10;
+  if (r.winRate >= 50) score += 5;
+  if (r.sharpeRatio >= 1) score += 10;
+  if (r.sortinoRatio >= 1.5) score += 5;
+  if (r.profitFactor >= 1.5) score += 5;
+  if (r.outperformance > 0) score += 5;
+  if (Math.abs(r.maxDrawdown) > 20) score -= 10;
+  if (Math.abs(r.maxDrawdown) > 40) score -= 10;
+  if (r.winRate < 40) score -= 10;
+  if (r.totalTrades < 10) score -= 5;
+  return Math.max(0, Math.min(100, score));
+}
 
 const SOCIAL_PROOF = [
   { value: '10,000+', label: 'Stocks & ETFs' },
@@ -237,12 +277,29 @@ export function MarketingLandingPage() {
         { maxAttempts: 3, initialDelayMs: 200 }
       );
 
+      const totalReturn = data.totalReturn ?? 0;
+      const buyHoldReturn = data.buyHoldReturn ?? 0;
+      const initCap = data.initialCapital ?? 10000;
+      const finalVal = data.finalValue ?? initCap * (1 + totalReturn / 100);
       setResults({
-        totalReturn: data.totalReturn ?? 0,
+        totalReturn,
+        annualizedReturn: data.annualizedReturn ?? 0,
         maxDrawdown: data.maxDrawdown ?? 0,
         winRate: data.winRate ?? 0,
         sharpeRatio: data.sharpeRatio ?? 0,
-        portfolioHistory: data.portfolioHistory ?? [],
+        sortinoRatio: data.sortinoRatio ?? 0,
+        totalTrades: data.totalTrades ?? 0,
+        profitFactor: data.profitFactor ?? 0,
+        buyHoldReturn,
+        outperformance: totalReturn - buyHoldReturn,
+        initialCapital: initCap,
+        finalValue: finalVal,
+        avgHoldingDays: data.avgHoldingDays ?? 0,
+        portfolioHistory: (data.portfolioHistory ?? []).map((s: any, idx: number, arr: any[]) => ({
+          date: s.date,
+          value: s.value,
+          buyHold: initCap * (1 + (buyHoldReturn / 100) * (idx / Math.max(arr.length - 1, 1))),
+        })),
       });
 
       toast.success(`Backtest complete: ${data.totalReturn?.toFixed(2)}% return`);
@@ -347,84 +404,195 @@ export function MarketingLandingPage() {
           </motion.div>
         </motion.div>
 
-        {/* Right column — Results card */}
+        {/* Right column — Results card (mirrors real BacktestResultsDashboard) */}
         <motion.div
           initial={{ opacity: 0, x: 40 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6, delay: 0.3, ease }}
         >
           <Card className="overflow-hidden border-cyan-500/30 bg-slate-900/80 shadow-[0_0_40px_hsl(185_80%_50%/0.1)]">
-            <CardContent className="p-6">
-              <div className="mb-4 flex items-center justify-between">
+            <CardContent className="p-5">
+              {/* Strategy Header */}
+              <div className="mb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-cyan-400" />
-                  <span className="text-sm font-semibold text-gray-300">Backtest Results Dashboard</span>
-                </div>
-                {results === DEMO_RESULT && (
-                  <span className="text-[10px] uppercase tracking-wider text-gray-500 bg-slate-800/80 px-2 py-0.5 rounded">
-                    Sample Preview
+                  <Activity className="h-4 w-4 text-cyan-400" />
+                  <span className="text-sm font-semibold text-gray-300">
+                    {results === DEMO_RESULT ? 'AAPL — RSI Oversold Bounce' : `${selectedTicker || 'AAPL'} — ${STRATEGY_OPTIONS.find(s => s.id === selectedStrategy)?.name || 'Strategy'}`}
                   </span>
-                )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {results === DEMO_RESULT && (
+                    <span className="text-[10px] uppercase tracking-wider text-gray-500 bg-slate-800/80 px-2 py-0.5 rounded">
+                      Sample
+                    </span>
+                  )}
+                  {/* Health Score Badge */}
+                  {results && (
+                    <div className={cn(
+                      "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold",
+                      getHealthScore(results) >= 75 ? "bg-emerald-500/15 text-emerald-400" :
+                      getHealthScore(results) >= 50 ? "bg-amber-500/15 text-amber-400" :
+                      "bg-red-500/15 text-red-400"
+                    )}>
+                      <Shield className="h-3 w-3" />
+                      {getHealthScore(results)}
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Chart area */}
-              <div className="mb-6 h-48 w-full rounded-lg bg-slate-800/50">
-                {isRunning ? (
-                  <div className="flex h-full flex-col items-center justify-center gap-3">
-                    <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
-                    <span className="text-sm text-gray-500">Crunching 30+ years of data…</span>
-                  </div>
-                ) : results?.portfolioHistory?.length ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={results.portfolioHistory}>
-                      <defs>
-                        <linearGradient id="lp-green" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="hsl(142 71% 45%)" stopOpacity={0.4} />
-                          <stop offset="100%" stopColor="hsl(142 71% 45%)" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <XAxis dataKey="date" hide />
-                      <YAxis hide domain={['dataMin', 'dataMax']} />
-                      <Tooltip
-                        contentStyle={{ background: '#0f172a', border: '1px solid #334155', borderRadius: 8, fontSize: 12 }}
-                        labelStyle={{ color: '#94a3b8' }}
-                        formatter={(v: number) => [`$${v.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, 'Value']}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="value"
-                        stroke="hsl(142 71% 45%)"
-                        strokeWidth={2}
-                        fill="url(#lp-green)"
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="flex h-full items-center justify-center text-sm text-gray-600">
-                    Run a backtest to see results
-                  </div>
-                )}
-              </div>
-
-              {/* Metrics grid */}
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              {/* Key metrics row — 4 cards like real dashboard */}
+              <div className="grid grid-cols-2 gap-2 mb-3 sm:grid-cols-4">
                 {[
                   {
-                    label: 'Total Return',
-                    value: results ? `${results.totalReturn >= 0 ? '+' : ''}${results.totalReturn.toFixed(2)}%` : '—',
-                    color: results ? (results.totalReturn >= 0 ? 'text-emerald-400' : 'text-red-400') : 'text-gray-500',
+                    label: 'Net Profit',
+                    value: results ? `$${(results.finalValue - results.initialCapital).toLocaleString('en-US', { maximumFractionDigits: 0 })}` : '—',
+                    sub: results ? `${results.totalReturn >= 0 ? '+' : ''}${results.totalReturn.toFixed(2)}% return` : undefined,
+                    trend: results ? (results.totalReturn >= 0 ? 'good' : 'bad') : 'neutral',
+                    icon: DollarSign,
                   },
-                  { label: 'Max Drawdown', value: results ? `${results.maxDrawdown.toFixed(2)}%` : '—', color: 'text-gray-300' },
-                  { label: 'Win Rate', value: results ? `${results.winRate.toFixed(1)}%` : '—', color: 'text-gray-300' },
-                  { label: 'Sharpe Ratio', value: results ? results.sharpeRatio.toFixed(2) : '—', color: 'text-gray-300' },
+                  {
+                    label: 'Annualized',
+                    value: results ? `${results.annualizedReturn >= 0 ? '+' : ''}${results.annualizedReturn.toFixed(2)}%` : '—',
+                    sub: 'CAGR',
+                    trend: results ? (results.annualizedReturn >= 0 ? 'good' : 'bad') : 'neutral',
+                    icon: TrendingUp,
+                  },
+                  {
+                    label: 'Win Rate',
+                    value: results ? `${results.winRate.toFixed(1)}%` : '—',
+                    sub: results ? `${results.totalTrades} trades` : undefined,
+                    trend: results ? (results.winRate >= 50 ? 'good' : 'bad') : 'neutral',
+                    icon: Target,
+                  },
+                  {
+                    label: 'Sharpe',
+                    value: results ? results.sharpeRatio.toFixed(2) : '—',
+                    sub: results ? `Sortino: ${results.sortinoRatio.toFixed(2)}` : undefined,
+                    trend: results ? (results.sharpeRatio >= 1 ? 'good' : results.sharpeRatio >= 0 ? 'neutral' : 'bad') : 'neutral',
+                    icon: BarChart3,
+                  },
                 ].map((m) => (
-                  <div key={m.label} className="rounded-lg bg-slate-800/60 p-3">
-                    <div className="text-[10px] uppercase tracking-wider text-gray-500">{m.label}</div>
-                    <div className={`mt-1 text-lg font-bold ${results ? m.color : 'text-gray-600'}`}>
-                      {isRunning ? <Skeleton className="h-6 w-16 bg-slate-700" /> : m.value}
+                  <div key={m.label} className="rounded-lg bg-slate-800/50 border border-white/[0.04] p-2.5">
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className="text-[9px] uppercase tracking-wider text-gray-500">{m.label}</span>
+                      {m.icon && <m.icon className="h-3 w-3 text-gray-600" />}
                     </div>
+                    <div className={cn(
+                      "text-base font-bold font-mono",
+                      m.trend === 'good' && 'text-emerald-400',
+                      m.trend === 'bad' && 'text-rose-400',
+                      m.trend === 'neutral' && 'text-gray-300',
+                    )}>
+                      {isRunning ? <Skeleton className="h-5 w-14 bg-slate-700" /> : m.value}
+                    </div>
+                    {m.sub && !isRunning && (
+                      <div className="text-[9px] text-gray-500 mt-0.5">{m.sub}</div>
+                    )}
                   </div>
                 ))}
+              </div>
+
+              {/* Equity Curve with Buy & Hold comparison */}
+              <div className="mb-3 rounded-lg bg-slate-800/40 border border-white/[0.04] p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] uppercase tracking-wider text-gray-500">Equity Curve vs Buy & Hold</span>
+                  {results && (
+                    <div className="flex items-center gap-3 text-[10px]">
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-0.5 rounded bg-cyan-400 inline-block" /> Strategy</span>
+                      <span className="flex items-center gap-1"><span className="w-2.5 h-0.5 rounded bg-gray-500 inline-block opacity-50" /> Buy & Hold</span>
+                    </div>
+                  )}
+                </div>
+                <div className="h-40 w-full">
+                  {isRunning ? (
+                    <div className="flex h-full flex-col items-center justify-center gap-3">
+                      <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
+                      <span className="text-xs text-gray-500">Simulating trades…</span>
+                    </div>
+                  ) : results?.portfolioHistory?.length ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ComposedChart data={results.portfolioHistory}>
+                        <defs>
+                          <linearGradient id="lp-equity" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="hsl(185 80% 50%)" stopOpacity={0.25} />
+                            <stop offset="95%" stopColor="hsl(185 80% 50%)" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                        <XAxis
+                          dataKey="date"
+                          tick={{ fontSize: 9, fill: '#64748b' }}
+                          tickFormatter={(v) => {
+                            try { return format(new Date(v), 'MMM yy'); } catch { return v; }
+                          }}
+                          axisLine={{ stroke: 'rgba(255,255,255,0.06)' }}
+                          tickLine={false}
+                        />
+                        <YAxis
+                          tick={{ fontSize: 9, fill: '#64748b' }}
+                          tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
+                          axisLine={false}
+                          tickLine={false}
+                          width={42}
+                        />
+                        <Tooltip
+                          contentStyle={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 8, fontSize: 11 }}
+                          labelStyle={{ color: '#94a3b8' }}
+                          formatter={(v: number, name: string) => [
+                            `$${v.toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
+                            name === 'value' ? 'Strategy' : 'Buy & Hold'
+                          ]}
+                        />
+                        <ReferenceLine y={results.initialCapital} stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
+                        <Area
+                          type="monotone"
+                          dataKey="value"
+                          stroke="hsl(185 80% 50%)"
+                          strokeWidth={2}
+                          fill="url(#lp-equity)"
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="buyHold"
+                          stroke="rgba(148,163,184,0.35)"
+                          strokeWidth={1.5}
+                          strokeDasharray="4 3"
+                          dot={false}
+                        />
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-sm text-gray-600">
+                      Run a backtest to see results
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Bottom stats row — mirrors real dashboard quick stats */}
+              <div className="grid grid-cols-3 gap-2">
+                <div className="text-center p-2 rounded-lg bg-slate-800/40 border border-white/[0.04]">
+                  <div className="text-[9px] uppercase tracking-wider text-gray-500">Max Drawdown</div>
+                  <div className="text-sm font-mono font-bold text-rose-400 mt-0.5">
+                    {isRunning ? <Skeleton className="h-4 w-10 mx-auto bg-slate-700" /> : results ? `${results.maxDrawdown.toFixed(1)}%` : '—'}
+                  </div>
+                </div>
+                <div className="text-center p-2 rounded-lg bg-slate-800/40 border border-white/[0.04]">
+                  <div className="text-[9px] uppercase tracking-wider text-gray-500">Profit Factor</div>
+                  <div className="text-sm font-mono font-bold text-gray-300 mt-0.5">
+                    {isRunning ? <Skeleton className="h-4 w-10 mx-auto bg-slate-700" /> : results ? results.profitFactor.toFixed(2) : '—'}
+                  </div>
+                </div>
+                <div className="text-center p-2 rounded-lg bg-slate-800/40 border border-white/[0.04]">
+                  <div className="text-[9px] uppercase tracking-wider text-gray-500">vs Buy & Hold</div>
+                  <div className={cn(
+                    "text-sm font-mono font-bold mt-0.5",
+                    results ? (results.outperformance >= 0 ? 'text-emerald-400' : 'text-rose-400') : 'text-gray-600'
+                  )}>
+                    {isRunning ? <Skeleton className="h-4 w-10 mx-auto bg-slate-700" /> : results ? `${results.outperformance >= 0 ? '+' : ''}${results.outperformance.toFixed(1)}%` : '—'}
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
