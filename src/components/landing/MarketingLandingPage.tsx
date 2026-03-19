@@ -836,8 +836,6 @@ export function MarketingLandingPage() {
         </div>
       </section>
 
-      {/* ─── Investment Heatmap Preview ─── */}
-      <LandingHeatmapPreview onSignUp={() => requireAuth(() => navigate('/investment-heatmap'), 'signup')} />
 
       {/* ─── What You Get ─── */}
       <section id="features" className="border-b border-white/[0.04] bg-slate-950 py-16 px-4 sm:px-8">
