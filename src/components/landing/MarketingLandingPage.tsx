@@ -356,42 +356,13 @@ export function MarketingLandingPage() {
             Build AI Investment Strategies in Mins.
           </motion.h1>
           <motion.p variants={fadeUp} custom={1} className="mt-6 max-w-lg text-lg text-gray-400">
-            Pick a ticker, choose a strategy, and see real backtest results — powered by 30+ years of market data.
+            AI-powered analysis, backtesting across 30+ years of data, and real trade ideas — no coding required.
           </motion.p>
 
-          {/* Sandbox dropdowns */}
-          <motion.div variants={fadeUp} custom={2} className="mt-10 flex flex-col gap-4 sm:flex-row">
-            <Select value={selectedTicker} onValueChange={setSelectedTicker}>
-              <SelectTrigger className="w-full border-white/10 bg-white/[0.04] text-white sm:w-56">
-                <SelectValue placeholder={tickersLoading ? 'Loading tickers…' : 'Step 1: Select Ticker'} />
-              </SelectTrigger>
-              <SelectContent className="max-h-60 border-white/10 bg-slate-900">
-                {tickers.map((t) => (
-                  <SelectItem key={t.symbol} value={t.symbol}>
-                    {t.symbol} — {t.name?.slice(0, 20)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={selectedStrategy} onValueChange={setSelectedStrategy}>
-              <SelectTrigger className="w-full border-white/10 bg-white/[0.04] text-white sm:w-56">
-                <SelectValue placeholder="Step 2: Select Strategy" />
-              </SelectTrigger>
-              <SelectContent className="border-white/10 bg-slate-900">
-                {STRATEGY_OPTIONS.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>
-                    {s.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </motion.div>
-
-          <motion.div variants={fadeUp} custom={3} className="mt-6">
+          <motion.div variants={fadeUp} custom={2} className="mt-10">
             <Button
               onClick={() => requireAuth(runBacktest, 'backtest')}
-              disabled={isRunning || !selectedTicker || !selectedStrategy}
+              disabled={isRunning}
               size="lg"
               className="bg-cyan-500 px-10 font-bold text-black shadow-[0_0_30px_hsl(185_80%_50%/0.4)] transition-all hover:bg-cyan-400 hover:shadow-[0_0_40px_hsl(185_80%_50%/0.5)] disabled:opacity-40"
             >
