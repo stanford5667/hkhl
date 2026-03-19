@@ -1,10 +1,10 @@
-import { useRef, useEffect, useState, useMemo, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { useRef, useEffect, useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { geoNaturalEarth1, geoPath, type GeoPermissibleObjects } from 'd3-geo';
 import { feature } from 'topojson-client';
 import type { Topology, GeometryCollection } from 'topojson-specification';
 import type { FeatureCollection, Feature, Geometry } from 'geojson';
-import { Globe, ChevronRight, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Globe, ChevronRight, TrendingUp, TrendingDown, Minus, X, BarChart3, Zap, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -28,21 +28,49 @@ interface MockRegion {
   sentiment: 'bullish' | 'bearish' | 'neutral' | 'emerging';
   theme: string;
   intensity: number;
+  tickers: { symbol: string; name: string; change: number }[];
+  catalysts: string[];
+  gdp: string;
+  inflation: string;
 }
 
 const MOCK_REGIONS: MockRegion[] = [
-  { code: 'US', name: 'United States', sentiment: 'bullish', theme: 'AI & Tech Dominance', intensity: 92 },
-  { code: 'CN', name: 'China', sentiment: 'emerging', theme: 'EV & Battery Supply Chain', intensity: 78 },
-  { code: 'JP', name: 'Japan', sentiment: 'bullish', theme: 'Semiconductor Renaissance', intensity: 74 },
-  { code: 'IR', name: 'Iran', sentiment: 'bearish', theme: 'Sanctions & Energy Risk', intensity: 65 },
-  { code: 'DE', name: 'Germany', sentiment: 'neutral', theme: 'Industrial Restructuring', intensity: 55 },
-  { code: 'IN', name: 'India', sentiment: 'bullish', theme: 'Digital Infrastructure Boom', intensity: 82 },
-  { code: 'BR', name: 'Brazil', sentiment: 'emerging', theme: 'Commodities Super Cycle', intensity: 68 },
-  { code: 'GB', name: 'United Kingdom', sentiment: 'neutral', theme: 'Fintech & Green Finance', intensity: 52 },
-  { code: 'AU', name: 'Australia', sentiment: 'bullish', theme: 'Critical Minerals', intensity: 60 },
-  { code: 'KR', name: 'South Korea', sentiment: 'bullish', theme: 'Memory Chip Upcycle', intensity: 70 },
-  { code: 'SA', name: 'Saudi Arabia', sentiment: 'emerging', theme: 'Vision 2030 Diversification', intensity: 62 },
-  { code: 'IL', name: 'Israel', sentiment: 'neutral', theme: 'Cyber & Defense Tech', intensity: 58 },
+  { code: 'US', name: 'United States', sentiment: 'bullish', theme: 'AI & Tech Dominance', intensity: 92,
+    tickers: [{ symbol: 'NVDA', name: 'NVIDIA', change: 4.2 }, { symbol: 'MSFT', name: 'Microsoft', change: 1.8 }, { symbol: 'GOOGL', name: 'Alphabet', change: 2.1 }, { symbol: 'META', name: 'Meta', change: 3.4 }],
+    catalysts: ['Fed rate decision ahead', 'AI capex acceleration', 'Strong labor market'], gdp: '2.8%', inflation: '2.4%' },
+  { code: 'CN', name: 'China', sentiment: 'emerging', theme: 'EV & Battery Supply Chain', intensity: 78,
+    tickers: [{ symbol: 'BYDDY', name: 'BYD Co', change: 5.1 }, { symbol: 'NIO', name: 'NIO Inc', change: -2.3 }, { symbol: 'XPEV', name: 'XPeng', change: 1.9 }, { symbol: 'LI', name: 'Li Auto', change: 3.2 }],
+    catalysts: ['Stimulus package expansion', 'EV export surge', 'Battery tech breakthrough'], gdp: '5.2%', inflation: '0.3%' },
+  { code: 'JP', name: 'Japan', sentiment: 'bullish', theme: 'Semiconductor Renaissance', intensity: 74,
+    tickers: [{ symbol: 'TM', name: 'Toyota', change: 1.4 }, { symbol: 'SONY', name: 'Sony Group', change: 2.8 }, { symbol: '8035.T', name: 'Tokyo Electron', change: 3.6 }, { symbol: '6857.T', name: 'Advantest', change: 4.1 }],
+    catalysts: ['BOJ policy normalization', 'TSMC fab construction', 'Yen stabilization'], gdp: '1.9%', inflation: '2.8%' },
+  { code: 'IR', name: 'Iran', sentiment: 'bearish', theme: 'Sanctions & Energy Risk', intensity: 65,
+    tickers: [{ symbol: 'USO', name: 'US Oil Fund', change: -1.2 }, { symbol: 'XLE', name: 'Energy Select', change: -0.8 }, { symbol: 'OXY', name: 'Occidental', change: -1.5 }, { symbol: 'COP', name: 'ConocoPhillips', change: -0.6 }],
+    catalysts: ['Nuclear deal uncertainty', 'Regional conflict escalation', 'Oil supply disruption risk'], gdp: '3.1%', inflation: '35%' },
+  { code: 'DE', name: 'Germany', sentiment: 'neutral', theme: 'Industrial Restructuring', intensity: 55,
+    tickers: [{ symbol: 'SIEGY', name: 'Siemens', change: 0.9 }, { symbol: 'BASFY', name: 'BASF', change: -0.4 }, { symbol: 'SAP', name: 'SAP SE', change: 2.1 }, { symbol: 'VWAGY', name: 'Volkswagen', change: -1.2 }],
+    catalysts: ['Energy transition costs', 'Auto sector EV pivot', 'ECB rate path'], gdp: '0.2%', inflation: '2.2%' },
+  { code: 'IN', name: 'India', sentiment: 'bullish', theme: 'Digital Infrastructure Boom', intensity: 82,
+    tickers: [{ symbol: 'INFY', name: 'Infosys', change: 2.4 }, { symbol: 'WIT', name: 'Wipro', change: 1.1 }, { symbol: 'INDA', name: 'iShares India', change: 1.8 }, { symbol: 'SMIN', name: 'India Small-Cap', change: 2.9 }],
+    catalysts: ['UPI payments growth', 'Manufacturing shift from China', 'Demographics dividend'], gdp: '7.6%', inflation: '4.8%' },
+  { code: 'BR', name: 'Brazil', sentiment: 'emerging', theme: 'Commodities Super Cycle', intensity: 68,
+    tickers: [{ symbol: 'EWZ', name: 'iShares Brazil', change: 1.5 }, { symbol: 'VALE', name: 'Vale SA', change: 2.8 }, { symbol: 'PBR', name: 'Petrobras', change: 1.2 }, { symbol: 'ITUB', name: 'Itaú Unibanco', change: 0.9 }],
+    catalysts: ['Selic rate cuts', 'Iron ore demand', 'Agribusiness expansion'], gdp: '2.9%', inflation: '4.5%' },
+  { code: 'GB', name: 'United Kingdom', sentiment: 'neutral', theme: 'Fintech & Green Finance', intensity: 52,
+    tickers: [{ symbol: 'EWU', name: 'iShares UK', change: 0.3 }, { symbol: 'HSBC', name: 'HSBC', change: 0.7 }, { symbol: 'BP', name: 'BP plc', change: -0.5 }, { symbol: 'AZN', name: 'AstraZeneca', change: 1.3 }],
+    catalysts: ['BOE rate trajectory', 'London fintech growth', 'Green bond issuance'], gdp: '0.6%', inflation: '3.4%' },
+  { code: 'AU', name: 'Australia', sentiment: 'bullish', theme: 'Critical Minerals', intensity: 60,
+    tickers: [{ symbol: 'EWA', name: 'iShares Australia', change: 1.1 }, { symbol: 'BHP', name: 'BHP Group', change: 1.9 }, { symbol: 'RIO', name: 'Rio Tinto', change: 1.5 }, { symbol: 'FMG', name: 'Fortescue', change: 2.3 }],
+    catalysts: ['Lithium demand surge', 'China stimulus spillover', 'Rare earth supply'], gdp: '1.5%', inflation: '3.6%' },
+  { code: 'KR', name: 'South Korea', sentiment: 'bullish', theme: 'Memory Chip Upcycle', intensity: 70,
+    tickers: [{ symbol: 'EWY', name: 'iShares Korea', change: 2.1 }, { symbol: '005930.KS', name: 'Samsung', change: 3.2 }, { symbol: '000660.KS', name: 'SK Hynix', change: 4.5 }, { symbol: 'LG', name: 'LG Corp', change: 1.8 }],
+    catalysts: ['HBM demand explosion', 'AI server build-out', 'Won strengthening'], gdp: '2.2%', inflation: '2.6%' },
+  { code: 'SA', name: 'Saudi Arabia', sentiment: 'emerging', theme: 'Vision 2030 Diversification', intensity: 62,
+    tickers: [{ symbol: 'KSA', name: 'iShares Saudi', change: 0.8 }, { symbol: '2222.SR', name: 'Aramco', change: 0.3 }, { symbol: 'NEOM', name: 'NEOM Project', change: 0 }, { symbol: 'STC', name: 'Saudi Telecom', change: 1.1 }],
+    catalysts: ['Tourism megaprojects', 'IPO pipeline', 'Oil price stabilization'], gdp: '4.1%', inflation: '1.6%' },
+  { code: 'IL', name: 'Israel', sentiment: 'neutral', theme: 'Cyber & Defense Tech', intensity: 58,
+    tickers: [{ symbol: 'EIS', name: 'iShares Israel', change: -0.4 }, { symbol: 'CYBR', name: 'CyberArk', change: 2.7 }, { symbol: 'CHKP', name: 'Check Point', change: 1.4 }, { symbol: 'MNDY', name: 'Monday.com', change: 1.9 }],
+    catalysts: ['Cybersecurity demand', 'Regional tensions', 'Tech sector resilience'], gdp: '2.0%', inflation: '3.2%' },
 ];
 
 const SENTIMENT_FILLS: Record<string, string> = {
@@ -59,6 +87,16 @@ const SENTIMENT_ICONS: Record<string, typeof TrendingUp> = {
   emerging: TrendingUp,
 };
 
+// Label offsets to prevent overlaps — nudge labels away from centroids
+const LABEL_OFFSETS: Record<string, { dx: number; dy: number }> = {
+  US: { dx: -60, dy: 15 },
+  CN: { dx: 15, dy: -20 },
+  JP: { dx: 15, dy: 5 },
+  IR: { dx: -70, dy: -15 },
+  IN: { dx: 15, dy: 15 },
+  DE: { dx: -70, dy: -20 },
+};
+
 interface CountryFeature extends Feature<Geometry> {
   id: string;
   properties: { name: string };
@@ -73,6 +111,7 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
   const [worldData, setWorldData] = useState<FeatureCollection | null>(null);
   const [loading, setLoading] = useState(true);
   const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
+  const [selectedCountry, setSelectedCountry] = useState<MockRegion | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -103,6 +142,13 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
   , []);
   const pathGenerator = useMemo(() => geoPath().projection(projection), [projection]);
 
+  const handleCountryClick = (alpha2: string) => {
+    const region = regionMap.get(alpha2);
+    if (region) {
+      setSelectedCountry(region);
+    }
+  };
+
   return (
     <section className="border-b border-white/[0.04] bg-slate-950 py-16 px-4 sm:px-8 overflow-hidden">
       <div className="mx-auto max-w-7xl">
@@ -124,7 +170,7 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
             transition={{ delay: 0.1, duration: 0.5 }}
             className="text-gray-400 max-w-xl"
           >
-            Explore AI-driven macro themes across 37+ categories — with sentiment scores, related tickers, and regional intelligence.
+            Explore AI-driven macro themes across 37+ categories — click any country to preview its investment thesis.
           </motion.p>
         </motion.div>
 
@@ -133,72 +179,149 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.2, duration: 0.6 }}
-          className="rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden shadow-2xl shadow-purple-500/5"
+          className="rounded-xl border border-purple-500/20 bg-slate-900/60 overflow-hidden shadow-[0_0_60px_rgba(168,85,247,0.08),0_0_120px_rgba(168,85,247,0.04)]"
         >
-          {/* Map */}
-          <div className="relative">
-            {loading || !worldData ? (
-              <Skeleton className="h-[300px] sm:h-[400px] lg:h-[480px] w-full bg-slate-800/50" />
-            ) : (
-              <>
-                <svg
-                  ref={svgRef}
-                  viewBox={`0 0 ${width} ${height}`}
-                  className="w-full h-auto"
-                  style={{ minHeight: 220 }}
-                >
-                  {/* Ocean */}
-                  <rect width={width} height={height} fill="#0a0f1a" />
+          {/* Map + Detail panel layout */}
+          <div className="flex flex-col lg:flex-row">
+            {/* Map container */}
+            <div className={cn("relative transition-all duration-300", selectedCountry ? "lg:w-[60%]" : "w-full")}>
+              {loading || !worldData ? (
+                <Skeleton className="h-[300px] sm:h-[400px] lg:h-[480px] w-full bg-slate-800/50" />
+              ) : (
+                <>
+                  <svg
+                    ref={svgRef}
+                    viewBox={`0 0 ${width} ${height}`}
+                    className="w-full h-auto"
+                    style={{ minHeight: 220 }}
+                  >
+                    <defs>
+                      {/* Glow filters for each sentiment */}
+                      <filter id="glow-bullish" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="3" result="blur" />
+                        <feFlood floodColor="#10b981" floodOpacity="0.6" result="color" />
+                        <feComposite in="color" in2="blur" operator="in" result="shadow" />
+                        <feMerge><feMergeNode in="shadow" /><feMergeNode in="SourceGraphic" /></feMerge>
+                      </filter>
+                      <filter id="glow-bearish" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="3" result="blur" />
+                        <feFlood floodColor="#f43f5e" floodOpacity="0.6" result="color" />
+                        <feComposite in="color" in2="blur" operator="in" result="shadow" />
+                        <feMerge><feMergeNode in="shadow" /><feMergeNode in="SourceGraphic" /></feMerge>
+                      </filter>
+                      <filter id="glow-neutral" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="3" result="blur" />
+                        <feFlood floodColor="#f59e0b" floodOpacity="0.6" result="color" />
+                        <feComposite in="color" in2="blur" operator="in" result="shadow" />
+                        <feMerge><feMergeNode in="shadow" /><feMergeNode in="SourceGraphic" /></feMerge>
+                      </filter>
+                      <filter id="glow-emerging" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="3" result="blur" />
+                        <feFlood floodColor="#3b82f6" floodOpacity="0.6" result="color" />
+                        <feComposite in="color" in2="blur" operator="in" result="shadow" />
+                        <feMerge><feMergeNode in="shadow" /><feMergeNode in="SourceGraphic" /></feMerge>
+                      </filter>
+                      {/* Soft ambient glow for the whole map */}
+                      <filter id="glow-ambient" x="-20%" y="-20%" width="140%" height="140%">
+                        <feGaussianBlur stdDeviation="6" result="blur" />
+                        <feFlood floodColor="#a855f7" floodOpacity="0.15" result="color" />
+                        <feComposite in="color" in2="blur" operator="in" result="shadow" />
+                        <feMerge><feMergeNode in="shadow" /><feMergeNode in="SourceGraphic" /></feMerge>
+                      </filter>
+                    </defs>
 
-                  {/* Graticule */}
-                  <g strokeWidth="0.3" fill="none" stroke="rgba(255,255,255,0.04)">
-                    {[-60, -30, 0, 30, 60].map(lat => {
-                      const d = pathGenerator({
-                        type: 'LineString',
-                        coordinates: Array.from({ length: 361 }, (_, i) => [i - 180, lat]),
-                      } as GeoPermissibleObjects);
-                      return d ? <path key={`lat-${lat}`} d={d} /> : null;
+                    {/* Ocean */}
+                    <rect width={width} height={height} fill="#060a14" />
+
+                    {/* Subtle radial glow in center */}
+                    <circle cx={width / 2} cy={height / 2} r="300" fill="url(#radial-glow)" />
+                    <defs>
+                      <radialGradient id="radial-glow">
+                        <stop offset="0%" stopColor="#a855f7" stopOpacity="0.04" />
+                        <stop offset="100%" stopColor="#a855f7" stopOpacity="0" />
+                      </radialGradient>
+                    </defs>
+
+                    {/* Graticule */}
+                    <g strokeWidth="0.3" fill="none" stroke="rgba(168,85,247,0.06)">
+                      {[-60, -30, 0, 30, 60].map(lat => {
+                        const d = pathGenerator({
+                          type: 'LineString',
+                          coordinates: Array.from({ length: 361 }, (_, i) => [i - 180, lat]),
+                        } as GeoPermissibleObjects);
+                        return d ? <path key={`lat-${lat}`} d={d} /> : null;
+                      })}
+                      {[-120, -60, 0, 60, 120].map(lng => {
+                        const d = pathGenerator({
+                          type: 'LineString',
+                          coordinates: Array.from({ length: 181 }, (_, i) => [lng, i - 90]),
+                        } as GeoPermissibleObjects);
+                        return d ? <path key={`lng-${lng}`} d={d} /> : null;
+                      })}
+                    </g>
+
+                    {/* Countries */}
+                    {worldData.features.map((feat) => {
+                      const f = feat as CountryFeature;
+                      const alpha2 = NUMERIC_TO_ALPHA2[f.id] || '';
+                      const region = regionMap.get(alpha2);
+                      const isHovered = hoveredCountry === alpha2;
+                      const isSelected = selectedCountry?.code === alpha2;
+                      const d = pathGenerator(f as GeoPermissibleObjects);
+                      if (!d) return null;
+
+                      const hasTheme = !!region;
+                      const fill = hasTheme ? SENTIMENT_FILLS[region.sentiment] : 'rgba(148,163,184,0.08)';
+                      const opacity = hasTheme
+                        ? (isSelected ? 1 : isHovered ? 0.9 : 0.4 + (region.intensity / 400))
+                        : (isHovered ? 0.2 : 0.08);
+
+                      return (
+                        <path
+                          key={f.id}
+                          d={d}
+                          fill={fill}
+                          fillOpacity={opacity}
+                          stroke={isSelected ? SENTIMENT_FILLS[region?.sentiment || 'neutral'] : 'rgba(255,255,255,0.06)'}
+                          strokeWidth={isSelected ? 1.8 : isHovered ? 1 : 0.3}
+                          filter={hasTheme && (isHovered || isSelected) ? `url(#glow-${region.sentiment})` : undefined}
+                          className="transition-all duration-200 cursor-pointer"
+                          onMouseEnter={() => setHoveredCountry(alpha2)}
+                          onMouseLeave={() => setHoveredCountry(null)}
+                          onClick={() => handleCountryClick(alpha2)}
+                        />
+                      );
                     })}
-                    {[-120, -60, 0, 60, 120].map(lng => {
-                      const d = pathGenerator({
-                        type: 'LineString',
-                        coordinates: Array.from({ length: 181 }, (_, i) => [lng, i - 90]),
-                      } as GeoPermissibleObjects);
-                      return d ? <path key={`lng-${lng}`} d={d} /> : null;
+
+                    {/* Pulsing dots for spotlight countries */}
+                    {spotlights.map((sc) => {
+                      const feat = worldData.features.find(
+                        f => NUMERIC_TO_ALPHA2[(f as CountryFeature).id] === sc.code
+                      ) as CountryFeature | undefined;
+                      if (!feat) return null;
+                      const centroid = pathGenerator.centroid(feat as GeoPermissibleObjects);
+                      if (!centroid || isNaN(centroid[0])) return null;
+                      const fill = SENTIMENT_FILLS[sc.sentiment];
+                      const isSelected = selectedCountry?.code === sc.code;
+                      return (
+                        <g key={`spot-${sc.code}`} className="cursor-pointer" onClick={() => handleCountryClick(sc.code)}>
+                          <circle cx={centroid[0]} cy={centroid[1]} r="14" fill={fill} fillOpacity="0.12">
+                            <animate attributeName="r" values="10;20;10" dur="3s" repeatCount="indefinite" />
+                            <animate attributeName="fill-opacity" values="0.2;0.03;0.2" dur="3s" repeatCount="indefinite" />
+                          </circle>
+                          {isSelected && (
+                            <circle cx={centroid[0]} cy={centroid[1]} r="22" fill="none" stroke={fill} strokeWidth="1" strokeOpacity="0.4">
+                              <animate attributeName="r" values="18;28;18" dur="2s" repeatCount="indefinite" />
+                              <animate attributeName="stroke-opacity" values="0.4;0.1;0.4" dur="2s" repeatCount="indefinite" />
+                            </circle>
+                          )}
+                          <circle cx={centroid[0]} cy={centroid[1]} r="5" fill={fill} fillOpacity="0.95" stroke="#060a14" strokeWidth="1.5" />
+                        </g>
+                      );
                     })}
-                  </g>
+                  </svg>
 
-                  {/* Countries */}
-                  {worldData.features.map((feat) => {
-                    const f = feat as CountryFeature;
-                    const alpha2 = NUMERIC_TO_ALPHA2[f.id] || '';
-                    const region = regionMap.get(alpha2);
-                    const isHovered = hoveredCountry === alpha2;
-                    const d = pathGenerator(f as GeoPermissibleObjects);
-                    if (!d) return null;
-
-                    const hasTheme = !!region;
-                    const fill = hasTheme ? SENTIMENT_FILLS[region.sentiment] : 'rgba(148,163,184,0.15)';
-                    const opacity = hasTheme
-                      ? (isHovered ? 0.95 : 0.45 + (region.intensity / 350))
-                      : (isHovered ? 0.3 : 0.15);
-
-                    return (
-                      <path
-                        key={f.id}
-                        d={d}
-                        fill={fill}
-                        fillOpacity={opacity}
-                        stroke="rgba(255,255,255,0.08)"
-                        strokeWidth={isHovered ? 1.2 : 0.4}
-                        className="transition-all duration-150 cursor-pointer"
-                        onMouseEnter={() => setHoveredCountry(alpha2)}
-                        onMouseLeave={() => setHoveredCountry(null)}
-                      />
-                    );
-                  })}
-
-                  {/* Pulsing dots for spotlight countries */}
+                  {/* HTML labels — only show for spotlights that aren't selected (detail panel shows that) */}
                   {spotlights.map((sc) => {
                     const feat = worldData.features.find(
                       f => NUMERIC_TO_ALPHA2[(f as CountryFeature).id] === sc.code
@@ -207,58 +330,174 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
                     const centroid = pathGenerator.centroid(feat as GeoPermissibleObjects);
                     if (!centroid || isNaN(centroid[0])) return null;
                     const fill = SENTIMENT_FILLS[sc.sentiment];
+                    const offset = LABEL_OFFSETS[sc.code] || { dx: 12, dy: 0 };
+                    const leftPct = ((centroid[0] + offset.dx) / width) * 100;
+                    const topPct = ((centroid[1] + offset.dy) / height) * 100;
                     return (
-                      <g key={`spot-${sc.code}`}>
-                        <circle cx={centroid[0]} cy={centroid[1]} r="12" fill={fill} fillOpacity="0.15">
-                          <animate attributeName="r" values="8;16;8" dur="2.5s" repeatCount="indefinite" />
-                          <animate attributeName="fill-opacity" values="0.25;0.05;0.25" dur="2.5s" repeatCount="indefinite" />
-                        </circle>
-                        <circle cx={centroid[0]} cy={centroid[1]} r="5" fill={fill} fillOpacity="0.9" stroke="#0a0f1a" strokeWidth="1.5" />
-                      </g>
+                      <div
+                        key={`label-${sc.code}`}
+                        className="absolute z-10 hidden sm:block pointer-events-auto cursor-pointer"
+                        style={{ left: `${leftPct}%`, top: `${topPct}%`, transform: 'translate(0, -50%)' }}
+                        onClick={() => handleCountryClick(sc.code)}
+                      >
+                        <div
+                          className={cn(
+                            "bg-slate-900/95 backdrop-blur-sm border rounded-md px-2 py-1 shadow-lg transition-all hover:scale-105",
+                            selectedCountry?.code === sc.code && "ring-1 scale-105"
+                          )}
+                          style={{
+                            borderColor: `${fill}40`,
+                            ...(selectedCountry?.code === sc.code ? { boxShadow: `0 0 12px ${fill}30`, ringColor: fill } : {}),
+                          }}
+                        >
+                          <div className="flex items-center gap-1">
+                            <div className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: fill }} />
+                            <span className="text-[10px] font-semibold text-white whitespace-nowrap">{sc.name}</span>
+                          </div>
+                          <p className="text-[9px] text-gray-400 mt-0.5 max-w-[120px] leading-tight truncate">
+                            {sc.theme}
+                          </p>
+                        </div>
+                      </div>
                     );
                   })}
-                </svg>
+                </>
+              )}
 
-                {/* HTML labels over the map */}
-                {spotlights.map((sc) => {
-                  const feat = worldData.features.find(
-                    f => NUMERIC_TO_ALPHA2[(f as CountryFeature).id] === sc.code
-                  ) as CountryFeature | undefined;
-                  if (!feat) return null;
-                  const centroid = pathGenerator.centroid(feat as GeoPermissibleObjects);
-                  if (!centroid || isNaN(centroid[0])) return null;
-                  const fill = SENTIMENT_FILLS[sc.sentiment];
-                  const leftPct = (centroid[0] / width) * 100;
-                  const topPct = (centroid[1] / height) * 100;
-                  return (
-                    <div
-                      key={`label-${sc.code}`}
-                      className="absolute z-10 hidden sm:block"
-                      style={{ left: `${leftPct}%`, top: `${topPct}%`, transform: 'translate(8px, -50%)' }}
-                    >
-                      <div
-                        className="bg-slate-900/95 backdrop-blur-sm border rounded-md px-2.5 py-1.5 shadow-lg transition-all hover:scale-105"
-                        style={{ borderColor: `${fill}40` }}
-                      >
-                        <div className="flex items-center gap-1.5">
-                          <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: fill }} />
-                          <span className="text-xs font-semibold text-white whitespace-nowrap">{sc.name}</span>
+              {/* Gradient overlay at bottom */}
+              <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-slate-900/60 to-transparent pointer-events-none" />
+            </div>
+
+            {/* Detail panel — slides in when a country is selected */}
+            <AnimatePresence mode="wait">
+              {selectedCountry && (
+                <motion.div
+                  key={selectedCountry.code}
+                  initial={{ opacity: 0, x: 40 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 40 }}
+                  transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+                  className="lg:w-[40%] border-t lg:border-t-0 lg:border-l border-slate-800 bg-slate-900/80 backdrop-blur-sm"
+                >
+                  <div className="p-5 h-full flex flex-col">
+                    {/* Header */}
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="h-3 w-3 rounded-full" style={{ backgroundColor: SENTIMENT_FILLS[selectedCountry.sentiment] }} />
+                          <h3 className="text-lg font-bold text-white">{selectedCountry.name}</h3>
                         </div>
-                        <p className="text-[10px] text-gray-400 mt-0.5 max-w-[160px] leading-tight truncate">
-                          {sc.theme}
-                        </p>
+                        <p className="text-sm text-gray-400">{selectedCountry.theme}</p>
+                      </div>
+                      <button
+                        onClick={() => setSelectedCountry(null)}
+                        className="p-1 rounded-md hover:bg-slate-800 text-gray-500 hover:text-white transition-colors"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    {/* Sentiment & intensity */}
+                    <div className="grid grid-cols-3 gap-2 mb-4">
+                      <div className="rounded-lg bg-slate-800/60 border border-white/[0.04] p-2.5 text-center">
+                        <div className="text-[9px] uppercase tracking-wider text-gray-500 mb-1">Sentiment</div>
+                        <div className="flex items-center justify-center gap-1">
+                          {(() => { const Icon = SENTIMENT_ICONS[selectedCountry.sentiment]; return <Icon className="h-3.5 w-3.5" style={{ color: SENTIMENT_FILLS[selectedCountry.sentiment] }} />; })()}
+                          <span className="text-xs font-bold capitalize" style={{ color: SENTIMENT_FILLS[selectedCountry.sentiment] }}>
+                            {selectedCountry.sentiment}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="rounded-lg bg-slate-800/60 border border-white/[0.04] p-2.5 text-center">
+                        <div className="text-[9px] uppercase tracking-wider text-gray-500 mb-1">GDP Growth</div>
+                        <div className="text-sm font-bold text-white font-mono">{selectedCountry.gdp}</div>
+                      </div>
+                      <div className="rounded-lg bg-slate-800/60 border border-white/[0.04] p-2.5 text-center">
+                        <div className="text-[9px] uppercase tracking-wider text-gray-500 mb-1">Inflation</div>
+                        <div className="text-sm font-bold text-white font-mono">{selectedCountry.inflation}</div>
                       </div>
                     </div>
-                  );
-                })}
-              </>
-            )}
 
-            {/* Gradient overlay at bottom for seamless blend */}
-            <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-slate-900/80 to-transparent pointer-events-none" />
+                    {/* Related tickers */}
+                    <div className="mb-4">
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <BarChart3 className="h-3.5 w-3.5 text-gray-500" />
+                        <span className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">Related Tickers</span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {selectedCountry.tickers.map((t) => (
+                          <div key={t.symbol} className="flex items-center justify-between rounded-lg bg-slate-800/40 border border-white/[0.03] px-3 py-2 hover:bg-slate-800/60 transition-colors">
+                            <div>
+                              <span className="text-xs font-bold text-white font-mono">{t.symbol}</span>
+                              <span className="text-[10px] text-gray-500 ml-2">{t.name}</span>
+                            </div>
+                            <div className={cn("flex items-center gap-0.5 text-xs font-mono font-semibold",
+                              t.change >= 0 ? "text-emerald-400" : "text-rose-400"
+                            )}>
+                              {t.change >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                              {t.change >= 0 ? '+' : ''}{t.change.toFixed(1)}%
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Catalysts */}
+                    <div className="mb-4 flex-1">
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <Zap className="h-3.5 w-3.5 text-amber-400" />
+                        <span className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">Key Catalysts</span>
+                      </div>
+                      <ul className="space-y-1.5">
+                        {selectedCountry.catalysts.map((c, i) => (
+                          <li key={i} className="flex items-start gap-2 text-xs text-gray-300">
+                            <span className="mt-1 h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: SENTIMENT_FILLS[selectedCountry.sentiment] }} />
+                            {c}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Intensity bar */}
+                    <div className="mb-4">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] text-gray-500">Theme Intensity</span>
+                        <span className="text-xs font-bold font-mono" style={{ color: SENTIMENT_FILLS[selectedCountry.sentiment] }}>{selectedCountry.intensity}%</span>
+                      </div>
+                      <div className="h-1.5 w-full rounded-full bg-slate-800 overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${selectedCountry.intensity}%` }}
+                          transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+                          className="h-full rounded-full"
+                          style={{
+                            backgroundColor: SENTIMENT_FILLS[selectedCountry.sentiment],
+                            boxShadow: `0 0 8px ${SENTIMENT_FILLS[selectedCountry.sentiment]}60`,
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* CTA */}
+                    <Button
+                      onClick={onSignUp}
+                      size="sm"
+                      className="w-full rounded-lg text-xs font-semibold"
+                      style={{
+                        backgroundColor: SENTIMENT_FILLS[selectedCountry.sentiment],
+                        color: selectedCountry.sentiment === 'neutral' ? '#000' : '#fff',
+                      }}
+                    >
+                      Unlock Full Analysis
+                      <ChevronRight className="ml-1 h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
-          {/* Theme cards strip below the map */}
+          {/* Theme cards strip below */}
           <div className="border-t border-slate-800 px-4 py-5 sm:px-6">
             <div className="flex items-center justify-between mb-3">
               <span className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">Active Themes</span>
@@ -274,6 +513,7 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
               {MOCK_REGIONS.slice(0, 6).map((r, i) => {
                 const SentIcon = SENTIMENT_ICONS[r.sentiment];
+                const isSelected = selectedCountry?.code === r.code;
                 return (
                   <motion.div
                     key={r.code}
@@ -281,7 +521,13 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ delay: i * 0.06, duration: 0.3 }}
-                    className="rounded-lg bg-slate-800/50 border border-white/[0.04] p-3 hover:border-purple-500/30 transition-all cursor-pointer group"
+                    className={cn(
+                      "rounded-lg bg-slate-800/50 border p-3 transition-all cursor-pointer group",
+                      isSelected
+                        ? "border-purple-500/50 shadow-[0_0_16px_rgba(168,85,247,0.12)]"
+                        : "border-white/[0.04] hover:border-purple-500/30"
+                    )}
+                    onClick={() => handleCountryClick(r.code)}
                     onMouseEnter={() => setHoveredCountry(r.code)}
                     onMouseLeave={() => setHoveredCountry(null)}
                   >
@@ -309,7 +555,7 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
         <div className="mt-6 text-center">
           <Button
             onClick={onSignUp}
-            className="rounded-full bg-purple-500 px-8 font-semibold text-white hover:bg-purple-400 shadow-lg shadow-purple-500/20"
+            className="rounded-full bg-purple-500 px-8 font-semibold text-white hover:bg-purple-400 shadow-[0_0_24px_rgba(168,85,247,0.3)]"
           >
             Explore All Themes
             <ChevronRight className="ml-1 h-4 w-4" />
