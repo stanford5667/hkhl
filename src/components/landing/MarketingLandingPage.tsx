@@ -4,7 +4,7 @@ import { Zap, ChevronRight, Loader2, TrendingUp, GraduationCap, Globe, Play, Clo
 import modIntroImg from '@/assets/modules/mod-intro-investing.jpg';
 import modFundImg from '@/assets/modules/mod-fundamental-analysis.jpg';
 import modTechImg from '@/assets/modules/mod-technical-analysis.jpg';
-import modPortImg from '@/assets/modules/mod-portfolio-construction.jpg';
+import modPortImg from '@/assets/modules/mod-portfolio-construction-v2.jpg';
 import modRiskImg from '@/assets/modules/mod-risk-management.jpg';
 import modOptsImg from '@/assets/modules/mod-options-derivatives.jpg';
 import modMacroImg from '@/assets/modules/mod-macro-economics.jpg';
