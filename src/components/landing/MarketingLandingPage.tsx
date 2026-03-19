@@ -314,7 +314,11 @@ export function MarketingLandingPage() {
     }
   }, [selectedTicker, selectedStrategy]);
 
-  const navLinks = ['Features', 'Pricing', 'Learn'];
+  const navLinks = [
+    { label: 'Features', href: '#features' },
+    { label: 'Pricing', href: '#pricing' },
+    { label: 'Academy', href: '#academy' },
+  ];
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
