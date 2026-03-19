@@ -277,12 +277,29 @@ export function MarketingLandingPage() {
         { maxAttempts: 3, initialDelayMs: 200 }
       );
 
+      const totalReturn = data.totalReturn ?? 0;
+      const buyHoldReturn = data.buyHoldReturn ?? 0;
+      const initCap = data.initialCapital ?? 10000;
+      const finalVal = data.finalValue ?? initCap * (1 + totalReturn / 100);
       setResults({
-        totalReturn: data.totalReturn ?? 0,
+        totalReturn,
+        annualizedReturn: data.annualizedReturn ?? 0,
         maxDrawdown: data.maxDrawdown ?? 0,
         winRate: data.winRate ?? 0,
         sharpeRatio: data.sharpeRatio ?? 0,
-        portfolioHistory: data.portfolioHistory ?? [],
+        sortinoRatio: data.sortinoRatio ?? 0,
+        totalTrades: data.totalTrades ?? 0,
+        profitFactor: data.profitFactor ?? 0,
+        buyHoldReturn,
+        outperformance: totalReturn - buyHoldReturn,
+        initialCapital: initCap,
+        finalValue: finalVal,
+        avgHoldingDays: data.avgHoldingDays ?? 0,
+        portfolioHistory: (data.portfolioHistory ?? []).map((s: any, idx: number, arr: any[]) => ({
+          date: s.date,
+          value: s.value,
+          buyHold: initCap * (1 + (buyHoldReturn / 100) * (idx / Math.max(arr.length - 1, 1))),
+        })),
       });
 
       toast.success(`Backtest complete: ${data.totalReturn?.toFixed(2)}% return`);
