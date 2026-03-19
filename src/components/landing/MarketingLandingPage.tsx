@@ -349,8 +349,7 @@ export function MarketingLandingPage() {
           animate="visible"
         >
           <motion.h1 variants={fadeUp} custom={0} className="text-3xl font-bold leading-tight tracking-tight sm:text-4xl lg:text-5xl">
-            Build AI Investment Strategies in Mins.{' '}
-            <span className="text-gray-500">No Coding Required.</span>
+            Build AI Investment Strategies in Mins.
           </motion.h1>
           <motion.p variants={fadeUp} custom={1} className="mt-6 max-w-lg text-lg text-gray-400">
             Pick a ticker, choose a strategy, and see real backtest results — powered by 30+ years of market data.
