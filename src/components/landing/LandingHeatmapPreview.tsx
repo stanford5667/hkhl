@@ -229,27 +229,27 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
   }, [worldData, pathGenerator]);
 
   return (
-    <section className="border-b border-white/[0.04] bg-slate-950 py-16 px-4 sm:px-8 overflow-hidden">
+    <section className="border-b border-white/[0.04] bg-slate-950 py-10 sm:py-16 px-3 sm:px-8 overflow-hidden">
       <div className="mx-auto max-w-7xl">
-        <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} className="mb-8">
+        <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} className="mb-5 sm:mb-8">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
-            className="flex items-center gap-3 mb-2"
+            className="flex items-center gap-2 sm:gap-3 mb-1.5 sm:mb-2"
           >
-            <Globe className="h-5 w-5 text-purple-400" />
-            <h2 className="text-2xl font-bold sm:text-3xl">Global Investment Themes</h2>
+            <Globe className="h-4 w-4 sm:h-5 sm:w-5 text-purple-400" />
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold">Global Investment Themes</h2>
           </motion.div>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1, duration: 0.5 }}
-            className="text-gray-400 max-w-xl"
+            className="text-gray-400 text-sm sm:text-base max-w-xl"
           >
-            Explore AI-driven macro themes across 37+ categories — click any country to preview its investment thesis.
+            Explore AI-driven macro themes across 37+ categories — tap any country to preview its investment thesis.
           </motion.p>
         </motion.div>
 
@@ -261,144 +261,144 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
           className="rounded-xl border border-purple-500/20 bg-slate-900/60 overflow-hidden shadow-[0_0_60px_rgba(168,85,247,0.08),0_0_120px_rgba(168,85,247,0.04)]"
         >
           {/* Map + Detail panel layout */}
-          <div className="flex flex-col lg:flex-row">
+          <div className="flex flex-col lg:flex-row relative">
             {/* Map container */}
             <div className={cn("relative transition-all duration-300", selectedCountry ? "lg:w-[60%]" : "w-full")}>
               {loading || !worldData ? (
-                <Skeleton className="h-[300px] sm:h-[400px] lg:h-[480px] w-full bg-slate-800/50" />
+                <Skeleton className="h-[220px] sm:h-[350px] lg:h-[480px] w-full bg-slate-800/50" />
               ) : (
                 <>
-                  <svg
-                    ref={svgRef}
-                    viewBox={`0 0 ${width} ${height}`}
-                    className="w-full h-auto"
-                    style={{ minHeight: 220 }}
-                  >
-                    <defs>
-                      <filter id="glow-bullish" x="-80%" y="-80%" width="260%" height="260%">
-                        <feGaussianBlur stdDeviation="6" result="blur" />
-                        <feFlood floodColor="#10b981" floodOpacity="0.7" result="color" />
-                        <feComposite in="color" in2="blur" operator="in" result="shadow" />
-                        <feMerge><feMergeNode in="shadow" /><feMergeNode in="shadow" /><feMergeNode in="SourceGraphic" /></feMerge>
-                      </filter>
-                      <filter id="glow-bearish" x="-80%" y="-80%" width="260%" height="260%">
-                        <feGaussianBlur stdDeviation="6" result="blur" />
-                        <feFlood floodColor="#f43f5e" floodOpacity="0.7" result="color" />
-                        <feComposite in="color" in2="blur" operator="in" result="shadow" />
-                        <feMerge><feMergeNode in="shadow" /><feMergeNode in="shadow" /><feMergeNode in="SourceGraphic" /></feMerge>
-                      </filter>
-                      <filter id="glow-neutral" x="-80%" y="-80%" width="260%" height="260%">
-                        <feGaussianBlur stdDeviation="6" result="blur" />
-                        <feFlood floodColor="#f59e0b" floodOpacity="0.7" result="color" />
-                        <feComposite in="color" in2="blur" operator="in" result="shadow" />
-                        <feMerge><feMergeNode in="shadow" /><feMergeNode in="shadow" /><feMergeNode in="SourceGraphic" /></feMerge>
-                      </filter>
-                      <filter id="glow-emerging" x="-80%" y="-80%" width="260%" height="260%">
-                        <feGaussianBlur stdDeviation="6" result="blur" />
-                        <feFlood floodColor="#3b82f6" floodOpacity="0.7" result="color" />
-                        <feComposite in="color" in2="blur" operator="in" result="shadow" />
-                        <feMerge><feMergeNode in="shadow" /><feMergeNode in="shadow" /><feMergeNode in="SourceGraphic" /></feMerge>
-                      </filter>
-                      <radialGradient id="radial-glow">
-                        <stop offset="0%" stopColor="#a855f7" stopOpacity="0.06" />
-                        <stop offset="100%" stopColor="#a855f7" stopOpacity="0" />
-                      </radialGradient>
-                    </defs>
+                  {/* Horizontally scrollable on mobile for better map visibility */}
+                  <div className="overflow-x-auto sm:overflow-visible">
+                    <svg
+                      ref={svgRef}
+                      viewBox={`0 0 ${width} ${height}`}
+                      className="w-full h-auto sm:w-full"
+                      style={{ minWidth: 480, minHeight: 180 }}
+                    >
+                      <defs>
+                        <filter id="glow-bullish" x="-80%" y="-80%" width="260%" height="260%">
+                          <feGaussianBlur stdDeviation="6" result="blur" />
+                          <feFlood floodColor="#10b981" floodOpacity="0.7" result="color" />
+                          <feComposite in="color" in2="blur" operator="in" result="shadow" />
+                          <feMerge><feMergeNode in="shadow" /><feMergeNode in="shadow" /><feMergeNode in="SourceGraphic" /></feMerge>
+                        </filter>
+                        <filter id="glow-bearish" x="-80%" y="-80%" width="260%" height="260%">
+                          <feGaussianBlur stdDeviation="6" result="blur" />
+                          <feFlood floodColor="#f43f5e" floodOpacity="0.7" result="color" />
+                          <feComposite in="color" in2="blur" operator="in" result="shadow" />
+                          <feMerge><feMergeNode in="shadow" /><feMergeNode in="shadow" /><feMergeNode in="SourceGraphic" /></feMerge>
+                        </filter>
+                        <filter id="glow-neutral" x="-80%" y="-80%" width="260%" height="260%">
+                          <feGaussianBlur stdDeviation="6" result="blur" />
+                          <feFlood floodColor="#f59e0b" floodOpacity="0.7" result="color" />
+                          <feComposite in="color" in2="blur" operator="in" result="shadow" />
+                          <feMerge><feMergeNode in="shadow" /><feMergeNode in="shadow" /><feMergeNode in="SourceGraphic" /></feMerge>
+                        </filter>
+                        <filter id="glow-emerging" x="-80%" y="-80%" width="260%" height="260%">
+                          <feGaussianBlur stdDeviation="6" result="blur" />
+                          <feFlood floodColor="#3b82f6" floodOpacity="0.7" result="color" />
+                          <feComposite in="color" in2="blur" operator="in" result="shadow" />
+                          <feMerge><feMergeNode in="shadow" /><feMergeNode in="shadow" /><feMergeNode in="SourceGraphic" /></feMerge>
+                        </filter>
+                        <radialGradient id="radial-glow">
+                          <stop offset="0%" stopColor="#a855f7" stopOpacity="0.06" />
+                          <stop offset="100%" stopColor="#a855f7" stopOpacity="0" />
+                        </radialGradient>
+                      </defs>
 
-                    {/* Ocean */}
-                    <rect width={width} height={height} fill="#060a14" />
-                    <circle cx={width / 2} cy={height / 2} r="300" fill="url(#radial-glow)" />
+                      {/* Ocean */}
+                      <rect width={width} height={height} fill="#060a14" />
+                      <circle cx={width / 2} cy={height / 2} r="300" fill="url(#radial-glow)" />
 
-                    {/* Graticule */}
-                    <g strokeWidth="0.3" fill="none" stroke="rgba(168,85,247,0.06)">
-                      {[-60, -30, 0, 30, 60].map(lat => {
-                        const d = pathGenerator({
-                          type: 'LineString',
-                          coordinates: Array.from({ length: 361 }, (_, i) => [i - 180, lat]),
-                        } as GeoPermissibleObjects);
-                        return d ? <path key={`lat-${lat}`} d={d} /> : null;
+                      {/* Graticule */}
+                      <g strokeWidth="0.3" fill="none" stroke="rgba(168,85,247,0.06)">
+                        {[-60, -30, 0, 30, 60].map(lat => {
+                          const d = pathGenerator({
+                            type: 'LineString',
+                            coordinates: Array.from({ length: 361 }, (_, i) => [i - 180, lat]),
+                          } as GeoPermissibleObjects);
+                          return d ? <path key={`lat-${lat}`} d={d} /> : null;
+                        })}
+                        {[-120, -60, 0, 60, 120].map(lng => {
+                          const d = pathGenerator({
+                            type: 'LineString',
+                            coordinates: Array.from({ length: 181 }, (_, i) => [lng, i - 90]),
+                          } as GeoPermissibleObjects);
+                          return d ? <path key={`lng-${lng}`} d={d} /> : null;
+                        })}
+                      </g>
+
+                      {/* Countries */}
+                      {worldData.features.map((feat) => {
+                        const f = feat as CountryFeature;
+                        const alpha2 = NUMERIC_TO_ALPHA2[f.id] || '';
+                        const region = regionMap.get(alpha2);
+                        const isHovered = hoveredCountry === alpha2;
+                        const isSelected = selectedCountry?.code === alpha2;
+                        const d = pathGenerator(f as GeoPermissibleObjects);
+                        if (!d) return null;
+
+                        const hasTheme = !!region;
+                        const fill = hasTheme ? SENTIMENT_FILLS[region.sentiment] : 'rgba(148,163,184,0.18)';
+                        const opacity = hasTheme
+                          ? (isSelected ? 1 : isHovered ? 0.95 : 0.55 + (region.intensity / 300))
+                          : (isHovered ? 0.35 : 0.18);
+
+                        return (
+                          <path
+                            key={f.id}
+                            d={d}
+                            fill={fill}
+                            fillOpacity={opacity}
+                            stroke={hasTheme ? SENTIMENT_FILLS[region.sentiment] : 'rgba(148,163,184,0.25)'}
+                            strokeWidth={isSelected ? 2 : hasTheme ? (isHovered ? 1.2 : 0.6) : 0.5}
+                            strokeOpacity={hasTheme ? (isSelected ? 0.9 : isHovered ? 0.7 : 0.35) : 1}
+                            filter={hasTheme ? `url(#glow-${region.sentiment})` : undefined}
+                            className="transition-all duration-200 cursor-pointer"
+                            onMouseEnter={() => setHoveredCountry(alpha2)}
+                            onMouseLeave={() => setHoveredCountry(null)}
+                            onClick={() => handleCountryClick(alpha2)}
+                          />
+                        );
                       })}
-                      {[-120, -60, 0, 60, 120].map(lng => {
-                        const d = pathGenerator({
-                          type: 'LineString',
-                          coordinates: Array.from({ length: 181 }, (_, i) => [lng, i - 90]),
-                        } as GeoPermissibleObjects);
-                        return d ? <path key={`lng-${lng}`} d={d} /> : null;
-                      })}
-                    </g>
 
-                    {/* Countries */}
-                    {worldData.features.map((feat) => {
-                      const f = feat as CountryFeature;
-                      const alpha2 = NUMERIC_TO_ALPHA2[f.id] || '';
-                      const region = regionMap.get(alpha2);
-                      const isHovered = hoveredCountry === alpha2;
-                      const isSelected = selectedCountry?.code === alpha2;
-                      const d = pathGenerator(f as GeoPermissibleObjects);
-                      if (!d) return null;
-
-                      const hasTheme = !!region;
-                      const fill = hasTheme ? SENTIMENT_FILLS[region.sentiment] : 'rgba(148,163,184,0.18)';
-                      const opacity = hasTheme
-                        ? (isSelected ? 1 : isHovered ? 0.95 : 0.55 + (region.intensity / 300))
-                        : (isHovered ? 0.35 : 0.18);
-
-                      return (
-                        <path
-                          key={f.id}
-                          d={d}
-                          fill={fill}
-                          fillOpacity={opacity}
-                          stroke={hasTheme ? SENTIMENT_FILLS[region.sentiment] : 'rgba(148,163,184,0.25)'}
-                          strokeWidth={isSelected ? 2 : hasTheme ? (isHovered ? 1.2 : 0.6) : 0.5}
-                          strokeOpacity={hasTheme ? (isSelected ? 0.9 : isHovered ? 0.7 : 0.35) : 1}
-                          filter={hasTheme ? `url(#glow-${region.sentiment})` : undefined}
-                          className="transition-all duration-200 cursor-pointer"
-                          onMouseEnter={() => setHoveredCountry(alpha2)}
-                          onMouseLeave={() => setHoveredCountry(null)}
-                          onClick={() => handleCountryClick(alpha2)}
-                        />
-                      );
-                    })}
-
-                    {/* Pulsing dots for spotlight countries */}
-                    {spotlights.map((sc) => {
-                      const feat = worldData.features.find(
-                        f => NUMERIC_TO_ALPHA2[(f as CountryFeature).id] === sc.code
-                      ) as CountryFeature | undefined;
-                      if (!feat) return null;
-                      const centroid = pathGenerator.centroid(feat as GeoPermissibleObjects);
-                      if (!centroid || isNaN(centroid[0])) return null;
-                      const fill = SENTIMENT_FILLS[sc.sentiment];
-                      const isSelected = selectedCountry?.code === sc.code;
-                      return (
-                        <g key={`spot-${sc.code}`} className="cursor-pointer" onClick={() => handleCountryClick(sc.code)}>
-                          {/* Outer blinking ring */}
-                          <circle cx={centroid[0]} cy={centroid[1]} r="14" fill={fill} fillOpacity="0.12">
-                            <animate attributeName="r" values="10;22;10" dur="2.5s" repeatCount="indefinite" />
-                            <animate attributeName="fill-opacity" values="0.25;0.02;0.25" dur="2.5s" repeatCount="indefinite" />
-                          </circle>
-                          {/* Second blinking ring (offset timing) */}
-                          <circle cx={centroid[0]} cy={centroid[1]} r="8" fill="none" stroke={fill} strokeWidth="0.8" strokeOpacity="0.3">
-                            <animate attributeName="r" values="8;18;8" dur="2s" begin="0.5s" repeatCount="indefinite" />
-                            <animate attributeName="stroke-opacity" values="0.4;0.05;0.4" dur="2s" begin="0.5s" repeatCount="indefinite" />
-                          </circle>
-                          {isSelected && (
-                            <circle cx={centroid[0]} cy={centroid[1]} r="22" fill="none" stroke={fill} strokeWidth="1.5" strokeOpacity="0.5">
-                              <animate attributeName="r" values="18;30;18" dur="1.8s" repeatCount="indefinite" />
-                              <animate attributeName="stroke-opacity" values="0.5;0.1;0.5" dur="1.8s" repeatCount="indefinite" />
+                      {/* Pulsing dots for spotlight countries */}
+                      {spotlights.map((sc) => {
+                        const feat = worldData.features.find(
+                          f => NUMERIC_TO_ALPHA2[(f as CountryFeature).id] === sc.code
+                        ) as CountryFeature | undefined;
+                        if (!feat) return null;
+                        const centroid = pathGenerator.centroid(feat as GeoPermissibleObjects);
+                        if (!centroid || isNaN(centroid[0])) return null;
+                        const fill = SENTIMENT_FILLS[sc.sentiment];
+                        const isSelected = selectedCountry?.code === sc.code;
+                        return (
+                          <g key={`spot-${sc.code}`} className="cursor-pointer" onClick={() => handleCountryClick(sc.code)}>
+                            <circle cx={centroid[0]} cy={centroid[1]} r="14" fill={fill} fillOpacity="0.12">
+                              <animate attributeName="r" values="10;22;10" dur="2.5s" repeatCount="indefinite" />
+                              <animate attributeName="fill-opacity" values="0.25;0.02;0.25" dur="2.5s" repeatCount="indefinite" />
                             </circle>
-                          )}
-                          {/* Core dot with blink */}
-                          <circle cx={centroid[0]} cy={centroid[1]} r="5" fill={fill} fillOpacity="0.95" stroke="#060a14" strokeWidth="1.5">
-                            <animate attributeName="fill-opacity" values="1;0.5;1" dur="1.5s" repeatCount="indefinite" />
-                          </circle>
-                        </g>
-                      );
-                    })}
-                  </svg>
+                            <circle cx={centroid[0]} cy={centroid[1]} r="8" fill="none" stroke={fill} strokeWidth="0.8" strokeOpacity="0.3">
+                              <animate attributeName="r" values="8;18;8" dur="2s" begin="0.5s" repeatCount="indefinite" />
+                              <animate attributeName="stroke-opacity" values="0.4;0.05;0.4" dur="2s" begin="0.5s" repeatCount="indefinite" />
+                            </circle>
+                            {isSelected && (
+                              <circle cx={centroid[0]} cy={centroid[1]} r="22" fill="none" stroke={fill} strokeWidth="1.5" strokeOpacity="0.5">
+                                <animate attributeName="r" values="18;30;18" dur="1.8s" repeatCount="indefinite" />
+                                <animate attributeName="stroke-opacity" values="0.5;0.1;0.5" dur="1.8s" repeatCount="indefinite" />
+                              </circle>
+                            )}
+                            <circle cx={centroid[0]} cy={centroid[1]} r="5" fill={fill} fillOpacity="0.95" stroke="#060a14" strokeWidth="1.5">
+                              <animate attributeName="fill-opacity" values="1;0.5;1" dur="1.5s" repeatCount="indefinite" />
+                            </circle>
+                          </g>
+                        );
+                      })}
+                    </svg>
+                  </div>
 
-                  {/* HUD Callout Cards — floating on the map */}
+                  {/* Desktop: HUD Callout Cards — floating on the map */}
                   <AnimatePresence>
                     {HUD_CALLOUTS.map((hud, idx) => {
                       const pos = hudPositions[idx];
@@ -425,36 +425,17 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
                             }}
                           >
                             <div className="flex items-center gap-1.5 mb-1">
-                              {/* Blinking indicator dot */}
                               <span className="relative flex h-2 w-2">
-                                <span
-                                  className="absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping"
-                                  style={{ backgroundColor: style.border }}
-                                />
-                                <span
-                                  className="relative inline-flex rounded-full h-2 w-2"
-                                  style={{ backgroundColor: style.border }}
-                                />
+                                <span className="absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping" style={{ backgroundColor: style.border }} />
+                                <span className="relative inline-flex rounded-full h-2 w-2" style={{ backgroundColor: style.border }} />
                               </span>
                               <HudIcon className="h-3 w-3" style={{ color: style.border }} />
-                              <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: style.text }}>
-                                {hud.type}
-                              </span>
+                              <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: style.text }}>{hud.type}</span>
                             </div>
                             <p className="text-[11px] font-semibold text-white leading-tight mb-0.5">{hud.headline}</p>
                             <p className="text-[9px] leading-tight" style={{ color: `${style.text}CC` }}>{hud.summary}</p>
                           </div>
-                          {/* Connector line to country */}
-                          <svg
-                            className="absolute pointer-events-none"
-                            style={{
-                              left: '50%',
-                              top: '100%',
-                              width: 2,
-                              height: 20,
-                              overflow: 'visible',
-                            }}
-                          >
+                          <svg className="absolute pointer-events-none" style={{ left: '50%', top: '100%', width: 2, height: 20, overflow: 'visible' }}>
                             <line x1="0" y1="0" x2="0" y2="20" stroke={style.border} strokeWidth="1" strokeOpacity="0.3" strokeDasharray="3 3">
                               <animate attributeName="stroke-opacity" values="0.3;0.6;0.3" dur="2s" repeatCount="indefinite" />
                             </line>
@@ -464,7 +445,7 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
                     })}
                   </AnimatePresence>
 
-                  {/* HTML labels */}
+                  {/* HTML labels — desktop only */}
                   {spotlights.map((sc) => {
                     const feat = worldData.features.find(
                       f => NUMERIC_TO_ALPHA2[(f as CountryFeature).id] === sc.code
@@ -497,9 +478,7 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
                             <div className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: fill }} />
                             <span className="text-[10px] font-semibold text-white whitespace-nowrap">{sc.name}</span>
                           </div>
-                          <p className="text-[9px] text-gray-400 mt-0.5 max-w-[120px] leading-tight truncate">
-                            {sc.theme}
-                          </p>
+                          <p className="text-[9px] text-gray-400 mt-0.5 max-w-[120px] leading-tight truncate">{sc.theme}</p>
                         </div>
                       </div>
                     );
@@ -511,138 +490,105 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
               <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-slate-900/60 to-transparent pointer-events-none" />
             </div>
 
-            {/* Detail panel — slides in when a country is selected */}
+            {/* Mobile: HUD callout card strip below map */}
+            <div className="md:hidden">
+              <AnimatePresence mode="wait">
+                {(() => {
+                  const hud = HUD_CALLOUTS[activeHudIndex];
+                  const style = HUD_COLORS[hud.type];
+                  const HudIcon = style.icon;
+                  return (
+                    <motion.div
+                      key={`mobile-hud-${hud.code}`}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: 0.35 }}
+                      className="mx-3 my-2 rounded-lg px-3 py-2.5 border cursor-pointer"
+                      style={{
+                        background: style.bg,
+                        borderColor: `${style.border}40`,
+                        boxShadow: `0 0 16px ${style.border}15`,
+                      }}
+                      onClick={() => handleCountryClick(hud.code)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="relative flex h-2 w-2 shrink-0">
+                          <span className="absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping" style={{ backgroundColor: style.border }} />
+                          <span className="relative inline-flex rounded-full h-2 w-2" style={{ backgroundColor: style.border }} />
+                        </span>
+                        <HudIcon className="h-3.5 w-3.5 shrink-0" style={{ color: style.border }} />
+                        <span className="text-[10px] font-bold uppercase tracking-wider shrink-0" style={{ color: style.text }}>{hud.type}</span>
+                        <span className="text-[10px] text-gray-500 ml-auto">{hud.code}</span>
+                      </div>
+                      <p className="text-xs font-semibold text-white leading-snug mt-1.5">{hud.headline}</p>
+                      <p className="text-[10px] text-gray-400 leading-snug mt-0.5">{hud.summary}</p>
+                    </motion.div>
+                  );
+                })()}
+              </AnimatePresence>
+              {/* Dots indicator */}
+              <div className="flex justify-center gap-1.5 pb-2">
+                {HUD_CALLOUTS.map((_, i) => (
+                  <button
+                    key={i}
+                    className={cn("h-1.5 rounded-full transition-all", i === activeHudIndex ? "w-4 bg-purple-400" : "w-1.5 bg-slate-700")}
+                    onClick={() => setActiveHudIndex(i)}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Detail panel — desktop: side panel, mobile: bottom sheet overlay */}
             <AnimatePresence mode="wait">
               {selectedCountry && (
-                <motion.div
-                  key={selectedCountry.code}
-                  initial={{ opacity: 0, x: 40 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 40 }}
-                  transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-                  className="lg:w-[40%] border-t lg:border-t-0 lg:border-l border-slate-800 bg-slate-900/80 backdrop-blur-sm"
-                >
-                  <div className="p-5 h-full flex flex-col">
-                    {/* Header */}
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <div className="h-3 w-3 rounded-full" style={{ backgroundColor: SENTIMENT_FILLS[selectedCountry.sentiment] }} />
-                          <h3 className="text-lg font-bold text-white">{selectedCountry.name}</h3>
-                        </div>
-                        <p className="text-sm text-gray-400">{selectedCountry.theme}</p>
-                      </div>
-                      <button
-                        onClick={() => setSelectedCountry(null)}
-                        className="p-1 rounded-md hover:bg-slate-800 text-gray-500 hover:text-white transition-colors"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
+                <>
+                  {/* Mobile overlay backdrop */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="lg:hidden fixed inset-0 bg-black/60 z-40"
+                    onClick={() => setSelectedCountry(null)}
+                  />
+                  <motion.div
+                    key={selectedCountry.code}
+                    initial={{ opacity: 0, y: 100 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 100 }}
+                    transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+                    className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-slate-900 border-t border-slate-700 rounded-t-2xl max-h-[80vh] overflow-y-auto"
+                  >
+                    {/* Drag handle */}
+                    <div className="flex justify-center pt-2 pb-1">
+                      <div className="h-1 w-10 rounded-full bg-slate-600" />
                     </div>
-
-                    {/* Sentiment & intensity */}
-                    <div className="grid grid-cols-3 gap-2 mb-4">
-                      <div className="rounded-lg bg-slate-800/60 border border-white/[0.04] p-2.5 text-center">
-                        <div className="text-[9px] uppercase tracking-wider text-gray-500 mb-1">Sentiment</div>
-                        <div className="flex items-center justify-center gap-1">
-                          {(() => { const Icon = SENTIMENT_ICONS[selectedCountry.sentiment]; return <Icon className="h-3.5 w-3.5" style={{ color: SENTIMENT_FILLS[selectedCountry.sentiment] }} />; })()}
-                          <span className="text-xs font-bold capitalize" style={{ color: SENTIMENT_FILLS[selectedCountry.sentiment] }}>
-                            {selectedCountry.sentiment}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="rounded-lg bg-slate-800/60 border border-white/[0.04] p-2.5 text-center">
-                        <div className="text-[9px] uppercase tracking-wider text-gray-500 mb-1">GDP Growth</div>
-                        <div className="text-sm font-bold text-white font-mono">{selectedCountry.gdp}</div>
-                      </div>
-                      <div className="rounded-lg bg-slate-800/60 border border-white/[0.04] p-2.5 text-center">
-                        <div className="text-[9px] uppercase tracking-wider text-gray-500 mb-1">Inflation</div>
-                        <div className="text-sm font-bold text-white font-mono">{selectedCountry.inflation}</div>
-                      </div>
+                    <div className="p-4">
+                      <MobileDetailContent country={selectedCountry} onClose={() => setSelectedCountry(null)} onSignUp={onSignUp} />
                     </div>
+                  </motion.div>
 
-                    {/* Related tickers */}
-                    <div className="mb-4">
-                      <div className="flex items-center gap-1.5 mb-2">
-                        <BarChart3 className="h-3.5 w-3.5 text-gray-500" />
-                        <span className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">Related Tickers</span>
-                      </div>
-                      <div className="space-y-1.5">
-                        {selectedCountry.tickers.map((t) => (
-                          <div key={t.symbol} className="flex items-center justify-between rounded-lg bg-slate-800/40 border border-white/[0.03] px-3 py-2 hover:bg-slate-800/60 transition-colors">
-                            <div>
-                              <span className="text-xs font-bold text-white font-mono">{t.symbol}</span>
-                              <span className="text-[10px] text-gray-500 ml-2">{t.name}</span>
-                            </div>
-                            <div className={cn("flex items-center gap-0.5 text-xs font-mono font-semibold",
-                              t.change >= 0 ? "text-emerald-400" : "text-rose-400"
-                            )}>
-                              {t.change >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-                              {t.change >= 0 ? '+' : ''}{t.change.toFixed(1)}%
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                  {/* Desktop side panel */}
+                  <motion.div
+                    key={`desktop-${selectedCountry.code}`}
+                    initial={{ opacity: 0, x: 40 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 40 }}
+                    transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+                    className="hidden lg:block lg:w-[40%] border-l border-slate-800 bg-slate-900/80 backdrop-blur-sm"
+                  >
+                    <div className="p-5 h-full flex flex-col">
+                      <MobileDetailContent country={selectedCountry} onClose={() => setSelectedCountry(null)} onSignUp={onSignUp} />
                     </div>
-
-                    {/* Catalysts */}
-                    <div className="mb-4 flex-1">
-                      <div className="flex items-center gap-1.5 mb-2">
-                        <Zap className="h-3.5 w-3.5 text-amber-400" />
-                        <span className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">Key Catalysts</span>
-                      </div>
-                      <ul className="space-y-1.5">
-                        {selectedCountry.catalysts.map((c, i) => (
-                          <li key={i} className="flex items-start gap-2 text-xs text-gray-300">
-                            <span className="mt-1 h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: SENTIMENT_FILLS[selectedCountry.sentiment] }} />
-                            {c}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    {/* Intensity bar */}
-                    <div className="mb-4">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-[10px] text-gray-500">Theme Intensity</span>
-                        <span className="text-xs font-bold font-mono" style={{ color: SENTIMENT_FILLS[selectedCountry.sentiment] }}>{selectedCountry.intensity}%</span>
-                      </div>
-                      <div className="h-1.5 w-full rounded-full bg-slate-800 overflow-hidden">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${selectedCountry.intensity}%` }}
-                          transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
-                          className="h-full rounded-full"
-                          style={{
-                            backgroundColor: SENTIMENT_FILLS[selectedCountry.sentiment],
-                            boxShadow: `0 0 8px ${SENTIMENT_FILLS[selectedCountry.sentiment]}60`,
-                          }}
-                        />
-                      </div>
-                    </div>
-
-                    {/* CTA */}
-                    <Button
-                      onClick={onSignUp}
-                      size="sm"
-                      className="w-full rounded-lg text-xs font-semibold"
-                      style={{
-                        backgroundColor: SENTIMENT_FILLS[selectedCountry.sentiment],
-                        color: selectedCountry.sentiment === 'neutral' ? '#000' : '#fff',
-                      }}
-                    >
-                      Unlock Full Analysis
-                      <ChevronRight className="ml-1 h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                </motion.div>
+                  </motion.div>
+                </>
               )}
             </AnimatePresence>
           </div>
 
           {/* Recent News Feed */}
-          <div className="border-t border-slate-800 px-4 py-4 sm:px-6">
-            <div className="flex items-center gap-2 mb-3">
+          <div className="border-t border-slate-800 px-3 py-3 sm:px-6 sm:py-4">
+            <div className="flex items-center gap-2 mb-2 sm:mb-3">
               <Newspaper className="h-3.5 w-3.5 text-purple-400" />
               <span className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">Live Global Feed</span>
               <span className="relative flex h-2 w-2 ml-1">
@@ -650,7 +596,7 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
               </span>
             </div>
-            <div className="space-y-1.5 max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent pr-1">
+            <div className="space-y-1.5 max-h-[160px] sm:max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent pr-1">
               {MOCK_NEWS.map((news, i) => (
                 <motion.div
                   key={news.id}
@@ -658,12 +604,12 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.05, duration: 0.3 }}
-                  className="flex items-start gap-3 rounded-lg bg-slate-800/30 border border-white/[0.03] px-3 py-2.5 hover:bg-slate-800/50 transition-colors cursor-pointer group"
+                  className="flex items-start gap-2 sm:gap-3 rounded-lg bg-slate-800/30 border border-white/[0.03] px-2.5 py-2 sm:px-3 sm:py-2.5 hover:bg-slate-800/50 transition-colors cursor-pointer group"
                   onClick={() => handleCountryClick(news.regionCode)}
                 >
                   <div className="flex flex-col items-center gap-1 shrink-0 pt-0.5">
                     <div className="h-2 w-2 rounded-full" style={{ backgroundColor: SENTIMENT_FILLS[news.sentiment] }} />
-                    <span className="text-[8px] text-gray-600 font-mono">{news.time}</span>
+                    <span className="text-[7px] sm:text-[8px] text-gray-600 font-mono">{news.time}</span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 mb-0.5">
@@ -671,12 +617,12 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
                         {news.region}
                       </span>
                     </div>
-                    <p className="text-[11px] text-gray-300 leading-snug line-clamp-2 group-hover:text-white transition-colors">
+                    <p className="text-[10px] sm:text-[11px] text-gray-300 leading-snug line-clamp-2 group-hover:text-white transition-colors">
                       {news.headline}
                     </p>
-                    <div className="flex items-center gap-1.5 mt-1">
+                    <div className="flex items-center gap-1 sm:gap-1.5 mt-1 flex-wrap">
                       {news.tickers.map(t => (
-                        <span key={t} className="text-[9px] font-mono font-semibold text-purple-400/80 bg-purple-500/10 rounded px-1.5 py-0.5">
+                        <span key={t} className="text-[8px] sm:text-[9px] font-mono font-semibold text-purple-400/80 bg-purple-500/10 rounded px-1 sm:px-1.5 py-0.5">
                           {t}
                         </span>
                       ))}
@@ -687,11 +633,11 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
             </div>
           </div>
 
-          {/* Theme cards strip below */}
-          <div className="border-t border-slate-800 px-4 py-5 sm:px-6">
-            <div className="flex items-center justify-between mb-3">
+          {/* Theme cards strip — horizontal scroll on mobile */}
+          <div className="border-t border-slate-800 px-3 py-4 sm:px-6 sm:py-5">
+            <div className="flex items-center justify-between mb-2 sm:mb-3">
               <span className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">Active Themes</span>
-              <div className="flex items-center gap-3 text-[10px] text-gray-500">
+              <div className="hidden sm:flex items-center gap-3 text-[10px] text-gray-500">
                 {(['bullish', 'bearish', 'neutral', 'emerging'] as const).map(s => (
                   <span key={s} className="flex items-center gap-1 capitalize">
                     <span className="h-2 w-2 rounded-full" style={{ backgroundColor: SENTIMENT_FILLS[s] }} />
@@ -700,7 +646,16 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
                 ))}
               </div>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+            {/* Mobile: legend row */}
+            <div className="flex sm:hidden items-center gap-2.5 text-[9px] text-gray-500 mb-2.5 overflow-x-auto">
+              {(['bullish', 'bearish', 'neutral', 'emerging'] as const).map(s => (
+                <span key={s} className="flex items-center gap-1 capitalize whitespace-nowrap">
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: SENTIMENT_FILLS[s] }} />
+                  {s}
+                </span>
+              ))}
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-3 lg:grid-cols-6 sm:overflow-visible scrollbar-thin scrollbar-thumb-slate-700">
               {MOCK_REGIONS.slice(0, 6).map((r, i) => {
                 const SentIcon = SENTIMENT_ICONS[r.sentiment];
                 const isSelected = selectedCountry?.code === r.code;
@@ -712,7 +667,7 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
                     viewport={{ once: true }}
                     transition={{ delay: i * 0.06, duration: 0.3 }}
                     className={cn(
-                      "rounded-lg bg-slate-800/50 border p-3 transition-all cursor-pointer group",
+                      "rounded-lg bg-slate-800/50 border p-2.5 sm:p-3 transition-all cursor-pointer group shrink-0 w-[140px] sm:w-auto",
                       isSelected
                         ? "border-purple-500/50 shadow-[0_0_16px_rgba(168,85,247,0.12)]"
                         : "border-white/[0.04] hover:border-purple-500/30"
@@ -721,19 +676,19 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
                     onMouseEnter={() => setHoveredCountry(r.code)}
                     onMouseLeave={() => setHoveredCountry(null)}
                   >
-                    <div className="flex items-center gap-1.5 mb-1.5">
+                    <div className="flex items-center gap-1.5 mb-1">
                       <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: SENTIMENT_FILLS[r.sentiment] }} />
-                      <span className="text-[11px] font-semibold text-white truncate">{r.name}</span>
+                      <span className="text-[10px] sm:text-[11px] font-semibold text-white truncate">{r.name}</span>
                     </div>
-                    <p className="text-[10px] text-gray-400 line-clamp-1 mb-2">{r.theme}</p>
+                    <p className="text-[9px] sm:text-[10px] text-gray-400 line-clamp-1 mb-1.5 sm:mb-2">{r.theme}</p>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1">
                         <SentIcon className="h-3 w-3" style={{ color: SENTIMENT_FILLS[r.sentiment] }} />
-                        <span className="text-[10px] capitalize font-medium" style={{ color: SENTIMENT_FILLS[r.sentiment] }}>
+                        <span className="text-[9px] sm:text-[10px] capitalize font-medium" style={{ color: SENTIMENT_FILLS[r.sentiment] }}>
                           {r.sentiment}
                         </span>
                       </div>
-                      <div className="text-[10px] text-gray-500 font-mono">{r.intensity}%</div>
+                      <div className="text-[9px] sm:text-[10px] text-gray-500 font-mono">{r.intensity}%</div>
                     </div>
                   </motion.div>
                 );
@@ -742,10 +697,10 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
           </div>
         </motion.div>
 
-        <div className="mt-6 text-center">
+        <div className="mt-5 sm:mt-6 text-center">
           <Button
             onClick={onSignUp}
-            className="rounded-full bg-purple-500 px-8 font-semibold text-white hover:bg-purple-400 shadow-[0_0_24px_rgba(168,85,247,0.3)]"
+            className="rounded-full bg-purple-500 px-6 sm:px-8 font-semibold text-white hover:bg-purple-400 shadow-[0_0_24px_rgba(168,85,247,0.3)] text-sm"
           >
             Explore All Themes
             <ChevronRight className="ml-1 h-4 w-4" />
@@ -753,5 +708,113 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
         </div>
       </div>
     </section>
+  );
+}
+
+/** Shared detail content for both mobile bottom sheet and desktop side panel */
+function MobileDetailContent({ country, onClose, onSignUp }: { country: MockRegion; onClose: () => void; onSignUp: () => void }) {
+  return (
+    <>
+      <div className="flex items-start justify-between mb-3 sm:mb-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <div className="h-3 w-3 rounded-full" style={{ backgroundColor: SENTIMENT_FILLS[country.sentiment] }} />
+            <h3 className="text-base sm:text-lg font-bold text-white">{country.name}</h3>
+          </div>
+          <p className="text-xs sm:text-sm text-gray-400">{country.theme}</p>
+        </div>
+        <button onClick={onClose} className="p-1 rounded-md hover:bg-slate-800 text-gray-500 hover:text-white transition-colors">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-3 gap-1.5 sm:gap-2 mb-3 sm:mb-4">
+        <div className="rounded-lg bg-slate-800/60 border border-white/[0.04] p-2 sm:p-2.5 text-center">
+          <div className="text-[8px] sm:text-[9px] uppercase tracking-wider text-gray-500 mb-1">Sentiment</div>
+          <div className="flex items-center justify-center gap-1">
+            {(() => { const Icon = SENTIMENT_ICONS[country.sentiment]; return <Icon className="h-3 w-3 sm:h-3.5 sm:w-3.5" style={{ color: SENTIMENT_FILLS[country.sentiment] }} />; })()}
+            <span className="text-[10px] sm:text-xs font-bold capitalize" style={{ color: SENTIMENT_FILLS[country.sentiment] }}>{country.sentiment}</span>
+          </div>
+        </div>
+        <div className="rounded-lg bg-slate-800/60 border border-white/[0.04] p-2 sm:p-2.5 text-center">
+          <div className="text-[8px] sm:text-[9px] uppercase tracking-wider text-gray-500 mb-1">GDP</div>
+          <div className="text-xs sm:text-sm font-bold text-white font-mono">{country.gdp}</div>
+        </div>
+        <div className="rounded-lg bg-slate-800/60 border border-white/[0.04] p-2 sm:p-2.5 text-center">
+          <div className="text-[8px] sm:text-[9px] uppercase tracking-wider text-gray-500 mb-1">Inflation</div>
+          <div className="text-xs sm:text-sm font-bold text-white font-mono">{country.inflation}</div>
+        </div>
+      </div>
+
+      <div className="mb-3 sm:mb-4">
+        <div className="flex items-center gap-1.5 mb-1.5 sm:mb-2">
+          <BarChart3 className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-gray-500" />
+          <span className="text-[9px] sm:text-[10px] uppercase tracking-wider text-gray-500 font-medium">Related Tickers</span>
+        </div>
+        <div className="space-y-1 sm:space-y-1.5">
+          {country.tickers.map((t) => (
+            <div key={t.symbol} className="flex items-center justify-between rounded-lg bg-slate-800/40 border border-white/[0.03] px-2.5 py-1.5 sm:px-3 sm:py-2">
+              <div>
+                <span className="text-[10px] sm:text-xs font-bold text-white font-mono">{t.symbol}</span>
+                <span className="text-[9px] sm:text-[10px] text-gray-500 ml-1.5 sm:ml-2">{t.name}</span>
+              </div>
+              <div className={cn("flex items-center gap-0.5 text-[10px] sm:text-xs font-mono font-semibold",
+                t.change >= 0 ? "text-emerald-400" : "text-rose-400"
+              )}>
+                {t.change >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                {t.change >= 0 ? '+' : ''}{t.change.toFixed(1)}%
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="mb-3 sm:mb-4">
+        <div className="flex items-center gap-1.5 mb-1.5 sm:mb-2">
+          <Zap className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-amber-400" />
+          <span className="text-[9px] sm:text-[10px] uppercase tracking-wider text-gray-500 font-medium">Key Catalysts</span>
+        </div>
+        <ul className="space-y-1 sm:space-y-1.5">
+          {country.catalysts.map((c, i) => (
+            <li key={i} className="flex items-start gap-2 text-[10px] sm:text-xs text-gray-300">
+              <span className="mt-1 h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: SENTIMENT_FILLS[country.sentiment] }} />
+              {c}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="mb-3 sm:mb-4">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-[9px] sm:text-[10px] text-gray-500">Theme Intensity</span>
+          <span className="text-[10px] sm:text-xs font-bold font-mono" style={{ color: SENTIMENT_FILLS[country.sentiment] }}>{country.intensity}%</span>
+        </div>
+        <div className="h-1.5 w-full rounded-full bg-slate-800 overflow-hidden">
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${country.intensity}%` }}
+            transition={{ duration: 0.6, ease: [0.25, 0.1, 0.25, 1] }}
+            className="h-full rounded-full"
+            style={{
+              backgroundColor: SENTIMENT_FILLS[country.sentiment],
+              boxShadow: `0 0 8px ${SENTIMENT_FILLS[country.sentiment]}60`,
+            }}
+          />
+        </div>
+      </div>
+
+      <Button
+        onClick={onSignUp}
+        size="sm"
+        className="w-full rounded-lg text-xs font-semibold"
+        style={{
+          backgroundColor: SENTIMENT_FILLS[country.sentiment],
+          color: country.sentiment === 'neutral' ? '#000' : '#fff',
+        }}
+      >
+        Unlock Full Analysis
+        <ChevronRight className="ml-1 h-3.5 w-3.5" />
+      </Button>
+    </>
   );
 }
