@@ -167,6 +167,8 @@ export function MarketingLandingPage() {
   const { requireAuth, showAuthDialog, closeAuthDialog } = useRequireAuth();
   const { tickers, isLoading: tickersLoading } = useTrendingTickers(20);
   const navigate = useNavigate();
+  const [teaserOpen, setTeaserOpen] = useState(false);
+  const openTeaser = () => setTeaserOpen(true);
 
   const [selectedTicker, setSelectedTicker] = useState('');
   const [selectedStrategy, setSelectedStrategy] = useState('');
