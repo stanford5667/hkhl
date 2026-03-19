@@ -328,18 +328,18 @@ export function MarketingLandingPage() {
           <AssetLabsLogo size="md" showText showTagline />
           <div className="hidden items-center gap-8 md:flex">
             {navLinks.map((l) => (
-              <a key={l} href={`#${l.toLowerCase()}`} className="text-sm text-gray-400 transition hover:text-white">
-                {l}
+              <a key={l.label} href={l.href} className="text-sm text-gray-400 transition hover:text-white">
+                {l.label}
               </a>
             ))}
             <button
-              onClick={() => requireAuth(() => {}, 'login')}
+              onClick={() => navigate('/auth', { state: { mode: 'signin' } })}
               className="text-sm text-gray-400 transition hover:text-white"
             >
               Log In
             </button>
             <Button
-              onClick={() => requireAuth(() => {}, 'signup')}
+              onClick={() => navigate('/auth', { state: { mode: 'signup' } })}
               className="rounded-full bg-cyan-400 px-6 font-semibold text-black hover:bg-cyan-300"
             >
               Sign Up
