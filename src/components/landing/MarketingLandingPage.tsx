@@ -710,6 +710,132 @@ export function MarketingLandingPage() {
         </div>
       </section>
 
+      {/* ─── Community Chat Mockup ─── */}
+      <section className="border-b border-white/[0.04] bg-slate-950 py-16 px-4 sm:px-8">
+        <div className="mx-auto max-w-7xl">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} className="mb-8">
+            <motion.div variants={fadeUp} custom={0} className="flex items-center gap-3 mb-2">
+              <Activity className="h-5 w-5 text-cyan-400" />
+              <h2 className="text-2xl font-bold sm:text-3xl">Real-Time Community Chat</h2>
+            </motion.div>
+            <motion.p variants={fadeUp} custom={1} className="text-gray-400">
+              Discuss trades, share ideas, and learn from other investors — all in real time.
+            </motion.p>
+          </motion.div>
+
+          <motion.div
+            variants={fadeUp}
+            custom={2}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+          >
+            <div className="rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden shadow-2xl shadow-cyan-500/5">
+              {/* Chat header */}
+              <div className="flex items-center justify-between border-b border-slate-800 px-5 py-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-500/20 text-cyan-400 text-sm">💬</div>
+                  <div>
+                    <div className="text-sm font-semibold text-white"># general</div>
+                    <div className="text-[10px] text-gray-500">1,247 members · 32 online</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className={cn("h-6 w-6 rounded-full border-2 border-slate-900 -ml-2 first:ml-0", [
+                      "bg-gradient-to-br from-cyan-400 to-blue-500",
+                      "bg-gradient-to-br from-violet-400 to-purple-500",
+                      "bg-gradient-to-br from-amber-400 to-orange-500",
+                      "bg-gradient-to-br from-emerald-400 to-teal-500",
+                      "bg-gradient-to-br from-rose-400 to-pink-500",
+                    ][i])} />
+                  ))}
+                  <span className="ml-2 text-[10px] text-gray-500">+27</span>
+                </div>
+              </div>
+
+              {/* Chat messages */}
+              <div className="p-4 space-y-4 min-h-[280px]">
+                {[
+                  { name: 'Alex M.', avatar: 'bg-gradient-to-br from-cyan-400 to-blue-500', time: '2:34 PM', msg: 'Just loaded up on NVDA calls ahead of earnings. The AI sentiment score on here is showing 87% bullish 🚀', status: 'online' },
+                  { name: 'Sarah K.', avatar: 'bg-gradient-to-br from-violet-400 to-purple-500', time: '2:35 PM', msg: 'Be careful with IV crush post-earnings. I ran a backtest on the volatility breakout strategy — historically it drops 8% in the first week after.', status: 'online' },
+                  { name: 'Mike R.', avatar: 'bg-gradient-to-br from-emerald-400 to-teal-500', time: '2:36 PM', msg: 'The macro module on yield curves was 🔥. Finally understanding why the 2s10s spread matters for tech valuations.', status: 'idle' },
+                  { name: 'Jessica L.', avatar: 'bg-gradient-to-br from-amber-400 to-orange-500', time: '2:37 PM', msg: 'Anyone else seeing the divergence on AAPL RSI? Looks like a textbook oversold bounce setup from Module 3.', reactions: [{ emoji: '👀', count: 4 }, { emoji: '📈', count: 2 }], status: 'online' },
+                ].map((m, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: -10 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.15 * i, duration: 0.4 }}
+                    className="flex gap-3 group"
+                  >
+                    <div className="relative shrink-0">
+                      <div className={cn("h-8 w-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white", m.avatar)}>
+                        {m.name.charAt(0)}
+                      </div>
+                      <div className={cn("absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-slate-900", m.status === 'online' ? 'bg-emerald-400' : 'bg-amber-400')} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-xs font-semibold text-white">{m.name}</span>
+                        <span className="text-[10px] text-gray-600">{m.time}</span>
+                      </div>
+                      <p className="text-sm text-gray-300 leading-relaxed mt-0.5">{m.msg}</p>
+                      {m.reactions && (
+                        <div className="flex gap-1.5 mt-1.5">
+                          {m.reactions.map((r, ri) => (
+                            <span key={ri} className="inline-flex items-center gap-1 rounded-full bg-slate-800 border border-slate-700 px-2 py-0.5 text-[10px] text-gray-400">
+                              {r.emoji} {r.count}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+
+                {/* Typing indicator */}
+                <div className="flex items-center gap-2 text-[11px] text-gray-500">
+                  <div className="flex gap-0.5">
+                    {[0, 1, 2].map(d => (
+                      <motion.div
+                        key={d}
+                        className="h-1.5 w-1.5 rounded-full bg-gray-500"
+                        animate={{ opacity: [0.3, 1, 0.3] }}
+                        transition={{ duration: 1.2, repeat: Infinity, delay: d * 0.2 }}
+                      />
+                    ))}
+                  </div>
+                  <span>3 people are typing…</span>
+                </div>
+              </div>
+
+              {/* Chat input mock */}
+              <div className="border-t border-slate-800 px-4 py-3">
+                <div className="flex items-center gap-3 rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-2.5">
+                  <span className="text-sm text-gray-500 flex-1">Message #general...</span>
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <span className="text-base">😀</span>
+                    <span className="text-base">📎</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 text-center">
+              <Button
+                onClick={() => requireAuth(() => navigate('/community'), 'signup')}
+                className="rounded-full bg-cyan-400 px-8 font-semibold text-black hover:bg-cyan-300"
+              >
+                Join the Conversation
+                <ChevronRight className="ml-1 h-4 w-4" />
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
       {/* ─── What You Get ─── */}
       <section id="features" className="border-b border-white/[0.04] bg-slate-950 py-16 px-4 sm:px-8">
         <div className="mx-auto max-w-5xl">
