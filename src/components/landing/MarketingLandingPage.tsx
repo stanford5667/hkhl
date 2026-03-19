@@ -873,7 +873,7 @@ export function MarketingLandingPage() {
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: true, margin: '-40px' }}
-                onClick={() => item.href && navigate(item.href)}
+                onClick={() => item.href && openTeaser()}
                 className={`group rounded-xl border bg-slate-900/60 p-6 transition-all ${item.borderColor} ${item.glow} ${item.href ? 'cursor-pointer hover:-translate-y-1' : ''}`}
               >
                 <div className={`mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-white/[0.05] ${item.color}`}>
