@@ -401,7 +401,7 @@ export function MarketingLandingPage() {
                   Running…
                 </>
               ) : (
-                '⚡ RUN FREE BACKTEST'
+                '🚀 GET STARTED FREE'
               )}
             </Button>
           </motion.div>
