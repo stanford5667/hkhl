@@ -111,7 +111,7 @@ export function Layout({ children }: LayoutProps) {
   // Unauthenticated users see only the landing page
   if (!user) {
     // Allow legal/public pages through without landing redirect
-    const publicPaths = ["/terms", "/privacy", "/disclosures", "/landing"];
+    const publicPaths = ["/terms", "/privacy", "/disclosures", "/landing", "/management-fee"];
     if (publicPaths.includes(location.pathname)) {
       return <>{children}</>;
     }
