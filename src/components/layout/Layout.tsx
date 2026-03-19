@@ -16,6 +16,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { QuickStartBanner } from "@/components/onboarding/QuickStartBanner";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { FooterDisclaimer } from "@/components/legal";
+import { MarketingLandingPage } from "@/components/landing/MarketingLandingPage";
 import { useEventNotifications } from "@/hooks/useEventNotifications";
 import { useActivityHeartbeat } from "@/hooks/useActivityHeartbeat";
 import { useGlobalScrollPersistence } from "@/hooks/useScrollPersistence";
