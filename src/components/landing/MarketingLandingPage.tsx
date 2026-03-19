@@ -607,7 +607,7 @@ export function MarketingLandingPage() {
       </section>
 
       {/* ─── Investment Heatmap Preview ─── */}
-      <LandingHeatmapPreview onSignUp={() => requireAuth(() => navigate('/investment-heatmap'), 'signup')} />
+      <LandingHeatmapPreview onSignUp={openTeaser} />
 
       {/* ─── Social Proof Strip ─── */}
       <section className="border-y border-white/[0.06] bg-slate-900/40">
