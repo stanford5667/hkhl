@@ -57,6 +57,30 @@ interface BacktestResult {
   portfolioHistory?: { date: string; value: number }[];
 }
 
+// Sample demo data so the preview card isn't empty on load
+const DEMO_RESULT: BacktestResult = {
+  totalReturn: 47.32,
+  maxDrawdown: -12.65,
+  winRate: 58.3,
+  sharpeRatio: 1.42,
+  portfolioHistory: (() => {
+    const pts: { date: string; value: number }[] = [];
+    let v = 100000;
+    const start = new Date('2020-01-02');
+    for (let i = 0; i < 120; i++) {
+      const d = new Date(start);
+      d.setDate(d.getDate() + i * 7);
+      // Simulate a realistic equity curve with some drawdowns
+      const trend = 0.003;
+      const noise = (Math.sin(i * 0.4) * 0.012) + (Math.cos(i * 0.15) * 0.008);
+      const drawdown = i > 30 && i < 45 ? -0.006 : 0;
+      v *= (1 + trend + noise + drawdown);
+      pts.push({ date: d.toISOString().slice(0, 10), value: Math.round(v) });
+    }
+    return pts;
+  })(),
+};
+
 const SOCIAL_PROOF = [
   { value: '10,000+', label: 'Stocks & ETFs' },
   { value: '30+', label: 'Years of Data' },
@@ -105,7 +129,7 @@ export function MarketingLandingPage() {
   const [selectedTicker, setSelectedTicker] = useState('');
   const [selectedStrategy, setSelectedStrategy] = useState('');
   const [isRunning, setIsRunning] = useState(false);
-  const [results, setResults] = useState<BacktestResult | null>(null);
+  const [results, setResults] = useState<BacktestResult | null>(DEMO_RESULT);
 
   const MODULE_THUMBNAIL_MAP: Record<string, string> = {
     'portfolio': modPortImg, 'option': modOptsImg, 'stock': modTechImg, 'financial': modFundImg,
@@ -331,9 +355,16 @@ export function MarketingLandingPage() {
         >
           <Card className="overflow-hidden border-cyan-500/30 bg-slate-900/80 shadow-[0_0_40px_hsl(185_80%_50%/0.1)]">
             <CardContent className="p-6">
-              <div className="mb-4 flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-cyan-400" />
-                <span className="text-sm font-semibold text-gray-300">Backtest Results Dashboard</span>
+              <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-cyan-400" />
+                  <span className="text-sm font-semibold text-gray-300">Backtest Results Dashboard</span>
+                </div>
+                {results === DEMO_RESULT && (
+                  <span className="text-[10px] uppercase tracking-wider text-gray-500 bg-slate-800/80 px-2 py-0.5 rounded">
+                    Sample Preview
+                  </span>
+                )}
               </div>
 
               {/* Chart area */}
