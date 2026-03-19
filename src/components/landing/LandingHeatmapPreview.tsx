@@ -163,7 +163,6 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
   const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
   const [selectedCountry, setSelectedCountry] = useState<MockRegion | null>(null);
   const [activeHudIndex, setActiveHudIndex] = useState(0);
-  const [visibleHuds, setVisibleHuds] = useState<Set<number>>(new Set([0, 1]));
 
   useEffect(() => {
     let cancelled = false;
@@ -179,22 +178,11 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
     return () => { cancelled = true; };
   }, []);
 
-  // Cycle through HUD callouts with a blinking reveal effect
+  // Show one HUD card at a time, cycling every 4 seconds
   useEffect(() => {
     const interval = setInterval(() => {
-      setVisibleHuds(prev => {
-        const next = new Set(prev);
-        const nextIdx = (Math.max(...Array.from(prev)) + 1) % HUD_CALLOUTS.length;
-        if (next.size >= HUD_CALLOUTS.length) {
-          // All visible, start cycling — remove oldest
-          const arr = Array.from(next);
-          next.delete(arr[0]);
-        }
-        next.add(nextIdx);
-        return next;
-      });
       setActiveHudIndex(prev => (prev + 1) % HUD_CALLOUTS.length);
-    }, 3000);
+    }, 4000);
     return () => clearInterval(interval);
   }, []);
 
