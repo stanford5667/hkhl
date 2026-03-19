@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { TeaserGateModal } from './TeaserGateModal';
 import { motion, type Easing } from 'framer-motion';
 import { Zap, ChevronRight, Loader2, TrendingUp, GraduationCap, Globe, Play, Clock, Video, Activity, Target, Shield, DollarSign, Award, BarChart3 } from 'lucide-react';
 import { LandingHeatmapPreview } from './LandingHeatmapPreview';
