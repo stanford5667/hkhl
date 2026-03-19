@@ -69,18 +69,76 @@ export default function ManagementFee() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="max-w-lg w-full space-y-8 text-center">
-        <div className="space-y-2">
+      <div className="max-w-2xl w-full space-y-8">
+        <div className="text-center space-y-2">
           <div className="mx-auto w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center mb-4">
             <Shield className="h-7 w-7 text-primary" />
           </div>
-          <h1 className="text-3xl font-bold text-foreground">Management Fees</h1>
-          <p className="text-muted-foreground">Asset Labs — One-time payment</p>
+          <h1 className="text-3xl font-bold text-foreground">Annual Management Fee</h1>
+          <p className="text-muted-foreground">Research & Consulting Agreement — Annual Payment</p>
         </div>
 
         <div className="rounded-xl border border-border bg-card p-8 space-y-6">
-          <div className="text-5xl font-bold text-foreground">$10,000</div>
-          <p className="text-sm text-muted-foreground">One-time management fee payment via Stripe</p>
+          <div className="text-center">
+            <div className="text-5xl font-bold text-foreground">$10,000</div>
+            <p className="text-sm text-muted-foreground mt-2">Annual management fee — billed yearly</p>
+          </div>
+
+          <div className="border-t border-border pt-6 space-y-4">
+            <h2 className="text-sm font-semibold text-foreground uppercase tracking-wider">Scope of Services</h2>
+            <ul className="text-sm text-muted-foreground space-y-2 text-left">
+              <li className="flex items-start gap-2">
+                <span className="text-primary mt-0.5">•</span>
+                Portfolio modeling, back-testing, and allocation analysis
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary mt-0.5">•</span>
+                Options position analysis and industry correlation research
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary mt-0.5">•</span>
+                Monte Carlo simulation for hedging and factor regression modeling
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary mt-0.5">•</span>
+                Custom investment plan with risk constraints (STDEV, VAR, draw-down)
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary mt-0.5">•</span>
+                Rebalancing parameters, position sizing rules, and portfolio mechanics
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary mt-0.5">•</span>
+                Theta-targeted, high-yield bond, commodity, and emerging market portfolios
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary mt-0.5">•</span>
+                Estate and tax planning considerations
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary mt-0.5">•</span>
+                Ongoing position monitoring and research updates
+              </li>
+            </ul>
+          </div>
+
+          <div className="border-t border-border pt-6 space-y-3">
+            <h2 className="text-sm font-semibold text-foreground uppercase tracking-wider">Fee Structure</h2>
+            <div className="text-sm text-muted-foreground space-y-1 text-left">
+              <p><span className="text-foreground font-medium">Base Fee:</span> $10,000 annual management fee, prorated and paid quarterly in advance.</p>
+              <p><span className="text-foreground font-medium">Performance Fee:</span> 5% on returns exceeding a 20% annual threshold, subject to a high-water mark provision.</p>
+            </div>
+          </div>
+
+          <div className="border-t border-border pt-6 space-y-3">
+            <h2 className="text-sm font-semibold text-foreground uppercase tracking-wider">Key Terms</h2>
+            <div className="text-xs text-muted-foreground space-y-1 text-left">
+              <p>• Research and modeling services only — not brokerage or formal financial advisory.</p>
+              <p>• Client retains exclusive responsibility for account execution and trade implementation.</p>
+              <p>• Either party may terminate with 30 days' written notice.</p>
+              <p>• All processes, arrangements, and information shared are strictly confidential.</p>
+            </div>
+          </div>
 
           <Button
             onClick={handleCheckout}
@@ -98,7 +156,7 @@ export default function ManagementFee() {
             )}
           </Button>
 
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground text-center">
             Secure payment processed by Stripe. You'll receive a receipt via email.
           </p>
         </div>
