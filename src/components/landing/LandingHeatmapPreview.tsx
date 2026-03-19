@@ -4,7 +4,7 @@ import { geoNaturalEarth1, geoPath, type GeoPermissibleObjects } from 'd3-geo';
 import { feature } from 'topojson-client';
 import type { Topology, GeometryCollection } from 'topojson-specification';
 import type { FeatureCollection, Feature, Geometry } from 'geojson';
-import { Globe, ChevronRight, TrendingUp, TrendingDown, Minus, X, BarChart3, Zap, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { Globe, ChevronRight, TrendingUp, TrendingDown, Minus, X, BarChart3, Zap, ArrowUpRight, ArrowDownRight, Newspaper, AlertTriangle, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -87,7 +87,6 @@ const SENTIMENT_ICONS: Record<string, typeof TrendingUp> = {
   emerging: TrendingUp,
 };
 
-// Label offsets to prevent overlaps — nudge labels away from centroids
 const LABEL_OFFSETS: Record<string, { dx: number; dy: number }> = {
   US: { dx: -60, dy: 15 },
   CN: { dx: 15, dy: -20 },
@@ -96,6 +95,57 @@ const LABEL_OFFSETS: Record<string, { dx: number; dy: number }> = {
   IN: { dx: 15, dy: 15 },
   DE: { dx: -70, dy: -20 },
 };
+
+// HUD callout cards that appear on the map with blinking indicators
+interface HudCallout {
+  code: string;
+  type: 'alert' | 'watch' | 'opportunity';
+  headline: string;
+  summary: string;
+}
+
+const HUD_CALLOUTS: HudCallout[] = [
+  { code: 'US', type: 'opportunity', headline: 'AI Capex Surge', summary: 'NVDA, MSFT leading $200B+ AI infrastructure build-out' },
+  { code: 'CN', type: 'watch', headline: 'Stimulus Watch', summary: 'PBoC expected to announce new easing measures this week' },
+  { code: 'JP', type: 'opportunity', headline: 'Chip Revival', summary: 'TSMC Arizona + Tokyo Electron orders at record highs' },
+  { code: 'IR', type: 'alert', headline: 'Geopolitical Risk', summary: 'Oil supply disruption risk elevated — energy sector volatile' },
+];
+
+const HUD_COLORS = {
+  alert: { bg: 'rgba(244,63,94,0.12)', border: '#f43f5e', text: '#fda4af', icon: AlertTriangle },
+  watch: { bg: 'rgba(59,130,246,0.12)', border: '#3b82f6', text: '#93c5fd', icon: Eye },
+  opportunity: { bg: 'rgba(16,185,129,0.12)', border: '#10b981', text: '#6ee7b7', icon: TrendingUp },
+};
+
+// HUD callout offsets (percentage-based from centroid, separate from label offsets)
+const HUD_OFFSETS: Record<string, { dx: number; dy: number }> = {
+  US: { dx: -120, dy: -50 },
+  CN: { dx: 40, dy: -55 },
+  JP: { dx: 40, dy: 20 },
+  IR: { dx: -130, dy: 10 },
+};
+
+// Recent news items
+interface NewsItem {
+  id: string;
+  time: string;
+  region: string;
+  regionCode: string;
+  headline: string;
+  sentiment: 'bullish' | 'bearish' | 'neutral' | 'emerging';
+  tickers: string[];
+}
+
+const MOCK_NEWS: NewsItem[] = [
+  { id: '1', time: '2m ago', region: 'US', regionCode: 'US', headline: 'NVIDIA announces next-gen Blackwell Ultra chip, shares surge 4.2% in pre-market', sentiment: 'bullish', tickers: ['NVDA', 'AMD'] },
+  { id: '2', time: '8m ago', region: 'China', regionCode: 'CN', headline: 'PBoC signals fresh stimulus package targeting EV and green energy sectors', sentiment: 'emerging', tickers: ['BYDDY', 'NIO'] },
+  { id: '3', time: '15m ago', region: 'Iran', regionCode: 'IR', headline: 'Strait of Hormuz tensions rise as naval exercises expand — oil futures spike', sentiment: 'bearish', tickers: ['USO', 'XLE'] },
+  { id: '4', time: '22m ago', region: 'Japan', regionCode: 'JP', headline: 'BOJ holds rates steady, signals gradual normalization path through 2026', sentiment: 'bullish', tickers: ['TM', 'SONY'] },
+  { id: '5', time: '31m ago', region: 'India', regionCode: 'IN', headline: 'India UPI transactions hit record 18B monthly, fintech boom accelerates', sentiment: 'bullish', tickers: ['INFY', 'INDA'] },
+  { id: '6', time: '45m ago', region: 'Germany', regionCode: 'DE', headline: 'ECB rate decision preview: markets pricing in 25bp cut amid weak PMI data', sentiment: 'neutral', tickers: ['SAP', 'SIEGY'] },
+  { id: '7', time: '1h ago', region: 'Brazil', regionCode: 'BR', headline: 'Vale iron ore shipments beat estimates, commodity super-cycle thesis strengthens', sentiment: 'emerging', tickers: ['VALE', 'EWZ'] },
+  { id: '8', time: '1h ago', region: 'S. Korea', regionCode: 'KR', headline: 'SK Hynix HBM4 production begins ahead of schedule, Samsung follows', sentiment: 'bullish', tickers: ['000660.KS', '005930.KS'] },
+];
 
 interface CountryFeature extends Feature<Geometry> {
   id: string;
@@ -112,6 +162,8 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
   const [loading, setLoading] = useState(true);
   const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
   const [selectedCountry, setSelectedCountry] = useState<MockRegion | null>(null);
+  const [activeHudIndex, setActiveHudIndex] = useState(0);
+  const [visibleHuds, setVisibleHuds] = useState<Set<number>>(new Set([0, 1]));
 
   useEffect(() => {
     let cancelled = false;
@@ -125,6 +177,25 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
       })
       .catch(() => setLoading(false));
     return () => { cancelled = true; };
+  }, []);
+
+  // Cycle through HUD callouts with a blinking reveal effect
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setVisibleHuds(prev => {
+        const next = new Set(prev);
+        const nextIdx = (Math.max(...Array.from(prev)) + 1) % HUD_CALLOUTS.length;
+        if (next.size >= HUD_CALLOUTS.length) {
+          // All visible, start cycling — remove oldest
+          const arr = Array.from(next);
+          next.delete(arr[0]);
+        }
+        next.add(nextIdx);
+        return next;
+      });
+      setActiveHudIndex(prev => (prev + 1) % HUD_CALLOUTS.length);
+    }, 3000);
+    return () => clearInterval(interval);
   }, []);
 
   const regionMap = useMemo(() => {
@@ -148,6 +219,26 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
       setSelectedCountry(region);
     }
   };
+
+  // Compute centroid positions for HUD callouts
+  const hudPositions = useMemo(() => {
+    if (!worldData) return [];
+    return HUD_CALLOUTS.map(hud => {
+      const feat = worldData.features.find(
+        f => NUMERIC_TO_ALPHA2[(f as CountryFeature).id] === hud.code
+      ) as CountryFeature | undefined;
+      if (!feat) return null;
+      const centroid = pathGenerator.centroid(feat as GeoPermissibleObjects);
+      if (!centroid || isNaN(centroid[0])) return null;
+      const offset = HUD_OFFSETS[hud.code] || { dx: 20, dy: -30 };
+      return {
+        leftPct: ((centroid[0] + offset.dx) / width) * 100,
+        topPct: ((centroid[1] + offset.dy) / height) * 100,
+        centroidX: (centroid[0] / width) * 100,
+        centroidY: (centroid[1] / height) * 100,
+      };
+    });
+  }, [worldData, pathGenerator]);
 
   return (
     <section className="border-b border-white/[0.04] bg-slate-950 py-16 px-4 sm:px-8 overflow-hidden">
@@ -196,7 +287,6 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
                     style={{ minHeight: 220 }}
                   >
                     <defs>
-                      {/* Glow filters for each sentiment */}
                       <filter id="glow-bullish" x="-80%" y="-80%" width="260%" height="260%">
                         <feGaussianBlur stdDeviation="6" result="blur" />
                         <feFlood floodColor="#10b981" floodOpacity="0.7" result="color" />
@@ -221,26 +311,15 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
                         <feComposite in="color" in2="blur" operator="in" result="shadow" />
                         <feMerge><feMergeNode in="shadow" /><feMergeNode in="shadow" /><feMergeNode in="SourceGraphic" /></feMerge>
                       </filter>
-                      {/* Soft ambient glow for the whole map */}
-                      <filter id="glow-ambient" x="-20%" y="-20%" width="140%" height="140%">
-                        <feGaussianBlur stdDeviation="6" result="blur" />
-                        <feFlood floodColor="#a855f7" floodOpacity="0.15" result="color" />
-                        <feComposite in="color" in2="blur" operator="in" result="shadow" />
-                        <feMerge><feMergeNode in="shadow" /><feMergeNode in="SourceGraphic" /></feMerge>
-                      </filter>
+                      <radialGradient id="radial-glow">
+                        <stop offset="0%" stopColor="#a855f7" stopOpacity="0.06" />
+                        <stop offset="100%" stopColor="#a855f7" stopOpacity="0" />
+                      </radialGradient>
                     </defs>
 
                     {/* Ocean */}
                     <rect width={width} height={height} fill="#060a14" />
-
-                    {/* Subtle radial glow in center */}
                     <circle cx={width / 2} cy={height / 2} r="300" fill="url(#radial-glow)" />
-                    <defs>
-                      <radialGradient id="radial-glow">
-                        <stop offset="0%" stopColor="#a855f7" stopOpacity="0.04" />
-                        <stop offset="100%" stopColor="#a855f7" stopOpacity="0" />
-                      </radialGradient>
-                    </defs>
 
                     {/* Graticule */}
                     <g strokeWidth="0.3" fill="none" stroke="rgba(168,85,247,0.06)">
@@ -306,23 +385,98 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
                       const isSelected = selectedCountry?.code === sc.code;
                       return (
                         <g key={`spot-${sc.code}`} className="cursor-pointer" onClick={() => handleCountryClick(sc.code)}>
+                          {/* Outer blinking ring */}
                           <circle cx={centroid[0]} cy={centroid[1]} r="14" fill={fill} fillOpacity="0.12">
-                            <animate attributeName="r" values="10;20;10" dur="3s" repeatCount="indefinite" />
-                            <animate attributeName="fill-opacity" values="0.2;0.03;0.2" dur="3s" repeatCount="indefinite" />
+                            <animate attributeName="r" values="10;22;10" dur="2.5s" repeatCount="indefinite" />
+                            <animate attributeName="fill-opacity" values="0.25;0.02;0.25" dur="2.5s" repeatCount="indefinite" />
+                          </circle>
+                          {/* Second blinking ring (offset timing) */}
+                          <circle cx={centroid[0]} cy={centroid[1]} r="8" fill="none" stroke={fill} strokeWidth="0.8" strokeOpacity="0.3">
+                            <animate attributeName="r" values="8;18;8" dur="2s" begin="0.5s" repeatCount="indefinite" />
+                            <animate attributeName="stroke-opacity" values="0.4;0.05;0.4" dur="2s" begin="0.5s" repeatCount="indefinite" />
                           </circle>
                           {isSelected && (
-                            <circle cx={centroid[0]} cy={centroid[1]} r="22" fill="none" stroke={fill} strokeWidth="1" strokeOpacity="0.4">
-                              <animate attributeName="r" values="18;28;18" dur="2s" repeatCount="indefinite" />
-                              <animate attributeName="stroke-opacity" values="0.4;0.1;0.4" dur="2s" repeatCount="indefinite" />
+                            <circle cx={centroid[0]} cy={centroid[1]} r="22" fill="none" stroke={fill} strokeWidth="1.5" strokeOpacity="0.5">
+                              <animate attributeName="r" values="18;30;18" dur="1.8s" repeatCount="indefinite" />
+                              <animate attributeName="stroke-opacity" values="0.5;0.1;0.5" dur="1.8s" repeatCount="indefinite" />
                             </circle>
                           )}
-                          <circle cx={centroid[0]} cy={centroid[1]} r="5" fill={fill} fillOpacity="0.95" stroke="#060a14" strokeWidth="1.5" />
+                          {/* Core dot with blink */}
+                          <circle cx={centroid[0]} cy={centroid[1]} r="5" fill={fill} fillOpacity="0.95" stroke="#060a14" strokeWidth="1.5">
+                            <animate attributeName="fill-opacity" values="1;0.5;1" dur="1.5s" repeatCount="indefinite" />
+                          </circle>
                         </g>
                       );
                     })}
                   </svg>
 
-                  {/* HTML labels — only show for spotlights that aren't selected (detail panel shows that) */}
+                  {/* HUD Callout Cards — floating on the map */}
+                  <AnimatePresence>
+                    {HUD_CALLOUTS.map((hud, idx) => {
+                      const pos = hudPositions[idx];
+                      if (!pos || !visibleHuds.has(idx)) return null;
+                      const style = HUD_COLORS[hud.type];
+                      const HudIcon = style.icon;
+                      return (
+                        <motion.div
+                          key={`hud-${hud.code}`}
+                          initial={{ opacity: 0, scale: 0.85, y: 10 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.85, y: -10 }}
+                          transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+                          className="absolute z-20 hidden md:block pointer-events-auto cursor-pointer"
+                          style={{ left: `${pos.leftPct}%`, top: `${pos.topPct}%` }}
+                          onClick={() => handleCountryClick(hud.code)}
+                        >
+                          <div
+                            className="rounded-lg px-3 py-2.5 backdrop-blur-md border max-w-[200px] shadow-lg"
+                            style={{
+                              background: style.bg,
+                              borderColor: `${style.border}50`,
+                              boxShadow: `0 0 20px ${style.border}20, 0 0 40px ${style.border}10`,
+                            }}
+                          >
+                            <div className="flex items-center gap-1.5 mb-1">
+                              {/* Blinking indicator dot */}
+                              <span className="relative flex h-2 w-2">
+                                <span
+                                  className="absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping"
+                                  style={{ backgroundColor: style.border }}
+                                />
+                                <span
+                                  className="relative inline-flex rounded-full h-2 w-2"
+                                  style={{ backgroundColor: style.border }}
+                                />
+                              </span>
+                              <HudIcon className="h-3 w-3" style={{ color: style.border }} />
+                              <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: style.text }}>
+                                {hud.type}
+                              </span>
+                            </div>
+                            <p className="text-[11px] font-semibold text-white leading-tight mb-0.5">{hud.headline}</p>
+                            <p className="text-[9px] leading-tight" style={{ color: `${style.text}CC` }}>{hud.summary}</p>
+                          </div>
+                          {/* Connector line to country */}
+                          <svg
+                            className="absolute pointer-events-none"
+                            style={{
+                              left: '50%',
+                              top: '100%',
+                              width: 2,
+                              height: 20,
+                              overflow: 'visible',
+                            }}
+                          >
+                            <line x1="0" y1="0" x2="0" y2="20" stroke={style.border} strokeWidth="1" strokeOpacity="0.3" strokeDasharray="3 3">
+                              <animate attributeName="stroke-opacity" values="0.3;0.6;0.3" dur="2s" repeatCount="indefinite" />
+                            </line>
+                          </svg>
+                        </motion.div>
+                      );
+                    })}
+                  </AnimatePresence>
+
+                  {/* HTML labels */}
                   {spotlights.map((sc) => {
                     const feat = worldData.features.find(
                       f => NUMERIC_TO_ALPHA2[(f as CountryFeature).id] === sc.code
@@ -496,6 +650,53 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
                 </motion.div>
               )}
             </AnimatePresence>
+          </div>
+
+          {/* Recent News Feed */}
+          <div className="border-t border-slate-800 px-4 py-4 sm:px-6">
+            <div className="flex items-center gap-2 mb-3">
+              <Newspaper className="h-3.5 w-3.5 text-purple-400" />
+              <span className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">Live Global Feed</span>
+              <span className="relative flex h-2 w-2 ml-1">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+              </span>
+            </div>
+            <div className="space-y-1.5 max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent pr-1">
+              {MOCK_NEWS.map((news, i) => (
+                <motion.div
+                  key={news.id}
+                  initial={{ opacity: 0, x: -10 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.05, duration: 0.3 }}
+                  className="flex items-start gap-3 rounded-lg bg-slate-800/30 border border-white/[0.03] px-3 py-2.5 hover:bg-slate-800/50 transition-colors cursor-pointer group"
+                  onClick={() => handleCountryClick(news.regionCode)}
+                >
+                  <div className="flex flex-col items-center gap-1 shrink-0 pt-0.5">
+                    <div className="h-2 w-2 rounded-full" style={{ backgroundColor: SENTIMENT_FILLS[news.sentiment] }} />
+                    <span className="text-[8px] text-gray-600 font-mono">{news.time}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: SENTIMENT_FILLS[news.sentiment] }}>
+                        {news.region}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-gray-300 leading-snug line-clamp-2 group-hover:text-white transition-colors">
+                      {news.headline}
+                    </p>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      {news.tickers.map(t => (
+                        <span key={t} className="text-[9px] font-mono font-semibold text-purple-400/80 bg-purple-500/10 rounded px-1.5 py-0.5">
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
           </div>
 
           {/* Theme cards strip below */}
