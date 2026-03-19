@@ -710,7 +710,7 @@ export function MarketingLandingPage() {
           <div className="mt-8 text-center">
             <Button
               variant="outline"
-              onClick={() => navigate('/academy')}
+              onClick={openTeaser}
               className="border-amber-500/30 text-gray-300 hover:bg-amber-500/10 hover:text-white"
             >
               Browse Full Curriculum
