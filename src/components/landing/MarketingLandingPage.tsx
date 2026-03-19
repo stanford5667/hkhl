@@ -170,8 +170,8 @@ export function MarketingLandingPage() {
   const [teaserOpen, setTeaserOpen] = useState(false);
   const openTeaser = () => setTeaserOpen(true);
 
-  const [selectedTicker, setSelectedTicker] = useState('');
-  const [selectedStrategy, setSelectedStrategy] = useState('');
+  const [selectedTicker, setSelectedTicker] = useState('AAPL');
+  const [selectedStrategy, setSelectedStrategy] = useState('rsi_oversold_bounce');
   const [isRunning, setIsRunning] = useState(false);
   const [results, setResults] = useState<BacktestResult | null>(DEMO_RESULT);
 
