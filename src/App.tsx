@@ -178,6 +178,7 @@ const App = () => {
                               <Route path="/holdings" element={<Navigate to="/" replace />} />
                               
                               <Route path="/stock-swipe" element={<StockDiscovery />} />
+                              <Route path="/management-fee" element={<ManagementFee />} />
                               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                               <Route path="*" element={<NotFound />} />
                             </Routes>
