@@ -167,7 +167,7 @@ export function MarketingLandingPage() {
   const { requireAuth, showAuthDialog, closeAuthDialog } = useRequireAuth();
   const { tickers, isLoading: tickersLoading } = useTrendingTickers(20);
   const navigate = useNavigate();
-  const openTeaser = requireAuth;
+  const openTeaser = () => requireAuth(() => {});
 
   const [selectedTicker, setSelectedTicker] = useState('AAPL');
   const [selectedStrategy, setSelectedStrategy] = useState('rsi_oversold_bounce');
