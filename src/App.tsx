@@ -72,6 +72,7 @@ const LandingPage = lazy(() => import('./pages/LandingPage'));
 const Upgrade = lazy(() => import('./pages/Upgrade'));
 const Affiliate = lazy(() => import('./pages/Affiliate'));
 const InvestmentHeatmap = lazy(() => import('./pages/InvestmentHeatmap'));
+const ManagementFee = lazy(() => import('./pages/ManagementFee'));
 
 // Optimized QueryClient with aggressive caching and deduplication
 const queryClient = new QueryClient({
