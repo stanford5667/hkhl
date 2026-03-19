@@ -835,7 +835,7 @@ export function MarketingLandingPage() {
 
             <div className="mt-6 text-center">
               <Button
-                onClick={() => requireAuth(() => navigate('/community'), 'signup')}
+                onClick={openTeaser}
                 className="rounded-full bg-cyan-400 px-8 font-semibold text-black hover:bg-cyan-300"
               >
                 Join the Conversation
