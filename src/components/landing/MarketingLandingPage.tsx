@@ -631,7 +631,7 @@ export function MarketingLandingPage() {
       </section>
 
       {/* ─── Academy Preview ─── */}
-      <section className="border-b border-white/[0.04] bg-slate-950 py-16 px-4 sm:px-8">
+      <section id="academy" className="border-b border-white/[0.04] bg-slate-950 py-16 px-4 sm:px-8">
         <div className="mx-auto max-w-7xl">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} className="mb-8">
             <motion.div variants={fadeUp} custom={0} className="flex items-center gap-3 mb-2">
