@@ -168,7 +168,12 @@ const MessageItem = memo(function MessageItem({
           {isPremiumMessage && !canViewPremium ? (
             <PremiumMessageGate content={message.content} />
           ) : (
-            renderContent(contentParts)
+            <>
+              {message.content && renderContent(contentParts)}
+              {message.attachment_url && (
+                <MessageAttachment url={message.attachment_url} type={message.attachment_type || 'file'} />
+              )}
+            </>
           )}
         </div>
 

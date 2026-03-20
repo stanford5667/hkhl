@@ -156,8 +156,24 @@ export function MessageInput({
             )}
           />
           
+          {/* Pending attachment preview */}
+          {pendingAttachment && (
+            <div className="flex items-center gap-2 mb-1.5 px-2 py-1.5 bg-muted rounded-md text-xs">
+              <span className="truncate flex-1">
+                {pendingAttachment.type === 'image' ? '🖼️ Image' : '📎 File'} attached
+              </span>
+              <button onClick={() => setPendingAttachment(null)} className="shrink-0">
+                <X className="h-3.5 w-3.5 text-muted-foreground" />
+              </button>
+            </div>
+          )}
+          
           {/* Inline action buttons */}
           <div className="absolute right-2 bottom-2 flex items-center gap-1">
+            <ChatAttachmentButton 
+              onAttach={(url, type) => setPendingAttachment({ url, type })} 
+              disabled={disabled || sending}
+            />
             <Popover>
               <PopoverTrigger asChild>
                 <Button 

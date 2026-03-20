@@ -92,15 +92,21 @@ export function useMessageThreads(roomId: string | null) {
 
     const detectedTickers = extractTickers(content);
 
+    const insertData: any = {
+      room_id: roomId,
+      user_id: user.id,
+      content: content || '',
+      detected_tickers: detectedTickers,
+      reply_to: activeThread.id,
+    };
+    if (attachmentUrl) {
+      insertData.attachment_url = attachmentUrl;
+      insertData.attachment_type = attachmentType || 'file';
+    }
+
     const { data, error } = await supabase
       .from('chat_messages')
-      .insert({
-        room_id: roomId,
-        user_id: user.id,
-        content,
-        detected_tickers: detectedTickers,
-        reply_to: activeThread.id,
-      })
+      .insert(insertData)
       .select()
       .single();
 
