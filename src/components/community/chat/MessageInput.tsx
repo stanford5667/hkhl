@@ -15,7 +15,7 @@ import {
 const COMMON_EMOJIS = ['👍', '❤️', '🚀', '🔥', '📈', '💎', '🐻', '🐂', '😂', '🤔', '👏', '💪'];
 
 interface MessageInputProps {
-  onSend: (content: string) => Promise<void>;
+  onSend: (content: string, attachmentUrl?: string, attachmentType?: string) => Promise<void>;
   onTyping?: () => void;
   placeholder?: string;
   disabled?: boolean;
