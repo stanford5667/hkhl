@@ -54,12 +54,13 @@ export function MessageInput({
   }, [content]);
 
   const handleSubmit = async () => {
-    if (!content.trim() || sending || disabled) return;
+    if ((!content.trim() && !pendingAttachment) || sending || disabled) return;
 
     try {
       setSending(true);
-      await onSend(content.trim());
+      await onSend(content.trim(), pendingAttachment?.url, pendingAttachment?.type);
       setContent('');
+      setPendingAttachment(null);
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
       }
