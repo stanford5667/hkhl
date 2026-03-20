@@ -85,7 +85,7 @@ export function useMessageThreads(roomId: string | null) {
   }, []);
 
   // Send reply in thread
-  const sendThreadReply = useCallback(async (content: string) => {
+  const sendThreadReply = useCallback(async (content: string, attachmentUrl?: string, attachmentType?: string) => {
     if (!user || !roomId || !activeThread) {
       throw new Error('Must be authenticated and have an active thread');
     }
