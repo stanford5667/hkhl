@@ -69,10 +69,10 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
     }
   }, [canAccess, messages, room.id, markRoomAsRead]);
 
-  const handleSendMessage = async (content: string) => {
+  const handleSendMessage = async (content: string, attachmentUrl?: string, attachmentType?: string) => {
     try {
       stopTyping();
-      await sendMessage(content, replyingTo?.id);
+      await sendMessage(content, replyingTo?.id, attachmentUrl, attachmentType);
       setReplyingTo(null);
     } catch (err: any) {
       toast.error('Failed to send message: ' + err.message);
