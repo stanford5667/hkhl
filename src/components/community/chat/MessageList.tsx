@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { PresenceIndicator } from './PresenceIndicator';
 import { PremiumMessageGate } from './PremiumMessageGate';
+import { MessageAttachment } from './MessageAttachment';
 
 const COMMON_EMOJIS = ['👍', '❤️', '🚀', '🔥', '📈', '💎', '🐻', '🐂'];
 
