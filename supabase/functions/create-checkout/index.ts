@@ -54,6 +54,7 @@ serve(async (req) => {
     let billingInterval = "monthly";
     let returnPath = "/quant-lab";
     let affiliateCode: string | null = null;
+    let enableTrial = false;
     try {
       const body = await req.json();
       if (body?.plan && PLAN_PRICES[body.plan]) {
@@ -67,6 +68,9 @@ serve(async (req) => {
       }
       if (body?.affiliate_code && typeof body.affiliate_code === 'string') {
         affiliateCode = body.affiliate_code.trim().toUpperCase();
+      }
+      if (body?.trial === true) {
+        enableTrial = true;
       }
     } catch {
       // No body or invalid JSON - use defaults
