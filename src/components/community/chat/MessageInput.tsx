@@ -41,6 +41,7 @@ export function MessageInput({
 }: MessageInputProps) {
   const [content, setContent] = useState('');
   const [sending, setSending] = useState(false);
+  const [pendingAttachment, setPendingAttachment] = useState<{ url: string; type: string } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { isAuthenticated } = useAuth();
 
