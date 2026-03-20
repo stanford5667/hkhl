@@ -132,10 +132,10 @@ serve(async (req) => {
 
     // Find the highest tier subscription
     let bestPlan = 'free';
-    let bestSubscription = subscriptions.data[0];
+    let bestSubscription = activeSubscriptions[0];
     let productId: string | null = null;
 
-    for (const subscription of subscriptions.data) {
+    for (const subscription of activeSubscriptions) {
       const subProductId = subscription.items.data[0]?.price?.product as string;
       const subPlan = determinePlan(subProductId);
 

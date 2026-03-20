@@ -77,7 +77,7 @@ serve(async (req) => {
     }
 
     const priceId = PLAN_PRICES[selectedPlan][billingInterval];
-    logStep("Selected plan", { plan: selectedPlan, billingInterval, priceId, returnPath, affiliateCode });
+    logStep("Selected plan", { plan: selectedPlan, billingInterval, priceId, returnPath, affiliateCode, enableTrial });
 
     const token = authHeader.replace("Bearer ", "");
     const { data } = await supabaseClient.auth.getUser(token);

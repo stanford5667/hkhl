@@ -119,8 +119,8 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
 
   const handleUpgradeClick = () => { showUpgradeModal('premiumChat'); };
 
-  const handleSendThreadReply = async (content: string) => {
-    try { await sendThreadReply(content); } catch (err: any) { toast.error('Failed to send reply: ' + err.message); throw err; }
+  const handleSendThreadReply = async (content: string, attachmentUrl?: string, attachmentType?: string) => {
+    try { await sendThreadReply(content, attachmentUrl, attachmentType); } catch (err: any) { toast.error('Failed to send reply: ' + err.message); throw err; }
   };
 
   const handleRoomDeleted = () => {
