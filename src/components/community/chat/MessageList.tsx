@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import { PresenceIndicator } from './PresenceIndicator';
 import { PremiumMessageGate } from './PremiumMessageGate';
+import { MessageAttachment } from './MessageAttachment';
 
 const COMMON_EMOJIS = ['👍', '❤️', '🚀', '🔥', '📈', '💎', '🐻', '🐂'];
 
@@ -168,7 +169,12 @@ const MessageItem = memo(function MessageItem({
           {isPremiumMessage && !canViewPremium ? (
             <PremiumMessageGate content={message.content} />
           ) : (
-            renderContent(contentParts)
+            <>
+              {message.content && renderContent(contentParts)}
+              {message.attachment_url && (
+                <MessageAttachment url={message.attachment_url} type={message.attachment_type || 'file'} />
+              )}
+            </>
           )}
         </div>
 

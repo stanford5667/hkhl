@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { Send, Smile, X, Lock, LogIn } from 'lucide-react';
+import { ChatAttachmentButton } from './ChatAttachmentButton';
 import { 
   Popover, 
   PopoverContent, 
@@ -14,7 +15,7 @@ import {
 const COMMON_EMOJIS = ['👍', '❤️', '🚀', '🔥', '📈', '💎', '🐻', '🐂', '😂', '🤔', '👏', '💪'];
 
 interface MessageInputProps {
-  onSend: (content: string) => Promise<void>;
+  onSend: (content: string, attachmentUrl?: string, attachmentType?: string) => Promise<void>;
   onTyping?: () => void;
   placeholder?: string;
   disabled?: boolean;
@@ -40,6 +41,7 @@ export function MessageInput({
 }: MessageInputProps) {
   const [content, setContent] = useState('');
   const [sending, setSending] = useState(false);
+  const [pendingAttachment, setPendingAttachment] = useState<{ url: string; type: string } | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { isAuthenticated } = useAuth();
 
@@ -52,12 +54,13 @@ export function MessageInput({
   }, [content]);
 
   const handleSubmit = async () => {
-    if (!content.trim() || sending || disabled) return;
+    if ((!content.trim() && !pendingAttachment) || sending || disabled) return;
 
     try {
       setSending(true);
-      await onSend(content.trim());
+      await onSend(content.trim(), pendingAttachment?.url, pendingAttachment?.type);
       setContent('');
+      setPendingAttachment(null);
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
       }
@@ -153,8 +156,24 @@ export function MessageInput({
             )}
           />
           
+          {/* Pending attachment preview */}
+          {pendingAttachment && (
+            <div className="flex items-center gap-2 mb-1.5 px-2 py-1.5 bg-muted rounded-md text-xs">
+              <span className="truncate flex-1">
+                {pendingAttachment.type === 'image' ? '🖼️ Image' : '📎 File'} attached
+              </span>
+              <button onClick={() => setPendingAttachment(null)} className="shrink-0">
+                <X className="h-3.5 w-3.5 text-muted-foreground" />
+              </button>
+            </div>
+          )}
+          
           {/* Inline action buttons */}
           <div className="absolute right-2 bottom-2 flex items-center gap-1">
+            <ChatAttachmentButton 
+              onAttach={(url, type) => setPendingAttachment({ url, type })} 
+              disabled={disabled || sending}
+            />
             <Popover>
               <PopoverTrigger asChild>
                 <Button 

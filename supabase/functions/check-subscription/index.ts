@@ -114,11 +114,15 @@ serve(async (req) => {
 
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
-      status: "active",
       limit: 10,
     });
 
-    if (subscriptions.data.length === 0) {
+    // Filter for active OR trialing subscriptions
+    const activeSubscriptions = subscriptions.data.filter(
+      s => s.status === 'active' || s.status === 'trialing'
+    );
+
+    if (activeSubscriptions.length === 0) {
       logStep("No active subscription found");
       return new Response(JSON.stringify(FREE_RESPONSE), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -128,10 +132,10 @@ serve(async (req) => {
 
     // Find the highest tier subscription
     let bestPlan = 'free';
-    let bestSubscription = subscriptions.data[0];
+    let bestSubscription = activeSubscriptions[0];
     let productId: string | null = null;
 
-    for (const subscription of subscriptions.data) {
+    for (const subscription of activeSubscriptions) {
       const subProductId = subscription.items.data[0]?.price?.product as string;
       const subPlan = determinePlan(subProductId);
 

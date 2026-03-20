@@ -232,6 +232,58 @@ serve(async (req) => {
       }
     }
 
+    // Handle subscription cancellation - churn re-engagement
+    if (event.type === "customer.subscription.deleted") {
+      const subscription = event.data.object as Stripe.Subscription;
+      logStep("Subscription cancelled", { subscriptionId: subscription.id });
+
+      try {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+        const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+        const supabaseClient = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
+
+        const customerId = subscription.customer as string;
+        const customer = await stripe.customers.retrieve(customerId) as Stripe.Customer;
+        if (customer.email) {
+          const { data: userData } = await supabaseClient.auth.admin.listUsers();
+          const matchedUser = userData?.users?.find(u => u.email === customer.email);
+
+          if (matchedUser) {
+            // Insert churn re-engagement notification
+            await supabaseClient.from("user_notifications").insert({
+              user_id: matchedUser.id,
+              type: "churn",
+              title: "We miss you! 💔",
+              message: "Your subscription has ended. Come back and continue your investment education journey — we've been adding new features and content!",
+              metadata: { subscription_id: subscription.id },
+            });
+            logStep("Churn notification sent", { userId: matchedUser.id });
+
+            // Send churn email via Loops if configured
+            if (loopsApiKey) {
+              await fetch('https://app.loops.so/api/v1/transactional', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${loopsApiKey}` },
+                body: JSON.stringify({
+                  email: customer.email,
+                  transactionalId: 'cmkiktuob007b0i2fu76g2z82',
+                  dataVariables: {
+                    customer_name: customer.name || 'there',
+                    plan_name: 'Your Subscription',
+                    amount: 'cancelled',
+                    app_name: 'Asset Labs',
+                  },
+                }),
+              });
+              logStep("Churn email sent via Loops", { email: customer.email });
+            }
+          }
+        }
+      } catch (churnErr) {
+        logStep("Churn re-engagement error (non-fatal)", { error: String(churnErr) });
+      }
+    }
+
     // Handle subscription events
     if (event.type === "customer.subscription.created" || event.type === "customer.subscription.updated") {
       const subscription = event.data.object as Stripe.Subscription;

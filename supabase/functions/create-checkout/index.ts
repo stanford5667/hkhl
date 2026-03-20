@@ -54,6 +54,7 @@ serve(async (req) => {
     let billingInterval = "monthly";
     let returnPath = "/quant-lab";
     let affiliateCode: string | null = null;
+    let enableTrial = false;
     try {
       const body = await req.json();
       if (body?.plan && PLAN_PRICES[body.plan]) {
@@ -68,12 +69,15 @@ serve(async (req) => {
       if (body?.affiliate_code && typeof body.affiliate_code === 'string') {
         affiliateCode = body.affiliate_code.trim().toUpperCase();
       }
+      if (body?.trial === true) {
+        enableTrial = true;
+      }
     } catch {
       // No body or invalid JSON - use defaults
     }
 
     const priceId = PLAN_PRICES[selectedPlan][billingInterval];
-    logStep("Selected plan", { plan: selectedPlan, billingInterval, priceId, returnPath, affiliateCode });
+    logStep("Selected plan", { plan: selectedPlan, billingInterval, priceId, returnPath, affiliateCode, enableTrial });
 
     const token = authHeader.replace("Bearer ", "");
     const { data } = await supabaseClient.auth.getUser(token);
@@ -136,14 +140,26 @@ serve(async (req) => {
       cancel_url: `${productionUrl}${returnPath}?subscription=cancelled`,
       custom_text: {
         submit: {
-          message: planDescriptions[selectedPlan],
+          message: enableTrial
+            ? `Start your 7-day free trial!\n\n${planDescriptions[selectedPlan]}`
+            : planDescriptions[selectedPlan],
         },
       },
       billing_address_collection: "required",
       tax_id_collection: {
         enabled: true,
       },
+      // Enable BNPL payment methods (Klarna, Afterpay) - Stripe auto-hides unsupported
+      payment_method_types: ['card', 'klarna', 'afterpay_clearpay'],
     };
+
+    // Add free trial if requested
+    if (enableTrial) {
+      sessionParams.subscription_data = {
+        trial_period_days: 7,
+      };
+      logStep("Free trial enabled", { days: 7 });
+    }
 
     // Look up affiliate promotion code and apply discount
     if (affiliateCode) {

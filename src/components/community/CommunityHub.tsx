@@ -20,6 +20,7 @@ import {
   LogIn
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { NotificationBell } from './NotificationBell';
 
 interface CommunityHubProps {
   defaultTab?: 'chat' | 'posts';
