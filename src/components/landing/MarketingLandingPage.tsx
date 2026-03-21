@@ -708,7 +708,7 @@ export function MarketingLandingPage() {
             whileInView="visible"
             viewport={{ once: true }}
           >
-            <div className="rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden shadow-2xl shadow-cyan-500/5">
+            <div onClick={openTeaser} className="cursor-pointer rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden shadow-2xl shadow-cyan-500/5">
               {/* Chat header */}
               <div className="flex items-center justify-between border-b border-slate-800 px-5 py-3">
                 <div className="flex items-center gap-3">
