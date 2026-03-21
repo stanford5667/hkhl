@@ -269,6 +269,7 @@ export function ThemeDetailSheet({ theme, tickers, tickersLoading, open, onOpenC
     />
     </>
   );
+}
 
 function Section({ title, icon: SectionIcon, children }: { title: string; icon: React.ElementType; children: React.ReactNode }) {
   return (
