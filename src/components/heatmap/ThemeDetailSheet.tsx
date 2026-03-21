@@ -45,6 +45,7 @@ export function ThemeDetailSheet({ theme, tickers, tickersLoading, open, onOpenC
   const sentimentBg = isBullish ? 'bg-emerald-500/10' : isBearish ? 'bg-rose-500/10' : 'bg-amber-500/10';
 
   return (
+    <>
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-lg md:max-w-xl p-0 border-l border-border/50 bg-background">
         <ScrollArea className="h-full">
