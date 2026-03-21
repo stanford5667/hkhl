@@ -101,9 +101,11 @@ function HeatmapContent() {
   }, [selectedCountry, allThemes]);
 
   const handleThemeSelect = useCallback((theme: MarketTheme) => {
-    toggleTheme(theme);
-    setSheetOpen(true);
-  }, [toggleTheme]);
+    requireAuth(() => {
+      toggleTheme(theme);
+      setSheetOpen(true);
+    }, 'view-theme');
+  }, [toggleTheme, requireAuth]);
 
   const handleCountryClick = useCallback((countryCode: string) => {
     const region = regionMap.get(countryCode);
