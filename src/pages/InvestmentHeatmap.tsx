@@ -326,6 +326,14 @@ function HeatmapContent() {
         onOpenChange={setCountrySheetOpen}
         onThemeSelect={handleCountryThemeSelect}
       />
+
+      {/* ═══ Auth Gate ═══ */}
+      <AuthGateDialog
+        open={showAuthDialog}
+        onOpenChange={closeAuthDialog}
+        title="Sign in to explore themes"
+        description="Create a free account to access detailed theme analysis, ticker data, and investment insights."
+      />
     </div>
   );
 }

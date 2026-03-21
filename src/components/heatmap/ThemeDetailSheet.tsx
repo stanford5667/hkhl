@@ -13,6 +13,8 @@ import type { MarketTheme } from '@/data/marketThemes';
 import type { ThemeTicker } from '@/hooks/useInvestmentHeatmap';
 import { useNavigate } from 'react-router-dom';
 import { useSaveReport, useIsReportSaved } from '@/hooks/useSavedReports';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
+import { AuthGateDialog } from '@/components/auth/AuthGateDialog';
 
 interface Props {
   theme: MarketTheme | null;
