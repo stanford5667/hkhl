@@ -618,7 +618,7 @@ export function MarketingLandingPage() {
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: true, margin: '-40px' }}
-                onClick={() => mod.courseId ? navigate(`/academy/course/${mod.courseId}`) : navigate('/academy')}
+                onClick={openTeaser}
                 className="group cursor-pointer rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden transition-all hover:-translate-y-1 hover:border-amber-500/30 hover:shadow-lg hover:shadow-amber-500/5"
               >
                 <div className={cn("relative h-32 w-full bg-gradient-to-br flex items-center justify-center overflow-hidden", mod.gradient)}>
