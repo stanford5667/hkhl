@@ -218,7 +218,7 @@ export function ThemeDetailSheet({ theme, tickers, tickersLoading, open, onOpenC
                       change={t.change}
                       rationale={t.themeRelevance}
                       sentiment={t.sentiment}
-                      onNavigate={() => navigate(`/stock/${t.symbol}`)}
+                      onNavigate={() => requireAuth(() => navigate(`/stock/${t.symbol}`), 'view-stock')}
                     />
                   ))}
                 </div>
