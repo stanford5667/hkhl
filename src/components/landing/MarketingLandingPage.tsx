@@ -382,6 +382,8 @@ export function MarketingLandingPage() {
           initial={{ opacity: 0, x: 40 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6, delay: 0.3, ease }}
+          onClick={openTeaser}
+          className="cursor-pointer"
         >
           <Card className="overflow-hidden border-cyan-500/30 bg-slate-900/80 shadow-[0_0_40px_hsl(185_80%_50%/0.1)]">
             <CardContent className="p-5">
