@@ -122,7 +122,8 @@ export function Layout({ children }: LayoutProps) {
   if (!user) {
     // Allow legal/public pages through without landing redirect
     const publicPaths = ["/terms", "/privacy", "/disclosures", "/landing", "/management-fee"];
-    if (publicPaths.includes(location.pathname)) {
+    const isPublicPath = publicPaths.includes(location.pathname) || location.pathname.startsWith("/academy");
+    if (isPublicPath) {
       return <>{children}</>;
     }
     return <MarketingLandingPage />;
