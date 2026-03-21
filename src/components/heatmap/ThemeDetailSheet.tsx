@@ -13,6 +13,8 @@ import type { MarketTheme } from '@/data/marketThemes';
 import type { ThemeTicker } from '@/hooks/useInvestmentHeatmap';
 import { useNavigate } from 'react-router-dom';
 import { useSaveReport, useIsReportSaved } from '@/hooks/useSavedReports';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
+import { AuthGateDialog } from '@/components/auth/AuthGateDialog';
 
 interface Props {
   theme: MarketTheme | null;
@@ -26,7 +28,8 @@ export function ThemeDetailSheet({ theme, tickers, tickersLoading, open, onOpenC
   const navigate = useNavigate();
   const saveReport = useSaveReport();
   const isSaved = useIsReportSaved(theme?.id);
-  
+  const { requireAuth, showAuthDialog, closeAuthDialog } = useRequireAuth();
+
   if (!theme) return null;
 
   const isMicro = !!(theme as any)._micro;
@@ -42,6 +45,7 @@ export function ThemeDetailSheet({ theme, tickers, tickersLoading, open, onOpenC
   const sentimentBg = isBullish ? 'bg-emerald-500/10' : isBearish ? 'bg-rose-500/10' : 'bg-amber-500/10';
 
   return (
+    <>
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-lg md:max-w-xl p-0 border-l border-border/50 bg-background">
         <ScrollArea className="h-full">
@@ -69,7 +73,7 @@ export function ThemeDetailSheet({ theme, tickers, tickersLoading, open, onOpenC
                   size="icon"
                   className="h-8 w-8 shrink-0"
                   disabled={isSaved || saveReport.isPending}
-                  onClick={() => saveReport.mutate({ theme, tickers })}
+                  onClick={() => requireAuth(() => saveReport.mutate({ theme, tickers }), 'save-report')}
                   title={isSaved ? 'Already saved' : 'Save this report'}
                 >
                   {saveReport.isPending ? (
@@ -215,7 +219,7 @@ export function ThemeDetailSheet({ theme, tickers, tickersLoading, open, onOpenC
                       change={t.change}
                       rationale={t.themeRelevance}
                       sentiment={t.sentiment}
-                      onNavigate={() => navigate(`/stock/${t.symbol}`)}
+                      onNavigate={() => requireAuth(() => navigate(`/stock/${t.symbol}`), 'view-stock')}
                     />
                   ))}
                 </div>
@@ -230,7 +234,7 @@ export function ThemeDetailSheet({ theme, tickers, tickersLoading, open, onOpenC
                       change={t.changePercent}
                       rationale={t.themeExposure}
                       sentiment={t.changePercent != null ? (t.changePercent > 0 ? 'bullish' : t.changePercent < 0 ? 'bearish' : 'neutral') : 'neutral'}
-                      onNavigate={() => navigate(`/stock/${t.symbol}`)}
+                      onNavigate={() => requireAuth(() => navigate(`/stock/${t.symbol}`), 'view-stock')}
                     />
                   ))}
                 </div>
@@ -243,8 +247,10 @@ export function ThemeDetailSheet({ theme, tickers, tickersLoading, open, onOpenC
             <Button
               className="w-full gap-2"
               onClick={() => {
-                const sanitized = { ...theme, icon: undefined };
-                navigate('/theme-analysis', { state: { theme: sanitized } });
+                requireAuth(() => {
+                  const sanitized = { ...theme, icon: undefined };
+                  navigate('/theme-analysis', { state: { theme: sanitized } });
+                }, 'view-analysis');
               }}
             >
               Deep Dive Analysis
@@ -254,6 +260,14 @@ export function ThemeDetailSheet({ theme, tickers, tickersLoading, open, onOpenC
         </ScrollArea>
       </SheetContent>
     </Sheet>
+
+    <AuthGateDialog
+      open={showAuthDialog}
+      onOpenChange={closeAuthDialog}
+      title="Sign in to continue"
+      description="Create a free account to access full stock analysis, AI predictions, and more."
+    />
+    </>
   );
 }
 

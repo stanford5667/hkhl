@@ -9,6 +9,8 @@ import { CountryDetailSheet } from '@/components/heatmap/CountryDetailSheet';
 import { SectorPerformancePanel } from '@/components/heatmap/SectorPerformancePanel';
 import { ThemeCallouts } from '@/components/heatmap/ThemeCallouts';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
+import { AuthGateDialog } from '@/components/auth/AuthGateDialog';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -28,6 +30,7 @@ function HeatmapContent() {
     callouts, addCallout, dismissCallout, togglePinCallout,
   } = useHeatmapStore();
   const { toast } = useToast();
+  const { requireAuth, showAuthDialog, closeAuthDialog } = useRequireAuth();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [countrySheetOpen, setCountrySheetOpen] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState<RegionThemeData | null>(null);
@@ -98,9 +101,11 @@ function HeatmapContent() {
   }, [selectedCountry, allThemes]);
 
   const handleThemeSelect = useCallback((theme: MarketTheme) => {
-    toggleTheme(theme);
-    setSheetOpen(true);
-  }, [toggleTheme]);
+    requireAuth(() => {
+      toggleTheme(theme);
+      setSheetOpen(true);
+    }, 'view-theme');
+  }, [toggleTheme, requireAuth]);
 
   const handleCountryClick = useCallback((countryCode: string) => {
     const region = regionMap.get(countryCode);
@@ -134,10 +139,12 @@ function HeatmapContent() {
   }, [generateMutation, toast]);
 
   const handleCountryThemeSelect = useCallback((theme: MarketTheme) => {
-    setCountrySheetOpen(false);
-    toggleTheme(theme);
-    setSheetOpen(true);
-  }, [toggleTheme]);
+    requireAuth(() => {
+      setCountrySheetOpen(false);
+      toggleTheme(theme);
+      setSheetOpen(true);
+    }, 'view-theme');
+  }, [toggleTheme, requireAuth]);
 
   const liveCount = allThemes.filter(t => (t as any)._micro).length;
   const isLoading = themesLoading && microLoading;
@@ -318,6 +325,14 @@ function HeatmapContent() {
         open={countrySheetOpen}
         onOpenChange={setCountrySheetOpen}
         onThemeSelect={handleCountryThemeSelect}
+      />
+
+      {/* ═══ Auth Gate ═══ */}
+      <AuthGateDialog
+        open={showAuthDialog}
+        onOpenChange={closeAuthDialog}
+        title="Sign in to explore themes"
+        description="Create a free account to access detailed theme analysis, ticker data, and investment insights."
       />
     </div>
   );
