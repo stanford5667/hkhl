@@ -111,7 +111,7 @@ export function TickerChartPreview({ tickers }: TickerChartPreviewProps) {
                   data={td.sparkline}
                   width={80}
                   height={32}
-                  color={isPositive ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))'}
+                  isPositive={isPositive}
                 />
               ) : null}
             </div>
