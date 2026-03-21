@@ -588,7 +588,8 @@ export function MarketingLandingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.08, duration: 0.4 }}
-                className="text-center"
+                onClick={openTeaser}
+                className="text-center cursor-pointer"
               >
                 <div className="text-2xl font-bold text-white sm:text-3xl">{stat.value}</div>
                 <div className="mt-1 text-xs text-gray-500 uppercase tracking-wider">{stat.label}</div>
