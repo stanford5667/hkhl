@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MiniSparkline } from '@/components/research/MiniSparkline';
-import { supabase } from '@/integrations/supabase/client';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -10,11 +8,13 @@ interface TickerChartPreviewProps {
 }
 
 interface TickerData {
-  sparkline: number[];
   price: number;
   change: number;
+  changePercent: number;
   loading: boolean;
 }
+
+const FINNHUB_TOKEN = 'd5bjvopr01qnaidu4a30d5bjvopr01qnaidu4a3g';
 
 export function TickerChartPreview({ tickers }: TickerChartPreviewProps) {
   const navigate = useNavigate();
@@ -24,29 +24,28 @@ export function TickerChartPreview({ tickers }: TickerChartPreviewProps) {
     if (!tickers.length) return;
     let mounted = true;
 
-    // Initialize loading state
     const initial: Record<string, TickerData> = {};
     tickers.slice(0, 3).forEach(t => {
-      initial[t] = { sparkline: [], price: 0, change: 0, loading: true };
+      initial[t] = { price: 0, change: 0, changePercent: 0, loading: true };
     });
     setTickerData(initial);
 
     tickers.slice(0, 3).forEach(async (ticker) => {
       try {
-        const { data, error } = await supabase.functions.invoke('polygon-daily-bars', {
-          body: { ticker, range: '1M' },
-        });
+        const res = await fetch(
+          `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(ticker)}&token=${FINNHUB_TOKEN}`
+        );
+        const data = await res.json();
 
-        if (!error && data?.ok && data?.bars?.length > 0 && mounted) {
-          const bars = data.bars as Array<{ close: number }>;
-          const closes = bars.map(b => b.close);
-          const lastPrice = closes[closes.length - 1];
-          const firstPrice = closes[0];
-          const changePct = firstPrice > 0 ? ((lastPrice - firstPrice) / firstPrice) * 100 : 0;
-
+        if (mounted && data?.c && data.c > 0) {
           setTickerData(prev => ({
             ...prev,
-            [ticker]: { sparkline: closes, price: lastPrice, change: changePct, loading: false },
+            [ticker]: {
+              price: data.c,
+              change: data.d ?? 0,
+              changePercent: data.dp ?? 0,
+              loading: false,
+            },
           }));
         } else if (mounted) {
           setTickerData(prev => ({ ...prev, [ticker]: { ...prev[ticker], loading: false } }));
@@ -69,7 +68,7 @@ export function TickerChartPreview({ tickers }: TickerChartPreviewProps) {
       {displayTickers.map(ticker => {
         const td = tickerData[ticker];
         if (!td) return null;
-        const isPositive = (td?.change ?? 0) >= 0;
+        const isPositive = (td?.changePercent ?? 0) >= 0;
 
         return (
           <button
@@ -81,40 +80,25 @@ export function TickerChartPreview({ tickers }: TickerChartPreviewProps) {
               "cursor-pointer group/chart"
             )}
           >
-            <div className="flex flex-col items-start">
-              <span className="text-xs font-semibold text-foreground">${ticker}</span>
-              {td.loading ? (
-                <span className="text-[10px] text-muted-foreground">Loading...</span>
-              ) : td.price > 0 ? (
-                <div className="flex items-center gap-1">
-                  <span className="text-[10px] font-mono text-muted-foreground">
-                    ${td.price.toFixed(2)}
-                  </span>
-                  <span className={cn(
-                    "text-[10px] font-mono flex items-center gap-0.5",
-                    isPositive ? "text-chart-2" : "text-destructive"
-                  )}>
-                    {isPositive ? <TrendingUp className="h-2.5 w-2.5" /> : <TrendingDown className="h-2.5 w-2.5" />}
-                    {isPositive ? '+' : ''}{td.change.toFixed(1)}%
-                  </span>
-                </div>
-              ) : (
-                <span className="text-[10px] text-muted-foreground">No data</span>
-              )}
-            </div>
-
-            <div className="w-[80px] h-[32px]">
-              {td.loading ? (
-                <div className="w-full h-full bg-muted/30 animate-pulse rounded" />
-              ) : td.sparkline.length > 1 ? (
-                <MiniSparkline
-                  data={td.sparkline}
-                  width={80}
-                  height={32}
-                  isPositive={isPositive}
-                />
-              ) : null}
-            </div>
+            <span className="text-xs font-bold text-foreground">${ticker}</span>
+            {td.loading ? (
+              <span className="text-[10px] text-muted-foreground animate-pulse">…</span>
+            ) : td.price > 0 ? (
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-mono text-muted-foreground">
+                  ${td.price.toFixed(2)}
+                </span>
+                <span className={cn(
+                  "text-[10px] font-mono flex items-center gap-0.5",
+                  isPositive ? "text-chart-2" : "text-destructive"
+                )}>
+                  {isPositive ? <TrendingUp className="h-2.5 w-2.5" /> : <TrendingDown className="h-2.5 w-2.5" />}
+                  {isPositive ? '+' : ''}{td.changePercent.toFixed(2)}%
+                </span>
+              </div>
+            ) : (
+              <span className="text-[10px] text-muted-foreground">No data</span>
+            )}
           </button>
         );
       })}
