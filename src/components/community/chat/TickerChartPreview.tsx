@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp, TrendingDown, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -200,6 +200,12 @@ export function TickerChartPreview({ tickers }: TickerChartPreviewProps) {
                 {td.sparkline.length > 0 && (
                   <MiniSparkline data={td.sparkline} positive={isPositive} id={ticker} />
                 )}
+
+                {/* See more CTA */}
+                <div className="px-3.5 pb-2.5 pt-1.5 flex items-center justify-end gap-1 opacity-60 group-hover/card:opacity-100 transition-opacity">
+                  <span className="text-[10px] font-medium text-primary">View details</span>
+                  <ChevronRight className="h-3 w-3 text-primary transition-transform group-hover/card:translate-x-0.5" />
+                </div>
               </>
             ) : (
               <div className="p-3.5 flex items-center gap-2">
