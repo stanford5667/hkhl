@@ -572,8 +572,8 @@ export function MarketingLandingPage() {
         </motion.div>
       </section>
 
-      {/* ─── Investment Heatmap Preview ─── */}
-      <LandingHeatmapPreview onSignUp={openTeaser} />
+      {/* ─── Investment Heatmap Preview (hidden for now) ─── */}
+      {/* <LandingHeatmapPreview onSignUp={openTeaser} /> */}
 
       {/* ─── Social Proof Strip ─── */}
       <section className="border-y border-white/[0.06] bg-slate-900/40">
