@@ -30,6 +30,7 @@ function HeatmapContent() {
     callouts, addCallout, dismissCallout, togglePinCallout,
   } = useHeatmapStore();
   const { toast } = useToast();
+  const { requireAuth, showAuthDialog, closeAuthDialog } = useRequireAuth();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [countrySheetOpen, setCountrySheetOpen] = useState(false);
   const [selectedCountry, setSelectedCountry] = useState<RegionThemeData | null>(null);
