@@ -92,7 +92,7 @@ export function TickerChartPreview({ tickers }: TickerChartPreviewProps) {
                   </span>
                   <span className={cn(
                     "text-[10px] font-mono flex items-center gap-0.5",
-                    isPositive ? "text-emerald-500" : "text-red-500"
+                    isPositive ? "text-chart-2" : "text-destructive"
                   )}>
                     {isPositive ? <TrendingUp className="h-2.5 w-2.5" /> : <TrendingDown className="h-2.5 w-2.5" />}
                     {isPositive ? '+' : ''}{td.change.toFixed(1)}%

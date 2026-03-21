@@ -179,6 +179,11 @@ const MessageItem = memo(function MessageItem({
           )}
         </div>
 
+        {/* Inline ticker chart previews */}
+        {message.detected_tickers && message.detected_tickers.length > 0 && (
+          <TickerChartPreview tickers={message.detected_tickers} />
+        )}
+
         {/* Thread indicator */}
         {threadCount > 0 && onOpenThread && (
           <button
