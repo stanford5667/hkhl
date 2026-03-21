@@ -233,7 +233,7 @@ export function ThemeDetailSheet({ theme, tickers, tickersLoading, open, onOpenC
                       change={t.changePercent}
                       rationale={t.themeExposure}
                       sentiment={t.changePercent != null ? (t.changePercent > 0 ? 'bullish' : t.changePercent < 0 ? 'bearish' : 'neutral') : 'neutral'}
-                      onNavigate={() => navigate(`/stock/${t.symbol}`)}
+                      onNavigate={() => requireAuth(() => navigate(`/stock/${t.symbol}`), 'view-stock')}
                     />
                   ))}
                 </div>
