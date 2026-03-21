@@ -382,6 +382,8 @@ export function MarketingLandingPage() {
           initial={{ opacity: 0, x: 40 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6, delay: 0.3, ease }}
+          onClick={openTeaser}
+          className="cursor-pointer"
         >
           <Card className="overflow-hidden border-cyan-500/30 bg-slate-900/80 shadow-[0_0_40px_hsl(185_80%_50%/0.1)]">
             <CardContent className="p-5">
@@ -586,7 +588,8 @@ export function MarketingLandingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.08, duration: 0.4 }}
-                className="text-center"
+                onClick={openTeaser}
+                className="text-center cursor-pointer"
               >
                 <div className="text-2xl font-bold text-white sm:text-3xl">{stat.value}</div>
                 <div className="mt-1 text-xs text-gray-500 uppercase tracking-wider">{stat.label}</div>
@@ -618,7 +621,7 @@ export function MarketingLandingPage() {
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: true, margin: '-40px' }}
-                onClick={() => mod.courseId ? navigate(`/academy/course/${mod.courseId}`) : navigate('/academy')}
+                onClick={openTeaser}
                 className="group cursor-pointer rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden transition-all hover:-translate-y-1 hover:border-amber-500/30 hover:shadow-lg hover:shadow-amber-500/5"
               >
                 <div className={cn("relative h-32 w-full bg-gradient-to-br flex items-center justify-center overflow-hidden", mod.gradient)}>
@@ -706,7 +709,7 @@ export function MarketingLandingPage() {
             whileInView="visible"
             viewport={{ once: true }}
           >
-            <div className="rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden shadow-2xl shadow-cyan-500/5">
+            <div onClick={openTeaser} className="cursor-pointer rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden shadow-2xl shadow-cyan-500/5">
               {/* Chat header */}
               <div className="flex items-center justify-between border-b border-slate-800 px-5 py-3">
                 <div className="flex items-center gap-3">
@@ -839,8 +842,8 @@ export function MarketingLandingPage() {
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: true, margin: '-40px' }}
-                onClick={() => item.href && openTeaser()}
-                className={`group rounded-xl border bg-slate-900/60 p-6 transition-all ${item.borderColor} ${item.glow} ${item.href ? 'cursor-pointer hover:-translate-y-1' : ''}`}
+                onClick={openTeaser}
+                className={`group rounded-xl border bg-slate-900/60 p-6 transition-all ${item.borderColor} ${item.glow} cursor-pointer hover:-translate-y-1`}
               >
                 <div className={`mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-white/[0.05] ${item.color}`}>
                   <item.icon className="h-5 w-5" />
