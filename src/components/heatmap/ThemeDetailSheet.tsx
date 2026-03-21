@@ -246,8 +246,10 @@ export function ThemeDetailSheet({ theme, tickers, tickersLoading, open, onOpenC
             <Button
               className="w-full gap-2"
               onClick={() => {
-                const sanitized = { ...theme, icon: undefined };
-                navigate('/theme-analysis', { state: { theme: sanitized } });
+                requireAuth(() => {
+                  const sanitized = { ...theme, icon: undefined };
+                  navigate('/theme-analysis', { state: { theme: sanitized } });
+                }, 'view-analysis');
               }}
             >
               Deep Dive Analysis
