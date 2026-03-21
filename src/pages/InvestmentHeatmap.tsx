@@ -139,10 +139,12 @@ function HeatmapContent() {
   }, [generateMutation, toast]);
 
   const handleCountryThemeSelect = useCallback((theme: MarketTheme) => {
-    setCountrySheetOpen(false);
-    toggleTheme(theme);
-    setSheetOpen(true);
-  }, [toggleTheme]);
+    requireAuth(() => {
+      setCountrySheetOpen(false);
+      toggleTheme(theme);
+      setSheetOpen(true);
+    }, 'view-theme');
+  }, [toggleTheme, requireAuth]);
 
   const liveCount = allThemes.filter(t => (t as any)._micro).length;
   const isLoading = themesLoading && microLoading;
