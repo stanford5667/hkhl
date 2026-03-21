@@ -6,6 +6,7 @@ import { useUsage } from '@/contexts/UsageContext';
 import { useAdmin } from '@/hooks/useAdmin';
 import { parseContent, ContentPart } from '@/utils/tickerParser';
 import { TickerBadge } from '@/components/ui/TickerBadge';
+import { TickerChartPreview } from './TickerChartPreview';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
