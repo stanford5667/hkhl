@@ -73,7 +73,7 @@ export function ThemeDetailSheet({ theme, tickers, tickersLoading, open, onOpenC
                   size="icon"
                   className="h-8 w-8 shrink-0"
                   disabled={isSaved || saveReport.isPending}
-                  onClick={() => saveReport.mutate({ theme, tickers })}
+                  onClick={() => requireAuth(() => saveReport.mutate({ theme, tickers }), 'save-report')}
                   title={isSaved ? 'Already saved' : 'Save this report'}
                 >
                   {saveReport.isPending ? (
