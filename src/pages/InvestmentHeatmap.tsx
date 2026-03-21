@@ -9,6 +9,8 @@ import { CountryDetailSheet } from '@/components/heatmap/CountryDetailSheet';
 import { SectorPerformancePanel } from '@/components/heatmap/SectorPerformancePanel';
 import { ThemeCallouts } from '@/components/heatmap/ThemeCallouts';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
+import { AuthGateDialog } from '@/components/auth/AuthGateDialog';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
