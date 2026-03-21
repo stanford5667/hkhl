@@ -6,6 +6,7 @@ import { useUsage } from '@/contexts/UsageContext';
 import { useAdmin } from '@/hooks/useAdmin';
 import { parseContent, ContentPart } from '@/utils/tickerParser';
 import { TickerBadge } from '@/components/ui/TickerBadge';
+import { TickerChartPreview } from './TickerChartPreview';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -71,6 +72,10 @@ const MessageItem = memo(function MessageItem({
   const { isAdmin } = useAdmin();
   const isOwn = user?.id === message.user_id;
   const contentParts = useMemo(() => parseContent(message.content), [message.content]);
+  const detectedTickers = useMemo(() => {
+    if (message.detected_tickers?.length) return message.detected_tickers;
+    return contentParts.filter(p => p.type === 'ticker').map(p => p.value);
+  }, [message.detected_tickers, contentParts]);
   const presenceStatus = getUserPresence?.(message.user_id) || 'offline';
 
   // Check if user can view premium content
@@ -177,6 +182,11 @@ const MessageItem = memo(function MessageItem({
             </>
           )}
         </div>
+
+        {/* Inline ticker chart previews */}
+        {detectedTickers.length > 0 && (
+          <TickerChartPreview tickers={detectedTickers} />
+        )}
 
         {/* Thread indicator */}
         {threadCount > 0 && onOpenThread && (
