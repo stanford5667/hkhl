@@ -259,8 +259,15 @@ export function ThemeDetailSheet({ theme, tickers, tickersLoading, open, onOpenC
         </ScrollArea>
       </SheetContent>
     </Sheet>
+
+    <AuthGateDialog
+      open={showAuthDialog}
+      onOpenChange={closeAuthDialog}
+      title="Sign in to continue"
+      description="Create a free account to access full stock analysis, AI predictions, and more."
+    />
+    </>
   );
-}
 
 function Section({ title, icon: SectionIcon, children }: { title: string; icon: React.ElementType; children: React.ReactNode }) {
   return (
