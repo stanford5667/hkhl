@@ -28,7 +28,8 @@ export function ThemeDetailSheet({ theme, tickers, tickersLoading, open, onOpenC
   const navigate = useNavigate();
   const saveReport = useSaveReport();
   const isSaved = useIsReportSaved(theme?.id);
-  
+  const { requireAuth, showAuthDialog, closeAuthDialog } = useRequireAuth();
+
   if (!theme) return null;
 
   const isMicro = !!(theme as any)._micro;
