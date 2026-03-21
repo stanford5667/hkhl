@@ -45,6 +45,16 @@ export function Layout({ children }: LayoutProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   useAffiliateTracking();
 
+  // After auth, redirect to any pending navigation target
+  useEffect(() => {
+    if (!user) return;
+    const pendingNav = sessionStorage.getItem('pending-navigation');
+    if (pendingNav) {
+      sessionStorage.removeItem('pending-navigation');
+      navigate(pendingNav);
+    }
+  }, [user, navigate]);
+
   // Keyboard shortcut for search (Cmd+K / Ctrl+K)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
