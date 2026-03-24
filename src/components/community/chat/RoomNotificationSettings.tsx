@@ -148,11 +148,12 @@ export function RoomNotificationSettings({ roomId, roomName }: RoomNotificationS
               <div className="flex gap-2 mt-2">
                 <Input
                   type="tel"
-                  placeholder="+1 (555) 123-4567"
+                  placeholder="+14125551234"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   className="h-8 text-xs"
                 />
+                <p className="text-[10px] text-muted-foreground">Use E.164 format: +1XXXXXXXXXX</p>
                 <Button
                   size="sm"
                   className="h-8 text-xs shrink-0"
