@@ -186,6 +186,7 @@ export function RoomNotificationSettings({ roomId, roomName }: RoomNotificationS
                 {phoneError && (
                   <p className="text-[10px] text-destructive ml-1">{phoneError}</p>
                 )}
+              </div>
             )}
 
             {sms && phone && !showPhoneInput && (
