@@ -162,24 +162,30 @@ export function RoomNotificationSettings({ roomId, roomName }: RoomNotificationS
 
             {/* Phone number input shown when SMS is toggled on without a saved phone */}
             {showPhoneInput && (
-              <div className="flex gap-2 mt-2">
-                <Input
-                  type="tel"
-                  placeholder="+14125551234"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="h-8 text-xs"
-                />
-                <p className="text-[10px] text-muted-foreground">Use E.164 format: +1XXXXXXXXXX</p>
-                <Button
-                  size="sm"
-                  className="h-8 text-xs shrink-0"
-                  onClick={savePhone}
-                  disabled={savingPhone || !phone.trim()}
-                >
-                  Save
-                </Button>
-              </div>
+              <div className="space-y-1.5 mt-2">
+                <div className="flex gap-2">
+                  <Input
+                    type="tel"
+                    placeholder="+14125551234"
+                    value={phone}
+                    onChange={(e) => { setPhone(e.target.value); setPhoneError(''); }}
+                    className="h-8 text-xs"
+                  />
+                  <Button
+                    size="sm"
+                    className="h-8 text-xs shrink-0"
+                    onClick={savePhone}
+                    disabled={savingPhone || !phone.trim()}
+                  >
+                    Save
+                  </Button>
+                </div>
+                <p className="text-[10px] text-muted-foreground ml-1">
+                  Enter with country code, e.g. +14125551234
+                </p>
+                {phoneError && (
+                  <p className="text-[10px] text-destructive ml-1">{phoneError}</p>
+                )}
             )}
 
             {sms && phone && !showPhoneInput && (
