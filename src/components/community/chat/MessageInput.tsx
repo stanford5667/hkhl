@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { Send, Smile, X, Lock, LogIn } from 'lucide-react';
 import { ChatAttachmentButton } from './ChatAttachmentButton';
+import { VoiceRecordButton } from './VoiceRecordButton';
 import { 
   Popover, 
   PopoverContent, 
