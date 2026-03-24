@@ -37,6 +37,9 @@ export interface ChatMessage {
   user_profile?: {
     full_name: string | null;
     avatar_url: string | null;
+    is_anonymous?: boolean;
+    is_admin?: boolean;
+    bio?: string | null;
   };
   reactions?: MessageReaction[];
   thread?: MessageThread;
