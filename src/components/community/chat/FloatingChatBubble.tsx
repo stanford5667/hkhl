@@ -11,7 +11,6 @@ import { useChatRooms } from '@/hooks/useChatRooms';
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 import { supabase } from '@/integrations/supabase/client';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { formatDistanceToNow } from 'date-fns';
 
 interface MiniMessage {
   id: string;
@@ -36,15 +35,9 @@ export function FloatingChatBubble() {
   const totalUnread = getTotalUnreadCount();
   const selectedRoom = useMemo(() => rooms.find(r => r.id === selectedRoomId), [rooms, selectedRoomId]);
 
-  // Hide on community/chat pages (full chat is already there)
-  const isChatPage = location.pathname.startsWith('/community');
-  
-  // Hide when not authenticated
-  if (!user || isChatPage) return null;
-
   // Fetch messages when a room is selected
   useEffect(() => {
-    if (!selectedRoomId) return;
+    if (!selectedRoomId || !user) return;
 
     const fetchMessages = async () => {
       const { data } = await supabase
@@ -56,7 +49,6 @@ export function FloatingChatBubble() {
         .limit(30);
 
       if (data) {
-        // Fetch user names
         const userIds = [...new Set(data.map(m => m.user_id))];
         const { data: profiles } = await supabase
           .from('profiles')
@@ -74,7 +66,6 @@ export function FloatingChatBubble() {
 
     fetchMessages();
 
-    // Subscribe to new messages
     const channel = supabase
       .channel(`mini-chat-${selectedRoomId}`)
       .on('postgres_changes', {
@@ -84,7 +75,7 @@ export function FloatingChatBubble() {
         filter: `room_id=eq.${selectedRoomId}`,
       }, async (payload) => {
         const msg = payload.new as any;
-        if (msg.reply_to) return; // skip thread replies
+        if (msg.reply_to) return;
         
         const { data: profile } = await supabase
           .from('profiles')
@@ -103,7 +94,11 @@ export function FloatingChatBubble() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [selectedRoomId]);
+  }, [selectedRoomId, user]);
+
+  // Hide on community/chat pages or when not authenticated
+  const isChatPage = location.pathname.startsWith('/community');
+  if (!user || isChatPage) return null;
 
   const handleSend = async () => {
     if (!newMessage.trim() || !selectedRoomId || !user || sending) return;
@@ -160,7 +155,6 @@ export function FloatingChatBubble() {
 
             {/* Content */}
             {!selectedRoom ? (
-              // Room list
               <ScrollArea className="flex-1">
                 <div className="p-2 space-y-0.5">
                   {rooms.map(room => {
@@ -184,7 +178,6 @@ export function FloatingChatBubble() {
                 </div>
               </ScrollArea>
             ) : (
-              // Mini chat view
               <>
                 <ScrollArea className="flex-1 p-3">
                   <div className="space-y-3">
@@ -206,7 +199,6 @@ export function FloatingChatBubble() {
                   </div>
                 </ScrollArea>
 
-                {/* Input */}
                 <div className="p-2 border-t flex gap-2">
                   <Input
                     value={newMessage}
