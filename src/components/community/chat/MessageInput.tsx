@@ -210,7 +210,7 @@ export function MessageInput({
 
         <Button
           onClick={handleSubmit}
-          disabled={!content.trim() || sending || disabled}
+          disabled={(!content.trim() && !pendingAttachment) || sending || disabled}
           size="icon"
           className="h-11 w-11 shrink-0"
         >
