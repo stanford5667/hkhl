@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Mic, Square, Loader2, Send, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,6 +9,49 @@ interface VoiceRecordButtonProps {
   onVoiceRecorded: (url: string, type: string) => void;
   disabled?: boolean;
 }
+
+const RECORDER_MIME_CANDIDATES = [
+  'audio/webm;codecs=opus',
+  'audio/webm',
+  'audio/mp4',
+  'audio/aac',
+];
+
+const getUploadExtension = (mimeType: string) => {
+  if (mimeType.includes('mp4')) return 'm4a';
+  if (mimeType.includes('aac')) return 'aac';
+  if (mimeType.includes('ogg')) return 'ogg';
+  return 'webm';
+};
+
+const getMicErrorMessage = (error: unknown) => {
+  const err = error as DOMException;
+  if (err?.name === 'NotAllowedError' || err?.name === 'SecurityError') {
+    return {
+      title: 'Microphone access denied',
+      description: 'Please allow microphone access for this site in your browser settings.',
+    };
+  }
+
+  if (err?.name === 'NotReadableError') {
+    return {
+      title: 'Microphone unavailable',
+      description: 'Your microphone may be in use by another app. Please close it and try again.',
+    };
+  }
+
+  if (err?.name === 'NotSupportedError' || err?.name === 'TypeError') {
+    return {
+      title: 'Voice recording not supported',
+      description: 'This browser does not support the selected audio format. Try Chrome or update Safari.',
+    };
+  }
+
+  return {
+    title: 'Could not start recording',
+    description: 'Please try again. If this persists, refresh the page.',
+  };
+};
 
 export function VoiceRecordButton({ onVoiceRecorded, disabled }: VoiceRecordButtonProps) {
   const [recording, setRecording] = useState(false);
@@ -21,15 +64,40 @@ export function VoiceRecordButton({ onVoiceRecorded, disabled }: VoiceRecordButt
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const { user } = useAuth();
 
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (pendingUrl) URL.revokeObjectURL(pendingUrl);
+    };
+  }, [pendingUrl]);
+
   const startRecording = useCallback(async () => {
-    if (!user) return;
+    if (!user || disabled) return;
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      toast.error('Microphone not available', {
+        description: 'Your browser does not support microphone access.',
+      });
+      return;
+    }
+
+    if (typeof MediaRecorder === 'undefined') {
+      toast.error('Voice recording not supported', {
+        description: 'Your browser does not support voice recording.',
+      });
+      return;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-          ? 'audio/webm;codecs=opus'
-          : 'audio/webm',
-      });
+      const supportedMimeType = RECORDER_MIME_CANDIDATES.find((candidate) =>
+        MediaRecorder.isTypeSupported(candidate)
+      );
+
+      const mediaRecorder = supportedMimeType
+        ? new MediaRecorder(stream, { mimeType: supportedMimeType })
+        : new MediaRecorder(stream);
+
       chunksRef.current = [];
       mediaRecorderRef.current = mediaRecorder;
 
@@ -40,27 +108,33 @@ export function VoiceRecordButton({ onVoiceRecorded, disabled }: VoiceRecordButt
       mediaRecorder.onstop = () => {
         stream.getTracks().forEach((t) => t.stop());
         if (timerRef.current) clearInterval(timerRef.current);
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+
+        const recordedMime = mediaRecorder.mimeType || supportedMimeType || 'audio/webm';
+        const blob = new Blob(chunksRef.current, { type: recordedMime });
+
         if (blob.size < 1000) {
           toast.error('Recording too short');
           setDuration(0);
           return;
         }
+
         const url = URL.createObjectURL(blob);
         setPendingBlob(blob);
-        setPendingUrl(url);
+        setPendingUrl((prev) => {
+          if (prev) URL.revokeObjectURL(prev);
+          return url;
+        });
       };
 
       mediaRecorder.start(250);
       setRecording(true);
       setDuration(0);
       timerRef.current = setInterval(() => setDuration((d) => d + 1), 1000);
-    } catch {
-      toast.error('Microphone access denied', {
-        description: 'Please allow microphone access to send voice messages.',
-      });
+    } catch (error) {
+      const { title, description } = getMicErrorMessage(error);
+      toast.error(title, { description });
     }
-  }, [user]);
+  }, [user, disabled]);
 
   const stopRecording = useCallback(() => {
     mediaRecorderRef.current?.stop();
@@ -76,14 +150,23 @@ export function VoiceRecordButton({ onVoiceRecorded, disabled }: VoiceRecordButt
 
   const confirmAndSend = useCallback(async () => {
     if (!pendingBlob || !user) return;
+
     try {
       setUploading(true);
-      const path = `${user.id}/${Date.now()}-voice.webm`;
+      const mimeType = pendingBlob.type || 'audio/webm';
+      const extension = getUploadExtension(mimeType);
+      const path = `${user.id}/${Date.now()}-voice.${extension}`;
+
       const { error } = await supabase.storage
         .from('chat-attachments')
-        .upload(path, pendingBlob, { contentType: 'audio/webm' });
+        .upload(path, pendingBlob, { contentType: mimeType });
+
       if (error) throw error;
-      const { data: { publicUrl } } = supabase.storage.from('chat-attachments').getPublicUrl(path);
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from('chat-attachments').getPublicUrl(path);
+
       onVoiceRecorded(publicUrl, 'voice');
       toast.success('Voice message sent');
     } catch (err: any) {
@@ -98,8 +181,7 @@ export function VoiceRecordButton({ onVoiceRecorded, disabled }: VoiceRecordButt
     }
   }, [pendingBlob, pendingUrl, user, onVoiceRecorded]);
 
-  const formatTime = (s: number) =>
-    `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
+  const formatTime = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
 
   if (uploading) {
     return (
@@ -140,9 +222,7 @@ export function VoiceRecordButton({ onVoiceRecorded, disabled }: VoiceRecordButt
   if (recording) {
     return (
       <div className="flex items-center gap-1.5">
-        <span className="text-xs text-destructive font-medium animate-pulse">
-          ● {formatTime(duration)}
-        </span>
+        <span className="text-xs text-destructive font-medium animate-pulse">● {formatTime(duration)}</span>
         <Button
           variant="ghost"
           size="icon"
