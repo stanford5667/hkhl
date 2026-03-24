@@ -206,7 +206,8 @@ export function FloatingHelpWidget() {
   };
 
   // Hide completely on mobile - support is accessed via the "More" menu instead
-  if (isMobile) return null;
+  // Hide on community/chat pages to avoid blocking the send button
+  if (isMobile || location.pathname.startsWith('/community')) return null;
 
   return (
     <>

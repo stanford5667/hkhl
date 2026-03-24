@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { Send, Smile, X, Lock, LogIn } from 'lucide-react';
 import { ChatAttachmentButton } from './ChatAttachmentButton';
+import { VoiceRecordButton } from './VoiceRecordButton';
 import { 
   Popover, 
   PopoverContent, 
@@ -160,7 +161,7 @@ export function MessageInput({
           {pendingAttachment && (
             <div className="flex items-center gap-2 mb-1.5 px-2 py-1.5 bg-muted rounded-md text-xs">
               <span className="truncate flex-1">
-                {pendingAttachment.type === 'image' ? '🖼️ Image' : '📎 File'} attached
+                {pendingAttachment.type === 'image' ? '🖼️ Image' : pendingAttachment.type === 'voice' ? '🎤 Voice message' : '📎 File'} attached
               </span>
               <button onClick={() => setPendingAttachment(null)} className="shrink-0">
                 <X className="h-3.5 w-3.5 text-muted-foreground" />
@@ -170,6 +171,10 @@ export function MessageInput({
           
           {/* Inline action buttons */}
           <div className="absolute right-2 bottom-2 flex items-center gap-1">
+            <VoiceRecordButton
+              onVoiceRecorded={(url, type) => setPendingAttachment({ url, type })}
+              disabled={disabled || sending}
+            />
             <ChatAttachmentButton 
               onAttach={(url, type) => setPendingAttachment({ url, type })} 
               disabled={disabled || sending}
@@ -205,7 +210,7 @@ export function MessageInput({
 
         <Button
           onClick={handleSubmit}
-          disabled={!content.trim() || sending || disabled}
+          disabled={(!content.trim() && !pendingAttachment) || sending || disabled}
           size="icon"
           className="h-11 w-11 shrink-0"
         >
