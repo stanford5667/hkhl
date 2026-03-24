@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Bell, BellOff, Mail, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -8,7 +8,10 @@ import {
 } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { useChatNotificationPreferences } from '@/hooks/useChatNotificationPreferences';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface RoomNotificationSettingsProps {
@@ -18,18 +21,67 @@ interface RoomNotificationSettingsProps {
 
 export function RoomNotificationSettings({ roomId, roomName }: RoomNotificationSettingsProps) {
   const { getPreference, upsertPreference } = useChatNotificationPreferences();
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
-  const pref = getPreference(roomId);
+  const [phone, setPhone] = useState('');
+  const [phoneLoaded, setPhoneLoaded] = useState(false);
+  const [savingPhone, setSavingPhone] = useState(false);
+  const [showPhoneInput, setShowPhoneInput] = useState(false);
 
+  const pref = getPreference(roomId);
   const inApp = pref?.in_app ?? true;
   const email = pref?.email ?? false;
   const sms = pref?.sms ?? false;
 
+  // Load phone from profile when popover opens
+  useEffect(() => {
+    if (!open || !user || phoneLoaded) return;
+    supabase
+      .from('profiles')
+      .select('phone')
+      .eq('user_id', user.id)
+      .single()
+      .then(({ data }) => {
+        setPhone(data?.phone || '');
+        setPhoneLoaded(true);
+      });
+  }, [open, user, phoneLoaded]);
+
+  const savePhone = async () => {
+    if (!user || !phone.trim()) return;
+    setSavingPhone(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ phone: phone.trim() })
+        .eq('user_id', user.id);
+      if (error) throw error;
+      toast.success('Phone number saved');
+      setShowPhoneInput(false);
+      // Now enable SMS
+      await upsertPreference(roomId, { sms: true });
+      toast.success(`SMS alerts enabled for ${roomName}`);
+    } catch {
+      toast.error('Failed to save phone number');
+    } finally {
+      setSavingPhone(false);
+    }
+  };
+
   const handleToggle = async (field: 'in_app' | 'email' | 'sms', value: boolean) => {
     try {
+      // If enabling SMS, check for phone number first
+      if (field === 'sms' && value) {
+        if (!phone.trim()) {
+          setShowPhoneInput(true);
+          return;
+        }
+      }
+
       await upsertPreference(roomId, { [field]: value });
-      toast.success(`${field === 'in_app' ? 'In-app' : field === 'email' ? 'Email' : 'SMS'} alerts ${value ? 'enabled' : 'disabled'} for ${roomName}`);
-    } catch (err) {
+      const label = field === 'in_app' ? 'In-app' : field === 'email' ? 'Email' : 'SMS';
+      toast.success(`${label} alerts ${value ? 'enabled' : 'disabled'} for ${roomName}`);
+    } catch {
       toast.error('Failed to update notification settings');
     }
   };
@@ -47,9 +99,11 @@ export function RoomNotificationSettings({ roomId, roomName }: RoomNotificationS
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-64 p-4">
-        <h4 className="font-semibold text-sm mb-3">Notification Settings</h4>
-        <p className="text-xs text-muted-foreground mb-4">Choose how you want to be notified for new messages in this room.</p>
+      <PopoverContent align="end" className="w-72 p-4">
+        <h4 className="font-semibold text-sm mb-1">Notification Settings</h4>
+        <p className="text-xs text-muted-foreground mb-4">
+          Get notified when admins post in this room.
+        </p>
         
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -76,16 +130,45 @@ export function RoomNotificationSettings({ roomId, roomName }: RoomNotificationS
             />
           </div>
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Smartphone className="h-4 w-4 text-muted-foreground" />
-              <Label htmlFor={`sms-${roomId}`} className="text-sm cursor-pointer">SMS</Label>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Smartphone className="h-4 w-4 text-muted-foreground" />
+                <Label htmlFor={`sms-${roomId}`} className="text-sm cursor-pointer">SMS</Label>
+              </div>
+              <Switch
+                id={`sms-${roomId}`}
+                checked={sms}
+                onCheckedChange={(v) => handleToggle('sms', v)}
+              />
             </div>
-            <Switch
-              id={`sms-${roomId}`}
-              checked={sms}
-              onCheckedChange={(v) => handleToggle('sms', v)}
-            />
+
+            {/* Phone number input shown when SMS is toggled on without a saved phone */}
+            {showPhoneInput && (
+              <div className="flex gap-2 mt-2">
+                <Input
+                  type="tel"
+                  placeholder="+1 (555) 123-4567"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="h-8 text-xs"
+                />
+                <Button
+                  size="sm"
+                  className="h-8 text-xs shrink-0"
+                  onClick={savePhone}
+                  disabled={savingPhone || !phone.trim()}
+                >
+                  Save
+                </Button>
+              </div>
+            )}
+
+            {sms && phone && !showPhoneInput && (
+              <p className="text-[10px] text-muted-foreground ml-6">
+                Sending to {phone}
+              </p>
+            )}
           </div>
         </div>
       </PopoverContent>

@@ -26,6 +26,21 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Check if sender is an admin — only notify for admin messages
+    const { data: senderRole } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', senderId)
+      .eq('role', 'admin')
+      .maybeSingle();
+
+    if (!senderRole) {
+      // Sender is not an admin, skip notifications
+      return new Response(JSON.stringify({ success: true, notified: 0, reason: 'sender_not_admin' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Get room info
     const { data: room } = await supabase
       .from('chat_rooms')
@@ -40,7 +55,7 @@ Deno.serve(async (req) => {
       .eq('user_id', senderId)
       .single();
 
-    const senderName = senderProfile?.full_name || 'Someone';
+    const senderName = senderProfile?.full_name || 'Admin';
     const roomName = room?.name || 'a chat room';
     const truncatedContent = content?.length > 100 ? content.substring(0, 100) + '...' : (content || 'New message');
 
@@ -66,7 +81,7 @@ Deno.serve(async (req) => {
         await supabase.from('user_notifications').insert({
           user_id: pref.user_id,
           type: 'chat_message',
-          title: `${room?.icon || '💬'} New message in ${roomName}`,
+          title: `${room?.icon || '💬'} Admin update in ${roomName}`,
           message: `${senderName}: ${truncatedContent}`,
           metadata: { room_id: roomId, message_id: messageId },
         });
@@ -75,11 +90,8 @@ Deno.serve(async (req) => {
 
       // Email notification
       if (pref.email) {
-        // Get user email
         const { data: userData } = await supabase.auth.admin.getUserById(pref.user_id);
         if (userData?.user?.email) {
-          // Use user_notifications with email flag for now
-          // A proper email edge function can be added later
           console.log(`Would email ${userData.user.email}: ${senderName} in ${roomName}: ${truncatedContent}`);
         }
       }
@@ -90,7 +102,6 @@ Deno.serve(async (req) => {
         const TWILIO_API_KEY = Deno.env.get('TWILIO_API_KEY');
 
         if (LOVABLE_API_KEY && TWILIO_API_KEY) {
-          // Get user phone from profile
           const { data: profile } = await supabase
             .from('profiles')
             .select('phone')
@@ -99,7 +110,6 @@ Deno.serve(async (req) => {
 
           if (profile?.phone) {
             try {
-              // Get the Twilio phone number from incoming numbers
               const numbersRes = await fetch(`${GATEWAY_URL}/IncomingPhoneNumbers.json`, {
                 method: 'GET',
                 headers: {
@@ -121,7 +131,7 @@ Deno.serve(async (req) => {
                   body: new URLSearchParams({
                     To: profile.phone,
                     From: fromNumber,
-                    Body: `${room?.icon || '💬'} ${senderName} in ${roomName}: ${truncatedContent}`,
+                    Body: `${room?.icon || '💬'} Admin update in ${roomName}: ${senderName}: ${truncatedContent}`,
                   }),
                 });
 
@@ -136,6 +146,8 @@ Deno.serve(async (req) => {
             } catch (smsError) {
               console.error('Error sending SMS:', smsError);
             }
+          } else {
+            console.warn(`User ${pref.user_id} has SMS enabled but no phone number on profile`);
           }
         }
       }
