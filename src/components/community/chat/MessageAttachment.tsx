@@ -1,4 +1,4 @@
-import { Image, FileText, Download } from 'lucide-react';
+import { Image, FileText, Download, Mic } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -12,6 +12,18 @@ export function MessageAttachment({ url, type }: MessageAttachmentProps) {
   const filename = url.split('/').pop()?.split('?')[0] || 'file';
   // Strip the timestamp prefix from display name
   const displayName = filename.replace(/^\d+-/, '');
+
+  if (type === 'voice') {
+    return (
+      <div className="mt-1.5 flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-muted/50 max-w-[300px]">
+        <Mic className="h-4 w-4 text-primary shrink-0" />
+        <audio controls preload="metadata" className="h-8 w-full [&::-webkit-media-controls-panel]:bg-transparent">
+          <source src={url} type="audio/webm" />
+          Your browser does not support audio playback.
+        </audio>
+      </div>
+    );
+  }
 
   if (type === 'image' || type === 'gif') {
     return (
