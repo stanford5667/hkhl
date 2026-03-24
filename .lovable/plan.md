@@ -1,34 +1,30 @@
 
 
-## Add SMS Opt-In Consent to Notification Settings
+## Create a Public SMS Opt-In Consent Page
 
-**Goal**: Add a visible opt-in consent disclaimer near the SMS toggle in the `RoomNotificationSettings` popover to satisfy Twilio's toll-free verification requirements.
+**Problem**: Twilio requires a publicly accessible URL showing proof of SMS opt-in consent. Your platform is behind authentication, so Twilio reviewers can't see the consent flow. They also don't accept screenshots.
+
+**Solution**: Create a simple, public (no auth required) page at `/sms-consent` that displays your opt-in flow and consent language. You submit this URL (`https://assetlabs.ai/sms-consent`) to Twilio's verification form.
 
 ---
 
-### Changes
+### What the page will show
 
-**File: `src/components/community/chat/RoomNotificationSettings.tsx`**
+A clean, informational page that demonstrates:
+- What the SMS service is (admin chat alerts)
+- The exact consent language users see before opting in
+- How users opt in (checkbox + save flow)
+- How to opt out (reply STOP)
+- Message frequency and "Msg & data rates may apply"
+- A mock/visual representation of the opt-in UI (the checkbox + disclaimer)
 
-Add a small consent notice that appears when SMS is being enabled (alongside the phone number input) and a persistent consent line when SMS is active:
-
-1. When `showPhoneInput` is true (user is entering their phone), show a consent checkbox or text below the input:
-   - "By enabling SMS, you agree to receive text message alerts for admin posts in this room. Msg & data rates may apply. Reply STOP to unsubscribe."
-
-2. When SMS is already active (`sms && phone && !showPhoneInput`), show a compact note:
-   - "SMS alerts active. Reply STOP to opt out."
-
-3. Add a small "Terms" link text pointing to the site's terms/privacy page if one exists.
-
-4. Require the user to check a consent checkbox before the "Save" button becomes enabled when entering their phone number -- this provides the explicit web form opt-in that Twilio requires.
+This is a static informational page -- no login required, no interactive functionality.
 
 ---
 
 ### Technical Details
 
-- Add a `consentChecked` boolean state, defaulting to `false`
-- Disable the Save button unless `consentChecked && phone.trim() && !savingPhone`
-- Render a checkbox + label with the consent language below the phone input
-- Show abbreviated opt-out info when SMS is already enabled
-- No database or backend changes needed -- this is purely a UI compliance addition
+1. **New file**: `src/pages/SmsConsent.tsx` -- public page with consent disclosure
+2. **Route**: Add `/sms-consent` to the router as an unprotected route
+3. **Content**: Standard compliance language covering opt-in mechanism, message frequency, opt-out instructions, and data rates disclaimer
 
