@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, TrendingUp, ExternalLink, Crown } from 'lucide-react';
 import { RoomSettings } from './RoomSettings';
+import { RoomNotificationSettings } from './RoomNotificationSettings';
 import { useAdmin } from '@/hooks/useAdmin';
 
 interface RoomHeaderProps {
