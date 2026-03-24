@@ -228,6 +228,19 @@ export function useRealtimeMessages(roomId: string | null) {
       .single();
 
     if (error) throw error;
+
+    // Fire-and-forget notification trigger
+    if (data) {
+      supabase.functions.invoke('notify-chat-message', {
+        body: {
+          messageId: data.id,
+          roomId,
+          senderId: user.id,
+          content: content?.substring(0, 200) || '',
+        },
+      }).catch(err => console.error('Notification trigger failed:', err));
+    }
+
     return data as ChatMessage;
   };
 

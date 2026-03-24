@@ -104,11 +104,17 @@ export function FloatingChatBubble() {
     if (!newMessage.trim() || !selectedRoomId || !user || sending) return;
     setSending(true);
     try {
-      await supabase.from('chat_messages').insert({
+      const { data } = await supabase.from('chat_messages').insert({
         room_id: selectedRoomId,
         user_id: user.id,
         content: newMessage.trim(),
-      });
+      }).select().single();
+      
+      if (data) {
+        supabase.functions.invoke('notify-chat-message', {
+          body: { messageId: data.id, roomId: selectedRoomId, senderId: user.id, content: newMessage.trim().substring(0, 200) },
+        }).catch(() => {});
+      }
       setNewMessage('');
     } catch (err) {
       console.error('Error sending message:', err);
