@@ -5,6 +5,7 @@ import { TopBar } from "./TopBar";
 import { MobileNav } from "./MobileNav";
 import { TickerStream } from "@/components/ui/TickerStream";
 import { FloatingHelpWidget } from "@/components/support/FloatingHelpWidget";
+import { FloatingChatBubble } from "@/components/community/chat/FloatingChatBubble";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 import { UniversalCreateMenu } from "@/components/shared/UniversalCreateMenu";
@@ -183,6 +184,7 @@ export function Layout({ children }: LayoutProps) {
         onOpenChange={setSearchOpen}
       />
       <FloatingHelpWidget />
+      <FloatingChatBubble />
       {!user && <BacktestPromoToast />}
       
       {/* Auth gate dialog */}

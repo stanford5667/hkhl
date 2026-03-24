@@ -65,7 +65,8 @@ export function RoomHeader({ room, onBack, onRoomRenamed, onRoomDeleted, onSetti
         </div>
       </div>
 
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex items-center gap-1">
+        <RoomNotificationSettings roomId={room.id} roomName={room.name} />
         {room.ticker && (
           <Button
             variant="outline"
