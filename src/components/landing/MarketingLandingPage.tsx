@@ -626,7 +626,7 @@ export function MarketingLandingPage() {
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-500/20 text-cyan-400 text-sm">💬</div>
                   <div>
                     <div className="text-sm font-semibold text-white"># general</div>
-                    <div className="text-[10px] text-gray-500">1,247 members · 32 online</div>
+                    <div className="text-[10px] text-gray-500">🔥 47 trade ideas shared today · 32 online</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
@@ -717,7 +717,7 @@ export function MarketingLandingPage() {
                 onClick={openTeaser}
                 className="rounded-full bg-cyan-400 px-8 font-semibold text-black hover:bg-cyan-300"
               >
-                Join the Conversation
+                🚀 Find Your Next Trade
                 <ChevronRight className="ml-1 h-4 w-4" />
               </Button>
             </div>
