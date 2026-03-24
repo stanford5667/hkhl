@@ -10,7 +10,7 @@ export function useMessageThreads(roomId: string | null) {
   const [threadInfo, setThreadInfo] = useState<MessageThread | null>(null);
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
-  const profileCacheRef = useRef<Map<string, { full_name: string | null; avatar_url: string | null }>>(new Map());
+  const profileCacheRef = useRef<Map<string, { full_name: string | null; avatar_url: string | null; is_anonymous?: boolean; is_admin?: boolean }>>(new Map());
 
   // Fetch user profile with caching
   const fetchUserProfile = useCallback(async (userId: string) => {
@@ -18,13 +18,26 @@ export function useMessageThreads(roomId: string | null) {
       return profileCacheRef.current.get(userId)!;
     }
 
-    const { data } = await supabase
-      .from('profiles')
-      .select('full_name, avatar_url')
-      .eq('user_id', userId)
-      .single();
+    const [{ data: profileData }, { data: roleData }] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('full_name, avatar_url, is_anonymous')
+        .eq('user_id', userId)
+        .single(),
+      supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .eq('role', 'admin')
+        .maybeSingle(),
+    ]);
 
-    const profile = data || { full_name: null, avatar_url: null };
+    const profile = {
+      full_name: profileData?.is_anonymous ? 'Anonymous' : (profileData?.full_name || null),
+      avatar_url: profileData?.is_anonymous ? null : (profileData?.avatar_url || null),
+      is_anonymous: profileData?.is_anonymous || false,
+      is_admin: !!roleData,
+    };
     profileCacheRef.current.set(userId, profile);
     return profile;
   }, []);
