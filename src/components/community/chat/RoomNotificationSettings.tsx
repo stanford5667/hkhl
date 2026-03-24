@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Bell, BellOff, Mail, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Popover,
   PopoverContent,
@@ -28,6 +29,7 @@ export function RoomNotificationSettings({ roomId, roomName }: RoomNotificationS
   const [savingPhone, setSavingPhone] = useState(false);
   const [showPhoneInput, setShowPhoneInput] = useState(false);
   const [phoneError, setPhoneError] = useState('');
+  const [consentChecked, setConsentChecked] = useState(false);
 
   const pref = getPreference(roomId);
   const inApp = pref?.in_app ?? true;
@@ -171,29 +173,45 @@ export function RoomNotificationSettings({ roomId, roomName }: RoomNotificationS
                     onChange={(e) => { setPhone(e.target.value); setPhoneError(''); }}
                     className="h-8 text-xs"
                   />
-                  <Button
-                    size="sm"
-                    className="h-8 text-xs shrink-0"
-                    onClick={savePhone}
-                    disabled={savingPhone || !phone.trim()}
-                  >
-                    Save
-                  </Button>
-                </div>
-                <p className="text-[10px] text-muted-foreground ml-1">
-                  Enter with country code, e.g. +14125551234
-                </p>
-                {phoneError && (
-                  <p className="text-[10px] text-destructive ml-1">{phoneError}</p>
-                )}
-              </div>
-            )}
+                   <Button
+                     size="sm"
+                     className="h-8 text-xs shrink-0"
+                     onClick={savePhone}
+                     disabled={savingPhone || !phone.trim() || !consentChecked}
+                   >
+                     Save
+                   </Button>
+                 </div>
+                 <p className="text-[10px] text-muted-foreground ml-1">
+                   Enter with country code, e.g. +14125551234
+                 </p>
+                 {phoneError && (
+                   <p className="text-[10px] text-destructive ml-1">{phoneError}</p>
+                 )}
+                 <div className="flex items-start gap-2 mt-2">
+                   <Checkbox
+                     id={`sms-consent-${roomId}`}
+                     checked={consentChecked}
+                     onCheckedChange={(v) => setConsentChecked(v === true)}
+                     className="mt-0.5"
+                   />
+                   <label htmlFor={`sms-consent-${roomId}`} className="text-[10px] text-muted-foreground leading-tight cursor-pointer">
+                     By enabling SMS, you agree to receive text message alerts for admin posts in this room. Msg &amp; data rates may apply. Reply STOP to unsubscribe.
+                   </label>
+                 </div>
+               </div>
+             )}
 
             {sms && phone && !showPhoneInput && (
-              <p className="text-[10px] text-muted-foreground ml-6">
-                Sending to {phone}
-              </p>
-            )}
+               <div className="ml-6 space-y-0.5">
+                 <p className="text-[10px] text-muted-foreground">
+                   Sending to {phone}
+                 </p>
+                 <p className="text-[10px] text-muted-foreground">
+                   SMS alerts active. Reply STOP to opt out.
+                 </p>
+               </div>
+             )}
           </div>
         </div>
       </PopoverContent>
