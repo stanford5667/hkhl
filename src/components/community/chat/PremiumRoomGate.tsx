@@ -33,7 +33,7 @@ export function PremiumRoomGate({ memberCount, roomName }: PremiumRoomGateProps)
         {/* Social proof */}
         <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-4">
           <Users className="h-4 w-4" />
-          <span>{memberCount.toLocaleString()} traders discussing now</span>
+          <span>🔥 {Math.max(memberCount, 32).toLocaleString()} traders sharing trade ideas</span>
         </div>
         
         <Button 
