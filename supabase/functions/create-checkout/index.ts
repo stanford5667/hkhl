@@ -149,8 +149,6 @@ serve(async (req) => {
       tax_id_collection: {
         enabled: true,
       },
-      // Enable BNPL payment methods (Klarna, Afterpay) - Stripe auto-hides unsupported
-      payment_method_types: ['card', 'klarna', 'afterpay_clearpay'],
     };
 
     // Add free trial if requested
