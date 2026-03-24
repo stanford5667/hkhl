@@ -115,6 +115,12 @@ export function Sidebar() {
         isPremium: false,
       },
       { 
+        label: "Chat Room", 
+        subtitle: "Trade Ideas & Chat",
+        href: "/community", 
+        icon: Users 
+      },
+      { 
         label: "Academy", 
         subtitle: "Learn & Grow",
         href: "/academy", 
@@ -146,12 +152,6 @@ export function Sidebar() {
       //   icon: Sparkles,
       //   isPremium: true,
       // },
-      { 
-        label: "Community", 
-        subtitle: "Chat & Ideas",
-        href: "/community", 
-        icon: Users 
-      },
       // { 
       //   label: "Strategy Explorer", 
       //   subtitle: "Educational Tools",
