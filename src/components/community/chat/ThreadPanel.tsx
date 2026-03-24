@@ -87,18 +87,21 @@ export function ThreadPanel({
       </div>
 
       {/* Parent message */}
-      <div className="px-4 py-3 border-b bg-muted/30">
+      <div className={cn("px-4 py-3 border-b", parentMessage.user_profile?.is_admin ? "bg-primary/5" : "bg-muted/30")}>
         <div className="flex gap-3">
           <Avatar className="h-8 w-8 shrink-0">
-            <AvatarFallback className="text-xs bg-primary/20 text-primary">
+            <AvatarFallback className={cn("text-xs", parentMessage.user_profile?.is_admin ? "bg-primary text-primary-foreground" : "bg-primary/20 text-primary")}>
               {parentInitials}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="font-medium text-sm">
+              <span className={cn("font-medium text-sm", parentMessage.user_profile?.is_admin && "text-primary")}>
                 {parentMessage.user_profile?.full_name || 'Anonymous'}
               </span>
+              {parentMessage.user_profile?.is_admin && (
+                <span className="inline-flex items-center text-xs font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded">ADMIN</span>
+              )}
               <span className="text-xs text-muted-foreground">
                 {formatDistanceToNow(new Date(parentMessage.created_at), { addSuffix: true })}
               </span>
@@ -131,17 +134,20 @@ export function ThreadPanel({
                 .slice(0, 2);
 
               return (
-                <div key={reply.id} className="flex gap-3">
+                <div key={reply.id} className={cn("flex gap-3 px-2 py-1 rounded", reply.user_profile?.is_admin && "bg-primary/5")}>
                   <Avatar className="h-7 w-7 shrink-0">
-                    <AvatarFallback className="text-xs bg-primary/20 text-primary">
+                    <AvatarFallback className={cn("text-xs", reply.user_profile?.is_admin ? "bg-primary text-primary-foreground" : "bg-primary/20 text-primary")}>
                       {initials}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-sm">
+                      <span className={cn("font-medium text-sm", reply.user_profile?.is_admin && "text-primary")}>
                         {reply.user_profile?.full_name || 'Anonymous'}
                       </span>
+                      {reply.user_profile?.is_admin && (
+                        <span className="inline-flex items-center text-xs font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded">ADMIN</span>
+                      )}
                       <span className="text-xs text-muted-foreground">
                         {formatDistanceToNow(new Date(reply.created_at), { addSuffix: true })}
                       </span>
