@@ -599,96 +599,6 @@ export function MarketingLandingPage() {
         </div>
       </section>
 
-      {/* ─── Academy Preview ─── */}
-      <section id="academy" className="border-b border-white/[0.04] bg-slate-950 py-16 px-4 sm:px-8">
-        <div className="mx-auto max-w-7xl">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} className="mb-8">
-            <motion.div variants={fadeUp} custom={0} className="flex items-center gap-3 mb-2">
-              <GraduationCap className="h-5 w-5 text-amber-400" />
-              <h2 className="text-2xl font-bold sm:text-3xl">Learn from the Pros</h2>
-            </motion.div>
-            <motion.p variants={fadeUp} custom={1} className="text-gray-400">
-              90+ lessons across structured modules — from fundamentals to advanced portfolio strategy.
-            </motion.p>
-          </motion.div>
-
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {(modules && modules.length > 0 ? modules : FALLBACK_MODULES).map((mod, i) => (
-              <motion.div
-                key={mod.id}
-                variants={fadeUp}
-                custom={i % 4}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, margin: '-40px' }}
-                onClick={() => navigate(mod.courseId ? `/academy/course/${mod.courseId}` : '/academy')}
-                className="group cursor-pointer rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden transition-all hover:-translate-y-1 hover:border-amber-500/30 hover:shadow-lg hover:shadow-amber-500/5"
-              >
-                <div className={cn("relative h-32 w-full bg-gradient-to-br flex items-center justify-center overflow-hidden", mod.gradient)}>
-                  {mod.thumbnailUrl ? (
-                    <img src={mod.thumbnailUrl} alt={mod.title} className="absolute inset-0 w-full h-full object-cover" />
-                  ) : (
-                    <>
-                      <div className="absolute inset-0 bg-black/20" />
-                      <div className="relative flex flex-col items-center gap-2">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm text-white font-bold text-lg">{mod.orderIndex}</div>
-                        <span className="text-[10px] uppercase tracking-widest text-white/70 font-medium">Module {mod.orderIndex}</span>
-                      </div>
-                    </>
-                  )}
-                  <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/50 backdrop-blur-sm px-2 py-0.5 text-[10px] text-white/80">
-                    <Clock className="h-2.5 w-2.5" />
-                    {mod.totalDuration >= 3600
-                      ? `${Math.floor(mod.totalDuration / 3600)}h ${Math.round((mod.totalDuration % 3600) / 60)}m`
-                      : `${Math.round(mod.totalDuration / 60)}m`}
-                  </div>
-                </div>
-
-                <div className="p-4 space-y-3">
-                  <h3 className="text-sm font-semibold leading-snug line-clamp-2 group-hover:text-amber-300 transition-colors">{mod.title}</h3>
-                  <p className="text-xs text-gray-400 line-clamp-3 leading-relaxed">{mod.description}</p>
-
-                  {mod.lessonTitles && mod.lessonTitles.length > 0 && (
-                    <ul className="space-y-1 pt-1">
-                      {mod.lessonTitles.map((title: string, li: number) => (
-                        <li key={li} className="flex items-center gap-2 text-[11px] text-gray-500">
-                          <Play className="h-2.5 w-2.5 text-amber-400/50 shrink-0" />
-                          <span className="line-clamp-1">{title}</span>
-                        </li>
-                      ))}
-                      {mod.lessonCount > 3 && (
-                        <li className="text-[11px] text-gray-600 pl-4">+{mod.lessonCount - 3} more lessons</li>
-                      )}
-                    </ul>
-                  )}
-
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-800">
-                    <span className="flex items-center gap-1 text-[11px] text-gray-500">
-                      <Video className="h-3 w-3" />
-                      {mod.lessonCount} lessons
-                    </span>
-                    <span className="text-[11px] text-amber-400 font-medium group-hover:text-amber-300 transition-colors">
-                      Explore →
-                    </span>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-
-          <div className="mt-8 text-center">
-            <Button
-              variant="outline"
-              onClick={openTeaser}
-              className="border-amber-500/30 text-gray-300 hover:bg-amber-500/10 hover:text-white"
-            >
-              Browse Full Curriculum
-              <ChevronRight className="ml-1 h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </section>
-
       {/* ─── Community Chat Mockup ─── */}
       <section className="border-b border-white/[0.04] bg-slate-950 py-16 px-4 sm:px-8">
         <div className="mx-auto max-w-7xl">
@@ -812,6 +722,96 @@ export function MarketingLandingPage() {
               </Button>
             </div>
           </motion.div>
+        </div>
+      </section>
+
+      {/* ─── Academy Preview ─── */}
+      <section id="academy" className="border-b border-white/[0.04] bg-slate-950 py-16 px-4 sm:px-8">
+        <div className="mx-auto max-w-7xl">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} className="mb-8">
+            <motion.div variants={fadeUp} custom={0} className="flex items-center gap-3 mb-2">
+              <GraduationCap className="h-5 w-5 text-amber-400" />
+              <h2 className="text-2xl font-bold sm:text-3xl">Learn from the Pros</h2>
+            </motion.div>
+            <motion.p variants={fadeUp} custom={1} className="text-gray-400">
+              90+ lessons across structured modules — from fundamentals to advanced portfolio strategy.
+            </motion.p>
+          </motion.div>
+
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {(modules && modules.length > 0 ? modules : FALLBACK_MODULES).map((mod, i) => (
+              <motion.div
+                key={mod.id}
+                variants={fadeUp}
+                custom={i % 4}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, margin: '-40px' }}
+                onClick={() => navigate(mod.courseId ? `/academy/course/${mod.courseId}` : '/academy')}
+                className="group cursor-pointer rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden transition-all hover:-translate-y-1 hover:border-amber-500/30 hover:shadow-lg hover:shadow-amber-500/5"
+              >
+                <div className={cn("relative h-32 w-full bg-gradient-to-br flex items-center justify-center overflow-hidden", mod.gradient)}>
+                  {mod.thumbnailUrl ? (
+                    <img src={mod.thumbnailUrl} alt={mod.title} className="absolute inset-0 w-full h-full object-cover" />
+                  ) : (
+                    <>
+                      <div className="absolute inset-0 bg-black/20" />
+                      <div className="relative flex flex-col items-center gap-2">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm text-white font-bold text-lg">{mod.orderIndex}</div>
+                        <span className="text-[10px] uppercase tracking-widest text-white/70 font-medium">Module {mod.orderIndex}</span>
+                      </div>
+                    </>
+                  )}
+                  <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/50 backdrop-blur-sm px-2 py-0.5 text-[10px] text-white/80">
+                    <Clock className="h-2.5 w-2.5" />
+                    {mod.totalDuration >= 3600
+                      ? `${Math.floor(mod.totalDuration / 3600)}h ${Math.round((mod.totalDuration % 3600) / 60)}m`
+                      : `${Math.round(mod.totalDuration / 60)}m`}
+                  </div>
+                </div>
+
+                <div className="p-4 space-y-3">
+                  <h3 className="text-sm font-semibold leading-snug line-clamp-2 group-hover:text-amber-300 transition-colors">{mod.title}</h3>
+                  <p className="text-xs text-gray-400 line-clamp-3 leading-relaxed">{mod.description}</p>
+
+                  {mod.lessonTitles && mod.lessonTitles.length > 0 && (
+                    <ul className="space-y-1 pt-1">
+                      {mod.lessonTitles.map((title: string, li: number) => (
+                        <li key={li} className="flex items-center gap-2 text-[11px] text-gray-500">
+                          <Play className="h-2.5 w-2.5 text-amber-400/50 shrink-0" />
+                          <span className="line-clamp-1">{title}</span>
+                        </li>
+                      ))}
+                      {mod.lessonCount > 3 && (
+                        <li className="text-[11px] text-gray-600 pl-4">+{mod.lessonCount - 3} more lessons</li>
+                      )}
+                    </ul>
+                  )}
+
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-800">
+                    <span className="flex items-center gap-1 text-[11px] text-gray-500">
+                      <Video className="h-3 w-3" />
+                      {mod.lessonCount} lessons
+                    </span>
+                    <span className="text-[11px] text-amber-400 font-medium group-hover:text-amber-300 transition-colors">
+                      Explore →
+                    </span>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="mt-8 text-center">
+            <Button
+              variant="outline"
+              onClick={openTeaser}
+              className="border-amber-500/30 text-gray-300 hover:bg-amber-500/10 hover:text-white"
+            >
+              Browse Full Curriculum
+              <ChevronRight className="ml-1 h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </section>
 
