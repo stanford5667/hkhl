@@ -171,6 +171,10 @@ export function MessageInput({
           
           {/* Inline action buttons */}
           <div className="absolute right-2 bottom-2 flex items-center gap-1">
+            <VoiceRecordButton
+              onVoiceRecorded={(url, type) => setPendingAttachment({ url, type })}
+              disabled={disabled || sending}
+            />
             <ChatAttachmentButton 
               onAttach={(url, type) => setPendingAttachment({ url, type })} 
               disabled={disabled || sending}
