@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, TrendingUp, ExternalLink, Crown } from 'lucide-react';
 import { RoomSettings } from './RoomSettings';
+import { RoomNotificationSettings } from './RoomNotificationSettings';
 import { useAdmin } from '@/hooks/useAdmin';
 
 interface RoomHeaderProps {
@@ -65,7 +66,8 @@ export function RoomHeader({ room, onBack, onRoomRenamed, onRoomDeleted, onSetti
         </div>
       </div>
 
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex items-center gap-1">
+        <RoomNotificationSettings roomId={room.id} roomName={room.name} />
         {room.ticker && (
           <Button
             variant="outline"

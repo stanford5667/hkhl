@@ -928,6 +928,47 @@ export type Database = {
           },
         ]
       }
+      chat_notification_preferences: {
+        Row: {
+          created_at: string
+          email: boolean
+          id: string
+          in_app: boolean
+          room_id: string
+          sms: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: boolean
+          id?: string
+          in_app?: boolean
+          room_id: string
+          sms?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: boolean
+          id?: string
+          in_app?: boolean
+          room_id?: string
+          sms?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_notification_preferences_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "chat_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_rooms: {
         Row: {
           created_at: string
