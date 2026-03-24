@@ -73,6 +73,7 @@ const Upgrade = lazy(() => import('./pages/Upgrade'));
 const Affiliate = lazy(() => import('./pages/Affiliate'));
 const InvestmentHeatmap = lazy(() => import('./pages/InvestmentHeatmap'));
 const ManagementFee = lazy(() => import('./pages/ManagementFee'));
+const SmsConsent = lazy(() => import('./pages/SmsConsent'));
 
 // Optimized QueryClient with aggressive caching and deduplication
 const queryClient = new QueryClient({
@@ -179,6 +180,7 @@ const App = () => {
                               
                               <Route path="/stock-swipe" element={<StockDiscovery />} />
                               <Route path="/management-fee" element={<ManagementFee />} />
+                              <Route path="/sms-consent" element={<SmsConsent />} />
                               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                               <Route path="*" element={<NotFound />} />
                             </Routes>
