@@ -40,19 +40,35 @@ export function usePinnedMessages(roomId: string | null) {
           reactions: pm.message.message_reactions || [],
         })) as ChatMessage[];
 
-      // Fetch profiles
+      // Fetch profiles and admin status
       const userIds = [...new Set(messages.map(m => m.user_id))];
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('user_id, full_name, avatar_url')
-        .in('user_id', userIds);
+      const [{ data: profiles }, { data: roles }] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('user_id, full_name, avatar_url, is_anonymous')
+          .in('user_id', userIds),
+        supabase
+          .from('user_roles')
+          .select('user_id, role')
+          .in('user_id', userIds)
+          .eq('role', 'admin'),
+      ]);
 
       const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+      const adminSet = new Set(roles?.map(r => r.user_id) || []);
 
-      const messagesWithProfiles = messages.map(m => ({
-        ...m,
-        user_profile: profileMap.get(m.user_id) || { full_name: null, avatar_url: null },
-      }));
+      const messagesWithProfiles = messages.map(m => {
+        const p = profileMap.get(m.user_id);
+        return {
+          ...m,
+          user_profile: {
+            full_name: p?.is_anonymous ? 'Anonymous' : (p?.full_name || null),
+            avatar_url: p?.is_anonymous ? null : (p?.avatar_url || null),
+            is_anonymous: p?.is_anonymous || false,
+            is_admin: adminSet.has(m.user_id),
+          },
+        };
+      });
 
       setPinnedMessages(messagesWithProfiles);
     } catch (err) {

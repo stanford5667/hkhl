@@ -23,11 +23,11 @@ export function PremiumRoomGate({ memberCount, roomName }: PremiumRoomGateProps)
         
         <h3 className="text-lg font-semibold mb-2 flex items-center justify-center gap-2">
           <Lock className="h-4 w-4" />
-          Premium Room
+          Members Only
         </h3>
         
         <p className="text-sm text-muted-foreground mb-4">
-          Get full access to <span className="font-medium">{roomName}</span> and join the conversation
+          Upgrade to Pro to access <span className="font-medium">{roomName}</span> and all chat rooms
         </p>
         
         {/* Social proof */}

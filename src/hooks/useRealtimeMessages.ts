@@ -16,7 +16,7 @@ export function useRealtimeMessages(roomId: string | null) {
   const channelRef = useRef<RealtimeChannel | null>(null);
 
   // Cache for user profiles to avoid repeated fetches
-  const profileCacheRef = useRef<Map<string, { full_name: string | null; avatar_url: string | null }>>(new Map());
+  const profileCacheRef = useRef<Map<string, { full_name: string | null; avatar_url: string | null; is_anonymous?: boolean; is_admin?: boolean; bio?: string | null }>>(new Map());
 
   // Fetch user profile and cache it
   const fetchUserProfile = useCallback(async (userId: string) => {
@@ -24,13 +24,27 @@ export function useRealtimeMessages(roomId: string | null) {
       return profileCacheRef.current.get(userId)!;
     }
 
-    const { data } = await supabase
-      .from('profiles')
-      .select('full_name, avatar_url')
-      .eq('user_id', userId)
-      .single();
+    const [{ data: profileData }, { data: roleData }] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('full_name, avatar_url, is_anonymous, bio')
+        .eq('user_id', userId)
+        .single(),
+      supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .eq('role', 'admin')
+        .maybeSingle(),
+    ]);
 
-    const profile = data || { full_name: null, avatar_url: null };
+    const profile = {
+      full_name: profileData?.is_anonymous ? 'Anonymous' : (profileData?.full_name || null),
+      avatar_url: profileData?.is_anonymous ? null : (profileData?.avatar_url || null),
+      is_anonymous: profileData?.is_anonymous || false,
+      is_admin: !!roleData,
+      bio: profileData?.bio || null,
+    };
     profileCacheRef.current.set(userId, profile);
     return profile;
   }, []);

@@ -40,7 +40,7 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
   const { isPro, showUpgradeModal } = useUsage();
   const { isAdmin } = useAdmin();
 
-  const canAccess = !room.is_premium || isPro || isAdmin;
+  const canAccess = isPro || isAdmin;
   const canPost = isAdmin || room.posting_mode === 'everyone';
   const canPin = isAdmin;
 

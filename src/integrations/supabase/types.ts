@@ -3988,14 +3988,17 @@ export type Database = {
         Row: {
           age_verified_at: string | null
           avatar_url: string | null
+          bio: string | null
           company: string | null
           created_at: string
           current_organization_id: string | null
           full_name: string | null
           id: string
           is_age_verified: boolean | null
+          is_anonymous: boolean
           job_title: string | null
           linkedin_url: string | null
+          location: string | null
           membership_tier: string | null
           onboarding_completed: boolean | null
           onboarding_step: string | null
@@ -4007,14 +4010,17 @@ export type Database = {
         Insert: {
           age_verified_at?: string | null
           avatar_url?: string | null
+          bio?: string | null
           company?: string | null
           created_at?: string
           current_organization_id?: string | null
           full_name?: string | null
           id?: string
           is_age_verified?: boolean | null
+          is_anonymous?: boolean
           job_title?: string | null
           linkedin_url?: string | null
+          location?: string | null
           membership_tier?: string | null
           onboarding_completed?: boolean | null
           onboarding_step?: string | null
@@ -4026,14 +4032,17 @@ export type Database = {
         Update: {
           age_verified_at?: string | null
           avatar_url?: string | null
+          bio?: string | null
           company?: string | null
           created_at?: string
           current_organization_id?: string | null
           full_name?: string | null
           id?: string
           is_age_verified?: boolean | null
+          is_anonymous?: boolean
           job_title?: string | null
           linkedin_url?: string | null
+          location?: string | null
           membership_tier?: string | null
           onboarding_completed?: boolean | null
           onboarding_step?: string | null

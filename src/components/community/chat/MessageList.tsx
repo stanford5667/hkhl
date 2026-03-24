@@ -127,15 +127,20 @@ const MessageItem = memo(function MessageItem({
   const displayName = message.user_profile?.full_name || 'Anonymous';
   const initials = displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   const threadCount = message.thread?.reply_count || 0;
+  const isAdminMessage = message.user_profile?.is_admin === true;
 
   return (
     <div className={cn(
       "group flex gap-3 px-4 py-2 hover:bg-muted/50 transition-colors",
-      isPinned && "bg-amber-500/5 border-l-2 border-amber-500"
+      isPinned && "bg-amber-500/5 border-l-2 border-amber-500",
+      isAdminMessage && !isPinned && "bg-primary/5 border-l-2 border-primary"
     )}>
       <div className="relative">
         <Avatar className="h-8 w-8 shrink-0">
-          <AvatarFallback className="text-xs bg-primary/20 text-primary">
+          <AvatarFallback className={cn(
+            "text-xs",
+            isAdminMessage ? "bg-primary text-primary-foreground" : "bg-primary/20 text-primary"
+          )}>
             {initials}
           </AvatarFallback>
         </Avatar>
@@ -148,7 +153,12 @@ const MessageItem = memo(function MessageItem({
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="font-medium text-sm">{displayName}</span>
+          <span className={cn("font-medium text-sm", isAdminMessage && "text-primary")}>{displayName}</span>
+          {isAdminMessage && (
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+              ADMIN
+            </span>
+          )}
           <span className="text-xs text-muted-foreground">
             {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
           </span>
