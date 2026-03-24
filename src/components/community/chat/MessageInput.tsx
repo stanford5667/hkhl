@@ -161,7 +161,7 @@ export function MessageInput({
           {pendingAttachment && (
             <div className="flex items-center gap-2 mb-1.5 px-2 py-1.5 bg-muted rounded-md text-xs">
               <span className="truncate flex-1">
-                {pendingAttachment.type === 'image' ? '🖼️ Image' : '📎 File'} attached
+                {pendingAttachment.type === 'image' ? '🖼️ Image' : pendingAttachment.type === 'voice' ? '🎤 Voice message' : '📎 File'} attached
               </span>
               <button onClick={() => setPendingAttachment(null)} className="shrink-0">
                 <X className="h-3.5 w-3.5 text-muted-foreground" />
