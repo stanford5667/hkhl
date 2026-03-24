@@ -27,6 +27,7 @@ export function RoomNotificationSettings({ roomId, roomName }: RoomNotificationS
   const [phoneLoaded, setPhoneLoaded] = useState(false);
   const [savingPhone, setSavingPhone] = useState(false);
   const [showPhoneInput, setShowPhoneInput] = useState(false);
+  const [phoneError, setPhoneError] = useState('');
 
   const pref = getPreference(roomId);
   const inApp = pref?.in_app ?? true;
@@ -47,18 +48,34 @@ export function RoomNotificationSettings({ roomId, roomName }: RoomNotificationS
       });
   }, [open, user, phoneLoaded]);
 
+  const isValidE164 = (num: string) => /^\+[1-9]\d{7,14}$/.test(num);
+
+  const formatToE164 = (raw: string): string => {
+    const digits = raw.replace(/[^\d]/g, '');
+    if (digits.length === 10) return `+1${digits}`;
+    if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`;
+    if (raw.startsWith('+')) return raw.replace(/[^\d+]/g, '');
+    return `+${digits}`;
+  };
+
   const savePhone = async () => {
     if (!user || !phone.trim()) return;
+    const formatted = formatToE164(phone.trim());
+    if (!isValidE164(formatted)) {
+      setPhoneError('Enter a valid phone number (e.g. +14125551234)');
+      return;
+    }
+    setPhoneError('');
     setSavingPhone(true);
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ phone: phone.trim() })
+        .update({ phone: formatted })
         .eq('user_id', user.id);
       if (error) throw error;
+      setPhone(formatted);
       toast.success('Phone number saved');
       setShowPhoneInput(false);
-      // Now enable SMS
       await upsertPreference(roomId, { sms: true });
       toast.success(`SMS alerts enabled for ${roomName}`);
     } catch {
