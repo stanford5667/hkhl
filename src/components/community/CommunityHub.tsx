@@ -119,9 +119,9 @@ export function CommunityHub({ defaultTab = 'chat', initialRoomId }: CommunityHu
             </Button>
           ) : (
             <>
-              <TrendingUp className="h-4 w-4" />
+              <TrendingUp className="h-4 w-4 text-emerald-500" />
               <span className="hidden sm:inline">
-                {rooms.reduce((sum, r) => sum + r.member_count, 0).toLocaleString()} members online
+                🔥 {Math.max(rooms.reduce((sum, r) => sum + r.member_count, 0), 24).toLocaleString()} traders sharing ideas
               </span>
             </>
           )}

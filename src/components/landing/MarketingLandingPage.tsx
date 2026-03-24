@@ -605,10 +605,10 @@ export function MarketingLandingPage() {
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} className="mb-8">
             <motion.div variants={fadeUp} custom={0} className="flex items-center gap-3 mb-2">
               <Activity className="h-5 w-5 text-cyan-400" />
-              <h2 className="text-2xl font-bold sm:text-3xl">Real-Time Community Chat</h2>
+              <h2 className="text-2xl font-bold sm:text-3xl">Find Your Next Trade Idea</h2>
             </motion.div>
             <motion.p variants={fadeUp} custom={1} className="text-gray-400">
-              Discuss trades, share ideas, and learn from other investors — all in real time.
+              Real traders sharing setups, discussing plays, and spotting opportunities — live, right now.
             </motion.p>
           </motion.div>
 
@@ -626,7 +626,7 @@ export function MarketingLandingPage() {
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-500/20 text-cyan-400 text-sm">💬</div>
                   <div>
                     <div className="text-sm font-semibold text-white"># general</div>
-                    <div className="text-[10px] text-gray-500">1,247 members · 32 online</div>
+                    <div className="text-[10px] text-gray-500">🔥 47 trade ideas shared today · 32 online</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
@@ -717,7 +717,7 @@ export function MarketingLandingPage() {
                 onClick={openTeaser}
                 className="rounded-full bg-cyan-400 px-8 font-semibold text-black hover:bg-cyan-300"
               >
-                Join the Conversation
+                🚀 Find Your Next Trade
                 <ChevronRight className="ml-1 h-4 w-4" />
               </Button>
             </div>

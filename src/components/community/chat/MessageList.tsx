@@ -399,8 +399,9 @@ export function MessageList({
     return (
       <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
         <TrendingUp className="h-12 w-12 mb-4 opacity-50" />
-        <p>No messages yet</p>
-        <p className="text-sm">Be the first to start the conversation!</p>
+        <p className="font-semibold text-foreground">Find Your Next Trade Idea 🚀</p>
+        <p className="text-sm mt-1">Share setups, discuss tickers, and learn from the community.</p>
+        <p className="text-xs mt-2 text-muted-foreground/70">Drop a message to kick things off!</p>
       </div>
     );
   }
