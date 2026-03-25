@@ -17,6 +17,10 @@ export interface ChatRoom {
   created_by: string;
   created_at: string;
   updated_at: string;
+  is_live: boolean;
+  live_stream_url: string | null;
+  live_started_by: string | null;
+  live_started_at: string | null;
 }
 
 export interface ChatMessage {

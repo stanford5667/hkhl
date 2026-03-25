@@ -125,6 +125,35 @@ export function useChatRooms() {
     await fetchRooms();
   };
 
+  const startLivestream = async (roomId: string, streamUrl: string) => {
+    if (!user) throw new Error('Must be authenticated');
+    const { error } = await supabase
+      .from('chat_rooms')
+      .update({
+        is_live: true,
+        live_stream_url: streamUrl,
+        live_started_by: user.id,
+        live_started_at: new Date().toISOString(),
+      })
+      .eq('id', roomId);
+    if (error) throw error;
+    await fetchRooms();
+  };
+
+  const stopLivestream = async (roomId: string) => {
+    const { error } = await supabase
+      .from('chat_rooms')
+      .update({
+        is_live: false,
+        live_stream_url: null,
+        live_started_by: null,
+        live_started_at: null,
+      })
+      .eq('id', roomId);
+    if (error) throw error;
+    await fetchRooms();
+  };
+
   return {
     rooms,
     loading,
@@ -136,6 +165,8 @@ export function useChatRooms() {
     setRoomPremium,
     updateRoomSettings,
     deleteRoom,
+    startLivestream,
+    stopLivestream,
     publicRooms: getRoomsByType('public'),
     stockRooms: getRoomsByType('stock'),
   };

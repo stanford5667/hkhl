@@ -2,9 +2,10 @@ import { ChatRoom } from '@/types/community';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, TrendingUp, ExternalLink, Crown } from 'lucide-react';
+import { ArrowLeft, TrendingUp, ExternalLink, Crown, Radio } from 'lucide-react';
 import { RoomSettings } from './RoomSettings';
 import { RoomNotificationSettings } from './RoomNotificationSettings';
+import { StartLivestreamDialog } from './StartLivestreamDialog';
 import { useAdmin } from '@/hooks/useAdmin';
 
 interface RoomHeaderProps {
@@ -13,9 +14,11 @@ interface RoomHeaderProps {
   onRoomRenamed?: () => void;
   onRoomDeleted?: () => void;
   onSettingsChanged?: () => void;
+  onStartLivestream?: (url: string) => Promise<void>;
+  onStopLivestream?: () => Promise<void>;
 }
 
-export function RoomHeader({ room, onBack, onRoomRenamed, onRoomDeleted, onSettingsChanged }: RoomHeaderProps) {
+export function RoomHeader({ room, onBack, onRoomRenamed, onRoomDeleted, onSettingsChanged, onStartLivestream, onStopLivestream }: RoomHeaderProps) {
   const navigate = useNavigate();
   const { isAdmin } = useAdmin();
 
@@ -67,6 +70,15 @@ export function RoomHeader({ room, onBack, onRoomRenamed, onRoomDeleted, onSetti
       </div>
 
       <div className="ml-auto flex items-center gap-1">
+        {room.is_live && (
+          <Badge variant="destructive" className="gap-1 animate-pulse">
+            <Radio className="h-3 w-3" />
+            LIVE
+          </Badge>
+        )}
+        {isAdmin && !room.is_live && onStartLivestream && (
+          <StartLivestreamDialog onStartStream={onStartLivestream} />
+        )}
         <RoomNotificationSettings roomId={room.id} roomName={room.name} />
         {room.ticker && (
           <Button

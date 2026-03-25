@@ -976,7 +976,11 @@ export type Database = {
           description: string | null
           icon: string | null
           id: string
+          is_live: boolean
           is_premium: boolean | null
+          live_started_at: string | null
+          live_started_by: string | null
+          live_stream_url: string | null
           member_count: number
           name: string
           posting_mode: string
@@ -992,7 +996,11 @@ export type Database = {
           description?: string | null
           icon?: string | null
           id?: string
+          is_live?: boolean
           is_premium?: boolean | null
+          live_started_at?: string | null
+          live_started_by?: string | null
+          live_stream_url?: string | null
           member_count?: number
           name: string
           posting_mode?: string
@@ -1008,7 +1016,11 @@ export type Database = {
           description?: string | null
           icon?: string | null
           id?: string
+          is_live?: boolean
           is_premium?: boolean | null
+          live_started_at?: string | null
+          live_started_by?: string | null
+          live_stream_url?: string | null
           member_count?: number
           name?: string
           posting_mode?: string
