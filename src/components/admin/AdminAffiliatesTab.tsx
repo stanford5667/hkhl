@@ -36,6 +36,12 @@ export function AdminAffiliatesTab() {
   const [payoutRef, setPayoutRef] = useState("");
   const [processingPayout, setProcessingPayout] = useState(false);
 
+  const getAuthHeaders = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) throw new Error("Session expired. Please sign in again.");
+    return { Authorization: `Bearer ${session.access_token}` };
+  };
+
   useEffect(() => {
     fetchAffiliates();
   }, [statusFilter]);
@@ -68,7 +74,9 @@ export function AdminAffiliatesTab() {
       const affiliate = affiliates.find(a => a.id === id);
       if (affiliate) {
         try {
+          const headers = await getAuthHeaders();
           const { error: promoError } = await supabase.functions.invoke('create-affiliate-promo', {
+            headers,
             body: { affiliate_id: id, affiliate_code: affiliate.affiliate_code },
           });
           if (promoError) {
@@ -212,12 +220,14 @@ export function AdminAffiliatesTab() {
         <Button variant="outline" size="sm" onClick={async () => {
           try {
             toast.info('Backfilling Stripe promo codes...');
-            const { data, error } = await supabase.functions.invoke('backfill-affiliate-promos');
+            const headers = await getAuthHeaders();
+            const { data, error } = await supabase.functions.invoke('backfill-affiliate-promos', { headers });
             if (error) throw error;
             toast.success(`Backfilled ${data?.backfilled || 0} affiliate promo codes`);
             fetchAffiliates();
           } catch (err) {
-            toast.error('Backfill failed');
+            const message = err instanceof Error ? err.message : 'Backfill failed';
+            toast.error(message);
             console.error(err);
           }
         }}>
