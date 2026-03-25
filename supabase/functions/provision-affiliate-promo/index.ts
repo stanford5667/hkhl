@@ -37,19 +37,39 @@ serve(async (req) => {
 
     if (affErr || !affiliate) throw new Error(`Affiliate not found or not approved: ${code}`);
 
-    // If promo already exists and is valid, return it
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+    const discountPercent = affiliate.discount_percent ?? 10;
+    const forceRecreate = req.headers.get("x-force-recreate") === "true";
 
+    // If promo already exists and is valid, check if discount matches
     if (affiliate.stripe_promo_code_id) {
       try {
         const existing = await stripe.promotionCodes.retrieve(affiliate.stripe_promo_code_id);
+        if (existing.active && !forceRecreate) {
+          // Check if the coupon's discount matches
+          const coupon = await stripe.coupons.retrieve(existing.coupon as string);
+          if (coupon.percent_off === discountPercent) {
+            return new Response(JSON.stringify({ success: true, message: "Promo code already exists and is active", promo_id: existing.id, code: existing.code }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+        }
+        // Deactivate old promo code if it exists
         if (existing.active) {
-          return new Response(JSON.stringify({ success: true, message: "Promo code already exists and is active", promo_id: existing.id, code: existing.code }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+          await stripe.promotionCodes.update(existing.id, { active: false });
         }
       } catch { /* will recreate */ }
     }
+
+    // Also search for any existing active promo codes with this code name
+    try {
+      const existingPromos = await stripe.promotionCodes.list({ code: code, limit: 10 });
+      for (const p of existingPromos.data) {
+        if (p.active) {
+          await stripe.promotionCodes.update(p.id, { active: false });
+        }
+      }
+    } catch { /* ignore */ }
 
     const discountPercent = affiliate.discount_percent ?? 10;
     const coupon = await stripe.coupons.create({
