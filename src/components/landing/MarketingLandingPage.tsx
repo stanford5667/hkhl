@@ -1,7 +1,9 @@
 import { useState, useCallback } from 'react';
 
 import { motion, type Easing } from 'framer-motion';
-import { Zap, ChevronRight, Loader2, TrendingUp, GraduationCap, Globe, Play, Clock, Video, Activity, Target, Shield, DollarSign, Award, BarChart3 } from 'lucide-react';
+import { Zap, ChevronRight, Loader2, TrendingUp, GraduationCap, Globe, Play, Clock, Video, Activity, Target, Shield, DollarSign, Award, BarChart3, Flame, Sparkles } from 'lucide-react';
+import { useMarketThemes } from '@/hooks/useMarketThemes';
+import { MARKET_THEMES as FALLBACK_THEMES } from '@/data/marketThemes';
 import { LandingHeatmapPreview } from './LandingHeatmapPreview';
 import modIntroImg from '@/assets/modules/mod-intro-investing.jpg';
 import modFundImg from '@/assets/modules/mod-fundamental-analysis.jpg';
@@ -598,6 +600,67 @@ export function MarketingLandingPage() {
           </div>
         </div>
       </section>
+
+      {/* ─── Trending Now Ticker Strip ─── */}
+      <section className="border-b border-white/[0.06] bg-slate-950 py-12 px-4 sm:px-8">
+        <div className="mx-auto max-w-7xl">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} className="mb-6">
+            <motion.div variants={fadeUp} custom={0} className="flex items-center gap-3 mb-1">
+              <Flame className="h-5 w-5 text-orange-400" />
+              <h2 className="text-2xl font-bold sm:text-3xl">Trending Now</h2>
+            </motion.div>
+            <motion.p variants={fadeUp} custom={1} className="text-gray-400 text-sm">
+              Highest volume movers right now — updated every 5 minutes.
+            </motion.p>
+          </motion.div>
+
+          <div className="relative overflow-hidden">
+            {tickersLoading ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Skeleton key={i} className="h-20 rounded-lg bg-slate-800/60" />
+                ))}
+              </div>
+            ) : tickers.length === 0 ? (
+              <div className="text-center py-8 text-gray-500 text-sm">Market data loading…</div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                {tickers.slice(0, 12).map((t, i) => (
+                  <motion.div
+                    key={t.symbol}
+                    variants={fadeUp}
+                    custom={i % 6}
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true }}
+                    onClick={openTeaser}
+                    className="group cursor-pointer rounded-lg border border-slate-800 bg-slate-900/60 p-3 transition-all hover:border-cyan-500/30 hover:-translate-y-0.5"
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-mono text-sm font-bold text-white">{t.symbol}</span>
+                      {t.changePercent != null && (
+                        <span className={cn(
+                          "text-xs font-mono font-semibold",
+                          t.changePercent >= 0 ? "text-emerald-400" : "text-rose-400"
+                        )}>
+                          {t.changePercent >= 0 ? '+' : ''}{t.changePercent.toFixed(2)}%
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[10px] text-gray-500 line-clamp-1">{t.name}</div>
+                    {t.price != null && (
+                      <div className="text-xs font-mono text-gray-400 mt-1">${t.price.toFixed(2)}</div>
+                    )}
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Market Themes ─── */}
+      <LandingMarketThemes openTeaser={openTeaser} />
 
       {/* ─── Community Chat Mockup ─── */}
       <section className="border-b border-white/[0.04] bg-slate-950 py-16 px-4 sm:px-8">
