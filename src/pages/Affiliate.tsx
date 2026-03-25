@@ -204,13 +204,20 @@ export default function Affiliate() {
       } else if (insertedData) {
         // Create Stripe promotion code for this affiliate (10% off first month)
         try {
+          const { data: { session } } = await supabase.auth.getSession();
+          const headers = session?.access_token
+            ? { Authorization: `Bearer ${session.access_token}` }
+            : undefined;
+
           await supabase.functions.invoke("create-affiliate-promo", {
+            headers,
             body: {
               affiliate_id: insertedData.id,
               affiliate_code: insertedData.affiliate_code,
             },
           });
         } catch (promoErr) {
+          toast.error("Affiliate created, but promo provisioning failed. Please contact support to backfill your code.");
           console.error("Failed to create promo code:", promoErr);
         }
 
