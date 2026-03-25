@@ -2,9 +2,8 @@ import { useState, useCallback } from 'react';
 
 import { motion, type Easing } from 'framer-motion';
 import { Zap, ChevronRight, Loader2, TrendingUp, GraduationCap, Globe, Play, Clock, Video, Activity, Target, Shield, DollarSign, Award, BarChart3, Flame, Sparkles } from 'lucide-react';
-import { useMarketThemes } from '@/hooks/useMarketThemes';
-import { MARKET_THEMES as FALLBACK_THEMES } from '@/data/marketThemes';
 import { LandingHeatmapPreview } from './LandingHeatmapPreview';
+import { LandingMarketThemes } from './LandingMarketThemes';
 import modIntroImg from '@/assets/modules/mod-intro-investing.jpg';
 import modFundImg from '@/assets/modules/mod-fundamental-analysis.jpg';
 import modTechImg from '@/assets/modules/mod-technical-analysis.jpg';
