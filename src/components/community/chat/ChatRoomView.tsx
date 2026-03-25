@@ -9,6 +9,8 @@ import { useMessageThreads } from '@/hooks/useMessageThreads';
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 import { useChatRooms } from '@/hooks/useChatRooms';
 import { LivestreamPlayer } from './LivestreamPlayer';
+import { LiveKitBroadcaster } from './LiveKitBroadcaster';
+import { LiveKitViewer } from './LiveKitViewer';
 import { useUsage } from '@/contexts/UsageContext';
 import { useAdmin } from '@/hooks/useAdmin';
 import { MessageList } from './MessageList';
@@ -36,6 +38,7 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
     content: string;
     userName: string;
   } | null>(null);
+  const [livekitMode, setLivekitMode] = useState(false);
 
   const navigate = useNavigate();
   const { isPro, showUpgradeModal } = useUsage();
@@ -129,10 +132,18 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
   };
 
   const handleStartLivestream = async (url: string) => {
-    await startLivestream(room.id, url);
+    if (url === '__livekit__') {
+      // LiveKit native mode
+      await startLivestream(room.id, '__livekit__');
+      setLivekitMode(true);
+    } else {
+      await startLivestream(room.id, url);
+      setLivekitMode(false);
+    }
   };
 
   const handleStopLivestream = async () => {
+    setLivekitMode(false);
     await stopLivestream(room.id);
   };
 
@@ -169,12 +180,20 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
       )}
 
       <div className="flex-1 relative overflow-hidden">
-        {room.is_live && room.live_stream_url && canAccess && (
-          <LivestreamPlayer
-            streamUrl={room.live_stream_url}
-            isAdmin={isAdmin}
-            onStopStream={handleStopLivestream}
-          />
+        {room.is_live && canAccess && (
+          room.live_stream_url === '__livekit__' || livekitMode ? (
+            isAdmin ? (
+              <LiveKitBroadcaster roomId={room.id} onStopStream={handleStopLivestream} />
+            ) : (
+              <LiveKitViewer roomId={room.id} />
+            )
+          ) : room.live_stream_url ? (
+            <LivestreamPlayer
+              streamUrl={room.live_stream_url}
+              isAdmin={isAdmin}
+              onStopStream={handleStopLivestream}
+            />
+          ) : null
         )}
         <ResizablePanelGroup direction="horizontal">
           <ResizablePanel defaultSize={activeThread ? 60 : 100} minSize={40}>
