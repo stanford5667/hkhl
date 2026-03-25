@@ -209,6 +209,20 @@ export function AdminAffiliatesTab() {
         <Button variant="outline" size="sm" onClick={fetchAffiliates}>
           Refresh
         </Button>
+        <Button variant="outline" size="sm" onClick={async () => {
+          try {
+            toast.info('Backfilling Stripe promo codes...');
+            const { data, error } = await supabase.functions.invoke('backfill-affiliate-promos');
+            if (error) throw error;
+            toast.success(`Backfilled ${data?.backfilled || 0} affiliate promo codes`);
+            fetchAffiliates();
+          } catch (err) {
+            toast.error('Backfill failed');
+            console.error(err);
+          }
+        }}>
+          Backfill Stripe Promos
+        </Button>
       </div>
 
       {/* Table */}
