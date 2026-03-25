@@ -1,0 +1,1 @@
+ALTER TABLE public.affiliates ADD COLUMN IF NOT EXISTS discount_percent integer NOT NULL DEFAULT 10;

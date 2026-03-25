@@ -222,6 +222,7 @@ export type Database = {
           commission_rate: number
           commission_type: string
           created_at: string
+          discount_percent: number
           id: string
           notes: string | null
           payment_email: string | null
@@ -246,6 +247,7 @@ export type Database = {
           commission_rate?: number
           commission_type?: string
           created_at?: string
+          discount_percent?: number
           id?: string
           notes?: string | null
           payment_email?: string | null
@@ -270,6 +272,7 @@ export type Database = {
           commission_rate?: number
           commission_type?: string
           created_at?: string
+          discount_percent?: number
           id?: string
           notes?: string | null
           payment_email?: string | null
