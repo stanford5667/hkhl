@@ -12,17 +12,71 @@ const logStep = (step: string, details?: unknown) => {
   console.log(`[CREATE-CHECKOUT] ${step}${detailsStr}`);
 };
 
-// Plan price IDs keyed by plan + billing interval
 const PLAN_PRICES: Record<string, Record<string, string>> = {
   pro: {
-    monthly: "price_1SpJ7t0ATyKK64GzVausjlQ2",      // $50/month
-    annual: "price_1T8s7d0ATyKK64Gz9fRwPWNu",        // $492/year ($41/mo)
+    monthly: "price_1SpJ7t0ATyKK64GzVausjlQ2",
+    annual: "price_1T8s7d0ATyKK64Gz9fRwPWNu",
   },
   research_education: {
-    monthly: "price_1T9xDL0ATyKK64GzV49xraRC",       // $150/month (new users)
-    annual: "price_1T9xDp0ATyKK64Gz5YTQGOQU",        // $1,000/year (new users, ~$83/mo)
+    monthly: "price_1T9xDL0ATyKK64GzV49xraRC",
+    annual: "price_1T9xDp0ATyKK64Gz5YTQGOQU",
   },
 };
+
+/** Ensure an affiliate has a valid Stripe promo code, creating one if missing or invalid */
+async function ensureAffiliatePromoCode(
+  stripe: Stripe,
+  supabaseAdmin: ReturnType<typeof createClient>,
+  affiliateId: string,
+  affiliateCode: string,
+  existingPromoId: string | null,
+  existingCouponId: string | null
+): Promise<string | null> {
+  // If we already have a promo code ID, validate it's still active in Stripe
+  if (existingPromoId) {
+    try {
+      const promo = await stripe.promotionCodes.retrieve(existingPromoId);
+      if (promo.active) {
+        logStep("Existing promo code is valid and active", { promoId: existingPromoId });
+        return existingPromoId;
+      }
+      logStep("Existing promo code is inactive in Stripe, will recreate", { promoId: existingPromoId });
+    } catch (err) {
+      logStep("Failed to retrieve promo code from Stripe, will recreate", { promoId: existingPromoId, error: String(err) });
+    }
+  }
+
+  // Create a new coupon + promo code
+  try {
+    logStep("Auto-creating Stripe promo code for affiliate", { affiliateId, affiliateCode });
+
+    const coupon = await stripe.coupons.create({
+      percent_off: 10,
+      duration: "once",
+      name: `Affiliate Referral - ${affiliateCode}`,
+      metadata: { affiliate_id: affiliateId, affiliate_code: affiliateCode, type: "affiliate_referral" },
+    });
+
+    const promoCode = await stripe.promotionCodes.create({
+      coupon: coupon.id,
+      code: affiliateCode,
+      metadata: { affiliate_id: affiliateId, affiliate_code: affiliateCode, type: "affiliate_referral" },
+    });
+
+    logStep("Promo code auto-created", { promoId: promoCode.id, code: promoCode.code });
+
+    // Save back to database
+    await supabaseAdmin
+      .from("affiliates")
+      .update({ stripe_coupon_id: coupon.id, stripe_promo_code_id: promoCode.id })
+      .eq("id", affiliateId);
+
+    return promoCode.id;
+  } catch (err) {
+    logStep("Failed to auto-create promo code", { error: String(err) });
+    return null;
+  }
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -49,7 +103,6 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No authorization header provided");
 
-    // Parse request body for plan selection and return path
     let selectedPlan = "research_education";
     let billingInterval = "monthly";
     let returnPath = "/quant-lab";
@@ -87,14 +140,12 @@ serve(async (req) => {
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
     
-    // Check for existing customer
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     let customerId;
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
       logStep("Existing customer found", { customerId });
       
-      // Check if customer already has an active subscription to this plan
       const subscriptions = await stripe.subscriptions.list({
         customer: customerId,
         status: "active",
@@ -110,15 +161,11 @@ serve(async (req) => {
         logStep("User already has active subscription to this plan");
         return new Response(
           JSON.stringify({ error: "You already have an active subscription to this plan" }),
-          {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-            status: 400,
-          }
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
         );
       }
     }
 
-    // Always use production URL for Stripe redirects (preview URLs won't work)
     const productionUrl = "https://assetlabs.ai";
     
     const planDescriptions: Record<string, string> = {
@@ -129,12 +176,7 @@ serve(async (req) => {
     const sessionParams: any = {
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
+      line_items: [{ price: priceId, quantity: 1 }],
       mode: "subscription",
       success_url: `${productionUrl}${returnPath}?subscription=success`,
       cancel_url: `${productionUrl}${returnPath}?subscription=cancelled`,
@@ -146,41 +188,48 @@ serve(async (req) => {
         },
       },
       billing_address_collection: "required",
-      tax_id_collection: {
-        enabled: true,
-      },
+      tax_id_collection: { enabled: true },
     };
 
-    // Add free trial if requested
     if (enableTrial) {
-      sessionParams.subscription_data = {
-        trial_period_days: 7,
-      };
+      sessionParams.subscription_data = { trial_period_days: 7 };
       logStep("Free trial enabled", { days: 7 });
     }
 
-    // Look up affiliate promotion code and apply discount
+    // Look up affiliate and ensure valid promo code
     if (affiliateCode) {
       try {
         const { data: affiliateData } = await supabaseAdmin
           .from("affiliates")
-          .select("id, stripe_promo_code_id, status")
+          .select("id, stripe_promo_code_id, stripe_coupon_id, status, affiliate_code")
           .eq("affiliate_code", affiliateCode)
           .eq("status", "approved")
           .maybeSingle();
 
-        if (affiliateData?.stripe_promo_code_id) {
-          // Apply the promotion code discount
-          sessionParams.discounts = [{ promotion_code: affiliateData.stripe_promo_code_id }];
-          // Store affiliate info in metadata for webhook attribution
-          sessionParams.metadata = {
-            affiliate_id: affiliateData.id,
-            affiliate_code: affiliateCode,
-          };
-          logStep("Affiliate promo applied", { affiliate_id: affiliateData.id, promo_id: affiliateData.stripe_promo_code_id });
+        if (affiliateData) {
+          // Ensure promo code exists and is valid, auto-create if missing
+          const validPromoId = await ensureAffiliatePromoCode(
+            stripe,
+            supabaseAdmin,
+            affiliateData.id,
+            affiliateData.affiliate_code,
+            affiliateData.stripe_promo_code_id,
+            affiliateData.stripe_coupon_id
+          );
+
+          if (validPromoId) {
+            sessionParams.discounts = [{ promotion_code: validPromoId }];
+            sessionParams.metadata = {
+              affiliate_id: affiliateData.id,
+              affiliate_code: affiliateCode,
+            };
+            logStep("Affiliate promo applied", { affiliate_id: affiliateData.id, promo_id: validPromoId });
+          } else {
+            logStep("Could not create/validate promo code, falling back to manual entry");
+            sessionParams.allow_promotion_codes = true;
+          }
         } else {
-          logStep("Affiliate code not found or no promo code", { affiliateCode });
-          // Still allow checkout, just enable manual promo code entry
+          logStep("Affiliate code not found or not approved", { affiliateCode });
           sessionParams.allow_promotion_codes = true;
         }
       } catch (err) {
@@ -188,15 +237,11 @@ serve(async (req) => {
         sessionParams.allow_promotion_codes = true;
       }
     } else {
-      // No affiliate code provided - allow manual promo code entry at checkout
       sessionParams.allow_promotion_codes = true;
     }
 
-    // When reusing an existing customer, allow Stripe to update their name for tax ID collection
     if (customerId) {
-      sessionParams.customer_update = {
-        name: "auto",
-      };
+      sessionParams.customer_update = { name: "auto" };
     }
 
     const session = await stripe.checkout.sessions.create(sessionParams);
