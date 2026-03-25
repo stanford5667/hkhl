@@ -30,7 +30,7 @@ serve(async (req) => {
     // Look up affiliate
     const { data: affiliate, error: affErr } = await supabaseAdmin
       .from("affiliates")
-      .select("id, affiliate_code, stripe_coupon_id, stripe_promo_code_id, status")
+      .select("id, affiliate_code, stripe_coupon_id, stripe_promo_code_id, status, discount_percent")
       .eq("affiliate_code", code)
       .eq("status", "approved")
       .maybeSingle();
@@ -51,9 +51,9 @@ serve(async (req) => {
       } catch { /* will recreate */ }
     }
 
-    // Create coupon + promo code
+    const discountPercent = affiliate.discount_percent ?? 10;
     const coupon = await stripe.coupons.create({
-      percent_off: 10,
+      percent_off: discountPercent,
       duration: "once",
       name: `Affiliate Referral - ${code}`,
       metadata: { affiliate_id: affiliate.id, affiliate_code: code, type: "affiliate_referral" },

@@ -202,7 +202,7 @@ serve(async (req) => {
       try {
         const { data: affiliateData } = await supabaseAdmin
           .from("affiliates")
-          .select("id, stripe_promo_code_id, stripe_coupon_id, status, affiliate_code")
+          .select("id, stripe_promo_code_id, stripe_coupon_id, status, affiliate_code, discount_percent")
           .eq("affiliate_code", affiliateCode)
           .eq("status", "approved")
           .maybeSingle();
@@ -215,7 +215,8 @@ serve(async (req) => {
             affiliateData.id,
             affiliateData.affiliate_code,
             affiliateData.stripe_promo_code_id,
-            affiliateData.stripe_coupon_id
+            affiliateData.stripe_coupon_id,
+            affiliateData.discount_percent ?? 10
           );
 
           if (validPromoId) {
