@@ -30,7 +30,8 @@ async function ensureAffiliatePromoCode(
   affiliateId: string,
   affiliateCode: string,
   existingPromoId: string | null,
-  existingCouponId: string | null
+  existingCouponId: string | null,
+  discountPercent: number = 10
 ): Promise<string | null> {
   // If we already have a promo code ID, validate it's still active in Stripe
   if (existingPromoId) {
@@ -51,7 +52,7 @@ async function ensureAffiliatePromoCode(
     logStep("Auto-creating Stripe promo code for affiliate", { affiliateId, affiliateCode });
 
     const coupon = await stripe.coupons.create({
-      percent_off: 10,
+      percent_off: discountPercent,
       duration: "once",
       name: `Affiliate Referral - ${affiliateCode}`,
       metadata: { affiliate_id: affiliateId, affiliate_code: affiliateCode, type: "affiliate_referral" },
