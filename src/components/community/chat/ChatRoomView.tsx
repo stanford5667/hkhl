@@ -8,6 +8,7 @@ import { usePinnedMessages } from '@/hooks/usePinnedMessages';
 import { useMessageThreads } from '@/hooks/useMessageThreads';
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 import { useChatRooms } from '@/hooks/useChatRooms';
+import { LivestreamPlayer } from './LivestreamPlayer';
 import { useUsage } from '@/contexts/UsageContext';
 import { useAdmin } from '@/hooks/useAdmin';
 import { MessageList } from './MessageList';
@@ -54,7 +55,7 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
   const { getUserPresence } = useUserPresence(room.id);
   const { pinnedMessages, pinMessage, unpinMessage, isMessagePinned } = usePinnedMessages(room.id);
   const { markRoomAsRead } = useUnreadMessages();
-  const { fetchRooms } = useChatRooms();
+  const { fetchRooms, startLivestream, stopLivestream } = useChatRooms();
   const {
     activeThread, threadReplies, threadInfo,
     loading: threadLoading, openThread, closeThread, sendThreadReply,
@@ -127,6 +128,14 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
     navigate('/community');
   };
 
+  const handleStartLivestream = async (url: string) => {
+    await startLivestream(room.id, url);
+  };
+
+  const handleStopLivestream = async () => {
+    await stopLivestream(room.id);
+  };
+
   const getInputPlaceholder = () => {
     if (!canPost) return 'Only admins can post in this room';
     if (room.requires_approval) return `Message #${room.name}... (requires approval)`;
@@ -141,6 +150,8 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
         onRoomRenamed={fetchRooms}
         onRoomDeleted={handleRoomDeleted}
         onSettingsChanged={fetchRooms}
+        onStartLivestream={handleStartLivestream}
+        onStopLivestream={handleStopLivestream}
       />
 
       {error && (
@@ -158,6 +169,13 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
       )}
 
       <div className="flex-1 relative overflow-hidden">
+        {room.is_live && room.live_stream_url && canAccess && (
+          <LivestreamPlayer
+            streamUrl={room.live_stream_url}
+            isAdmin={isAdmin}
+            onStopStream={handleStopLivestream}
+          />
+        )}
         <ResizablePanelGroup direction="horizontal">
           <ResizablePanel defaultSize={activeThread ? 60 : 100} minSize={40}>
             <div className="flex flex-col h-full">
