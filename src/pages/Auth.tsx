@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { AssetLabsLogo } from "@/components/brand/AssetLabsLogo";
 import { AgeVerificationInput, AgeRatingBadge } from "@/components/auth/AgeVerificationInput";
+import { getAffiliateRef } from "@/hooks/useAffiliateTracking";
 
 const signInSchema = z.object({
   email: z.string().trim().email("Please enter a valid email address"),
@@ -58,8 +59,14 @@ export default function Auth() {
       if (checkoutPlan) {
         // Trigger checkout immediately after login/signup
         import('@/integrations/supabase/client').then(({ supabase }) => {
+          const affiliateCode = getAffiliateRef();
           supabase.functions.invoke('create-checkout', {
-            body: { plan: checkoutPlan, billing_interval: 'annual', return_path: checkoutReturnPath || from },
+            body: { 
+              plan: checkoutPlan, 
+              billing_interval: 'annual', 
+              return_path: checkoutReturnPath || from,
+              ...(affiliateCode && { affiliate_code: affiliateCode }),
+            },
           }).then(({ data, error }) => {
             if (!error && data?.url) {
               window.location.href = data.url;

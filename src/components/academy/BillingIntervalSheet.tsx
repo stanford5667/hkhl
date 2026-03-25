@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useUsage } from '@/contexts/UsageContext';
 import { toast } from 'sonner';
 import { PRICING, COMPARISON_FEATURES } from '@/config/pricing';
+import { getAffiliateRef } from '@/hooks/useAffiliateTracking';
 
 function PriceIncreaseCountdown() {
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
@@ -103,8 +104,14 @@ export function BillingIntervalSheet({ open, onOpenChange, returnPath }: Billing
         onOpenChange(false);
         window.location.reload();
       } else {
+        const affiliateCode = getAffiliateRef();
         const { data, error } = await supabase.functions.invoke('create-checkout', {
-          body: { plan: 'research_education', billing_interval: selected, return_path: returnPath },
+          body: { 
+            plan: 'research_education', 
+            billing_interval: selected, 
+            return_path: returnPath,
+            ...(affiliateCode && { affiliate_code: affiliateCode }),
+          },
         });
         if (error) throw error;
         if (data?.url) {

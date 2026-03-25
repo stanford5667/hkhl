@@ -27,8 +27,8 @@ export function useAffiliateTracking() {
     const refCode = params.get("ref");
     
     if (refCode) {
-      // Store in localStorage with timestamp
-      const data = { code: refCode, timestamp: Date.now(), landing: window.location.pathname };
+      // Store in localStorage with timestamp — normalize to uppercase
+      const data = { code: refCode.toUpperCase(), timestamp: Date.now(), landing: window.location.pathname };
       localStorage.setItem(AFFILIATE_COOKIE_KEY, JSON.stringify(data));
       
       // Track the click

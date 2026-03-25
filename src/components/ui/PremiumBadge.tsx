@@ -11,6 +11,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { MobileAuthSheet } from "@/components/auth/MobileAuthSheet";
+import { getAffiliateRef } from "@/hooks/useAffiliateTracking";
 
 interface PremiumBadgeProps {
   className?: string;
@@ -31,8 +32,13 @@ async function handleStripeCheckout(
       return;
     }
 
+    const affiliateCode = getAffiliateRef();
     const { data, error } = await supabase.functions.invoke('create-checkout', {
-      body: { plan: 'research_education', billing_interval: 'annual' },
+      body: { 
+        plan: 'research_education', 
+        billing_interval: 'annual',
+        ...(affiliateCode && { affiliate_code: affiliateCode }),
+      },
     });
     
     if (error) {
