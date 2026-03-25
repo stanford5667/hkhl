@@ -71,7 +71,6 @@ serve(async (req) => {
       }
     } catch { /* ignore */ }
 
-    const discountPercent = affiliate.discount_percent ?? 10;
     const coupon = await stripe.coupons.create({
       percent_off: discountPercent,
       duration: "once",
