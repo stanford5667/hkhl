@@ -58,10 +58,32 @@ export function AdminAffiliatesTab() {
     const { error } = await supabase.from("affiliates").update(updates).eq("id", id);
     if (error) {
       toast.error("Failed to update status");
-    } else {
-      toast.success(`Affiliate ${status}`);
-      fetchAffiliates();
+      return;
     }
+    
+    toast.success(`Affiliate ${status}`);
+
+    // Auto-provision Stripe promo code when approving
+    if (status === "approved") {
+      const affiliate = affiliates.find(a => a.id === id);
+      if (affiliate) {
+        try {
+          const { error: promoError } = await supabase.functions.invoke('create-affiliate-promo', {
+            body: { affiliate_id: id, affiliate_code: affiliate.affiliate_code },
+          });
+          if (promoError) {
+            toast.error(`Approved but failed to create Stripe promo code: ${promoError.message}`);
+          } else {
+            toast.success('Stripe promo code created');
+          }
+        } catch (err) {
+          toast.error('Approved but Stripe promo creation failed');
+          console.error('Promo creation error:', err);
+        }
+      }
+    }
+
+    fetchAffiliates();
   };
 
   const updateCommissionRate = async (id: string, rate: number) => {

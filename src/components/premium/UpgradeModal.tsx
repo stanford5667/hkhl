@@ -17,6 +17,7 @@ import { useMediaQuery } from '@/hooks/use-media-query';
 import { MobileAuthSheet } from '@/components/auth/MobileAuthSheet';
 import { cn } from '@/lib/utils';
 import { PRICING, COMPARISON_FEATURES, COMING_SOON } from '@/config/pricing';
+import { getAffiliateRef } from '@/hooks/useAffiliateTracking';
 
 interface UpgradeModalProps {
   isOpen: boolean;
@@ -125,8 +126,13 @@ export function UpgradeModal({ isOpen, feature, onClose, onUpgrade }: UpgradeMod
         return;
       }
 
+      const affiliateCode = getAffiliateRef();
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { plan: 'research_education', billing_interval: selected },
+        body: { 
+          plan: 'research_education', 
+          billing_interval: selected,
+          ...(affiliateCode && { affiliate_code: affiliateCode }),
+        },
       });
       
       if (error) {
