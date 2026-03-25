@@ -38,8 +38,16 @@ export function MembershipStep({ onComplete, onBack, isStandalone = false }: Mem
           return;
         }
 
+        // Include affiliate code if user arrived via referral link
+        const { getAffiliateRef } = await import('@/hooks/useAffiliateTracking');
+        const affiliateCode = getAffiliateRef();
+
         const { data, error } = await supabase.functions.invoke('create-checkout', {
-          body: { plan: 'research_education', billing_interval: selectedInterval },
+          body: { 
+            plan: 'research_education', 
+            billing_interval: selectedInterval,
+            ...(affiliateCode && { affiliate_code: affiliateCode }),
+          },
         });
         
         if (error) throw error;
