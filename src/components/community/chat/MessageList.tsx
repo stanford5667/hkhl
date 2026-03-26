@@ -377,14 +377,19 @@ export function MessageList({
 }: MessageListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
   // Auto-scroll to bottom on new messages
   const lastMessageId = messages.length > 0 ? messages[messages.length - 1]?.id : null;
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
+    // Small delay to let DOM render the new message
+    const timer = setTimeout(() => {
+      if (scrollRef.current) {
+        const viewport = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
+        if (viewport) {
+          viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
+        }
+      }
+    }, 50);
+    return () => clearTimeout(timer);
   }, [lastMessageId]);
 
   if (loading && messages.length === 0) {
