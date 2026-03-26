@@ -127,6 +127,7 @@ function MobileSidebarContent({ onNavigate }: { onNavigate: () => void }) {
     { label: "Portfolio Builder", href: "/portfolio-visualizer", icon: PieChart },
     { label: "Sim Trading", href: "/sim-trading", icon: Activity },
     { label: "Academy", href: "/academy", icon: BookOpen },
+    ...(isAdmin ? [{ label: "Admin Portal", href: "/admin", icon: Shield }] : []),
   ];
 
   const supportItems = [
