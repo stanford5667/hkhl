@@ -140,6 +140,8 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
       await startLivestream(room.id, url);
       setLivekitMode(false);
     }
+    // Refresh rooms so room.is_live updates
+    await fetchRooms();
   };
 
   const handleStopLivestream = async () => {
@@ -180,7 +182,7 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
       )}
 
       <div className="flex-1 relative overflow-hidden">
-        {room.is_live && canAccess && (
+      {(room.is_live || livekitMode) && canAccess && (
           room.live_stream_url === '__livekit__' || livekitMode ? (
             isAdmin ? (
               <LiveKitBroadcaster roomId={room.id} onStopStream={handleStopLivestream} />
