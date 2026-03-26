@@ -77,7 +77,7 @@ export function getAssetCategory(polygonType: string | undefined, ticker?: strin
       'XLK', 'XLF', 'XLV', 'XLE', 'XLI', 'XLP', 'XLU', 'XLY', 'XLB', 'XLRE',
       'VNQ', 'VGT', 'VIG', 'VYM', 'SCHD', 'DVY', 'ARKK', 'ARKG', 'ARKW',
       'IVV', 'IJH', 'IJR', 'MDY', 'VXF', 'VB', 'VO', 'VV', 'VTV', 'VUG',
-      'IBIT', 'BITO', 'GBTC', 'ETHE', 'USO', 'UNG', 'DBC', 'GSG',
+      'IBIT', 'BITO', 'GBTC', 'ETHE', 'USO', 'UNG', 'UGA', 'DBC', 'GSG',
       'SPYG', 'SPYV', 'SPLV', 'SPHD', 'NOBL', 'SDY', 'PFF',
       'EMB', 'MUB', 'TIP', 'VCIT', 'VCSH', 'BSV', 'BIV', 'BLV',
     ];
@@ -87,7 +87,7 @@ export function getAssetCategory(polygonType: string | undefined, ticker?: strin
     }
     
     // Commodity ETFs that track physical commodities
-    const commodityETFs = ['GLD', 'SLV', 'USO', 'UNG', 'DBC', 'GSG'];
+    const commodityETFs = ['GLD', 'SLV', 'USO', 'UNG', 'UGA', 'DBC', 'GSG'];
     if (commodityETFs.includes(upperTicker)) {
       return 'etf'; // Still ETF but might need special handling
     }
