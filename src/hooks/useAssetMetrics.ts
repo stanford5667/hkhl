@@ -23,29 +23,6 @@ export interface AssetMetrics {
 
 type Period = '1Y' | '3Y' | '5Y' | 'MAX';
 
-// Generate deterministic mock metrics when no data available
-function generateMockMetrics(symbol: string): AssetMetrics {
-  const seed = symbol.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  const random = (min: number, max: number) => min + ((seed * 9301 + 49297) % 233280) / 233280 * (max - min);
-  
-  return {
-    totalReturn: random(20, 150),
-    cagr: random(5, 25),
-    sharpeRatio: random(0.3, 1.8),
-    sortinoRatio: random(0.4, 2.5),
-    maxDrawdown: random(10, 40),
-    volatility: random(15, 35),
-    beta: random(0.6, 1.5),
-    alpha: random(-3, 8),
-    var95: random(1.5, 4),
-    cvar95: random(2, 6),
-    bestMonth: random(8, 20),
-    worstMonth: random(-15, -5),
-    positiveMonths: random(50, 70),
-    avgMonthlyReturn: random(0.5, 2),
-  };
-}
-
 export function useAssetMetrics(ticker: string | undefined, period: Period = '3Y') {
   return useQuery<AssetMetrics | null>({
     queryKey: ['asset-metrics', ticker, period],
@@ -73,17 +50,13 @@ export function useAssetMetrics(ticker: string | undefined, period: Period = '3Y
 
       if (error) throw error;
 
-      if (!bars || bars.length < 20) {
-        return generateMockMetrics(ticker);
-      }
+      if (!bars || bars.length < 20) return null;
 
       const returns = bars
         .filter(b => b.daily_return !== null)
         .map(b => b.daily_return as number);
 
-      if (returns.length < 20) {
-        return generateMockMetrics(ticker);
-      }
+      if (returns.length < 20) return null;
 
       // Import calculation functions
       const { 
