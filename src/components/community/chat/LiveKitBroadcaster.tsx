@@ -54,7 +54,6 @@ export function LiveKitBroadcaster({ roomId, onStopStream }: LiveKitBroadcasterP
 
   return (
     <div className="border-b bg-background">
-      {/* Always render the video element so the ref is available */}
       {!state.isPublishing && (
         <div className="p-4">
           <div className="flex items-center gap-2 mb-3">
@@ -64,8 +63,6 @@ export function LiveKitBroadcaster({ roomId, onStopStream }: LiveKitBroadcasterP
             </Badge>
             <span className="text-sm font-medium">Start Broadcasting</span>
           </div>
-          {/* Hidden video element for initial setup */}
-          <video ref={videoRef} autoPlay muted playsInline className="hidden" />
           <div className="flex gap-2">
             <Button size="sm" onClick={() => handleStart(false)} className="gap-1">
               <Camera className="h-4 w-4" />
@@ -83,40 +80,40 @@ export function LiveKitBroadcaster({ roomId, onStopStream }: LiveKitBroadcasterP
       )}
 
       {state.isPublishing && (
-        <>
-          <div className="flex items-center justify-between px-4 py-2 bg-destructive/10">
-            <div className="flex items-center gap-2">
-              <Badge variant="destructive" className="gap-1 animate-pulse">
-                <Radio className="h-3 w-3" />
-                BROADCASTING
-              </Badge>
-              <span className="text-sm text-muted-foreground flex items-center gap-1">
-                <Users className="h-3 w-3" />
-                {state.participantCount} watching
-              </span>
-            </div>
-            <div className="flex items-center gap-1">
-              {mode === 'camera' && (
-                <>
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleToggleMute}>
-                    {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleToggleCamera}>
-                    {isCamOff ? <CameraOff className="h-4 w-4" /> : <Camera className="h-4 w-4" />}
-                  </Button>
-                </>
-              )}
-              <Button variant="destructive" size="sm" className="h-7 gap-1" onClick={handleStop}>
-                <X className="h-3 w-3" />
-                End Stream
-              </Button>
-            </div>
+        <div className="flex items-center justify-between px-4 py-2 bg-destructive/10">
+          <div className="flex items-center gap-2">
+            <Badge variant="destructive" className="gap-1 animate-pulse">
+              <Radio className="h-3 w-3" />
+              BROADCASTING
+            </Badge>
+            <span className="text-sm text-muted-foreground flex items-center gap-1">
+              <Users className="h-3 w-3" />
+              {state.participantCount} watching
+            </span>
           </div>
-          <div className="aspect-video max-h-[360px] bg-black">
-            <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-contain" />
+          <div className="flex items-center gap-1">
+            {mode === 'camera' && (
+              <>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleToggleMute}>
+                  {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                </Button>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleToggleCamera}>
+                  {isCamOff ? <CameraOff className="h-4 w-4" /> : <Camera className="h-4 w-4" />}
+                </Button>
+              </>
+            )}
+            <Button variant="destructive" size="sm" className="h-7 gap-1" onClick={handleStop}>
+              <X className="h-3 w-3" />
+              End Stream
+            </Button>
           </div>
-        </>
+        </div>
       )}
+
+      {/* Single persistent video element — hidden when not yet broadcasting, visible after */}
+      <div className={state.isPublishing ? 'aspect-video max-h-[360px] bg-black' : 'h-0 overflow-hidden'}>
+        <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-contain" />
+      </div>
 
       {state.error && (
         <div className="px-4 py-2 bg-destructive/10 text-destructive text-sm">
