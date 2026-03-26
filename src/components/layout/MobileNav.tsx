@@ -124,9 +124,8 @@ function MobileSidebarContent({ onNavigate }: { onNavigate: () => void }) {
     { label: "Chat Room", href: "/community", icon: Users },
     // { label: "Swipe Stocks", href: "/stock-swipe", icon: Flame },
     { label: "Portfolio Builder", href: "/portfolio-visualizer", icon: PieChart },
+    { label: "Sim Trading", href: "/sim-trading", icon: Activity },
     { label: "Academy", href: "/academy", icon: BookOpen },
-    // { label: "Strategy Explorer", href: "/investment-plan", icon: ClipboardList },
-    ...(isAdmin ? [{ label: "Admin Portal", href: "/admin", icon: Shield }] : []),
   ];
 
   const supportItems = [
