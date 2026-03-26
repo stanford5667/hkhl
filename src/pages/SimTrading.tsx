@@ -6,10 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Plus, Activity, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
+import { Plus, Activity, Wallet, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { SimPortfolioDetail } from '@/components/sim-trading/SimPortfolioDetail';
-import { format } from 'date-fns';
+import { format, differenceInDays } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
 
 interface SimPortfolio {
   id: string;
@@ -23,6 +24,7 @@ interface SimPortfolio {
 
 export default function SimTrading() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [portfolios, setPortfolios] = useState<SimPortfolio[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPortfolio, setSelectedPortfolio] = useState<string | null>(null);
@@ -32,21 +34,34 @@ export default function SimTrading() {
   const [creating, setCreating] = useState(false);
 
   const fetchPortfolios = async () => {
-    if (!user) return;
-    const { data, error } = await supabase
-      .from('sim_portfolios')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (!error && data) setPortfolios(data as SimPortfolio[]);
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+    try {
+      const { data, error } = await supabase
+        .from('sim_portfolios')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) {
+        console.error('Failed to fetch sim portfolios:', error);
+        toast.error('Failed to load simulations');
+      }
+      if (data) setPortfolios(data as SimPortfolio[]);
+    } catch (e) {
+      console.error('SimTrading fetch error:', e);
+    }
     setLoading(false);
   };
 
-  useEffect(() => { fetchPortfolios(); }, [user]);
+  useEffect(() => { 
+    fetchPortfolios(); 
+  }, [user]);
 
   const createPortfolio = async () => {
     if (!user || !newName.trim()) return;
     setCreating(true);
-    const capital = parseFloat(newCapital) || 100000;
+    const capital = Math.max(1000, parseFloat(newCapital) || 100000);
     const { error } = await supabase.from('sim_portfolios').insert({
       user_id: user.id,
       name: newName.trim(),
@@ -54,7 +69,8 @@ export default function SimTrading() {
       cash_balance: capital,
     });
     if (error) {
-      toast.error('Failed to create simulation');
+      console.error('Create portfolio error:', error);
+      toast.error('Failed to create simulation: ' + error.message);
     } else {
       toast.success('Simulation created!');
       setNewName('');
@@ -64,6 +80,17 @@ export default function SimTrading() {
     }
     setCreating(false);
   };
+
+  if (!user) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 space-y-4">
+        <Activity className="w-16 h-16 text-muted-foreground" />
+        <h2 className="text-xl font-bold text-foreground">Sign in to use Simulation Trading</h2>
+        <p className="text-muted-foreground text-sm">Create paper trading portfolios to practice without risk.</p>
+        <Button onClick={() => navigate('/auth')}>Sign In</Button>
+      </div>
+    );
+  }
 
   if (selectedPortfolio) {
     return (
@@ -79,7 +106,7 @@ export default function SimTrading() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Simulation Trading</h1>
-          <p className="text-muted-foreground text-sm">Paper trade stocks & options with virtual capital</p>
+          <p className="text-muted-foreground text-sm">Paper trade stocks & options with virtual capital — track real performance forward</p>
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
@@ -87,43 +114,90 @@ export default function SimTrading() {
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create Simulation</DialogTitle>
+              <DialogTitle>Create Paper Trading Portfolio</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label>Name</Label>
-                <Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="My Paper Portfolio" />
+                <Label>Portfolio Name</Label>
+                <Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g. Growth Strategy" />
               </div>
               <div>
                 <Label>Starting Capital ($)</Label>
-                <Input type="number" value={newCapital} onChange={e => setNewCapital(e.target.value)} />
+                <Input type="number" value={newCapital} onChange={e => setNewCapital(e.target.value)} min="1000" step="1000" />
+                <p className="text-xs text-muted-foreground mt-1">Minimum $1,000</p>
               </div>
               <Button onClick={createPortfolio} disabled={creating || !newName.trim()} className="w-full">
-                {creating ? 'Creating...' : 'Create'}
+                {creating ? 'Creating...' : 'Create Portfolio'}
               </Button>
             </div>
           </DialogContent>
         </Dialog>
       </div>
 
+      {/* Quick Stats */}
+      {portfolios.length > 0 && (
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card>
+            <CardContent className="pt-4 flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Wallet className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Active Portfolios</p>
+                <p className="text-lg font-bold">{portfolios.filter(p => p.status === 'active').length}</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-success/10">
+                <TrendingUp className="w-5 h-5 text-success" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Total Capital Deployed</p>
+                <p className="text-lg font-bold font-mono">
+                  ${portfolios.reduce((s, p) => s + p.initial_capital, 0).toLocaleString()}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-accent/30">
+                <Activity className="w-5 h-5 text-accent-foreground" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Total Simulations</p>
+                <p className="text-lg font-bold">{portfolios.length}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {loading ? (
-        <div className="text-muted-foreground text-center py-12">Loading...</div>
+        <div className="text-muted-foreground text-center py-12">Loading simulations...</div>
       ) : portfolios.length === 0 ? (
         <Card className="border-dashed">
-          <CardContent className="py-12 text-center">
-            <Activity className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">No simulations yet. Create one to start paper trading!</p>
+          <CardContent className="py-16 text-center space-y-4">
+            <Activity className="w-16 h-16 mx-auto text-muted-foreground" />
+            <div>
+              <h3 className="text-lg font-semibold text-foreground">Start Paper Trading</h3>
+              <p className="text-muted-foreground text-sm mt-1">Create a virtual portfolio and practice trading stocks & options with no risk.</p>
+            </div>
+            <Button onClick={() => setCreateOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" /> Create Your First Simulation
+            </Button>
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {portfolios.map(p => {
-            const pnl = p.cash_balance - p.initial_capital;
-            const pnlPct = (pnl / p.initial_capital) * 100;
+            const daysActive = differenceInDays(new Date(), new Date(p.created_at));
             return (
               <Card
                 key={p.id}
-                className="cursor-pointer hover:border-primary/50 transition-colors"
+                className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md"
                 onClick={() => setSelectedPortfolio(p.id)}
               >
                 <CardHeader className="pb-2">
@@ -134,17 +208,20 @@ export default function SimTrading() {
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Created {format(new Date(p.created_at), 'MMM d, yyyy')}
+                    {format(new Date(p.created_at), 'MMM d, yyyy')} • {daysActive} day{daysActive !== 1 ? 's' : ''} active
                   </p>
                 </CardHeader>
-                <CardContent className="space-y-2">
+                <CardContent className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Cash Balance</span>
-                    <span className="font-mono text-sm">${p.cash_balance.toLocaleString()}</span>
+                    <span className="text-sm text-muted-foreground">Cash</span>
+                    <span className="font-mono text-sm">${p.cash_balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Initial Capital</span>
-                    <span className="font-mono text-sm">${p.initial_capital.toLocaleString()}</span>
+                    <span className="font-mono text-sm text-muted-foreground">${p.initial_capital.toLocaleString()}</span>
+                  </div>
+                  <div className="pt-2 border-t border-border text-xs text-muted-foreground text-center">
+                    Click to view positions & trade →
                   </div>
                 </CardContent>
               </Card>
