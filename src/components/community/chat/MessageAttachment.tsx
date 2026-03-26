@@ -14,11 +14,18 @@ export function MessageAttachment({ url, type }: MessageAttachmentProps) {
   const displayName = filename.replace(/^\d+-/, '');
 
   if (type === 'voice') {
+    // Determine audio MIME type from file extension
+    const audioMime = url.includes('.m4a') ? 'audio/mp4' 
+      : url.includes('.aac') ? 'audio/aac'
+      : url.includes('.ogg') ? 'audio/ogg'
+      : 'audio/webm';
+    
     return (
       <div className="mt-1.5 flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-muted/50 max-w-[300px]">
         <Mic className="h-4 w-4 text-primary shrink-0" />
-        <audio controls preload="metadata" className="h-8 w-full [&::-webkit-media-controls-panel]:bg-transparent">
-          <source src={url} type="audio/webm" />
+        <audio controls preload="auto" className="h-8 w-full [&::-webkit-media-controls-panel]:bg-transparent">
+          <source src={url} type={audioMime} />
+          <source src={url} />
           Your browser does not support audio playback.
         </audio>
       </div>

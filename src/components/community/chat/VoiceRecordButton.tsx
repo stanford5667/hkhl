@@ -159,7 +159,7 @@ export function VoiceRecordButton({ onVoiceRecorded, disabled }: VoiceRecordButt
 
       const { error } = await supabase.storage
         .from('chat-attachments')
-        .upload(path, pendingBlob, { contentType: mimeType });
+        .upload(path, pendingBlob, { contentType: mimeType, upsert: false });
 
       if (error) throw error;
 
@@ -167,6 +167,7 @@ export function VoiceRecordButton({ onVoiceRecorded, disabled }: VoiceRecordButt
         data: { publicUrl },
       } = supabase.storage.from('chat-attachments').getPublicUrl(path);
 
+      console.log('[Voice] uploaded:', { path, mimeType, size: pendingBlob.size, publicUrl });
       onVoiceRecorded(publicUrl, 'voice');
       toast.success('Voice message sent');
     } catch (err: any) {
