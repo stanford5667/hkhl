@@ -465,6 +465,7 @@ export function MessageList({
           />
         ))}
       </div>
+      <div ref={messagesEndRef} />
     </ScrollArea>
   );
 }
