@@ -284,10 +284,123 @@ serve(async (req) => {
       }
     }
 
-    // Handle subscription events
+    // Handle subscription status changes (active, past_due, unpaid, canceled, etc.)
     if (event.type === "customer.subscription.created" || event.type === "customer.subscription.updated") {
       const subscription = event.data.object as Stripe.Subscription;
       logStep("Subscription event", { subscriptionId: subscription.id, status: subscription.status });
+
+      try {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+        const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+        const supabaseClient = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
+
+        const customerId = subscription.customer as string;
+        const customer = await stripe.customers.retrieve(customerId) as Stripe.Customer;
+
+        if (customer.email) {
+          const { data: userData } = await supabaseClient.auth.admin.listUsers();
+          const matchedUser = userData?.users?.find(u => u.email === customer.email);
+
+          if (matchedUser) {
+            // Map Stripe status to our subscription status
+            const statusMap: Record<string, string> = {
+              active: 'active',
+              trialing: 'active',
+              past_due: 'past_due',
+              unpaid: 'unpaid',
+              canceled: 'canceled',
+              incomplete: 'incomplete',
+              incomplete_expired: 'canceled',
+              paused: 'paused',
+            };
+            const dbStatus = statusMap[subscription.status] || subscription.status;
+
+            const periodEnd = subscription.current_period_end;
+            const subscriptionEnd = periodEnd && typeof periodEnd === 'number'
+              ? new Date(periodEnd * 1000).toISOString()
+              : null;
+
+            // Determine the plan from the product
+            const productId = subscription.items.data[0]?.price?.product as string;
+            const PRO_PRODUCT_IDS = [
+              "prod_TmstE9xtaH6xoT", "prod_ToF1TRMcLjOt1t", "prod_U76KPGz76OX3rO",
+            ];
+            const RESEARCH_EDUCATION_PRODUCT_IDS = [
+              "prod_U58L8r27VPBg1T", "prod_U7X8ELiM8teiz5", "prod_U76PEWCvnIs6Y1",
+              "prod_U8DecDg6PAn1rs", "prod_U8DfxoZZ3zohLN",
+            ];
+            let plan = 'pro';
+            if (RESEARCH_EDUCATION_PRODUCT_IDS.includes(productId)) plan = 'research_education';
+            else if (PRO_PRODUCT_IDS.includes(productId)) plan = 'pro';
+
+            // Delete then insert to avoid unique constraint issues
+            await supabaseClient.from('subscriptions').delete().eq('user_id', matchedUser.id);
+            await supabaseClient.from('subscriptions').insert({
+              user_id: matchedUser.id,
+              stripe_subscription_id: subscription.id,
+              stripe_customer_id: customerId,
+              plan: plan,
+              status: dbStatus,
+              current_period_end: subscriptionEnd,
+              cancel_at_period_end: subscription.cancel_at_period_end || false,
+              updated_at: new Date().toISOString(),
+            });
+
+            logStep("Subscription synced to DB", { userId: matchedUser.id, status: dbStatus, plan });
+
+            // If past_due or unpaid, downgrade profile membership tier
+            if (dbStatus === 'past_due' || dbStatus === 'unpaid' || dbStatus === 'canceled') {
+              await supabaseClient.from('profiles').update({
+                membership_tier: 'free',
+              }).eq('user_id', matchedUser.id);
+              logStep("User downgraded due to payment failure", { userId: matchedUser.id, status: dbStatus });
+            } else if (dbStatus === 'active') {
+              await supabaseClient.from('profiles').update({
+                membership_tier: 'pro',
+              }).eq('user_id', matchedUser.id);
+            }
+          }
+        }
+      } catch (subErr) {
+        logStep("Subscription sync error (non-fatal)", { error: String(subErr) });
+      }
+    }
+
+    // Handle failed invoice payments — notify user
+    if (event.type === "invoice.payment_failed") {
+      const invoice = event.data.object as Stripe.Invoice;
+      const attemptCount = invoice.attempt_count;
+      logStep("Payment failed", { invoiceId: invoice.id, attemptCount, customerId: invoice.customer });
+
+      try {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+        const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+        const supabaseClient = createClient(supabaseUrl, supabaseKey, { auth: { persistSession: false } });
+
+        const customerId = invoice.customer as string;
+        const customer = await stripe.customers.retrieve(customerId) as Stripe.Customer;
+
+        if (customer.email) {
+          const { data: userData } = await supabaseClient.auth.admin.listUsers();
+          const matchedUser = userData?.users?.find(u => u.email === customer.email);
+
+          if (matchedUser) {
+            const isFirstAttempt = attemptCount <= 1;
+            await supabaseClient.from("user_notifications").insert({
+              user_id: matchedUser.id,
+              type: "payment_failed",
+              title: isFirstAttempt ? "Payment failed ⚠️" : `Payment retry #${attemptCount} failed ⚠️`,
+              message: isFirstAttempt
+                ? "We couldn't process your subscription payment. Please update your payment method to avoid losing access to premium features."
+                : `We've tried ${attemptCount} times to process your payment. Please update your billing info soon to keep your subscription active.`,
+              metadata: { invoice_id: invoice.id, attempt_count: attemptCount },
+            });
+            logStep("Payment failure notification sent", { userId: matchedUser.id, attempt: attemptCount });
+          }
+        }
+      } catch (notifErr) {
+        logStep("Payment failure notification error (non-fatal)", { error: String(notifErr) });
+      }
     }
 
     return new Response(JSON.stringify({ received: true }), {
