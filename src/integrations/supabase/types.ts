@@ -4723,6 +4723,133 @@ export type Database = {
         }
         Relationships: []
       }
+      sim_portfolios: {
+        Row: {
+          cash_balance: number
+          closed_at: string | null
+          created_at: string
+          id: string
+          initial_capital: number
+          name: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          cash_balance?: number
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          initial_capital?: number
+          name: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          cash_balance?: number
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          initial_capital?: number
+          name?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      sim_snapshots: {
+        Row: {
+          cash_balance: number
+          created_at: string
+          id: string
+          portfolio_id: string
+          positions_value: number
+          snapshot_date: string
+          total_value: number
+        }
+        Insert: {
+          cash_balance: number
+          created_at?: string
+          id?: string
+          portfolio_id: string
+          positions_value?: number
+          snapshot_date?: string
+          total_value: number
+        }
+        Update: {
+          cash_balance?: number
+          created_at?: string
+          id?: string
+          portfolio_id?: string
+          positions_value?: number
+          snapshot_date?: string
+          total_value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sim_snapshots_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "sim_portfolios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sim_trades: {
+        Row: {
+          action: string
+          contract_multiplier: number
+          executed_at: string
+          expiration_date: string | null
+          id: string
+          instrument_type: string
+          option_type: string | null
+          portfolio_id: string
+          price_at_execution: number
+          quantity: number
+          strike_price: number | null
+          ticker: string
+          total_cost: number
+        }
+        Insert: {
+          action: string
+          contract_multiplier?: number
+          executed_at?: string
+          expiration_date?: string | null
+          id?: string
+          instrument_type?: string
+          option_type?: string | null
+          portfolio_id: string
+          price_at_execution: number
+          quantity: number
+          strike_price?: number | null
+          ticker: string
+          total_cost: number
+        }
+        Update: {
+          action?: string
+          contract_multiplier?: number
+          executed_at?: string
+          expiration_date?: string | null
+          id?: string
+          instrument_type?: string
+          option_type?: string | null
+          portfolio_id?: string
+          price_at_execution?: number
+          quantity?: number
+          strike_price?: number | null
+          ticker?: string
+          total_cost?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sim_trades_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "sim_portfolios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_price_cache: {
         Row: {
           adjusted_close: number | null

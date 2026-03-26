@@ -140,6 +140,12 @@ export function Sidebar() {
         isPremium: true,
       },
       { 
+        label: "Sim Trading", 
+        subtitle: "Paper Trade",
+        href: "/sim-trading", 
+        icon: Activity,
+      },
+      { 
         label: "Themes Map", 
         subtitle: "Global Heat Map",
         href: "/investment-heatmap", 
