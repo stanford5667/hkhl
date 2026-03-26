@@ -41,7 +41,7 @@ export function TradeDialog({ open, onOpenChange, portfolioId, cashBalance, onCo
       const quotes = await getCachedQuotes([ticker.toUpperCase()]);
       const quote = quotes.get(ticker.toUpperCase());
       if (quote) {
-        setLivePrice(quote.currentPrice ?? quote.price ?? null);
+        setLivePrice(quote.price ?? null);
       } else {
         toast.error('Could not find price for ' + ticker);
       }

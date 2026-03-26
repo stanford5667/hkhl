@@ -143,7 +143,7 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
       if (pos.instrument_type === 'stock') {
         const quote = quotes.get(pos.ticker.toUpperCase());
         if (quote) {
-          pos.current_price = quote.currentPrice ?? quote.price ?? null;
+          pos.current_price = quote.price ?? null;
           if (pos.current_price) {
             pos.current_value = pos.current_price * pos.quantity;
             pos.pnl = pos.current_value - pos.total_cost;
