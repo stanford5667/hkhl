@@ -38,12 +38,28 @@ export function CommunityHub({ defaultTab = 'chat', initialRoomId }: CommunityHu
 
   const { rooms, loading: roomsLoading } = useChatRooms();
 
-  // Select initial room if provided or default to first room
+  // Select initial room: URL param > localStorage > first room
   useEffect(() => {
+    if (rooms.length === 0) return;
+
     if (initialRoomId) {
       const room = rooms.find(r => r.id === initialRoomId || r.slug === initialRoomId);
-      if (room) setSelectedRoom(room);
-    } else if (rooms.length > 0 && !selectedRoom) {
+      if (room) {
+        setSelectedRoom(room);
+        localStorage.setItem('community_last_room', room.slug);
+        return;
+      }
+    }
+
+    if (!selectedRoom) {
+      const savedSlug = localStorage.getItem('community_last_room');
+      if (savedSlug) {
+        const saved = rooms.find(r => r.slug === savedSlug);
+        if (saved) {
+          setSelectedRoom(saved);
+          return;
+        }
+      }
       setSelectedRoom(rooms[0]);
     }
   }, [initialRoomId, rooms, selectedRoom]);
@@ -51,6 +67,7 @@ export function CommunityHub({ defaultTab = 'chat', initialRoomId }: CommunityHu
   const handleRoomSelect = (room: ChatRoomType) => {
     setSelectedRoom(room);
     setSidebarOpen(false);
+    localStorage.setItem('community_last_room', room.slug);
     navigate(`/community/chat/${room.slug}`, { replace: true });
   };
 
