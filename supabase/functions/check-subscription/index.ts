@@ -117,10 +117,40 @@ serve(async (req) => {
       limit: 10,
     });
 
-    // Filter for active OR trialing subscriptions
+    // Filter for active OR trialing subscriptions (past_due means payment failed — no access)
     const activeSubscriptions = subscriptions.data.filter(
       s => s.status === 'active' || s.status === 'trialing'
     );
+
+    // Check if there's a past_due subscription (payment retries in progress)
+    const pastDueSubscriptions = subscriptions.data.filter(s => s.status === 'past_due');
+    if (pastDueSubscriptions.length > 0 && activeSubscriptions.length === 0) {
+      logStep("Subscription is past_due — access revoked until payment succeeds");
+      
+      // Update DB to reflect past_due status
+      const pastDueSub = pastDueSubscriptions[0];
+      await supabaseClient.from('subscriptions').delete().eq('user_id', user.id);
+      await supabaseClient.from('subscriptions').insert({
+        user_id: user.id,
+        stripe_subscription_id: pastDueSub.id,
+        stripe_customer_id: customerId,
+        plan: determinePlan(pastDueSub.items.data[0]?.price?.product as string),
+        status: 'past_due',
+        current_period_end: new Date(pastDueSub.current_period_end * 1000).toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+
+      return new Response(JSON.stringify({ 
+        subscribed: false, 
+        plan: 'free', 
+        product_id: null, 
+        subscription_end: null,
+        payment_past_due: true,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
 
     if (activeSubscriptions.length === 0) {
       logStep("No active subscription found");
