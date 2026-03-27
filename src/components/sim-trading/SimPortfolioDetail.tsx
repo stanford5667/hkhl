@@ -8,7 +8,11 @@ import { ArrowLeft, RefreshCw, Trash2 } from 'lucide-react';
 import { PositionsTable } from './PositionsTable';
 import { TradeDialog } from './TradeDialog';
 import { TradeHistory } from './TradeHistory';
-import { EquityCurve } from './EquityCurve';
+import { SimChartSection } from './SimChartSection';
+import { PendingOrdersTab } from './PendingOrdersTab';
+import { SimWatchlist } from './SimWatchlist';
+import { PerformanceAnalytics } from './PerformanceAnalytics';
+import { useOrderExecution } from '@/hooks/useOrderExecution';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import {
@@ -71,42 +75,59 @@ interface Props {
 
 export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
   const { user } = useAuth();
+  const { checkAndExecuteOrders } = useOrderExecution();
   const [portfolio, setPortfolio] = useState<SimPortfolio | null>(null);
   const [trades, setTrades] = useState<SimTrade[]>([]);
   const [positions, setPositions] = useState<Position[]>([]);
+  const [pendingOrders, setPendingOrders] = useState<any[]>([]);
   const [tradeOpen, setTradeOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [chartTicker, setChartTicker] = useState('SPY');
 
   const fetchData = useCallback(async () => {
     try {
-      const [portfolioRes, tradesRes] = await Promise.all([
+      const [portfolioRes, tradesRes, ordersRes] = await Promise.all([
         supabase.from('sim_portfolios').select('*').eq('id', portfolioId).single(),
         supabase.from('sim_trades').select('*').eq('portfolio_id', portfolioId).order('executed_at', { ascending: true }),
+        supabase.from('sim_pending_orders').select('*').eq('portfolio_id', portfolioId).eq('status', 'pending').order('created_at', { ascending: false }),
       ]);
 
       if (portfolioRes.error) {
-        console.error('Portfolio fetch error:', portfolioRes.error);
         toast.error('Failed to load portfolio');
         return;
       }
       if (portfolioRes.data) setPortfolio(portfolioRes.data as SimPortfolio);
-      
-      if (tradesRes.error) {
-        console.error('Trades fetch error:', tradesRes.error);
-      }
-      
+
       const tradeData = (tradesRes.data || []) as SimTrade[];
-      // Store trades in reverse chronological for display
       setTrades([...tradeData].reverse());
-      // Calculate positions in chronological order (important for avg cost)
       await calculatePositions(tradeData);
+
+      setPendingOrders(ordersRes.data || []);
+
+      // Check pending orders against current prices
+      if (portfolioRes.data && ordersRes.data && ordersRes.data.length > 0) {
+        const executed = await checkAndExecuteOrders(portfolioId, portfolioRes.data.cash_balance);
+        if (executed > 0) {
+          // Refetch if orders were filled
+          const [pRes, tRes, oRes] = await Promise.all([
+            supabase.from('sim_portfolios').select('*').eq('id', portfolioId).single(),
+            supabase.from('sim_trades').select('*').eq('portfolio_id', portfolioId).order('executed_at', { ascending: true }),
+            supabase.from('sim_pending_orders').select('*').eq('portfolio_id', portfolioId).eq('status', 'pending').order('created_at', { ascending: false }),
+          ]);
+          if (pRes.data) setPortfolio(pRes.data as SimPortfolio);
+          const newTrades = (tRes.data || []) as SimTrade[];
+          setTrades([...newTrades].reverse());
+          await calculatePositions(newTrades);
+          setPendingOrders(oRes.data || []);
+        }
+      }
     } catch (e) {
       console.error('SimPortfolioDetail fetch error:', e);
       toast.error('Failed to load simulation data');
     }
     setLoading(false);
-  }, [portfolioId]);
+  }, [portfolioId, checkAndExecuteOrders]);
 
   const calculatePositions = async (chronologicalTrades: SimTrade[]) => {
     const posMap = new Map<string, Position>();
@@ -138,7 +159,6 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
         });
       } else {
         if (trade.action === 'buy') {
-          // Weighted average cost calculation
           const oldTotal = existing.avg_cost * existing.quantity * multiplier;
           const newTotal = trade.price_at_execution * trade.quantity * multiplier;
           const newQty = existing.quantity + trade.quantity;
@@ -147,17 +167,14 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
           }
           existing.quantity = newQty;
         } else {
-          // Selling reduces quantity, avg_cost stays the same
           existing.quantity = Math.max(0, existing.quantity - trade.quantity);
         }
         existing.total_cost = existing.avg_cost * existing.quantity * multiplier;
       }
     }
 
-    // Filter out closed positions
     const openPositions = Array.from(posMap.values()).filter(p => p.quantity > 0);
 
-    // Fetch live quotes for stock positions
     const stockTickers = [...new Set(openPositions.filter(p => p.instrument_type === 'stock').map(p => p.ticker.toUpperCase()))];
     let quotes = new Map<string, any>();
     if (stockTickers.length > 0) {
@@ -180,7 +197,6 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
           }
         }
       } else {
-        // Options: show cost basis as current value (user must close manually with a sell)
         pos.current_price = pos.avg_cost;
         pos.current_value = pos.avg_cost * pos.quantity * pos.contract_multiplier;
         pos.pnl = 0;
@@ -189,6 +205,14 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
     }
 
     setPositions(openPositions);
+
+    // Set chart to first position ticker if available
+    if (openPositions.length > 0) {
+      setChartTicker(prev => {
+        if (prev === 'SPY' || !prev) return openPositions[0].ticker.toUpperCase();
+        return prev;
+      });
+    }
   };
 
   useEffect(() => { fetchData(); }, [fetchData]);
@@ -226,7 +250,6 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
     });
 
     if (tradeErr) {
-      console.error('Close position error:', tradeErr);
       toast.error('Failed to close position: ' + tradeErr.message);
       return;
     }
@@ -237,7 +260,6 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
       .eq('id', portfolio.id);
 
     if (updateErr) {
-      console.error('Update balance error:', updateErr);
       toast.error('Position closed but failed to update balance');
     } else {
       toast.success(`Closed ${pos.ticker} for $${totalProceeds.toLocaleString(undefined, { minimumFractionDigits: 2 })}`);
@@ -254,6 +276,10 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
       toast.success('Portfolio deleted');
       onBack();
     }
+  };
+
+  const handlePositionClick = (pos: Position) => {
+    setChartTicker(pos.ticker.toUpperCase());
   };
 
   if (loading || !portfolio) {
@@ -348,20 +374,40 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
         </Card>
       </div>
 
+      {/* Chart + Watchlist row */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        <div className="lg:col-span-3">
+          <SimChartSection
+            defaultTicker={chartTicker}
+            trades={trades}
+            onTickerChange={setChartTicker}
+          />
+        </div>
+        <div className="lg:col-span-1">
+          <SimWatchlist onSelectTicker={(t) => setChartTicker(t)} />
+        </div>
+      </div>
+
       <Tabs defaultValue="positions">
         <TabsList>
           <TabsTrigger value="positions">Positions ({positions.length})</TabsTrigger>
-          <TabsTrigger value="history">Trade History ({trades.length})</TabsTrigger>
+          <TabsTrigger value="orders">
+            Orders {pendingOrders.length > 0 && `(${pendingOrders.length})`}
+          </TabsTrigger>
+          <TabsTrigger value="history">History ({trades.length})</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
         </TabsList>
         <TabsContent value="positions">
-          <PositionsTable positions={positions} onClose={handleClosePosition} />
+          <PositionsTable positions={positions} onClose={handleClosePosition} onRowClick={handlePositionClick} />
+        </TabsContent>
+        <TabsContent value="orders">
+          <PendingOrdersTab orders={pendingOrders} onRefresh={fetchData} />
         </TabsContent>
         <TabsContent value="history">
           <TradeHistory trades={trades} />
         </TabsContent>
         <TabsContent value="performance">
-          <EquityCurve portfolioId={portfolioId} initialCapital={portfolio.initial_capital} />
+          <PerformanceAnalytics portfolioId={portfolioId} initialCapital={portfolio.initial_capital} trades={trades} />
         </TabsContent>
       </Tabs>
     </div>
