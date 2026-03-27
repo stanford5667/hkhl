@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useUsage } from '@/contexts/UsageContext';
+import { useEliteAccess } from '@/hooks/useEliteAccess';
 import { supabase } from '@/integrations/supabase/client';
 import { ProfileSetupStep } from './ProfileSetupStep';
 import { MembershipStep } from './MembershipStep';
