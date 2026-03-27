@@ -36,7 +36,11 @@ const INITIAL_DATA: EliteFormData = {
 
 const STEPS = ['Financial Profile', 'Risk & Hedging', 'Execution'];
 
-export default function EliteOnboardingPage() {
+interface EliteOnboardingPageProps {
+  onComplete?: () => void;
+}
+
+export default function EliteOnboardingPage({ onComplete }: EliteOnboardingPageProps = {}) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
@@ -71,7 +75,11 @@ export default function EliteOnboardingPage() {
       } as any, { onConflict: 'user_id' });
       if (error) throw error;
       toast.success('Profile saved successfully');
-      navigate('/elite-dashboard');
+      if (onComplete) {
+        onComplete();
+      } else {
+        navigate('/elite-dashboard');
+      }
     } catch (err: any) {
       toast.error(err.message || 'Failed to save profile');
     } finally {

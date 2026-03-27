@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useOrganization } from "@/contexts/OrganizationContext";
 import { useUsage } from "@/contexts/UsageContext";
 import { useAdmin } from "@/hooks/useAdmin";
+import { useEliteAccess } from "@/hooks/useEliteAccess";
 import { OrganizationSwitcher } from "@/components/organization/OrganizationSwitcher";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { motion, AnimatePresence } from "framer-motion";
@@ -90,6 +91,7 @@ export function Sidebar() {
   const { userProfile, currentOrganization, enabledAssetTypes } = useOrganization();
   const { isPro } = useUsage();
   const { isAdmin } = useAdmin();
+  const { isElite } = useEliteAccess();
 
   // Persist hidden tabs to localStorage
   useEffect(() => {
@@ -178,8 +180,17 @@ export function Sidebar() {
       },
     ];
 
+    if (isElite) {
+      items.splice(1, 0, {
+        label: "Portfolio",
+        subtitle: "Elite Portfolio",
+        href: "/elite-portfolio",
+        icon: Briefcase,
+      });
+    }
+
     return items;
-  }, [isAdmin]);
+  }, [isAdmin, isElite]);
 
   // Filter out hidden tabs for display
   const navigation = useMemo(() => 
