@@ -2256,6 +2256,54 @@ export type Database = {
         }
         Relationships: []
       }
+      elite_client_profiles: {
+        Row: {
+          capital_allocated: number
+          created_at: string
+          id: string
+          is_non_us_accredited: boolean
+          liquid_net_worth: number
+          market_fears: string[]
+          max_drawdown_tolerance: number
+          options_approval: string
+          primary_objective: string
+          rebalancing_frequency: string
+          target_return_risk: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          capital_allocated: number
+          created_at?: string
+          id?: string
+          is_non_us_accredited?: boolean
+          liquid_net_worth: number
+          market_fears?: string[]
+          max_drawdown_tolerance?: number
+          options_approval?: string
+          primary_objective: string
+          rebalancing_frequency?: string
+          target_return_risk: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          capital_allocated?: number
+          created_at?: string
+          id?: string
+          is_non_us_accredited?: boolean
+          liquid_net_worth?: number
+          market_fears?: string[]
+          max_drawdown_tolerance?: number
+          options_approval?: string
+          primary_objective?: string
+          rebalancing_frequency?: string
+          target_return_risk?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       email_verifications: {
         Row: {
           created_at: string
