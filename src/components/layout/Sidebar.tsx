@@ -180,8 +180,17 @@ export function Sidebar() {
       },
     ];
 
+    if (isElite) {
+      items.splice(1, 0, {
+        label: "Portfolio",
+        subtitle: "Elite Portfolio",
+        href: "/elite-portfolio",
+        icon: Briefcase,
+      });
+    }
+
     return items;
-  }, [isAdmin]);
+  }, [isAdmin, isElite]);
 
   // Filter out hidden tabs for display
   const navigation = useMemo(() => 
