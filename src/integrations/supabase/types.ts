@@ -4816,6 +4816,80 @@ export type Database = {
         }
         Relationships: []
       }
+      sim_pending_orders: {
+        Row: {
+          cancelled_at: string | null
+          contract_multiplier: number | null
+          created_at: string
+          expiration_date: string | null
+          filled_at: string | null
+          id: string
+          instrument_type: string
+          limit_price: number | null
+          option_type: string | null
+          order_type: string
+          portfolio_id: string
+          quantity: number
+          side: string
+          status: string
+          stop_price: number | null
+          strike_price: number | null
+          ticker: string
+          time_in_force: string
+          user_id: string
+        }
+        Insert: {
+          cancelled_at?: string | null
+          contract_multiplier?: number | null
+          created_at?: string
+          expiration_date?: string | null
+          filled_at?: string | null
+          id?: string
+          instrument_type?: string
+          limit_price?: number | null
+          option_type?: string | null
+          order_type: string
+          portfolio_id: string
+          quantity: number
+          side: string
+          status?: string
+          stop_price?: number | null
+          strike_price?: number | null
+          ticker: string
+          time_in_force?: string
+          user_id: string
+        }
+        Update: {
+          cancelled_at?: string | null
+          contract_multiplier?: number | null
+          created_at?: string
+          expiration_date?: string | null
+          filled_at?: string | null
+          id?: string
+          instrument_type?: string
+          limit_price?: number | null
+          option_type?: string | null
+          order_type?: string
+          portfolio_id?: string
+          quantity?: number
+          side?: string
+          status?: string
+          stop_price?: number | null
+          strike_price?: number | null
+          ticker?: string
+          time_in_force?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sim_pending_orders_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "sim_portfolios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sim_portfolios: {
         Row: {
           cash_balance: number
@@ -4942,6 +5016,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sim_watchlist: {
+        Row: {
+          added_at: string
+          id: string
+          ticker: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          id?: string
+          ticker: string
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          id?: string
+          ticker?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       stock_price_cache: {
         Row: {
