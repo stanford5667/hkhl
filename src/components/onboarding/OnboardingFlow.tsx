@@ -16,6 +16,8 @@ export function OnboardingFlow({ children }: OnboardingFlowProps) {
   const { user } = useAuth();
   const { userProfile, isLoading, refreshProfile } = useOrganization();
   const { isPro } = useUsage();
+  const { isElite, loading: eliteLoading } = useEliteAccess();
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState<'profile' | 'membership' | 'complete'>('profile');
 
   useEffect(() => {
