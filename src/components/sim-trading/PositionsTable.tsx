@@ -37,7 +37,7 @@ export function PositionsTable({ positions, onClose, onRowClick }: Props) {
         </TableHeader>
         <TableBody>
           {positions.map((pos, i) => (
-            <TableRow key={i}>
+            <TableRow key={i} className={onRowClick ? 'cursor-pointer hover:bg-accent/50' : ''} onClick={() => onRowClick?.(pos)}>
               <TableCell className="font-mono font-bold">{pos.ticker}</TableCell>
               <TableCell>
                 {pos.instrument_type === 'option' ? (
