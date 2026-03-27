@@ -2260,47 +2260,92 @@ export type Database = {
         Row: {
           capital_allocated: number
           created_at: string
+          crypto_stance: string | null
+          current_asset_mix: string | null
+          ethical_exclusions: string[] | null
+          experience_level: string | null
+          goal_priority: string | null
+          has_concentrated_positions: boolean | null
           id: string
+          international_preference: string | null
+          investment_purpose: string | null
           is_non_us_accredited: boolean
           liquid_net_worth: number
+          loss_reaction: string | null
           market_fears: string[]
           max_drawdown_tolerance: number
           options_approval: string
+          other_accounts: string[] | null
+          other_accounts_value: number | null
+          other_options_experience: string | null
           primary_objective: string
           rebalancing_frequency: string
+          regret_preference: string | null
           target_return_risk: string
+          time_horizon: string | null
           updated_at: string
           user_id: string
+          volatility_preference: string | null
         }
         Insert: {
           capital_allocated: number
           created_at?: string
+          crypto_stance?: string | null
+          current_asset_mix?: string | null
+          ethical_exclusions?: string[] | null
+          experience_level?: string | null
+          goal_priority?: string | null
+          has_concentrated_positions?: boolean | null
           id?: string
+          international_preference?: string | null
+          investment_purpose?: string | null
           is_non_us_accredited?: boolean
           liquid_net_worth: number
+          loss_reaction?: string | null
           market_fears?: string[]
           max_drawdown_tolerance?: number
           options_approval?: string
+          other_accounts?: string[] | null
+          other_accounts_value?: number | null
+          other_options_experience?: string | null
           primary_objective: string
           rebalancing_frequency?: string
+          regret_preference?: string | null
           target_return_risk: string
+          time_horizon?: string | null
           updated_at?: string
           user_id: string
+          volatility_preference?: string | null
         }
         Update: {
           capital_allocated?: number
           created_at?: string
+          crypto_stance?: string | null
+          current_asset_mix?: string | null
+          ethical_exclusions?: string[] | null
+          experience_level?: string | null
+          goal_priority?: string | null
+          has_concentrated_positions?: boolean | null
           id?: string
+          international_preference?: string | null
+          investment_purpose?: string | null
           is_non_us_accredited?: boolean
           liquid_net_worth?: number
+          loss_reaction?: string | null
           market_fears?: string[]
           max_drawdown_tolerance?: number
           options_approval?: string
+          other_accounts?: string[] | null
+          other_accounts_value?: number | null
+          other_options_experience?: string | null
           primary_objective?: string
           rebalancing_frequency?: string
+          regret_preference?: string | null
           target_return_risk?: string
+          time_horizon?: string | null
           updated_at?: string
           user_id?: string
+          volatility_preference?: string | null
         }
         Relationships: []
       }
