@@ -7,9 +7,10 @@ import type { Position } from './SimPortfolioDetail';
 interface Props {
   positions: Position[];
   onClose: (pos: Position) => void;
+  onRowClick?: (pos: Position) => void;
 }
 
-export function PositionsTable({ positions, onClose }: Props) {
+export function PositionsTable({ positions, onClose, onRowClick }: Props) {
   if (positions.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
@@ -36,7 +37,7 @@ export function PositionsTable({ positions, onClose }: Props) {
         </TableHeader>
         <TableBody>
           {positions.map((pos, i) => (
-            <TableRow key={i}>
+            <TableRow key={i} className={onRowClick ? 'cursor-pointer hover:bg-accent/50' : ''} onClick={() => onRowClick?.(pos)}>
               <TableCell className="font-mono font-bold">{pos.ticker}</TableCell>
               <TableCell>
                 {pos.instrument_type === 'option' ? (

@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { getCachedQuotes } from '@/services/quoteCacheService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,8 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Search, Loader2 } from 'lucide-react';
+import { Plus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { TickerSearchInput } from './TickerSearchInput';
 
 interface Props {
   open: boolean;
@@ -19,6 +21,7 @@ interface Props {
 }
 
 export function TradeDialog({ open, onOpenChange, portfolioId, cashBalance, onComplete }: Props) {
+  const { user } = useAuth();
   const [tab, setTab] = useState('stock');
   const [action, setAction] = useState<'buy' | 'sell'>('buy');
   const [ticker, setTicker] = useState('');
@@ -28,6 +31,12 @@ export function TradeDialog({ open, onOpenChange, portfolioId, cashBalance, onCo
   const [submitting, setSubmitting] = useState(false);
   const [priceError, setPriceError] = useState('');
 
+  // Order type
+  const [orderType, setOrderType] = useState<'market' | 'limit' | 'stop'>('market');
+  const [limitPrice, setLimitPrice] = useState('');
+  const [stopPrice, setStopPrice] = useState('');
+  const [timeInForce, setTimeInForce] = useState<'day' | 'gtc'>('gtc');
+
   // Options fields
   const [optionType, setOptionType] = useState<'call' | 'put'>('call');
   const [strikePrice, setStrikePrice] = useState('');
@@ -35,29 +44,20 @@ export function TradeDialog({ open, onOpenChange, portfolioId, cashBalance, onCo
   const [premium, setPremium] = useState('');
   const [contracts, setContracts] = useState('');
 
-  const fetchPrice = useCallback(async () => {
-    const symbol = ticker.trim().toUpperCase();
-    if (!symbol) {
-      toast.error('Enter a ticker symbol');
-      return;
-    }
-    setFetchingPrice(true);
+  const handleTickerSelect = useCallback(async (symbol: string, _name: string) => {
+    setTicker(symbol);
     setPriceError('');
     setLivePrice(null);
+    setFetchingPrice(true);
     try {
       const quotes = await getCachedQuotes([symbol]);
       const quote = quotes.get(symbol);
       if (quote && quote.price > 0) {
         setLivePrice(quote.price);
-      } else {
-        setPriceError(`No price found for ${symbol}. Check the ticker.`);
       }
-    } catch (e) {
-      console.error('Price fetch error:', e);
-      setPriceError('Failed to fetch price. Try again.');
-    }
+    } catch (_) {}
     setFetchingPrice(false);
-  }, [ticker]);
+  }, []);
 
   const executeTrade = async (instrumentType: string, qty: number, price: number, totalCost: number, optFields: any = {}) => {
     setSubmitting(true);
@@ -80,7 +80,6 @@ export function TradeDialog({ open, onOpenChange, portfolioId, cashBalance, onCo
     });
 
     if (tradeErr) {
-      console.error('Trade execution error:', tradeErr);
       toast.error('Failed to execute trade: ' + tradeErr.message);
       setSubmitting(false);
       return;
@@ -90,11 +89,10 @@ export function TradeDialog({ open, onOpenChange, portfolioId, cashBalance, onCo
     const { error: updateErr } = await supabase.from('sim_portfolios').update({ cash_balance: newBalance }).eq('id', portfolioId);
 
     if (updateErr) {
-      console.error('Balance update error:', updateErr);
       toast.error('Trade recorded but balance update failed');
     } else {
       const verb = action === 'buy' ? 'Bought' : 'Sold';
-      const desc = instrumentType === 'option' 
+      const desc = instrumentType === 'option'
         ? `${verb} ${qty} ${optFields.option_type} contract(s) of ${ticker.toUpperCase()}`
         : `${verb} ${qty} shares of ${ticker.toUpperCase()} @ $${price.toFixed(2)}`;
       toast.success(desc);
@@ -104,7 +102,50 @@ export function TradeDialog({ open, onOpenChange, portfolioId, cashBalance, onCo
     onComplete();
   };
 
+  const submitPendingOrder = async () => {
+    if (!user || !ticker.trim()) return;
+    setSubmitting(true);
+
+    const lp = orderType === 'limit' ? parseFloat(limitPrice) : null;
+    const sp = orderType === 'stop' ? parseFloat(stopPrice) : null;
+    const qty = parseFloat(quantity);
+
+    if (!qty || qty <= 0) { toast.error('Enter valid quantity'); setSubmitting(false); return; }
+    if (orderType === 'limit' && (!lp || lp <= 0)) { toast.error('Enter valid limit price'); setSubmitting(false); return; }
+    if (orderType === 'stop' && (!sp || sp <= 0)) { toast.error('Enter valid stop price'); setSubmitting(false); return; }
+
+    const { error } = await supabase.from('sim_pending_orders').insert({
+      portfolio_id: portfolioId,
+      user_id: user.id,
+      ticker: ticker.toUpperCase(),
+      instrument_type: tab === 'option' ? 'option' : 'stock',
+      order_type: orderType,
+      side: action,
+      quantity: qty,
+      limit_price: lp,
+      stop_price: sp,
+      time_in_force: timeInForce,
+      option_type: tab === 'option' ? optionType : null,
+      strike_price: tab === 'option' ? parseFloat(strikePrice) || null : null,
+      expiration_date: tab === 'option' ? expirationDate || null : null,
+      contract_multiplier: tab === 'option' ? 100 : 1,
+    });
+
+    if (error) {
+      toast.error('Failed to place order: ' + error.message);
+    } else {
+      toast.success(`${orderType.toUpperCase()} order placed: ${action.toUpperCase()} ${qty} ${ticker.toUpperCase()}`);
+      resetForm();
+      onComplete();
+    }
+    setSubmitting(false);
+  };
+
   const handleStockSubmit = () => {
+    if (orderType !== 'market') {
+      submitPendingOrder();
+      return;
+    }
     if (!livePrice || !quantity) return;
     const qty = parseFloat(quantity);
     if (qty <= 0) { toast.error('Enter a valid quantity'); return; }
@@ -137,6 +178,9 @@ export function TradeDialog({ open, onOpenChange, portfolioId, cashBalance, onCo
     setContracts('');
     setStrikePrice('');
     setExpirationDate('');
+    setOrderType('market');
+    setLimitPrice('');
+    setStopPrice('');
     setSubmitting(false);
   };
 
@@ -189,17 +233,12 @@ export function TradeDialog({ open, onOpenChange, portfolioId, cashBalance, onCo
           <TabsContent value="stock" className="space-y-4 mt-4">
             <div>
               <Label>Ticker Symbol</Label>
-              <div className="flex gap-2">
-                <Input 
-                  value={ticker} 
-                  onChange={e => { setTicker(e.target.value.toUpperCase()); setLivePrice(null); setPriceError(''); }} 
-                  placeholder="AAPL" 
-                  onKeyDown={e => e.key === 'Enter' && fetchPrice()}
-                />
-                <Button variant="outline" size="icon" onClick={fetchPrice} disabled={fetchingPrice || !ticker.trim()}>
-                  {fetchingPrice ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                </Button>
-              </div>
+              <TickerSearchInput
+                value={ticker}
+                onChange={(v) => { setTicker(v); setLivePrice(null); setPriceError(''); }}
+                onSelect={handleTickerSelect}
+              />
+              {fetchingPrice && <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin" /> Fetching price...</p>}
               {livePrice !== null && (
                 <p className="text-xs mt-1">
                   <span className="text-muted-foreground">Market Price: </span>
@@ -208,11 +247,59 @@ export function TradeDialog({ open, onOpenChange, portfolioId, cashBalance, onCo
               )}
               {priceError && <p className="text-xs text-destructive mt-1">{priceError}</p>}
             </div>
+
+            {/* Order Type */}
+            <div>
+              <Label>Order Type</Label>
+              <Select value={orderType} onValueChange={v => setOrderType(v as 'market' | 'limit' | 'stop')}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="market">Market</SelectItem>
+                  <SelectItem value="limit">Limit</SelectItem>
+                  <SelectItem value="stop">Stop</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {orderType === 'limit' && (
+              <div>
+                <Label>Limit Price ($)</Label>
+                <Input type="number" step="0.01" value={limitPrice} onChange={e => setLimitPrice(e.target.value)} placeholder={livePrice ? livePrice.toFixed(2) : '0.00'} />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {action === 'buy' ? 'Buy when price drops to this level' : 'Sell when price rises to this level'}
+                </p>
+              </div>
+            )}
+
+            {orderType === 'stop' && (
+              <div>
+                <Label>Stop Price ($)</Label>
+                <Input type="number" step="0.01" value={stopPrice} onChange={e => setStopPrice(e.target.value)} placeholder={livePrice ? livePrice.toFixed(2) : '0.00'} />
+                <p className="text-xs text-muted-foreground mt-1">
+                  {action === 'buy' ? 'Buy when price rises to this level' : 'Sell when price drops to this level'}
+                </p>
+              </div>
+            )}
+
+            {orderType !== 'market' && (
+              <div>
+                <Label>Time in Force</Label>
+                <Select value={timeInForce} onValueChange={v => setTimeInForce(v as 'day' | 'gtc')}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="gtc">Good 'til Cancelled</SelectItem>
+                    <SelectItem value="day">Day Only</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div>
               <Label>Shares</Label>
               <Input type="number" value={quantity} onChange={e => setQuantity(e.target.value)} placeholder="100" min="1" />
             </div>
-            {stockTotal > 0 && (
+
+            {orderType === 'market' && stockTotal > 0 && (
               <div className={`p-3 rounded-lg ${insufficientCash ? 'bg-destructive/10 border border-destructive/30' : 'bg-muted'}`}>
                 <div className="flex justify-between text-sm">
                   <span>Estimated Total</span>
@@ -221,15 +308,36 @@ export function TradeDialog({ open, onOpenChange, portfolioId, cashBalance, onCo
                 {insufficientCash && <p className="text-xs text-destructive mt-1">Insufficient cash for this trade</p>}
               </div>
             )}
-            <Button onClick={handleStockSubmit} disabled={submitting || !livePrice || !quantity || (action === 'buy' && insufficientCash)} className="w-full">
-              {submitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Executing...</> : `${action === 'buy' ? 'Buy' : 'Sell'} ${ticker.toUpperCase() || 'Stock'}`}
+
+            <Button
+              onClick={handleStockSubmit}
+              disabled={
+                submitting ||
+                !ticker.trim() ||
+                !quantity ||
+                (orderType === 'market' && !livePrice) ||
+                (orderType === 'market' && action === 'buy' && insufficientCash)
+              }
+              className="w-full"
+            >
+              {submitting ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Executing...</>
+              ) : orderType === 'market' ? (
+                `${action === 'buy' ? 'Buy' : 'Sell'} ${ticker.toUpperCase() || 'Stock'}`
+              ) : (
+                `Place ${orderType} order`
+              )}
             </Button>
           </TabsContent>
 
           <TabsContent value="option" className="space-y-4 mt-4">
             <div>
               <Label>Underlying Ticker</Label>
-              <Input value={ticker} onChange={e => setTicker(e.target.value.toUpperCase())} placeholder="AAPL" />
+              <TickerSearchInput
+                value={ticker}
+                onChange={setTicker}
+                onSelect={(symbol) => setTicker(symbol)}
+              />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -271,9 +379,9 @@ export function TradeDialog({ open, onOpenChange, portfolioId, cashBalance, onCo
                 {insufficientCash && <p className="text-xs text-destructive mt-1">Insufficient cash for this trade</p>}
               </div>
             )}
-            <Button 
-              onClick={handleOptionSubmit} 
-              disabled={submitting || !ticker || !premium || !contracts || !strikePrice || !expirationDate || (action === 'buy' && insufficientCash)} 
+            <Button
+              onClick={handleOptionSubmit}
+              disabled={submitting || !ticker || !premium || !contracts || !strikePrice || !expirationDate || (action === 'buy' && insufficientCash)}
               className="w-full"
             >
               {submitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Executing...</> : `${action === 'buy' ? 'Buy' : 'Sell'} ${optionType.toUpperCase()} Option`}
