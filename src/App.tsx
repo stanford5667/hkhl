@@ -77,6 +77,7 @@ const SmsConsent = lazy(() => import('./pages/SmsConsent'));
 const SimTrading = lazy(() => import('./pages/SimTrading'));
 const EliteOnboarding = lazy(() => import('./pages/EliteOnboarding'));
 const EliteDashboard = lazy(() => import('./pages/EliteDashboard'));
+import { EliteGuard } from '@/components/elite-assessment/EliteGuard';
 
 // Optimized QueryClient with aggressive caching and deduplication
 const queryClient = new QueryClient({
@@ -185,8 +186,8 @@ const App = () => {
                               <Route path="/management-fee" element={<ManagementFee />} />
                               <Route path="/sms-consent" element={<SmsConsent />} />
                               <Route path="/sim-trading" element={<SimTrading />} />
-                              <Route path="/elite-onboarding" element={<EliteOnboarding />} />
-                              <Route path="/elite-dashboard" element={<EliteDashboard />} />
+                              <Route path="/elite-onboarding" element={<EliteGuard><EliteOnboarding /></EliteGuard>} />
+                              <Route path="/elite-dashboard" element={<EliteGuard><EliteDashboard /></EliteGuard>} />
                               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                               <Route path="*" element={<NotFound />} />
                             </Routes>
