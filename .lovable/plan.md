@@ -1,81 +1,79 @@
 
 
-## Simulation Trading Platform — Implementation Plan
+## Robust Elite Questionnaire Overhaul
 
-### What Gets Built
-A paper trading platform at `/sim-trading` where users create virtual portfolios, execute buy/sell trades on stocks and options at live market prices, and track real P&L going forward from trade date. No backward-looking data, no pricing models — just actual price tracking.
+### What We're Building
 
-### Database (3 tables + RLS)
+A comprehensive 6-step questionnaire under the Portfolio tab that merges the best of the existing IPS questionnaire (personality/behavioral questions) with the current elite financial questions, plus new sections for existing portfolio analysis and investor DNA.
 
-**`sim_portfolios`**
-- id (uuid, PK), user_id (uuid, references auth.users), name (text), initial_capital (numeric, default 100000), cash_balance (numeric, default 100000), status (text: active/closed), created_at, closed_at
+### New Step Structure (6 steps, up from 3)
 
-**`sim_trades`**
-- id (uuid, PK), portfolio_id (uuid, FK → sim_portfolios), ticker (text), instrument_type (text: stock/option), action (text: buy/sell), quantity (numeric), price_at_execution (numeric), total_cost (numeric), option_type (text, nullable: call/put), strike_price (numeric, nullable), expiration_date (date, nullable), contract_multiplier (integer, default 100), executed_at (timestamptz)
+```text
+Step 1: Financial Profile        (existing — keep as-is)
+Step 2: Goals & Time Horizon     (pulled from IPS questionnaire)
+Step 3: Risk & Personality       (merge current risk step + IPS behavioral scenarios)
+Step 4: Existing Portfolios      (NEW — other brokerage accounts, 401k, IRA details)
+Step 5: Preferences & Values     (IPS ethical/ESG + crypto + international prefs)
+Step 6: Execution & Review       (existing execution step + summary before submit)
+```
 
-**`sim_snapshots`**
-- id (uuid, PK), portfolio_id (uuid, FK), snapshot_date (date), total_value (numeric), cash_balance (numeric), positions_value (numeric), created_at
+### New Questions Added
 
-RLS on all three: authenticated users can only CRUD their own data (via `user_id` on portfolios, joined through portfolio_id on trades/snapshots).
+**Step 2 — Goals & Time Horizon** (from IPS questionnaire):
+- Primary investment purpose (retirement, wealth building, financial independence, etc.)
+- Time horizon (when do you need the money)
+- Goal priority (critical vs. aspirational)
 
-### Core P&L Logic (Frontend)
+**Step 3 — Risk & Personality** (merge + new):
+- Keep: drawdown tolerance slider, market fears, target return/risk profile
+- Add from IPS: "$100K drops to $80K — what do you do?" scenario
+- Add from IPS: "Which would you regret more — missing gains or losing money?"
+- Add: Investment experience level (beginner/intermediate/advanced)
 
-For each open position, the system calculates:
+**Step 4 — Existing Portfolios** (brand new):
+- Do you have other investment accounts? (401k, IRA, taxable brokerage, etc.)
+- Estimated total value across all accounts
+- Current asset mix (mostly stocks, mostly bonds, mixed, unsure)
+- Any concentrated positions? (>20% in a single stock)
+- Current use of options in other accounts
 
-**Stocks:**
-- Cost basis = `price_at_execution × shares`
-- Current value = `live_price × shares`
-- P&L = current value - cost basis
+**Step 5 — Preferences & Values** (from IPS):
+- Ethical exclusions (tobacco, weapons, fossil fuels, gambling)
+- International investment comfort
+- Volatility preference (steady vs. growth)
+- Cryptocurrency stance
 
-**Options:**
-- Cost basis = `premium_paid × contracts × 100`
-- Current value = `current_premium × contracts × 100`
-- P&L = current value - cost basis
+### Technical Changes
 
-When user **sells**, a closing trade is recorded at the sell price. Cash balance updates: buying deducts, selling adds. The system uses `getCachedQuotes` for live stock prices. Options premiums are entered manually at trade time (no options chain API).
+1. **Database migration**: Add new columns to `elite_client_profiles`:
+   - `investment_purpose`, `time_horizon`, `goal_priority` (text)
+   - `loss_reaction`, `regret_preference`, `experience_level` (text)
+   - `other_accounts` (text[]), `other_accounts_value` (numeric), `current_asset_mix` (text), `has_concentrated_positions` (boolean), `other_options_experience` (text)
+   - `ethical_exclusions` (text[]), `international_preference` (text), `volatility_preference` (text), `crypto_stance` (text)
 
-### Edge Function: `sim-portfolio-snapshot`
-- Accepts a portfolio_id, fetches all open positions, gets live quotes for stock tickers
-- Calculates total portfolio value = cash + sum of position values
-- Inserts a row into `sim_snapshots`
-- Called when user loads their simulation detail page
+2. **New step components** (in `src/components/elite-assessment/steps/`):
+   - `StepGoals.tsx` — goals & time horizon
+   - `StepExistingPortfolios.tsx` — other accounts & current holdings
+   - `StepPreferences.tsx` — ethical/ESG/crypto/international
 
-### Frontend Components
+3. **Updated files**:
+   - `EliteOnboardingPage.tsx` — expand `EliteFormData` interface, update STEPS array to 6 steps, update `canAdvance()` logic, add new fields to upsert
+   - `StepRiskProfile.tsx` — add behavioral scenario questions (loss reaction, regret preference, experience level)
+   - `StepExecution.tsx` — add a summary/review section at the bottom showing key selections before submit
 
-1. **`src/pages/SimTrading.tsx`** — Main page at `/sim-trading`
-   - Create new simulation (name + starting capital)
-   - List active/closed simulations with summary cards showing total return, days active, current value
+4. **Shared Explainer component**: Extract to a shared file since it's duplicated in every step.
 
-2. **`src/components/sim-trading/SimPortfolioDetail.tsx`** — Detail view
-   - Holdings table: ticker, type (stock/option), quantity, avg cost, current price, P&L, P&L %
-   - Options show strike, expiry, call/put alongside standard columns
-   - Cash balance display
-   - Equity curve chart from snapshots
-   - Trade history log
+### Files to Create/Modify
 
-3. **`src/components/sim-trading/TradeDialog.tsx`** — Execute trades
-   - Two tabs: **Stocks** and **Options**
-   - Stocks: ticker input, buy/sell toggle, shares input, live price auto-fetched via `getCachedQuotes`, shows total cost preview
-   - Options: ticker, call/put, strike, expiration, premium (manual entry), contracts, buy/sell
-   - Validates sufficient cash before buying
-   - On submit: inserts into `sim_trades`, updates `cash_balance` on portfolio
-
-4. **`src/components/sim-trading/PositionsTable.tsx`** — Live holdings with real-time P&L
-   - Fetches live quotes on load/refresh for all stock tickers in portfolio
-   - Color-coded P&L (green/red)
-   - Close position button (creates a sell trade)
-
-### Navigation
-- Add "Sim Trading" to sidebar nav items in `Sidebar.tsx` after Portfolio Builder
-- Add route `/sim-trading` in `App.tsx`
-- Icon: `Activity` from lucide-react
-
-### Implementation Order
-1. Database migration (3 tables + RLS policies)
-2. Edge function `sim-portfolio-snapshot`
-3. SimTrading page with create/list
-4. TradeDialog with buy/sell for stocks + options
-5. PositionsTable with live P&L
-6. Portfolio detail view with equity curve
-7. Wire into sidebar + routing
+| Action | File |
+|--------|------|
+| Create | `src/components/elite-assessment/steps/StepGoals.tsx` |
+| Create | `src/components/elite-assessment/steps/StepExistingPortfolios.tsx` |
+| Create | `src/components/elite-assessment/steps/StepPreferences.tsx` |
+| Create | `src/components/elite-assessment/shared/Explainer.tsx` |
+| Modify | `src/components/elite-assessment/EliteOnboardingPage.tsx` |
+| Modify | `src/components/elite-assessment/steps/StepRiskProfile.tsx` |
+| Modify | `src/components/elite-assessment/steps/StepExecution.tsx` |
+| Modify | `src/components/elite-assessment/steps/StepFinancials.tsx` |
+| Migration | Add new columns to `elite_client_profiles` |
 
