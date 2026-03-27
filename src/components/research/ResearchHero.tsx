@@ -111,10 +111,10 @@ export function ResearchHero({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <span className="text-foreground">Find Your Next </span>
-            <span className="bg-gradient-to-r from-[hsl(175_80%_45%)] to-[hsl(190_90%_55%)] bg-clip-text text-transparent">Big Investment</span>
+            <span className="text-foreground">Find Your Next</span>{' '}
+            <span className="bg-gradient-to-r from-[hsl(175_80%_45%)] to-[hsl(190_90%_55%)] bg-clip-text text-transparent">Big</span>
             <br />
-            <span className="bg-gradient-to-r from-[hsl(190_90%_55%)] to-[hsl(175_80%_45%)] bg-clip-text text-transparent">Idea</span>
+            <span className="bg-gradient-to-r from-[hsl(190_90%_55%)] to-[hsl(175_80%_45%)] bg-clip-text text-transparent">Investment Idea</span>
           </motion.h1>
           <motion.p
             className="text-muted-foreground text-[11px] sm:text-xs lg:text-sm max-w-lg sm:mx-auto font-mono font-semibold"
