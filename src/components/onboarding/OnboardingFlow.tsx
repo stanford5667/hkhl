@@ -60,18 +60,23 @@ export function OnboardingFlow({ children }: OnboardingFlowProps) {
     refreshProfile();
   };
 
-  // Not logged in - allow viewing the app (auth gating happens on actions)
+  // Not logged in - allow viewing the app
   if (!user) {
     return <>{children}</>;
   }
 
   // Loading state
-  if (isLoading) {
+  if (isLoading || eliteLoading) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-purple-500 border-t-transparent" />
       </div>
     );
+  }
+
+  // Elite clients bypass regular onboarding entirely
+  if (isElite) {
+    return <>{children}</>;
   }
 
   // Onboarding complete - show main app (also check isPro as safety net)
