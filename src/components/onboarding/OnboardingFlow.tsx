@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useUsage } from '@/contexts/UsageContext';
+import { useEliteAccess } from '@/hooks/useEliteAccess';
 import { supabase } from '@/integrations/supabase/client';
 import { ProfileSetupStep } from './ProfileSetupStep';
 import { MembershipStep } from './MembershipStep';
@@ -14,6 +16,8 @@ export function OnboardingFlow({ children }: OnboardingFlowProps) {
   const { user } = useAuth();
   const { userProfile, isLoading, refreshProfile } = useOrganization();
   const { isPro } = useUsage();
+  const { isElite, loading: eliteLoading } = useEliteAccess();
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState<'profile' | 'membership' | 'complete'>('profile');
 
   useEffect(() => {
@@ -56,18 +60,23 @@ export function OnboardingFlow({ children }: OnboardingFlowProps) {
     refreshProfile();
   };
 
-  // Not logged in - allow viewing the app (auth gating happens on actions)
+  // Not logged in - allow viewing the app
   if (!user) {
     return <>{children}</>;
   }
 
   // Loading state
-  if (isLoading) {
+  if (isLoading || eliteLoading) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-purple-500 border-t-transparent" />
       </div>
     );
+  }
+
+  // Elite clients bypass regular onboarding entirely
+  if (isElite) {
+    return <>{children}</>;
   }
 
   // Onboarding complete - show main app (also check isPro as safety net)
