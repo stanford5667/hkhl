@@ -15,6 +15,7 @@ import { AnimatedBackground } from '@/components/research/AnimatedBackground';
 import { ResearchHero } from '@/components/research/ResearchHero';
 import { FeatureShowcaseRow } from '@/components/research/FeatureShowcaseCard';
 import { StickyEngagementBar } from '@/components/research/StickyEngagementBar';
+import { ResearchCommunityPreview } from '@/components/research/ResearchCommunityPreview';
 import { SocialProofSignals } from '@/components/research/SocialProofSignals';
 import { OnboardingNudges } from '@/components/research/OnboardingNudges';
 import { ResearchUnauthHero } from '@/components/research/ResearchUnauthHero';
