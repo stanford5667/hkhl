@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { PageLoader } from '@/components/shared/PageLoader';
 import EliteOnboardingPage from '@/components/elite-assessment/EliteOnboardingPage';
-import EliteDashboardPage from '@/components/elite-assessment/EliteDashboardPage';
+import SimTrading from '@/pages/SimTrading';
 
 export default function ElitePortfolio() {
   const { user } = useAuth();
@@ -23,11 +23,10 @@ export default function ElitePortfolio() {
 
   if (hasProfile === null) return <PageLoader />;
 
-  // If they haven't completed the questionnaire, show it inline
-  // Once submitted, refresh to show the dashboard
   if (!hasProfile) {
     return <EliteOnboardingPage onComplete={() => setHasProfile(true)} />;
   }
 
-  return <EliteDashboardPage />;
+  // After questionnaire, show simulation trading
+  return <SimTrading />;
 }

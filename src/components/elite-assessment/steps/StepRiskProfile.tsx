@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, TrendingDown, Zap, Flame, Monitor, DollarSign } from 'lucide-react';
+import { AlertTriangle, TrendingDown, Zap, Flame, Monitor, DollarSign, Info } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { LabeledSlider, MultiSelectGrid, OptionCard } from '@/components/questionnaire/QuestionOptions';
 import type { EliteFormData } from '../EliteOnboardingPage';
@@ -23,6 +23,15 @@ interface Props {
   onChange: (partial: Partial<EliteFormData>) => void;
 }
 
+function Explainer({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/5 border border-primary/10">
+      <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+      <p className="text-xs text-muted-foreground leading-relaxed">{children}</p>
+    </div>
+  );
+}
+
 export function StepRiskProfile({ data, onChange }: Props) {
   return (
     <div className="space-y-8">
@@ -36,6 +45,9 @@ export function StepRiskProfile({ data, onChange }: Props) {
         <Label className="flex items-center gap-2">
           <AlertTriangle className="h-4 w-4 text-warning" /> Maximum Drawdown Tolerance
         </Label>
+        <Explainer>
+          Drawdown is the largest peak-to-trough decline your portfolio could experience before recovering. For example, a 15% drawdown means a $100K portfolio could temporarily drop to $85K. Lower = more conservative, higher = more room for volatility.
+        </Explainer>
         <div className="p-4 rounded-xl border border-border bg-card">
           <LabeledSlider
             value={data.maxDrawdown}
@@ -56,7 +68,9 @@ export function StepRiskProfile({ data, onChange }: Props) {
       {/* Market fears */}
       <div className="space-y-3">
         <Label>Market Fears to Hedge Against</Label>
-        <p className="text-xs text-muted-foreground">Select all that apply</p>
+        <Explainer>
+          Select the market scenarios you're most worried about. We'll factor these into your portfolio construction — for example, if you fear inflation, we may increase commodity or TIPS exposure. Select all that apply.
+        </Explainer>
         <MultiSelectGrid
           options={MARKET_FEARS}
           selected={data.marketFears}
@@ -68,6 +82,9 @@ export function StepRiskProfile({ data, onChange }: Props) {
       {/* Return/risk profile */}
       <div className="space-y-3">
         <Label>Target Return / Risk Profile</Label>
+        <Explainer>
+          This pairs your expected annual return with the maximum portfolio decline you're willing to accept. Higher return targets require accepting larger potential drawdowns — there's no free lunch in investing.
+        </Explainer>
         <div className="grid gap-2">
           {RISK_PROFILES.map(rp => (
             <OptionCard
