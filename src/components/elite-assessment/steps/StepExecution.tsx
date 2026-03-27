@@ -1,5 +1,5 @@
 import React from 'react';
-import { BarChart3, Clock } from 'lucide-react';
+import { BarChart3, Clock, Info } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { OptionCard } from '@/components/questionnaire/QuestionOptions';
 import type { EliteFormData } from '../EliteOnboardingPage';
@@ -21,6 +21,15 @@ interface Props {
   onChange: (partial: Partial<EliteFormData>) => void;
 }
 
+function Explainer({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/5 border border-primary/10">
+      <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+      <p className="text-xs text-muted-foreground leading-relaxed">{children}</p>
+    </div>
+  );
+}
+
 export function StepExecution({ data, onChange }: Props) {
   return (
     <div className="space-y-8">
@@ -34,6 +43,9 @@ export function StepExecution({ data, onChange }: Props) {
         <Label className="flex items-center gap-2">
           <BarChart3 className="h-4 w-4 text-primary" /> Options Trading Approval
         </Label>
+        <Explainer>
+          This refers to the approval level your brokerage has granted you. Level 1-2 allows basic strategies like covered calls. Level 3-4 unlocks advanced strategies like iron condors and naked puts. If unsure, check your brokerage account settings.
+        </Explainer>
         <div className="grid gap-2">
           {OPTIONS_LEVELS.map(opt => (
             <OptionCard
@@ -54,6 +66,9 @@ export function StepExecution({ data, onChange }: Props) {
         <Label className="flex items-center gap-2">
           <Clock className="h-4 w-4 text-primary" /> Rebalancing Availability
         </Label>
+        <Explainer>
+          How often can you log in and execute trades? More frequent rebalancing allows us to capture shorter-term opportunities but requires more of your time. Monthly is fine for most long-term strategies.
+        </Explainer>
         <div className="grid gap-2">
           {REBAL_FREQ.map(freq => (
             <OptionCard
