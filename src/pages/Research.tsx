@@ -18,8 +18,6 @@ import { StickyEngagementBar } from '@/components/research/StickyEngagementBar';
 import { ResearchCommunityPreview } from '@/components/research/ResearchCommunityPreview';
 import { SocialProofSignals } from '@/components/research/SocialProofSignals';
 import { OnboardingNudges } from '@/components/research/OnboardingNudges';
-import { ResearchUnauthHero } from '@/components/research/ResearchUnauthHero';
-import { ResearchMarketingSection } from '@/components/research/ResearchMarketingSection';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { AuthGateDialog } from '@/components/auth/AuthGateDialog';
@@ -133,29 +131,15 @@ export default function ResearchPage() {
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
-      {/* Unauthenticated: massive hero-first experience */}
-      {!user && <ResearchUnauthHero />}
-      
-      {/* Unauthenticated: features + stats section */}
-      {!user && (
-        <div id="research-features">
-          <ResearchMarketingSection />
-        </div>
-      )}
-
-      {/* Authenticated: standard hero */}
-      {user && (
-        <>
-          <AnimatedBackground />
-          <ResearchHero
-            searchQuery={searchQuery}
-            onSearchQueryChange={setSearchQuery}
-            onSearch={handleSearch}
-            recentSearches={recentSearches}
-            onClearRecent={clearRecentSearches}
-          />
-        </>
-      )}
+      {/* Hero — same for all users */}
+      <AnimatedBackground />
+      <ResearchHero
+        searchQuery={searchQuery}
+        onSearchQueryChange={setSearchQuery}
+        onSearch={handleSearch}
+        recentSearches={recentSearches}
+        onClearRecent={clearRecentSearches}
+      />
 
       {/* Social Proof Signals */}
       <div className="max-w-6xl mx-auto px-3 sm:px-6 -mt-1 mb-2 sm:mb-4">
