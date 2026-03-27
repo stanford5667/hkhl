@@ -185,6 +185,8 @@ const App = () => {
                               <Route path="/management-fee" element={<ManagementFee />} />
                               <Route path="/sms-consent" element={<SmsConsent />} />
                               <Route path="/sim-trading" element={<SimTrading />} />
+                              <Route path="/elite-onboarding" element={<EliteOnboarding />} />
+                              <Route path="/elite-dashboard" element={<EliteDashboard />} />
                               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                               <Route path="*" element={<NotFound />} />
                             </Routes>
