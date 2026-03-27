@@ -58,14 +58,14 @@ export function TickerSearchInput({ value, onChange, onSelect, placeholder = 'Se
               type="button"
               className="w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-accent transition-colors text-left"
               onClick={() => {
-                onSelect(r.symbol, r.description || r.symbol);
+                onSelect(r.symbol, r.name || r.symbol);
                 onChange(r.symbol);
                 setOpen(false);
               }}
             >
               <div className="flex-1 min-w-0">
                 <span className="font-medium text-foreground">{r.symbol}</span>
-                <span className="ml-2 text-muted-foreground truncate text-xs">{r.description}</span>
+                <span className="ml-2 text-muted-foreground truncate text-xs">{r.name}</span>
               </div>
               {r.quote && r.quote.price > 0 && (
                 <span className="ml-2 font-mono text-xs text-foreground shrink-0">
