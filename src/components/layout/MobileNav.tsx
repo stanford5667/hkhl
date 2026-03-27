@@ -25,6 +25,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Sidebar } from "./Sidebar";
 import { useAdmin } from "@/hooks/useAdmin";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEliteAccess } from "@/hooks/useEliteAccess";
 import { supabase } from "@/integrations/supabase/client";
 
 const mobileNavItems = [
@@ -119,11 +120,12 @@ function MobileSidebarContent({ onNavigate }: { onNavigate: () => void }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { isAdmin } = useAdmin();
+  const { isElite } = useEliteAccess();
   
   const navItems = [
     { label: "Research", href: "/research", icon: Search },
     { label: "Chat Room", href: "/community", icon: Users },
-    // { label: "Swipe Stocks", href: "/stock-swipe", icon: Flame },
+    ...(isElite ? [{ label: "Portfolio", href: "/elite-portfolio", icon: Briefcase }] : []),
     { label: "Portfolio Builder", href: "/portfolio-visualizer", icon: PieChart },
     { label: "Sim Trading", href: "/sim-trading", icon: Activity },
     { label: "Academy", href: "/academy", icon: BookOpen },
