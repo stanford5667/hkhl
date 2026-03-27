@@ -1,9 +1,10 @@
 import React from 'react';
-import { DollarSign, Target, Info } from 'lucide-react';
+import { DollarSign, Target } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { OptionCard } from '@/components/questionnaire/QuestionOptions';
+import { Explainer } from '../shared/Explainer';
 import type { EliteFormData } from '../EliteOnboardingPage';
 
 const OBJECTIVES = [
@@ -21,15 +22,6 @@ interface Props {
 const formatCurrency = (val: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(val);
 
-function Explainer({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/5 border border-primary/10">
-      <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-      <p className="text-xs text-muted-foreground leading-relaxed">{children}</p>
-    </div>
-  );
-}
-
 export function StepFinancials({ data, onChange }: Props) {
   const handleNumber = (field: keyof EliteFormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
     const num = parseInt(e.target.value.replace(/[^0-9]/g, ''), 10);
@@ -44,7 +36,6 @@ export function StepFinancials({ data, onChange }: Props) {
         <p className="text-muted-foreground text-sm">Help us understand your financial position to tailor the strategy.</p>
       </div>
 
-      {/* Net Worth */}
       <div className="space-y-2">
         <Label className="flex items-center gap-2">
           <DollarSign className="h-4 w-4 text-primary" /> Total Liquid Net Worth
@@ -64,7 +55,6 @@ export function StepFinancials({ data, onChange }: Props) {
         </div>
       </div>
 
-      {/* Capital Allocated */}
       <div className="space-y-2">
         <Label className="flex items-center gap-2">
           <Target className="h-4 w-4 text-primary" /> Capital Allocated to This Strategy
@@ -89,7 +79,6 @@ export function StepFinancials({ data, onChange }: Props) {
         )}
       </div>
 
-      {/* Primary Objective */}
       <div className="space-y-3">
         <Label>Primary Objective</Label>
         <Explainer>
@@ -110,7 +99,6 @@ export function StepFinancials({ data, onChange }: Props) {
         </div>
       </div>
 
-      {/* Accredited checkbox */}
       <div className="space-y-2">
         <Explainer>
           Accredited investor status (outside the US) may grant access to additional alternative investment strategies not available to retail investors.

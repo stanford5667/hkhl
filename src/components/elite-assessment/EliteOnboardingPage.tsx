@@ -7,17 +7,41 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { StepFinancials } from './steps/StepFinancials';
+import { StepGoals } from './steps/StepGoals';
 import { StepRiskProfile } from './steps/StepRiskProfile';
+import { StepExistingPortfolios } from './steps/StepExistingPortfolios';
+import { StepPreferences } from './steps/StepPreferences';
 import { StepExecution } from './steps/StepExecution';
 
 export interface EliteFormData {
+  // Step 1 — Financial Profile
   liquidNetWorth: number;
   capitalAllocated: number;
   primaryObjective: string;
   isNonUsAccredited: boolean;
+  // Step 2 — Goals
+  investmentPurpose: string;
+  timeHorizon: string;
+  goalPriority: string;
+  // Step 3 — Risk & Personality
   maxDrawdown: number;
   marketFears: string[];
   targetReturnRisk: string;
+  lossReaction: string;
+  regretPreference: string;
+  experienceLevel: string;
+  // Step 4 — Existing Portfolios
+  otherAccounts: string[];
+  otherAccountsValue: number;
+  currentAssetMix: string;
+  hasConcentratedPositions: boolean;
+  otherOptionsExperience: string;
+  // Step 5 — Preferences
+  ethicalExclusions: string[];
+  internationalPreference: string;
+  volatilityPreference: string;
+  cryptoStance: string;
+  // Step 6 — Execution
   optionsApproval: string;
   rebalancingFrequency: string;
 }
@@ -27,14 +51,29 @@ const INITIAL_DATA: EliteFormData = {
   capitalAllocated: 100000,
   primaryObjective: '',
   isNonUsAccredited: false,
+  investmentPurpose: '',
+  timeHorizon: '',
+  goalPriority: '',
   maxDrawdown: 15,
   marketFears: [],
   targetReturnRisk: '',
+  lossReaction: '',
+  regretPreference: '',
+  experienceLevel: '',
+  otherAccounts: [],
+  otherAccountsValue: 0,
+  currentAssetMix: '',
+  hasConcentratedPositions: false,
+  otherOptionsExperience: '',
+  ethicalExclusions: [],
+  internationalPreference: '',
+  volatilityPreference: '',
+  cryptoStance: '',
   optionsApproval: '',
   rebalancingFrequency: '',
 };
 
-const STEPS = ['Financial Profile', 'Risk & Hedging', 'Execution'];
+const STEPS = ['Financial Profile', 'Goals & Timeline', 'Risk & Personality', 'Existing Portfolios', 'Preferences', 'Execution'];
 
 interface EliteOnboardingPageProps {
   onComplete?: () => void;
@@ -52,8 +91,11 @@ export default function EliteOnboardingPage({ onComplete }: EliteOnboardingPageP
 
   const canAdvance = (): boolean => {
     if (step === 0) return !!data.primaryObjective && data.capitalAllocated > 0;
-    if (step === 1) return !!data.targetReturnRisk && data.marketFears.length > 0;
-    if (step === 2) return !!data.optionsApproval && !!data.rebalancingFrequency;
+    if (step === 1) return !!data.investmentPurpose && !!data.timeHorizon && !!data.goalPriority;
+    if (step === 2) return !!data.targetReturnRisk && data.marketFears.length > 0 && !!data.lossReaction && !!data.experienceLevel;
+    if (step === 3) return !!data.currentAssetMix && !!data.otherOptionsExperience;
+    if (step === 4) return !!data.internationalPreference && !!data.volatilityPreference && !!data.cryptoStance;
+    if (step === 5) return !!data.optionsApproval && !!data.rebalancingFrequency;
     return false;
   };
 
@@ -72,6 +114,21 @@ export default function EliteOnboardingPage({ onComplete }: EliteOnboardingPageP
         target_return_risk: data.targetReturnRisk,
         options_approval: data.optionsApproval,
         rebalancing_frequency: data.rebalancingFrequency,
+        investment_purpose: data.investmentPurpose,
+        time_horizon: data.timeHorizon,
+        goal_priority: data.goalPriority,
+        loss_reaction: data.lossReaction,
+        regret_preference: data.regretPreference,
+        experience_level: data.experienceLevel,
+        other_accounts: data.otherAccounts,
+        other_accounts_value: data.otherAccountsValue,
+        current_asset_mix: data.currentAssetMix,
+        has_concentrated_positions: data.hasConcentratedPositions,
+        other_options_experience: data.otherOptionsExperience,
+        ethical_exclusions: data.ethicalExclusions,
+        international_preference: data.internationalPreference,
+        volatility_preference: data.volatilityPreference,
+        crypto_stance: data.cryptoStance,
       } as any, { onConflict: 'user_id' });
       if (error) throw error;
       toast.success('Profile saved successfully');
@@ -89,7 +146,6 @@ export default function EliteOnboardingPage({ onComplete }: EliteOnboardingPageP
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
       <div className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
           <Shield className="h-6 w-6 text-primary" />
@@ -100,9 +156,8 @@ export default function EliteOnboardingPage({ onComplete }: EliteOnboardingPageP
         </div>
       </div>
 
-      {/* Progress bar */}
       <div className="max-w-2xl mx-auto w-full px-4 pt-6">
-        <div className="flex gap-2">
+        <div className="flex gap-1.5">
           {STEPS.map((_, i) => (
             <div key={i} className="flex-1 h-1.5 rounded-full overflow-hidden bg-muted">
               <motion.div
@@ -116,7 +171,6 @@ export default function EliteOnboardingPage({ onComplete }: EliteOnboardingPageP
         </div>
       </div>
 
-      {/* Step content */}
       <div className="flex-1 max-w-2xl mx-auto w-full px-4 py-8">
         <AnimatePresence mode="wait">
           <motion.div
@@ -127,13 +181,15 @@ export default function EliteOnboardingPage({ onComplete }: EliteOnboardingPageP
             transition={{ duration: 0.25 }}
           >
             {step === 0 && <StepFinancials data={data} onChange={update} />}
-            {step === 1 && <StepRiskProfile data={data} onChange={update} />}
-            {step === 2 && <StepExecution data={data} onChange={update} />}
+            {step === 1 && <StepGoals data={data} onChange={update} />}
+            {step === 2 && <StepRiskProfile data={data} onChange={update} />}
+            {step === 3 && <StepExistingPortfolios data={data} onChange={update} />}
+            {step === 4 && <StepPreferences data={data} onChange={update} />}
+            {step === 5 && <StepExecution data={data} onChange={update} />}
           </motion.div>
         </AnimatePresence>
       </div>
 
-      {/* Navigation */}
       <div className="border-t border-border bg-card/50 backdrop-blur-sm sticky bottom-0">
         <div className="max-w-2xl mx-auto px-4 py-4 flex justify-between">
           <Button
