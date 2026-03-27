@@ -7,9 +7,10 @@ import type { Position } from './SimPortfolioDetail';
 interface Props {
   positions: Position[];
   onClose: (pos: Position) => void;
+  onRowClick?: (pos: Position) => void;
 }
 
-export function PositionsTable({ positions, onClose }: Props) {
+export function PositionsTable({ positions, onClose, onRowClick }: Props) {
   if (positions.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
