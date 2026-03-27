@@ -1,7 +1,8 @@
 import React from 'react';
-import { AlertTriangle, TrendingDown, Zap, Flame, Monitor, DollarSign, Info } from 'lucide-react';
+import { AlertTriangle, TrendingDown, Zap, Flame, Monitor, DollarSign, Brain, GraduationCap } from 'lucide-react';
 import { Label } from '@/components/ui/label';
-import { LabeledSlider, MultiSelectGrid, OptionCard } from '@/components/questionnaire/QuestionOptions';
+import { LabeledSlider, MultiSelectGrid, OptionCard, ScenarioPicker } from '@/components/questionnaire/QuestionOptions';
+import { Explainer } from '../shared/Explainer';
 import type { EliteFormData } from '../EliteOnboardingPage';
 
 const MARKET_FEARS = [
@@ -18,26 +19,30 @@ const RISK_PROFILES = [
   { value: '20_30', label: '20%+ Return / 30% Max Draw', description: 'Aggressive — maximum growth potential', emoji: '🔴' },
 ];
 
+const LOSS_REACTIONS = [
+  { value: 'sell_all', label: 'Sell Everything', description: 'I\'d panic and move to cash immediately', emoji: '😰' },
+  { value: 'sell_some', label: 'Sell Some', description: 'I\'d reduce exposure but stay partially invested', emoji: '😟' },
+  { value: 'hold', label: 'Hold Steady', description: 'I\'d be uncomfortable but stick with the plan', emoji: '😐' },
+  { value: 'buy_more', label: 'Buy the Dip', description: 'I\'d see it as an opportunity to invest more', emoji: '😎' },
+];
+
+const EXPERIENCE_LEVELS = [
+  { value: 'beginner', label: 'Beginner', description: 'New to investing, learning the basics', emoji: '🌱' },
+  { value: 'intermediate', label: 'Intermediate', description: 'A few years of experience with stocks & funds', emoji: '📚' },
+  { value: 'advanced', label: 'Advanced', description: 'Deep knowledge of markets, options, and strategies', emoji: '🎓' },
+];
+
 interface Props {
   data: EliteFormData;
   onChange: (partial: Partial<EliteFormData>) => void;
-}
-
-function Explainer({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/5 border border-primary/10">
-      <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-      <p className="text-xs text-muted-foreground leading-relaxed">{children}</p>
-    </div>
-  );
 }
 
 export function StepRiskProfile({ data, onChange }: Props) {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-2xl font-bold text-foreground mb-1">Risk & Hedging</h2>
-        <p className="text-muted-foreground text-sm">Define your risk boundaries and what you want protection against.</p>
+        <h2 className="text-2xl font-bold text-foreground mb-1">Risk & Personality</h2>
+        <p className="text-muted-foreground text-sm">Define your risk boundaries and help us understand your investor personality.</p>
       </div>
 
       {/* Drawdown slider */}
@@ -62,6 +67,76 @@ export function StepRiskProfile({ data, onChange }: Props) {
               { value: 30, label: '30% (aggressive)' },
             ]}
           />
+        </div>
+      </div>
+
+      {/* Loss reaction scenario */}
+      <div className="space-y-3">
+        <Label className="flex items-center gap-2">
+          <Brain className="h-4 w-4 text-primary" /> Loss Reaction Scenario
+        </Label>
+        <Explainer>
+          Imagine your $100,000 portfolio drops to $80,000 in a single month. What would you actually do? Be honest — this reveals your true risk tolerance better than any theoretical question. There's no wrong answer.
+        </Explainer>
+        <div className="grid gap-2">
+          {LOSS_REACTIONS.map(lr => (
+            <OptionCard
+              key={lr.value}
+              label={lr.label}
+              description={lr.description}
+              emoji={lr.emoji}
+              selected={data.lossReaction === lr.value}
+              onClick={() => onChange({ lossReaction: lr.value })}
+              compact
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Regret preference */}
+      <div className="space-y-3">
+        <Label>Which Would You Regret More?</Label>
+        <Explainer>
+          This question reveals whether you're more loss-averse or opportunity-driven. Neither is wrong — it helps us calibrate how aggressive or conservative your strategy should be.
+        </Explainer>
+        <ScenarioPicker
+          optionA={{
+            id: 'A',
+            label: 'Missing Out on Gains',
+            description: 'The market surged 30% and I was sitting in cash. I missed a huge opportunity.',
+            traits: ['Growth-oriented', 'FOMO-sensitive'],
+          }}
+          optionB={{
+            id: 'B',
+            label: 'Losing Money',
+            description: 'My portfolio dropped 20% and I lost real money. That keeps me up at night.',
+            traits: ['Loss-averse', 'Capital preservation'],
+          }}
+          selected={data.regretPreference as 'A' | 'B' | null}
+          onChange={(choice) => onChange({ regretPreference: choice })}
+        />
+      </div>
+
+      {/* Experience level */}
+      <div className="space-y-3">
+        <Label className="flex items-center gap-2">
+          <GraduationCap className="h-4 w-4 text-primary" /> Investment Experience
+        </Label>
+        <Explainer>
+          Your experience level helps us communicate appropriately and determine strategy complexity. Beginners get more guidance and simpler strategies; advanced investors can access more sophisticated approaches.
+        </Explainer>
+        <div className="grid gap-2">
+          {EXPERIENCE_LEVELS.map(el => (
+            <OptionCard
+              key={el.value}
+              label={el.label}
+              description={el.description}
+              emoji={el.emoji}
+              selected={data.experienceLevel === el.value}
+              onClick={() => onChange({ experienceLevel: el.value })}
+              compact
+            />
+          ))}
         </div>
       </div>
 

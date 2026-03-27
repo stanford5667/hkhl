@@ -1,7 +1,8 @@
 import React from 'react';
-import { BarChart3, Clock, Info } from 'lucide-react';
+import { BarChart3, Clock } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { OptionCard } from '@/components/questionnaire/QuestionOptions';
+import { Explainer } from '../shared/Explainer';
 import type { EliteFormData } from '../EliteOnboardingPage';
 
 const OPTIONS_LEVELS = [
@@ -21,24 +22,14 @@ interface Props {
   onChange: (partial: Partial<EliteFormData>) => void;
 }
 
-function Explainer({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/5 border border-primary/10">
-      <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-      <p className="text-xs text-muted-foreground leading-relaxed">{children}</p>
-    </div>
-  );
-}
-
 export function StepExecution({ data, onChange }: Props) {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-2xl font-bold text-foreground mb-1">Execution Preferences</h2>
-        <p className="text-muted-foreground text-sm">Tell us about your trading capabilities and availability.</p>
+        <h2 className="text-2xl font-bold text-foreground mb-1">Execution & Review</h2>
+        <p className="text-muted-foreground text-sm">Tell us about your trading capabilities and review your profile.</p>
       </div>
 
-      {/* Options approval */}
       <div className="space-y-3">
         <Label className="flex items-center gap-2">
           <BarChart3 className="h-4 w-4 text-primary" /> Options Trading Approval
@@ -61,7 +52,6 @@ export function StepExecution({ data, onChange }: Props) {
         </div>
       </div>
 
-      {/* Rebalancing frequency */}
       <div className="space-y-3">
         <Label className="flex items-center gap-2">
           <Clock className="h-4 w-4 text-primary" /> Rebalancing Availability
@@ -83,6 +73,42 @@ export function StepExecution({ data, onChange }: Props) {
           ))}
         </div>
       </div>
+
+      {/* Summary */}
+      <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-3">
+        <h3 className="font-semibold text-foreground">Profile Summary</h3>
+        <div className="grid grid-cols-2 gap-3 text-sm">
+          {data.primaryObjective && (
+            <SummaryItem label="Objective" value={data.primaryObjective.replace(/_/g, ' ')} />
+          )}
+          {data.investmentPurpose && (
+            <SummaryItem label="Purpose" value={data.investmentPurpose.replace(/_/g, ' ')} />
+          )}
+          {data.timeHorizon && (
+            <SummaryItem label="Time Horizon" value={data.timeHorizon.replace(/_/g, ' ')} />
+          )}
+          {data.targetReturnRisk && (
+            <SummaryItem label="Risk Profile" value={data.targetReturnRisk.replace(/_/g, '/')} />
+          )}
+          <SummaryItem label="Max Drawdown" value={`${data.maxDrawdown}%`} />
+          <SummaryItem label="Capital" value={`$${data.capitalAllocated.toLocaleString()}`} />
+          {data.experienceLevel && (
+            <SummaryItem label="Experience" value={data.experienceLevel} />
+          )}
+          {data.cryptoStance && (
+            <SummaryItem label="Crypto" value={data.cryptoStance.replace(/_/g, ' ')} />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SummaryItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="font-medium text-foreground capitalize">{value}</p>
     </div>
   );
 }
