@@ -7,12 +7,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Search, Shield, Loader2, Users, Building2, Trash2, Crown, ArrowUpDown, ArrowUp, ArrowDown, Eye } from 'lucide-react';
+import { Search, Shield, Loader2, Users, Building2, Trash2, Crown, ArrowUpDown, ArrowUp, ArrowDown, Eye, ClipboardList } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { AppRole } from '@/hooks/useAdmin';
+import { EliteProfileViewer } from '@/components/elite-assessment/shared/EliteProfileViewer';
 
 interface UserWithProfile {
   id: string;
@@ -50,7 +51,22 @@ export function AdminUsersTab() {
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [pageViewsDialogUser, setPageViewsDialogUser] = useState<UserWithProfile | null>(null);
   const [allPageViews, setAllPageViews] = useState<Record<string, { page_path: string; viewed_at: string }[]>>({});
+  const [eliteProfileDialogUser, setEliteProfileDialogUser] = useState<UserWithProfile | null>(null);
+  const [eliteProfileData, setEliteProfileData] = useState<Record<string, any> | null>(null);
+  const [loadingEliteProfile, setLoadingEliteProfile] = useState(false);
   const { toast } = useToast();
+
+  const handleViewEliteProfile = async (user: UserWithProfile) => {
+    setEliteProfileDialogUser(user);
+    setLoadingEliteProfile(true);
+    const { data } = await supabase
+      .from('elite_client_profiles' as any)
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    setEliteProfileData(data as any);
+    setLoadingEliteProfile(false);
+  };
 
   useEffect(() => {
     fetchUsers();
