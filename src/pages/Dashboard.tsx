@@ -9,6 +9,8 @@ import { ActionItemsCard } from '@/components/dashboard/ActionItemsCard';
 import { PortfolioNews } from '@/components/dashboard/PortfolioNews';
 import { UpcomingEvents } from '@/components/dashboard/UpcomingEvents';
 import { RecentCompaniesCard } from '@/components/dashboard/RecentCompaniesCard';
+import { DashboardAcademyPreview } from '@/components/dashboard/DashboardAcademyPreview';
+import { DashboardCommunityPreview } from '@/components/dashboard/DashboardCommunityPreview';
 import { StatCard, HealthScore, PriceChange, SectionHeader } from '@/components/ui/design-system';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -255,6 +257,7 @@ export default function Dashboard() {
           </div>
 
           <RecentCompaniesCard />
+          <DashboardAcademyPreview />
           <AIInsightCard />
           <PortfolioNews />
         </div>
@@ -323,6 +326,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
+          <DashboardCommunityPreview />
           <ActionItemsCard />
           <UpcomingEvents />
         </div>
