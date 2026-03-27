@@ -1,79 +1,108 @@
 
 
-## Robust Elite Questionnaire Overhaul
+## Simulation Trading Platform — Gap Fill Plan
 
-### What We're Building
+### Overview
 
-A comprehensive 6-step questionnaire under the Portfolio tab that merges the best of the existing IPS questionnaire (personality/behavioral questions) with the current elite financial questions, plus new sections for existing portfolio analysis and investor DNA.
+Upgrade the existing sim trading platform from a basic paper trading tool to a professional-grade simulator, closing the gaps identified in the prior analysis. This is broken into 5 phases, ordered by impact.
 
-### New Step Structure (6 steps, up from 3)
+---
 
-```text
-Step 1: Financial Profile        (existing — keep as-is)
-Step 2: Goals & Time Horizon     (pulled from IPS questionnaire)
-Step 3: Risk & Personality       (merge current risk step + IPS behavioral scenarios)
-Step 4: Existing Portfolios      (NEW — other brokerage accounts, 401k, IRA details)
-Step 5: Preferences & Values     (IPS ethical/ESG + crypto + international prefs)
-Step 6: Execution & Review       (existing execution step + summary before submit)
-```
+### Phase 1: Integrated Charting
 
-### New Questions Added
+Add the existing `IntegratedStockChart` component directly into the sim trading detail page so users can see price action for any position or before placing a trade.
 
-**Step 2 — Goals & Time Horizon** (from IPS questionnaire):
-- Primary investment purpose (retirement, wealth building, financial independence, etc.)
-- Time horizon (when do you need the money)
-- Goal priority (critical vs. aspirational)
+**Changes:**
+- **`SimPortfolioDetail.tsx`** — Add a chart section above the tabs showing the selected ticker's chart. Default to the first open position's ticker, or allow user to type any symbol.
+- Add a ticker selector bar that updates the chart when clicking a position row or searching a symbol.
+- Overlay trade entry/exit markers on the chart using the trade history data (buy = green triangle, sell = red triangle).
 
-**Step 3 — Risk & Personality** (merge + new):
-- Keep: drawdown tolerance slider, market fears, target return/risk profile
-- Add from IPS: "$100K drops to $80K — what do you do?" scenario
-- Add from IPS: "Which would you regret more — missing gains or losing money?"
-- Add: Investment experience level (beginner/intermediate/advanced)
+**Files:** `SimPortfolioDetail.tsx` (modify), new `SimChartSection.tsx`
 
-**Step 4 — Existing Portfolios** (brand new):
-- Do you have other investment accounts? (401k, IRA, taxable brokerage, etc.)
-- Estimated total value across all accounts
-- Current asset mix (mostly stocks, mostly bonds, mixed, unsure)
-- Any concentrated positions? (>20% in a single stock)
-- Current use of options in other accounts
+---
 
-**Step 5 — Preferences & Values** (from IPS):
-- Ethical exclusions (tobacco, weapons, fossil fuels, gambling)
-- International investment comfort
-- Volatility preference (steady vs. growth)
-- Cryptocurrency stance
+### Phase 2: Limit & Stop Orders
 
-### Technical Changes
+Add pending order support so users can set limit and stop orders that execute when price conditions are met.
 
-1. **Database migration**: Add new columns to `elite_client_profiles`:
-   - `investment_purpose`, `time_horizon`, `goal_priority` (text)
-   - `loss_reaction`, `regret_preference`, `experience_level` (text)
-   - `other_accounts` (text[]), `other_accounts_value` (numeric), `current_asset_mix` (text), `has_concentrated_positions` (boolean), `other_options_experience` (text)
-   - `ethical_exclusions` (text[]), `international_preference` (text), `volatility_preference` (text), `crypto_stance` (text)
+**Database migration:**
+- New table `sim_pending_orders` — `id, portfolio_id, ticker, instrument_type, order_type (market/limit/stop), side (buy/sell), quantity, limit_price, stop_price, time_in_force (day/gtc), status (pending/filled/cancelled), created_at, filled_at`
 
-2. **New step components** (in `src/components/elite-assessment/steps/`):
-   - `StepGoals.tsx` — goals & time horizon
-   - `StepExistingPortfolios.tsx` — other accounts & current holdings
-   - `StepPreferences.tsx` — ethical/ESG/crypto/international
+**Changes:**
+- **New `PendingOrdersTab.tsx`** — Table of open orders with cancel/modify buttons.
+- **`TradeDialog.tsx`** — Add order type selector (Market / Limit / Stop). For limit/stop, show price input field instead of fetching live price. Insert into `sim_pending_orders` instead of `sim_trades`.
+- **New `useOrderExecution.ts` hook** — On each price refresh, check all pending orders against current prices. If limit buy price >= current price (or stop conditions met), execute the order by moving it to `sim_trades` and updating cash balance.
+- **`SimPortfolioDetail.tsx`** — Add "Orders" tab showing pending orders count.
 
-3. **Updated files**:
-   - `EliteOnboardingPage.tsx` — expand `EliteFormData` interface, update STEPS array to 6 steps, update `canAdvance()` logic, add new fields to upsert
-   - `StepRiskProfile.tsx` — add behavioral scenario questions (loss reaction, regret preference, experience level)
-   - `StepExecution.tsx` — add a summary/review section at the bottom showing key selections before submit
+**Files:** New `PendingOrdersTab.tsx`, new `useOrderExecution.ts`, modify `TradeDialog.tsx`, modify `SimPortfolioDetail.tsx`, DB migration
 
-4. **Shared Explainer component**: Extract to a shared file since it's duplicated in every step.
+---
 
-### Files to Create/Modify
+### Phase 3: Symbol Search & Watchlist
 
-| Action | File |
-|--------|------|
-| Create | `src/components/elite-assessment/steps/StepGoals.tsx` |
-| Create | `src/components/elite-assessment/steps/StepExistingPortfolios.tsx` |
-| Create | `src/components/elite-assessment/steps/StepPreferences.tsx` |
-| Create | `src/components/elite-assessment/shared/Explainer.tsx` |
-| Modify | `src/components/elite-assessment/EliteOnboardingPage.tsx` |
-| Modify | `src/components/elite-assessment/steps/StepRiskProfile.tsx` |
-| Modify | `src/components/elite-assessment/steps/StepExecution.tsx` |
-| Modify | `src/components/elite-assessment/steps/StepFinancials.tsx` |
-| Migration | Add new columns to `elite_client_profiles` |
+Replace the raw ticker input with autocomplete search and add a watchlist panel.
+
+**Database migration:**
+- New table `sim_watchlist` — `id, user_id, ticker, added_at`
+
+**Changes:**
+- **`TradeDialog.tsx`** — Replace plain text input with the existing `useTickerSearch` hook for autocomplete dropdown showing symbol + company name + live price.
+- **New `SimWatchlist.tsx`** — Sidebar/panel showing watched symbols with live prices. Click to trade or view chart. Add/remove buttons.
+- **`SimPortfolioDetail.tsx`** — Add watchlist as a collapsible right panel on desktop, or a new tab on mobile.
+
+**Files:** Modify `TradeDialog.tsx`, new `SimWatchlist.tsx`, modify `SimPortfolioDetail.tsx`, DB migration
+
+---
+
+### Phase 4: Advanced Performance Analytics
+
+Upgrade the Performance tab from a simple equity curve to a full analytics dashboard.
+
+**Changes:**
+- **New `PerformanceAnalytics.tsx`** — Replace the standalone `EquityCurve` with a comprehensive component showing:
+  - **Metrics cards:** Win Rate, Total Trades, Avg Win/Avg Loss, Max Drawdown, Sharpe Ratio, Profit Factor
+  - **Equity curve** (keep existing Recharts chart)
+  - **Monthly returns heatmap** — calendar grid colored by monthly P&L
+  - **Win/Loss distribution** — bar chart of trade P&L buckets
+  - **Buy & Hold comparison** — overlay line showing what SPY would have returned over the same period
+- **CSV Export button** — Export full trade history as downloadable CSV.
+- All metrics calculated client-side from `sim_trades` data (no new DB tables needed).
+
+**Files:** New `PerformanceAnalytics.tsx`, modify `SimPortfolioDetail.tsx`
+
+---
+
+### Phase 5: Layout & UX Polish
+
+Upgrade from the current single-column layout to a professional trading workspace.
+
+**Changes:**
+- **`SimPortfolioDetail.tsx`** — Restructure to a 3-panel layout on desktop:
+  - **Left panel:** Order entry (trade dialog inline, not modal), account summary, positions
+  - **Center:** Chart with ticker selector and timeframe controls
+  - **Right:** Watchlist, pending orders, recent trades
+- On mobile/tablet, collapse to tabbed single-column view (current behavior).
+- Add skeleton loaders for chart and position tables.
+- Add keyboard shortcuts: `B` for buy, `S` for sell, `Esc` to cancel.
+
+**Files:** Modify `SimPortfolioDetail.tsx`, new `SimTradingLayout.tsx`
+
+---
+
+### Implementation Order
+
+| Priority | Phase | Effort | Dependencies |
+|----------|-------|--------|-------------|
+| 1 | Phase 1: Charting | Medium | None — uses existing `IntegratedStockChart` |
+| 2 | Phase 3: Symbol Search | Small | None — uses existing `useTickerSearch` |
+| 3 | Phase 2: Limit/Stop Orders | Large | DB migration + new execution logic |
+| 4 | Phase 4: Analytics | Medium | Needs trade history data |
+| 5 | Phase 5: Layout | Large | Benefits from all above being done first |
+
+### What's Intentionally Excluded
+
+- **WebSocket real-time streaming** — Polygon WebSocket requires a paid plan; polling on refresh is sufficient for paper trading.
+- **Leverage settings** — Adds complexity without educational value for the target audience.
+- **Multi-currency support** — USD only; not needed for US stock/options sim trading.
+- **Competitions/leaderboards** — Can be added later as a social feature.
 
