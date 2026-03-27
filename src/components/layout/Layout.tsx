@@ -119,15 +119,13 @@ export function Layout({ children }: LayoutProps) {
     return <>{children}</>;
   }
 
-  // Unauthenticated users see only the landing page
+  // Allow legal/public pages through without layout
   if (!user) {
-    // Allow legal/public pages through without landing redirect
     const publicPaths = ["/terms", "/privacy", "/disclosures", "/landing", "/management-fee", "/sms-consent"];
     const isPublicPath = publicPaths.includes(location.pathname) || location.pathname.startsWith("/academy");
     if (isPublicPath) {
       return <>{children}</>;
     }
-    return <MarketingLandingPage />;
   }
 
   // If user is logged in but email not verified, show verification pending screen
