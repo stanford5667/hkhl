@@ -12,7 +12,7 @@ const OPTIONS_LEVELS = [
 
 const REBAL_FREQ = [
   { value: 'daily', label: 'Daily', description: 'I can review and act on signals every trading day', emoji: '📈' },
-  { value: 'weekly', label: 'Weekly', description: 'I'll check in once per week to rebalance', emoji: '📅' },
+  { value: 'weekly', label: 'Weekly', description: 'Check in once per week to rebalance', emoji: '📅' },
   { value: 'monthly', label: 'Monthly', description: 'I prefer a monthly review and adjustment cadence', emoji: '🗓️' },
 ];
 
