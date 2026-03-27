@@ -438,6 +438,22 @@ export function AdminUsersTab() {
           </ScrollArea>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!eliteProfileDialogUser} onOpenChange={(open) => { if (!open) { setEliteProfileDialogUser(null); setEliteProfileData(null); } }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Elite Profile — {eliteProfileDialogUser?.full_name || eliteProfileDialogUser?.email || 'User'}</DialogTitle>
+            <DialogDescription>Questionnaire responses for this elite client.</DialogDescription>
+          </DialogHeader>
+          {loadingEliteProfile ? (
+            <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+          ) : eliteProfileData ? (
+            <EliteProfileViewer profile={eliteProfileData} />
+          ) : (
+            <p className="text-sm text-muted-foreground py-4 text-center">No elite profile found for this user.</p>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
