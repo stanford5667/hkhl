@@ -174,6 +174,9 @@ export default function ResearchPage() {
           <FeatureShowcaseRow />
         </motion.div>
 
+        {/* Chat Room + Academy Previews */}
+        <ResearchCommunityPreview />
+
         {/* Trending Tickers */}
         <motion.section className="space-y-2 sm:space-y-3" variants={fadeUp}>
           <div className="flex items-center justify-between opacity-80 sm:opacity-100">
@@ -250,9 +253,6 @@ export default function ResearchPage() {
             <EarningsCalendar />
           </div>
         </motion.section>
-
-        {/* Chat Room + Academy Previews */}
-        <ResearchCommunityPreview />
 
         {/* Bottom CTA Banner */}
         <motion.div variants={fadeUp} className="rounded-xl border border-border/40 bg-card/60 backdrop-blur-sm p-6 sm:p-10 text-center space-y-4">
