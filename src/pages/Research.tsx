@@ -251,6 +251,9 @@ export default function ResearchPage() {
           </div>
         </motion.section>
 
+        {/* Chat Room + Academy Previews */}
+        <ResearchCommunityPreview />
+
         {/* Bottom CTA Banner */}
         <motion.div variants={fadeUp} className="rounded-xl border border-border/40 bg-card/60 backdrop-blur-sm p-6 sm:p-10 text-center space-y-4">
           <h2 className="text-lg sm:text-2xl font-mono font-bold text-foreground">Ready to invest smarter?</h2>
