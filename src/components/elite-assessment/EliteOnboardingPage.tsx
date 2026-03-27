@@ -75,7 +75,11 @@ export default function EliteOnboardingPage({ onComplete }: EliteOnboardingPageP
       } as any, { onConflict: 'user_id' });
       if (error) throw error;
       toast.success('Profile saved successfully');
-      navigate('/elite-dashboard');
+      if (onComplete) {
+        onComplete();
+      } else {
+        navigate('/elite-dashboard');
+      }
     } catch (err: any) {
       toast.error(err.message || 'Failed to save profile');
     } finally {
