@@ -12,6 +12,8 @@ import { StepRiskProfile } from './steps/StepRiskProfile';
 import { StepExistingPortfolios } from './steps/StepExistingPortfolios';
 import { StepPreferences } from './steps/StepPreferences';
 import { StepExecution } from './steps/StepExecution';
+import { StepFinancialSituation } from './steps/StepFinancialSituation';
+import { StepKnowledgeCheck } from './steps/StepKnowledgeCheck';
 
 export interface EliteFormData {
   // Step 1 — Financial Profile
@@ -19,29 +21,43 @@ export interface EliteFormData {
   capitalAllocated: number;
   primaryObjective: string;
   isNonUsAccredited: boolean;
-  // Step 2 — Goals
+  // Step 2 — Financial Situation
+  incomeStability: string;
+  emergencyFundMonths: string;
+  annualIncomeRange: string;
+  debtLevel: string;
+  taxSituation: string;
+  liquidityNeeds: string;
+  // Step 3 — Goals
   investmentPurpose: string;
   timeHorizon: string;
   goalPriority: string;
-  // Step 3 — Risk & Personality
+  incomeVsGrowth: string;
+  // Step 4 — Risk & Personality
   maxDrawdown: number;
   marketFears: string[];
   targetReturnRisk: string;
   lossReaction: string;
   regretPreference: string;
   experienceLevel: string;
-  // Step 4 — Existing Portfolios
+  marketCycleReaction: string;
+  investmentStyle: string;
+  // Step 5 — Existing Portfolios
   otherAccounts: string[];
   otherAccountsValue: number;
   currentAssetMix: string;
   hasConcentratedPositions: boolean;
   otherOptionsExperience: string;
-  // Step 5 — Preferences
+  // Step 6 — Preferences
   ethicalExclusions: string[];
   internationalPreference: string;
   volatilityPreference: string;
   cryptoStance: string;
-  // Step 6 — Execution
+  alternativeInterest: string[];
+  // Step 7 — Knowledge Check
+  diversificationUnderstanding: string;
+  rebalancingUnderstanding: string;
+  // Step 8 — Execution
   optionsApproval: string;
   rebalancingFrequency: string;
 }
@@ -51,15 +67,24 @@ const INITIAL_DATA: EliteFormData = {
   capitalAllocated: 100000,
   primaryObjective: '',
   isNonUsAccredited: false,
+  incomeStability: '',
+  emergencyFundMonths: '',
+  annualIncomeRange: '',
+  debtLevel: '',
+  taxSituation: '',
+  liquidityNeeds: '',
   investmentPurpose: '',
   timeHorizon: '',
   goalPriority: '',
+  incomeVsGrowth: '',
   maxDrawdown: 15,
   marketFears: [],
   targetReturnRisk: '',
   lossReaction: '',
   regretPreference: '',
   experienceLevel: '',
+  marketCycleReaction: '',
+  investmentStyle: '',
   otherAccounts: [],
   otherAccountsValue: 0,
   currentAssetMix: '',
@@ -69,11 +94,23 @@ const INITIAL_DATA: EliteFormData = {
   internationalPreference: '',
   volatilityPreference: '',
   cryptoStance: '',
+  alternativeInterest: [],
+  diversificationUnderstanding: '',
+  rebalancingUnderstanding: '',
   optionsApproval: '',
   rebalancingFrequency: '',
 };
 
-const STEPS = ['Financial Profile', 'Goals & Timeline', 'Risk & Personality', 'Existing Portfolios', 'Preferences', 'Execution'];
+const STEPS = [
+  'Financial Profile',
+  'Financial Situation',
+  'Goals & Timeline',
+  'Risk & Personality',
+  'Existing Portfolios',
+  'Preferences',
+  'Knowledge Check',
+  'Execution',
+];
 
 interface EliteOnboardingPageProps {
   onComplete?: () => void;
@@ -91,11 +128,13 @@ export default function EliteOnboardingPage({ onComplete }: EliteOnboardingPageP
 
   const canAdvance = (): boolean => {
     if (step === 0) return !!data.primaryObjective && data.capitalAllocated > 0;
-    if (step === 1) return !!data.investmentPurpose && !!data.timeHorizon && !!data.goalPriority;
-    if (step === 2) return !!data.targetReturnRisk && data.marketFears.length > 0 && !!data.lossReaction && !!data.experienceLevel;
-    if (step === 3) return !!data.currentAssetMix && !!data.otherOptionsExperience;
-    if (step === 4) return !!data.internationalPreference && !!data.volatilityPreference && !!data.cryptoStance;
-    if (step === 5) return !!data.optionsApproval && !!data.rebalancingFrequency;
+    if (step === 1) return !!data.incomeStability && !!data.emergencyFundMonths && !!data.annualIncomeRange;
+    if (step === 2) return !!data.investmentPurpose && !!data.timeHorizon && !!data.goalPriority;
+    if (step === 3) return !!data.targetReturnRisk && data.marketFears.length > 0 && !!data.lossReaction && !!data.experienceLevel;
+    if (step === 4) return !!data.currentAssetMix && !!data.otherOptionsExperience;
+    if (step === 5) return !!data.internationalPreference && !!data.volatilityPreference && !!data.cryptoStance;
+    if (step === 6) return !!data.diversificationUnderstanding && !!data.rebalancingUnderstanding;
+    if (step === 7) return !!data.optionsApproval && !!data.rebalancingFrequency;
     return false;
   };
 
@@ -109,6 +148,12 @@ export default function EliteOnboardingPage({ onComplete }: EliteOnboardingPageP
         capital_allocated: data.capitalAllocated,
         primary_objective: data.primaryObjective,
         is_non_us_accredited: data.isNonUsAccredited,
+        income_stability: data.incomeStability,
+        emergency_fund_months: data.emergencyFundMonths,
+        annual_income_range: data.annualIncomeRange,
+        debt_level: data.debtLevel,
+        tax_situation: data.taxSituation,
+        liquidity_needs: data.liquidityNeeds,
         max_drawdown_tolerance: data.maxDrawdown,
         market_fears: data.marketFears,
         target_return_risk: data.targetReturnRisk,
@@ -117,9 +162,12 @@ export default function EliteOnboardingPage({ onComplete }: EliteOnboardingPageP
         investment_purpose: data.investmentPurpose,
         time_horizon: data.timeHorizon,
         goal_priority: data.goalPriority,
+        income_vs_growth: data.incomeVsGrowth,
         loss_reaction: data.lossReaction,
         regret_preference: data.regretPreference,
         experience_level: data.experienceLevel,
+        market_cycle_reaction: data.marketCycleReaction,
+        investment_style: data.investmentStyle,
         other_accounts: data.otherAccounts,
         other_accounts_value: data.otherAccountsValue,
         current_asset_mix: data.currentAssetMix,
@@ -129,6 +177,9 @@ export default function EliteOnboardingPage({ onComplete }: EliteOnboardingPageP
         international_preference: data.internationalPreference,
         volatility_preference: data.volatilityPreference,
         crypto_stance: data.cryptoStance,
+        alternative_interest: data.alternativeInterest,
+        diversification_understanding: data.diversificationUnderstanding,
+        rebalancing_understanding: data.rebalancingUnderstanding,
       } as any, { onConflict: 'user_id' });
       if (error) throw error;
       toast.success('Profile saved successfully');
@@ -181,11 +232,13 @@ export default function EliteOnboardingPage({ onComplete }: EliteOnboardingPageP
             transition={{ duration: 0.25 }}
           >
             {step === 0 && <StepFinancials data={data} onChange={update} />}
-            {step === 1 && <StepGoals data={data} onChange={update} />}
-            {step === 2 && <StepRiskProfile data={data} onChange={update} />}
-            {step === 3 && <StepExistingPortfolios data={data} onChange={update} />}
-            {step === 4 && <StepPreferences data={data} onChange={update} />}
-            {step === 5 && <StepExecution data={data} onChange={update} />}
+            {step === 1 && <StepFinancialSituation data={data} onChange={update} />}
+            {step === 2 && <StepGoals data={data} onChange={update} />}
+            {step === 3 && <StepRiskProfile data={data} onChange={update} />}
+            {step === 4 && <StepExistingPortfolios data={data} onChange={update} />}
+            {step === 5 && <StepPreferences data={data} onChange={update} />}
+            {step === 6 && <StepKnowledgeCheck data={data} onChange={update} />}
+            {step === 7 && <StepExecution data={data} onChange={update} />}
           </motion.div>
         </AnimatePresence>
       </div>
