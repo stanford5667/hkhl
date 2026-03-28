@@ -2258,20 +2258,30 @@ export type Database = {
       }
       elite_client_profiles: {
         Row: {
+          alternative_interest: string[] | null
+          annual_income_range: string | null
           capital_allocated: number
           created_at: string
           crypto_stance: string | null
           current_asset_mix: string | null
+          debt_level: string | null
+          diversification_understanding: string | null
+          emergency_fund_months: string | null
           ethical_exclusions: string[] | null
           experience_level: string | null
           goal_priority: string | null
           has_concentrated_positions: boolean | null
           id: string
+          income_stability: string | null
+          income_vs_growth: string | null
           international_preference: string | null
           investment_purpose: string | null
+          investment_style: string | null
           is_non_us_accredited: boolean
           liquid_net_worth: number
+          liquidity_needs: string | null
           loss_reaction: string | null
+          market_cycle_reaction: string | null
           market_fears: string[]
           max_drawdown_tolerance: number
           options_approval: string
@@ -2280,28 +2290,40 @@ export type Database = {
           other_options_experience: string | null
           primary_objective: string
           rebalancing_frequency: string
+          rebalancing_understanding: string | null
           regret_preference: string | null
           target_return_risk: string
+          tax_situation: string | null
           time_horizon: string | null
           updated_at: string
           user_id: string
           volatility_preference: string | null
         }
         Insert: {
+          alternative_interest?: string[] | null
+          annual_income_range?: string | null
           capital_allocated: number
           created_at?: string
           crypto_stance?: string | null
           current_asset_mix?: string | null
+          debt_level?: string | null
+          diversification_understanding?: string | null
+          emergency_fund_months?: string | null
           ethical_exclusions?: string[] | null
           experience_level?: string | null
           goal_priority?: string | null
           has_concentrated_positions?: boolean | null
           id?: string
+          income_stability?: string | null
+          income_vs_growth?: string | null
           international_preference?: string | null
           investment_purpose?: string | null
+          investment_style?: string | null
           is_non_us_accredited?: boolean
           liquid_net_worth: number
+          liquidity_needs?: string | null
           loss_reaction?: string | null
+          market_cycle_reaction?: string | null
           market_fears?: string[]
           max_drawdown_tolerance?: number
           options_approval?: string
@@ -2310,28 +2332,40 @@ export type Database = {
           other_options_experience?: string | null
           primary_objective: string
           rebalancing_frequency?: string
+          rebalancing_understanding?: string | null
           regret_preference?: string | null
           target_return_risk: string
+          tax_situation?: string | null
           time_horizon?: string | null
           updated_at?: string
           user_id: string
           volatility_preference?: string | null
         }
         Update: {
+          alternative_interest?: string[] | null
+          annual_income_range?: string | null
           capital_allocated?: number
           created_at?: string
           crypto_stance?: string | null
           current_asset_mix?: string | null
+          debt_level?: string | null
+          diversification_understanding?: string | null
+          emergency_fund_months?: string | null
           ethical_exclusions?: string[] | null
           experience_level?: string | null
           goal_priority?: string | null
           has_concentrated_positions?: boolean | null
           id?: string
+          income_stability?: string | null
+          income_vs_growth?: string | null
           international_preference?: string | null
           investment_purpose?: string | null
+          investment_style?: string | null
           is_non_us_accredited?: boolean
           liquid_net_worth?: number
+          liquidity_needs?: string | null
           loss_reaction?: string | null
+          market_cycle_reaction?: string | null
           market_fears?: string[]
           max_drawdown_tolerance?: number
           options_approval?: string
@@ -2340,8 +2374,10 @@ export type Database = {
           other_options_experience?: string | null
           primary_objective?: string
           rebalancing_frequency?: string
+          rebalancing_understanding?: string | null
           regret_preference?: string | null
           target_return_risk?: string
+          tax_situation?: string | null
           time_horizon?: string | null
           updated_at?: string
           user_id?: string
