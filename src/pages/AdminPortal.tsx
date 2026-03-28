@@ -71,6 +71,10 @@ export default function AdminPortal() {
             <LinkIcon className="h-4 w-4" />
             <span className="hidden sm:inline">Affiliates</span>
           </TabsTrigger>
+          <TabsTrigger value="questionnaires" className="flex items-center gap-2">
+            <ClipboardList className="h-4 w-4" />
+            <span className="hidden sm:inline">Surveys</span>
+          </TabsTrigger>
           <TabsTrigger value="content" className="flex items-center gap-2">
             <Database className="h-4 w-4" />
             <span className="hidden sm:inline">Content</span>
