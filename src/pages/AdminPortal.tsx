@@ -108,7 +108,6 @@ export default function AdminPortal() {
         <TabsContent value="questionnaires" className="mt-6">
           <AdminQuestionnairesTab />
         </TabsContent>
-        </TabsContent>
 
         <TabsContent value="content" className="mt-6">
           <AdminContentTab />
