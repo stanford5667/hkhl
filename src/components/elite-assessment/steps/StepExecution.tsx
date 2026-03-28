@@ -78,26 +78,18 @@ export function StepExecution({ data, onChange }: Props) {
       <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-3">
         <h3 className="font-semibold text-foreground">Profile Summary</h3>
         <div className="grid grid-cols-2 gap-3 text-sm">
-          {data.primaryObjective && (
-            <SummaryItem label="Objective" value={data.primaryObjective.replace(/_/g, ' ')} />
-          )}
-          {data.investmentPurpose && (
-            <SummaryItem label="Purpose" value={data.investmentPurpose.replace(/_/g, ' ')} />
-          )}
-          {data.timeHorizon && (
-            <SummaryItem label="Time Horizon" value={data.timeHorizon.replace(/_/g, ' ')} />
-          )}
-          {data.targetReturnRisk && (
-            <SummaryItem label="Risk Profile" value={data.targetReturnRisk.replace(/_/g, '/')} />
-          )}
+          {data.primaryObjective && <SummaryItem label="Objective" value={data.primaryObjective.replace(/_/g, ' ')} />}
+          {data.investmentPurpose && <SummaryItem label="Purpose" value={data.investmentPurpose.replace(/_/g, ' ')} />}
+          {data.timeHorizon && <SummaryItem label="Time Horizon" value={data.timeHorizon.replace(/_/g, ' ')} />}
+          {data.targetReturnRisk && <SummaryItem label="Risk Profile" value={data.targetReturnRisk.replace(/_/g, '/')} />}
           <SummaryItem label="Max Drawdown" value={`${data.maxDrawdown}%`} />
           <SummaryItem label="Capital" value={`$${data.capitalAllocated.toLocaleString()}`} />
-          {data.experienceLevel && (
-            <SummaryItem label="Experience" value={data.experienceLevel} />
-          )}
-          {data.cryptoStance && (
-            <SummaryItem label="Crypto" value={data.cryptoStance.replace(/_/g, ' ')} />
-          )}
+          {data.experienceLevel && <SummaryItem label="Experience" value={data.experienceLevel} />}
+          {data.incomeStability && <SummaryItem label="Income" value={data.incomeStability.replace(/_/g, ' ')} />}
+          {data.incomeVsGrowth && <SummaryItem label="Income vs Growth" value={data.incomeVsGrowth.replace(/_/g, ' ')} />}
+          {data.investmentStyle && <SummaryItem label="Style" value={data.investmentStyle.replace(/_/g, ' ')} />}
+          {data.cryptoStance && <SummaryItem label="Crypto" value={data.cryptoStance.replace(/_/g, ' ')} />}
+          {data.annualIncomeRange && <SummaryItem label="Annual Income" value={data.annualIncomeRange.replace(/_/g, ' ')} />}
         </div>
       </div>
     </div>
