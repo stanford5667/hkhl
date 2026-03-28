@@ -1,0 +1,1 @@
+UPDATE public.affiliates SET discount_percent = 20 WHERE affiliate_code = 'STANFORD';

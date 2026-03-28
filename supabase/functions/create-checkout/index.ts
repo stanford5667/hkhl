@@ -197,8 +197,8 @@ serve(async (req) => {
       logStep("Free trial enabled", { days: 7 });
     }
 
-    // Look up affiliate and ensure valid promo code
-    if (affiliateCode) {
+    // Look up affiliate and ensure valid promo code (affiliate codes only work with annual billing)
+    if (affiliateCode && billingInterval === 'annual') {
       try {
         const { data: affiliateData } = await supabaseAdmin
           .from("affiliates")
