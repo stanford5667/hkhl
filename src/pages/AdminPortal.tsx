@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Shield, Users, Database, Settings, BarChart3, Loader2, Zap, GraduationCap, LinkIcon } from 'lucide-react';
+import { Shield, Users, Database, Settings, BarChart3, Loader2, Zap, GraduationCap, LinkIcon, ClipboardList } from 'lucide-react';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useAuth } from '@/contexts/AuthContext';
 import { AdminUsersTab } from '@/components/admin/AdminUsersTab';
@@ -12,6 +12,7 @@ import { AdminAnalyticsTab } from '@/components/admin/AdminAnalyticsTab';
 import { AdminApiUsageTab } from '@/components/admin/AdminApiUsageTab';
 import { AdminCoursesTab } from '@/components/admin/AdminCoursesTab';
 import { AdminAffiliatesTab } from '@/components/admin/AdminAffiliatesTab';
+import { AdminQuestionnairesTab } from '@/components/admin/AdminQuestionnairesTab';
 
 export default function AdminPortal() {
   const { user, loading: authLoading } = useAuth();
