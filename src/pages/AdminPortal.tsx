@@ -105,6 +105,11 @@ export default function AdminPortal() {
           <AdminAffiliatesTab />
         </TabsContent>
 
+        <TabsContent value="questionnaires" className="mt-6">
+          <AdminQuestionnairesTab />
+        </TabsContent>
+        </TabsContent>
+
         <TabsContent value="content" className="mt-6">
           <AdminContentTab />
         </TabsContent>
