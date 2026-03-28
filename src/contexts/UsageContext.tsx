@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useEliteAccess } from '@/hooks/useEliteAccess';
 
 interface UsageLimits {
   aiAnalyses: { used: number; limit: number };
@@ -43,12 +44,14 @@ interface UsageProviderProps {
 
 export function UsageProvider({ children, onUpgradeRequest }: UsageProviderProps) {
   const { user } = useAuth();
+  const { isElite } = useEliteAccess();
   const [usage, setUsage] = useState<UsageLimits>(FREE_LIMITS);
   const [plan, setPlan] = useState<SubscriptionPlan>('free');
   const [isLoading, setIsLoading] = useState(true);
 
-  const isPro = plan === 'pro' || plan === 'research_education';
-  const isResearchTier = plan === 'research_education';
+  // Elite users get full pro access plus their additional elite features
+  const isPro = plan === 'pro' || plan === 'research_education' || isElite;
+  const isResearchTier = plan === 'research_education' || isElite;
 
   const fetchUsage = useCallback(async () => {
     if (!user) {
