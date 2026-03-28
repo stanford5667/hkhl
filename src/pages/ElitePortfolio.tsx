@@ -43,8 +43,8 @@ export default function ElitePortfolio() {
   }
 
   return (
-    <>
-      <div className="absolute top-4 right-4 z-20 flex gap-2">
+    <div className="relative">
+      <div className="flex items-center justify-end gap-2 px-4 pt-4 pb-2">
         <Button variant="outline" size="sm" onClick={() => setShowProfile(true)}>
           <ClipboardList className="h-4 w-4 mr-2" /> View Profile
         </Button>
@@ -63,6 +63,6 @@ export default function ElitePortfolio() {
           {profileData && <EliteProfileViewer profile={profileData} />}
         </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }
