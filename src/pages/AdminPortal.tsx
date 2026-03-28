@@ -52,13 +52,13 @@ export default function AdminPortal() {
         </div>
         <div>
           <h1 className="text-2xl font-bold text-foreground">Admin Portal</h1>
-          <p className="text-muted-foreground">Manage users, content, courses, affiliates, and view analytics</p>
+          <p className="text-muted-foreground">Manage users, content, courses, affiliates, questionnaires, and view analytics</p>
         </div>
       </div>
 
       {/* Main Tabs */}
       <Tabs defaultValue="courses" className="w-full">
-        <TabsList className="grid w-full grid-cols-7 bg-muted/50">
+        <TabsList className="grid w-full grid-cols-8 bg-muted/50">
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
             <span className="hidden sm:inline">Users</span>
