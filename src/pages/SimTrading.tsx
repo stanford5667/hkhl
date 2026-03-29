@@ -212,6 +212,11 @@ export default function SimTrading() {
                   <p className="text-xs text-muted-foreground">
                     {format(new Date(p.created_at), 'MMM d, yyyy')} • {daysActive} day{daysActive !== 1 ? 's' : ''} active
                   </p>
+                  {p.strategy_name && (
+                    <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary mt-1">
+                      🔗 {p.strategy_name} {p.linked_ticker && `on ${p.linked_ticker}`}
+                    </span>
+                  )}
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex items-center justify-between">
