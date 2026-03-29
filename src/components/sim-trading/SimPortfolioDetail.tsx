@@ -37,6 +37,10 @@ interface SimPortfolio {
   cash_balance: number;
   status: string;
   created_at: string;
+  strategy_name?: string | null;
+  strategy_config?: any;
+  backtest_results?: any;
+  linked_ticker?: string | null;
 }
 
 export interface SimTrade {
