@@ -77,7 +77,9 @@ export function BacktestComparisonOverlay({
         date: snap.date,
         backtestValue: Math.round(snap.value * normalizationFactor * 100) / 100,
       }));
-  }, [backtestResults.portfolioHistory, simInitialCapital]);
+  }, [backtestResults?.portfolioHistory, simInitialCapital]);
+
+  if (!backtestResults || !strategyName) return null;
 
   return (
     <Card className="border-primary/20">
