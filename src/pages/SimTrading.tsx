@@ -20,6 +20,8 @@ interface SimPortfolio {
   status: string;
   created_at: string;
   closed_at: string | null;
+  strategy_name?: string | null;
+  linked_ticker?: string | null;
 }
 
 export default function SimTrading() {
