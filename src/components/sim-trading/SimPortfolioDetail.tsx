@@ -390,10 +390,31 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
             onTickerChange={setChartTicker}
           />
         </div>
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1 space-y-4">
           <SimWatchlist onSelectTicker={(t) => setChartTicker(t)} />
+          {/* Strategy comparison overlay for linked portfolios */}
+          <BacktestComparisonOverlay
+            backtestResults={portfolio.backtest_results}
+            strategyName={portfolio.strategy_name || null}
+            simStartDate={portfolio.created_at}
+            simInitialCapital={portfolio.initial_capital}
+            simCurrentValue={totalPortfolioValue}
+          />
         </div>
       </div>
+
+      {/* Strategy signal badge in header area */}
+      {portfolio.strategy_name && (
+        <div className="flex items-center gap-2 px-1">
+          <StrategySignalBadge
+            strategyName={portfolio.strategy_name}
+            signal="hold"
+          />
+          <span className="text-xs text-muted-foreground">
+            Linked to backtest: {portfolio.strategy_name} on {portfolio.linked_ticker}
+          </span>
+        </div>
+      )}
 
       <Tabs defaultValue="positions">
         <TabsList>
@@ -403,6 +424,7 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
           </TabsTrigger>
           <TabsTrigger value="history">History ({trades.length})</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
+          <TabsTrigger value="backtest">Backtest</TabsTrigger>
         </TabsList>
         <TabsContent value="positions">
           <PositionsTable positions={positions} onClose={handleClosePosition} onRowClick={handlePositionClick} />
@@ -415,6 +437,13 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
         </TabsContent>
         <TabsContent value="performance">
           <PerformanceAnalytics portfolioId={portfolioId} initialCapital={portfolio.initial_capital} trades={trades} />
+        </TabsContent>
+        <TabsContent value="backtest">
+          <SimBacktestTab
+            heldTickers={positions.map(p => p.ticker.toUpperCase())}
+            activeTicker={chartTicker}
+            portfolioName={portfolio.name}
+          />
         </TabsContent>
       </Tabs>
     </div>
