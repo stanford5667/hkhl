@@ -61,6 +61,7 @@ import { format, differenceInDays } from 'date-fns';
 import { parseDateOnly } from '@/lib/date';
 import { HealthScore } from '@/components/ui/HealthScore';
 import { TradeExport } from './TradeExport';
+import { ForwardTestButton } from './ForwardTestButton';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -639,12 +640,11 @@ export function BacktestResultsDashboard({ result, compact = false }: BacktestRe
                 </div>
               )}
             </div>
-            <div className="text-right">
-              <div className="flex items-center gap-3">
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Strategy Health</p>
-                  <HealthScore score={healthScore} size="lg" showLabel />
-                </div>
+            <div className="text-right flex items-center gap-3">
+              <ForwardTestButton result={result} />
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Strategy Health</p>
+                <HealthScore score={healthScore} size="lg" showLabel />
               </div>
             </div>
           </div>

@@ -4928,33 +4928,45 @@ export type Database = {
       }
       sim_portfolios: {
         Row: {
+          backtest_results: Json | null
           cash_balance: number
           closed_at: string | null
           created_at: string
           id: string
           initial_capital: number
+          linked_ticker: string | null
           name: string
           status: string
+          strategy_config: Json | null
+          strategy_name: string | null
           user_id: string
         }
         Insert: {
+          backtest_results?: Json | null
           cash_balance?: number
           closed_at?: string | null
           created_at?: string
           id?: string
           initial_capital?: number
+          linked_ticker?: string | null
           name: string
           status?: string
+          strategy_config?: Json | null
+          strategy_name?: string | null
           user_id: string
         }
         Update: {
+          backtest_results?: Json | null
           cash_balance?: number
           closed_at?: string | null
           created_at?: string
           id?: string
           initial_capital?: number
+          linked_ticker?: string | null
           name?: string
           status?: string
+          strategy_config?: Json | null
+          strategy_name?: string | null
           user_id?: string
         }
         Relationships: []
