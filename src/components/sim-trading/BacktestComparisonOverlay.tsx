@@ -53,21 +53,18 @@ export function BacktestComparisonOverlay({
   simInitialCapital,
   simCurrentValue,
 }: BacktestComparisonOverlayProps) {
-  if (!backtestResults || !strategyName) return null;
-
   const simReturn = simInitialCapital > 0
     ? ((simCurrentValue - simInitialCapital) / simInitialCapital) * 100
     : 0;
-  const backtestReturn = backtestResults.totalReturn;
+  const backtestReturn = backtestResults?.totalReturn ?? 0;
   const delta = simReturn - backtestReturn;
   const isOutperforming = delta >= 0;
 
   // Build comparison chart data from backtest equity curve
   const chartData = useMemo(() => {
-    if (!backtestResults.portfolioHistory?.length) return [];
-
+    if (!backtestResults?.portfolioHistory?.length) return [];
     // Normalize backtest curve to start at simInitialCapital
-    const btHistory = backtestResults.portfolioHistory;
+    const btHistory = backtestResults.portfolioHistory!;
     const btStartValue = btHistory[0]?.value || 1;
     const normalizationFactor = simInitialCapital / btStartValue;
 
