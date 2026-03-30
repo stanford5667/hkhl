@@ -104,6 +104,11 @@ function NotesTab() {
   const [newTicker, setNewTicker] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
+  const [viewingNote, setViewingNote] = useState<ResearchNote | null>(null);
+  const [shareNote, setShareNote] = useState<ResearchNote | null>(null);
+  const [chatRooms, setChatRooms] = useState<any[]>([]);
+  const [selectedRoom, setSelectedRoom] = useState('');
+  const [sharing, setSharing] = useState(false);
 
   const handleCreate = () => {
     if (!newTitle.trim()) return;
@@ -118,6 +123,40 @@ function NotesTab() {
   const handleSaveEdit = (id: string) => {
     updateNote.mutate({ id, content: editContent });
     setEditingId(null);
+  };
+
+  const handleOpenShare = async (note: ResearchNote) => {
+    setShareNote(note);
+    const { data } = await supabase
+      .from('chat_rooms')
+      .select('id, name, icon')
+      .order('member_count', { ascending: false });
+    setChatRooms(data || []);
+  };
+
+  const handleShareToChat = async () => {
+    if (!shareNote || !selectedRoom) return;
+    setSharing(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+      
+      const formatted = `📝 **Shared Note: ${shareNote.title}**${shareNote.ticker ? ` ($${shareNote.ticker})` : ''}\n\n${shareNote.content}`;
+      
+      const { error } = await supabase.from('chat_messages').insert({
+        room_id: selectedRoom,
+        user_id: user.id,
+        content: formatted,
+      });
+      if (error) throw error;
+      toast.success('Note shared to chat!');
+      setShareNote(null);
+      setSelectedRoom('');
+    } catch (err: any) {
+      toast.error('Failed to share: ' + err.message);
+    } finally {
+      setSharing(false);
+    }
   };
 
   if (isLoading) return <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-20 bg-muted/30 rounded-lg animate-pulse" />)}</div>;
@@ -145,7 +184,7 @@ function NotesTab() {
       {!notes.length && !showNew && <EmptyState icon={<StickyNote />} text="No research notes yet" sub="Jot down trade ideas, thesis notes, or analysis reminders." />}
 
       {notes.map(note => (
-        <Card key={note.id} className="group hover:border-primary/20 transition-colors">
+        <Card key={note.id} className="group hover:border-primary/20 transition-colors cursor-pointer" onClick={() => setViewingNote(note)}>
           <CardContent className="p-4">
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
@@ -154,21 +193,12 @@ function NotesTab() {
                   <h3 className="font-semibold text-sm truncate">{note.title}</h3>
                   {note.ticker && <Badge variant="secondary" className="text-[10px]">{note.ticker}</Badge>}
                 </div>
-                {editingId === note.id ? (
-                  <div className="mt-2 space-y-2">
-                    <Textarea value={editContent} onChange={e => setEditContent(e.target.value)} rows={4} />
-                    <div className="flex gap-2">
-                      <Button size="sm" onClick={() => handleSaveEdit(note.id)}>Save</Button>
-                      <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>Cancel</Button>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap line-clamp-4">{note.content || 'No content'}</p>
-                )}
+                <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap line-clamp-3">{note.content || 'No content'}</p>
                 <span className="text-[10px] text-muted-foreground mt-2 block">{format(new Date(note.updated_at), 'MMM d, yyyy h:mm a')}</span>
               </div>
-              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditingId(note.id); setEditContent(note.content); }}><Pencil className="h-3 w-3" /></Button>
+              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditingId(note.id); setEditContent(note.content); setViewingNote(note); }}><Pencil className="h-3 w-3" /></Button>
+                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleOpenShare(note)}><MessageSquare className="h-3 w-3" /></Button>
                 <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => updateNote.mutate({ id: note.id, is_pinned: !note.is_pinned })}>
                   {note.is_pinned ? <PinOff className="h-3 w-3" /> : <Pin className="h-3 w-3" />}
                 </Button>
@@ -178,6 +208,81 @@ function NotesTab() {
           </CardContent>
         </Card>
       ))}
+
+      {/* Full Note View Dialog */}
+      <Dialog open={!!viewingNote} onOpenChange={(open) => { if (!open) { setViewingNote(null); setEditingId(null); } }}>
+        <DialogContent className="max-w-lg max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <div className="flex items-center gap-2">
+              {viewingNote?.is_pinned && <Pin className="h-4 w-4 text-primary" />}
+              <DialogTitle className="text-lg">{viewingNote?.title}</DialogTitle>
+              {viewingNote?.ticker && <Badge variant="secondary">{viewingNote.ticker}</Badge>}
+            </div>
+            {viewingNote && (
+              <span className="text-xs text-muted-foreground">{format(new Date(viewingNote.updated_at), 'MMM d, yyyy h:mm a')}</span>
+            )}
+          </DialogHeader>
+          <ScrollArea className="flex-1 min-h-0">
+            {editingId === viewingNote?.id ? (
+              <div className="space-y-3 pr-4">
+                <Textarea
+                  value={editContent}
+                  onChange={e => setEditContent(e.target.value)}
+                  rows={12}
+                  className="min-h-[200px]"
+                />
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => { handleSaveEdit(viewingNote!.id); setViewingNote({ ...viewingNote!, content: editContent }); }}>Save</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>Cancel</Button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm whitespace-pre-wrap leading-relaxed pr-4">{viewingNote?.content || 'No content'}</p>
+            )}
+          </ScrollArea>
+          <div className="flex gap-2 pt-3 border-t">
+            {editingId !== viewingNote?.id && (
+              <Button size="sm" variant="outline" onClick={() => { if (viewingNote) { setEditingId(viewingNote.id); setEditContent(viewingNote.content); } }}>
+                <Pencil className="h-3 w-3 mr-1" /> Edit
+              </Button>
+            )}
+            <Button size="sm" variant="outline" onClick={() => { if (viewingNote) handleOpenShare(viewingNote); }}>
+              <MessageSquare className="h-3 w-3 mr-1" /> Share to Chat
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => { if (viewingNote) { navigator.clipboard.writeText(viewingNote.content); toast.success('Copied to clipboard'); } }}>
+              <Copy className="h-3 w-3 mr-1" /> Copy
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Share to Chat Dialog */}
+      <Dialog open={!!shareNote} onOpenChange={(open) => { if (!open) setShareNote(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Share Note to Chat</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">Select a chat room to share "{shareNote?.title}" to:</p>
+          <Select value={selectedRoom} onValueChange={setSelectedRoom}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select a room..." />
+            </SelectTrigger>
+            <SelectContent>
+              {chatRooms.map(room => (
+                <SelectItem key={room.id} value={room.id}>
+                  {room.icon} {room.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setShareNote(null)}>Cancel</Button>
+            <Button size="sm" disabled={!selectedRoom || sharing} onClick={handleShareToChat}>
+              <Send className="h-3 w-3 mr-1" /> {sharing ? 'Sharing...' : 'Share'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
