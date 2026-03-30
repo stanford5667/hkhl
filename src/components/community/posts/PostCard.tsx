@@ -2,13 +2,11 @@ import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ResearchPost } from '@/types/community';
 import { formatDistanceToNow } from 'date-fns';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { VoteButtons } from './VoteButtons';
-import { TickerBadge } from '@/components/ui/TickerBadge';
-import { MessageSquare, Share2, Bookmark } from 'lucide-react';
+import { MessageSquare, Share2, Bookmark, ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface PostCardProps {
@@ -18,6 +16,21 @@ interface PostCardProps {
   compact?: boolean;
 }
 
+// Gradient placeholders for posts without thumbnails
+const gradients = [
+  'from-blue-600/80 to-cyan-500/80',
+  'from-purple-600/80 to-pink-500/80',
+  'from-emerald-600/80 to-teal-500/80',
+  'from-orange-600/80 to-amber-500/80',
+  'from-rose-600/80 to-red-500/80',
+  'from-indigo-600/80 to-violet-500/80',
+];
+
+function getGradient(id: string) {
+  const idx = id.charCodeAt(0) % gradients.length;
+  return gradients[idx];
+}
+
 export function PostCard({ post, onVote, onTickerClick, compact = false }: PostCardProps) {
   const navigate = useNavigate();
 
@@ -25,12 +38,11 @@ export function PostCard({ post, onVote, onTickerClick, compact = false }: PostC
   const initials = displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   const score = post.upvotes - post.downvotes;
 
-  // Truncate content for preview
   const previewContent = useMemo(() => {
-    const maxLength = compact ? 100 : 200;
+    const maxLength = 120;
     if (post.content.length <= maxLength) return post.content;
     return post.content.slice(0, maxLength).trim() + '...';
-  }, [post.content, compact]);
+  }, [post.content]);
 
   const handleClick = () => {
     navigate(`/community/posts/${post.id}`);
@@ -38,111 +50,108 @@ export function PostCard({ post, onVote, onTickerClick, compact = false }: PostC
 
   const handleTickerClick = (ticker: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (onTickerClick) {
-      onTickerClick(ticker);
-    }
+    onTickerClick?.(ticker);
   };
 
   return (
-    <Card 
+    <div
       className={cn(
-        "cursor-pointer hover:border-primary/50 transition-colors",
-        compact && "py-2"
+        "group relative rounded-xl border border-border/50 bg-card overflow-hidden cursor-pointer",
+        "transition-all duration-300 ease-out",
+        "hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 hover:scale-[1.02]",
+        "backdrop-blur-sm"
       )}
       onClick={handleClick}
     >
-      <div className="flex">
-        {/* Vote sidebar */}
-        <div 
-          className="flex flex-col items-center py-4 px-2 border-r"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <VoteButtons
-            score={score}
-            userVote={(post.user_vote as 1 | -1) || null}
-            onVote={(voteType) => onVote(post.id, voteType)}
-            vertical
+      {/* Thumbnail */}
+      <div className="relative aspect-[16/9] overflow-hidden">
+        {post.thumbnail_url ? (
+          <img
+            src={post.thumbnail_url}
+            alt={post.title}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            loading="lazy"
           />
-        </div>
+        ) : (
+          <div className={cn(
+            "w-full h-full bg-gradient-to-br flex items-center justify-center",
+            getGradient(post.id)
+          )}>
+            <ImageIcon className="h-10 w-10 text-white/40" />
+          </div>
+        )}
+        {/* Overlay gradient */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
-        {/* Main content */}
-        <div className="flex-1 min-w-0">
-          <CardHeader className={cn("pb-2", compact && "py-2")}>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Avatar className="h-6 w-6">
-                <AvatarFallback className="text-[10px] bg-primary/20 text-primary">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-              <span className="font-medium text-foreground">{displayName}</span>
-              <span>•</span>
-              <span>{formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}</span>
-            </div>
-            <h3 className={cn(
-              "font-semibold leading-tight",
-              compact ? "text-base" : "text-lg"
-            )}>
-              {post.title}
-            </h3>
-          </CardHeader>
-
-          <CardContent className={cn("pb-3", compact && "py-1")}>
-            <p className="text-sm text-muted-foreground line-clamp-3">
-              {previewContent}
-            </p>
-
-            {/* Ticker tags */}
-            {post.detected_tickers.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-2">
-                {post.detected_tickers.slice(0, 5).map((ticker) => (
-                  <Badge
-                    key={ticker}
-                    variant="secondary"
-                    className="cursor-pointer hover:bg-secondary/80 text-xs"
-                    onClick={(e) => handleTickerClick(ticker, e)}
-                  >
-                    ${ticker}
-                  </Badge>
-                ))}
-                {post.detected_tickers.length > 5 && (
-                  <Badge variant="outline" className="text-xs">
-                    +{post.detected_tickers.length - 5} more
-                  </Badge>
-                )}
-              </div>
+        {/* Ticker badges on thumbnail */}
+        {post.detected_tickers.length > 0 && (
+          <div className="absolute top-2 right-2 flex flex-wrap gap-1 justify-end max-w-[70%]">
+            {post.detected_tickers.slice(0, 3).map((ticker) => (
+              <Badge
+                key={ticker}
+                className="bg-black/60 backdrop-blur-sm text-white border-0 text-[10px] px-1.5 py-0.5 hover:bg-primary/80 cursor-pointer"
+                onClick={(e) => handleTickerClick(ticker, e)}
+              >
+                ${ticker}
+              </Badge>
+            ))}
+            {post.detected_tickers.length > 3 && (
+              <Badge className="bg-black/60 backdrop-blur-sm text-white/70 border-0 text-[10px] px-1.5 py-0.5">
+                +{post.detected_tickers.length - 3}
+              </Badge>
             )}
+          </div>
+        )}
 
-            {/* Actions */}
-            <div className="flex items-center gap-4 mt-3" onClick={(e) => e.stopPropagation()}>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-1.5 text-muted-foreground h-8"
-                onClick={handleClick}
-              >
-                <MessageSquare className="h-4 w-4" />
-                <span>{post.comment_count}</span>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-1.5 text-muted-foreground h-8"
-              >
-                <Share2 className="h-4 w-4" />
-                <span className="hidden sm:inline">Share</span>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-1.5 text-muted-foreground h-8"
-              >
-                <Bookmark className="h-4 w-4" />
-                <span className="hidden sm:inline">Save</span>
-              </Button>
-            </div>
-          </CardContent>
+        {/* Score overlay */}
+        <div className="absolute bottom-2 left-2" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-1 bg-black/60 backdrop-blur-sm rounded-full px-2 py-1">
+            <VoteButtons
+              score={score}
+              userVote={(post.user_vote as 1 | -1) || null}
+              onVote={(voteType) => onVote(post.id, voteType)}
+              size="sm"
+            />
+          </div>
         </div>
       </div>
-    </Card>
+
+      {/* Content */}
+      <div className="p-4 space-y-2">
+        <h3 className="font-semibold text-sm leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+          {post.title}
+        </h3>
+
+        <p className="text-xs text-muted-foreground line-clamp-2">
+          {previewContent}
+        </p>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between pt-2 border-t border-border/30">
+          <div className="flex items-center gap-2 min-w-0">
+            <Avatar className="h-5 w-5 shrink-0">
+              <AvatarFallback className="text-[8px] bg-primary/20 text-primary">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-xs text-muted-foreground truncate">{displayName}</span>
+            <span className="text-xs text-muted-foreground/50">·</span>
+            <span className="text-xs text-muted-foreground/70 shrink-0">
+              {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground">
+              <MessageSquare className="h-3 w-3" />
+            </Button>
+            <span className="text-[10px] text-muted-foreground -ml-1">{post.comment_count}</span>
+            <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground">
+              <Bookmark className="h-3 w-3" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
