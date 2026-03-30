@@ -137,7 +137,7 @@ export function CommunityHub({ defaultTab = 'chat', initialRoomId }: CommunityHu
             variant={activeTab === 'posts' ? 'default' : 'ghost'}
             size="sm"
             className="gap-2"
-            onClick={() => setActiveTab('posts')}
+            onClick={() => { setActiveTab('posts'); navigate('/community/posts', { replace: true }); }}
           >
             <FileText className="h-4 w-4" />
             <span className="hidden sm:inline">Research</span>
