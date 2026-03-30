@@ -194,6 +194,41 @@ export function MarketThemesSection() {
     navigate(`/stock/${symbol}`);
   };
 
+  const fetchSavedAnalyses = async () => {
+    setLoadingSaved(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from('saved_theme_analyses')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      setSavedAnalyses(data || []);
+    } catch { /* ignore */ }
+    finally { setLoadingSaved(false); }
+  };
+
+  const handleOpenSaved = () => {
+    setShowSaved(true);
+    fetchSavedAnalyses();
+  };
+
+  const handleDeleteSaved = async (id: string) => {
+    await supabase.from('saved_theme_analyses').delete().eq('id', id);
+    setSavedAnalyses(prev => prev.filter(a => a.id !== id));
+    toast.success('Analysis deleted');
+  };
+
+  const handleCopyShareLink = async (analysis: any) => {
+    if (!analysis.is_public) {
+      await supabase.from('saved_theme_analyses').update({ is_public: true }).eq('id', analysis.id);
+    }
+    const url = `${window.location.origin}/shared/theme/${analysis.share_id}`;
+    navigator.clipboard.writeText(url);
+    toast.success('Share link copied!');
+  };
+
   // Shuffled pool of themes
   const allShuffled = useMemo(() => [...sourceThemes].sort(() => Math.random() - 0.5), [sourceThemes]);
   const [visibleCount, setVisibleCount] = useState(8);
