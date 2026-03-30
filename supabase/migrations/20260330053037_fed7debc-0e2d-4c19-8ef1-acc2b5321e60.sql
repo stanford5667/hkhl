@@ -1,0 +1,1 @@
+CREATE POLICY "Users can update own snapshots" ON public.sim_snapshots FOR UPDATE TO authenticated USING (EXISTS (SELECT 1 FROM sim_portfolios WHERE sim_portfolios.id = sim_snapshots.portfolio_id AND sim_portfolios.user_id = auth.uid()));
