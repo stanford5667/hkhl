@@ -61,6 +61,7 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
   const { pinnedMessages, pinMessage, unpinMessage, isMessagePinned } = usePinnedMessages(room.id);
   const { markRoomAsRead } = useUnreadMessages();
   const { fetchRooms, startLivestream, stopLivestream } = useChatRooms();
+  const { recordings, loading: recordingsLoading, saveRecording, deleteRecording } = useStreamRecordings(room.id);
   const {
     activeThread, threadReplies, threadInfo,
     loading: threadLoading, openThread, closeThread, sendThreadReply,
