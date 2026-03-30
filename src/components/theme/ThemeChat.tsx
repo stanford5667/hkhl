@@ -42,9 +42,9 @@ export function ThemeChat({ theme, analysisContent }: ThemeChatProps) {
     setInput('');
     setIsStreaming(true);
 
-    const tickerContext = theme.tickers
-      .map(t => `${t.symbol} (${t.name}) ${t.change >= 0 ? '+' : ''}${t.change.toFixed(1)}% — ${t.sentiment}`)
-      .join('\n');
+    const tickerContext = (theme.tickers || []).length > 0
+      ? theme.tickers.map(t => `${t.symbol} (${t.name}) ${t.change >= 0 ? '+' : ''}${t.change.toFixed(1)}% — ${t.sentiment}`).join('\n')
+      : 'No specific tickers mapped to this theme.';
 
     const systemPrompt = `You are a senior equity research analyst and trading strategist. The user is exploring the "${theme.title}" market theme and wants to form actionable trade ideas.
 
@@ -87,7 +87,7 @@ Guidelines:
           summary: theme.summary,
           detailedSummary: theme.detailedSummary,
           category: theme.category,
-          tickers: theme.tickers,
+          tickers: theme.tickers || [],
           headlines: theme.headlines,
           // Pass chat context as additional context
           chatMode: true,
