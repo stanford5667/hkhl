@@ -16,6 +16,7 @@ import { BacktestComparisonOverlay } from './BacktestComparisonOverlay';
 import { SimBacktestTab } from './SimBacktestTab';
 import { StrategySignalBadge } from './StrategySignalBadge';
 import { PortfolioJournal } from './PortfolioJournal';
+import { PortfolioGoalsSetup } from './PortfolioGoalsSetup';
 import { TradingLearningHub } from './learning/TradingLearningHub';
 import { PostTradeReflection } from './learning/PostTradeReflection';
 import { PositionDetailDialog } from './PositionDetailDialog';
