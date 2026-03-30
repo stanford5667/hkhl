@@ -121,7 +121,7 @@ export function PostDetailView() {
           score={score}
           userVote={(post.user_vote as 1 | -1) || null}
           onVote={() => {}}
-          size="md"
+          size="sm"
         />
         <div className="flex items-center gap-1.5 text-muted-foreground">
           <MessageSquare className="h-4 w-4" />
