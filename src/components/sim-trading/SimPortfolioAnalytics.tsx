@@ -865,13 +865,8 @@ export function SimPortfolioAnalytics({ portfolioId, initialCapital, trades, pos
         />
       ) : (
         <HistoricalPerformance
-          snapshots={snapshots}
+          positions={positions || []}
           initialCapital={initialCapital}
-          advancedMetrics={advancedMetrics}
-          dailyReturns={dailyReturns}
-          portfolioValues={portfolioValues}
-          dates={dates}
-          perfSummary={perfSummary}
         />
       )}
     </div>
