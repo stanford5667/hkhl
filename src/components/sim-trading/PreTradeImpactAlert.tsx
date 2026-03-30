@@ -194,8 +194,6 @@ export function PreTradeImpactAlert({
           title: `Position risk: ${positionMaxLossPct.toFixed(1)}% of portfolio (${((positionMaxLossPct / ddBudget) * 100).toFixed(0)}% of DD budget)`,
           detail: `Worst-case loss on this trade: $${positionMaxLoss.toFixed(0)} (${positionMaxLossPct.toFixed(1)}% of portfolio). Your max drawdown tolerance is ${ddBudget}%.`,
         });
-          detail: `Total loss scenario: -${maxLossPct.toFixed(1)}% of portfolio vs ${ddBudget}% max drawdown tolerance.`,
-        });
       }
     }
 
