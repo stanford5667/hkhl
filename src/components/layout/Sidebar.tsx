@@ -148,6 +148,12 @@ export function Sidebar() {
         icon: Activity,
       },
       { 
+        label: "Options Analyzer", 
+        subtitle: "Strike & Strategy",
+        href: "/options-analyzer", 
+        icon: SlidersHorizontal,
+      },
+      { 
         label: "Themes Map", 
         subtitle: "Global Heat Map",
         href: "/investment-heatmap", 

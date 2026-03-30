@@ -18,7 +18,8 @@ import {
   Settings,
   Users,
   Flame,
-  Activity
+  Activity,
+  SlidersHorizontal
 } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -128,6 +129,7 @@ function MobileSidebarContent({ onNavigate }: { onNavigate: () => void }) {
     ...(isElite ? [{ label: "Portfolio", href: "/elite-portfolio", icon: Briefcase }] : []),
     { label: "Portfolio Builder", href: "/portfolio-visualizer", icon: PieChart },
     { label: "Sim Trading", href: "/sim-trading", icon: Activity },
+    { label: "Options Analyzer", href: "/options-analyzer", icon: SlidersHorizontal },
     { label: "Academy", href: "/academy", icon: BookOpen },
     ...(isAdmin ? [{ label: "Admin Portal", href: "/admin", icon: Shield }] : []),
   ];
