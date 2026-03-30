@@ -46,7 +46,7 @@ export function OptionsChainSelector({ underlyingTicker, onSelect, selectedContr
     setError('');
 
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('polygon-options-chain', {
+      const { data, error: fnError } = await supabase.functions.invoke('yahoo-options-chain', {
         body: { ticker: underlyingTicker, expirationDate: expDate || undefined },
       });
 
