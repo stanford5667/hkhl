@@ -474,6 +474,8 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
             cashBalance={portfolio.cash_balance}
             trades={trades}
             positions={positions}
+            backtestResults={portfolio.backtest_results}
+            strategyName={portfolio.strategy_name}
           />
         </TabsContent>
         <TabsContent value="backtest">

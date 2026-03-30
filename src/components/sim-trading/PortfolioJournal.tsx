@@ -23,6 +23,8 @@ interface Props {
   cashBalance: number;
   trades: SimTrade[];
   positions: Position[];
+  backtestResults?: any;
+  strategyName?: string | null;
 }
 
 interface JournalEntry {
@@ -51,9 +53,11 @@ const CATEGORY_CONFIG: Record<string, { icon: typeof TrendingUp; color: string }
   rebalance: { icon: ArrowUpDown, color: 'text-purple-400' },
   risk: { icon: AlertTriangle, color: 'text-red-400' },
   benchmark: { icon: TrendingUp, color: 'text-cyan-400' },
+  asset: { icon: BarChart3, color: 'text-indigo-400' },
+  backtest_delta: { icon: ArrowUpDown, color: 'text-orange-400' },
 };
 
-export function PortfolioJournal({ portfolioId, initialCapital, currentValue, cashBalance, trades, positions }: Props) {
+export function PortfolioJournal({ portfolioId, initialCapital, currentValue, cashBalance, trades, positions, backtestResults, strategyName }: Props) {
   const { user } = useAuth();
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [goals, setGoals] = useState<Goals | null>(null);
@@ -135,58 +139,128 @@ export function PortfolioJournal({ portfolioId, initialCapital, currentValue, ca
       const cashPct = (cashBalance / currentValue) * 100;
 
       // Determine category & generate content
-      const entries: { category: string; title: string; content: string }[] = [];
+      const journalEntries: { category: string; title: string; content: string }[] = [];
 
-      // Performance vs goal
+      // 1. Performance vs goal
       const onTrack = annualizedReturn >= goals.target_annual_return_pct;
-      entries.push({
+      journalEntries.push({
         category: 'performance',
         title: onTrack ? 'On Track — Return Target' : 'Below Target Return',
         content: `Portfolio return: ${totalReturn.toFixed(2)}% total (${annualizedReturn.toFixed(2)}% annualized). ` +
           `Your target is ${goals.target_annual_return_pct}% annually. ` +
           (onTrack
-            ? `Currently exceeding target by ${(annualizedReturn - goals.target_annual_return_pct).toFixed(1)} percentage points.`
-            : `Gap of ${(goals.target_annual_return_pct - annualizedReturn).toFixed(1)} percentage points to close.`) +
-          ` Win rate on closed trades: ${winRate.toFixed(0)}% (${winCount}/${closedTrades.length}).`,
+            ? `Exceeding target by ${(annualizedReturn - goals.target_annual_return_pct).toFixed(1)}pp.`
+            : `Gap of ${(goals.target_annual_return_pct - annualizedReturn).toFixed(1)}pp to close.`) +
+          ` Win rate: ${winRate.toFixed(0)}% (${winCount}/${closedTrades.length}).`,
       });
 
-      // Drawdown check
+      // 2. Per-asset breakdown — every position gets a note
+      const sortedPositions = [...posValues].sort((a, b) => b.pct - a.pct);
+      if (sortedPositions.length > 0) {
+        const assetLines = sortedPositions.map(p => {
+          const pos = positions.find(pos => pos.ticker === p.ticker);
+          const pnlStr = pos?.pnl !== null && pos?.pnl !== undefined
+            ? `${pos.pnl >= 0 ? '+' : ''}$${pos.pnl.toFixed(2)} (${pos.pnl_pct?.toFixed(1)}%)`
+            : 'N/A';
+          const typeLabel = pos?.instrument_type === 'option'
+            ? ` [${pos.option_type?.toUpperCase()} $${pos.strike_price} exp ${pos.expiration_date}]`
+            : '';
+          return `• ${p.ticker}${typeLabel}: ${p.pct.toFixed(1)}% of portfolio, P&L ${pnlStr}, avg cost $${pos?.avg_cost?.toFixed(2) || '?'}`;
+        });
+
+        // Flag concentration
+        const concentrated = sortedPositions.filter(p => p.pct > 20);
+        const concNote = concentrated.length > 0
+          ? ` ⚠ ${concentrated.map(c => c.ticker).join(', ')} exceed${concentrated.length === 1 ? 's' : ''} 20% concentration (institutional guideline: 5-10% max per position).`
+          : ' Position sizing within institutional norms.';
+
+        journalEntries.push({
+          category: 'asset',
+          title: `Holdings Review — ${positions.length} Position${positions.length !== 1 ? 's' : ''}`,
+          content: assetLines.join('\n') + '\n' + concNote,
+        });
+      }
+
+      // 3. Sector/asset-class diversification
+      const assetTypes = positions.reduce((acc, p) => {
+        const type = p.instrument_type === 'option' ? 'Options' : 'Equities';
+        acc[type] = (acc[type] || 0) + (p.current_value || 0);
+        return acc;
+      }, {} as Record<string, number>);
+      const typeLines = Object.entries(assetTypes).map(([type, val]) =>
+        `${type}: $${val.toFixed(0)} (${((val / currentValue) * 100).toFixed(1)}%)`
+      ).join(', ');
+      if (Object.keys(assetTypes).length > 0) {
+        journalEntries.push({
+          category: 'asset',
+          title: 'Asset Class Allocation',
+          content: `${typeLines}. Cash: $${cashBalance.toFixed(0)} (${cashPct.toFixed(1)}%). ` +
+            `Risk budget usage: ${((1 - cashPct / 100) * 100).toFixed(0)}% of ${goals.risk_budget_pct}% allowed.`,
+        });
+      }
+
+      // 4. Backtest vs Actual delta (if backtest results exist)
+      if (backtestResults) {
+        const bt = backtestResults;
+        const btReturn = bt.totalReturn ?? bt.total_return ?? bt.cagr ?? null;
+        const btMaxDD = bt.maxDrawdown ?? bt.max_drawdown ?? null;
+        const btSharpe = bt.sharpeRatio ?? bt.sharpe_ratio ?? bt.sharpe ?? null;
+        const btWinRate = bt.winRate ?? bt.win_rate ?? null;
+
+        const deltas: string[] = [];
+        if (btReturn !== null) {
+          const diff = totalReturn - btReturn;
+          deltas.push(`Return: actual ${totalReturn.toFixed(1)}% vs backtest ${btReturn.toFixed(1)}% (${diff >= 0 ? '+' : ''}${diff.toFixed(1)}pp)`);
+        }
+        if (btMaxDD !== null) {
+          const ddDiff = maxDrawdown - Math.abs(btMaxDD);
+          deltas.push(`Max DD: actual -${maxDrawdown.toFixed(1)}% vs backtest -${Math.abs(btMaxDD).toFixed(1)}% (${ddDiff > 0 ? 'worse' : 'better'} by ${Math.abs(ddDiff).toFixed(1)}pp)`);
+        }
+        if (btWinRate !== null) {
+          const wrDiff = winRate - btWinRate;
+          deltas.push(`Win Rate: actual ${winRate.toFixed(0)}% vs backtest ${btWinRate.toFixed(0)}% (${wrDiff >= 0 ? '+' : ''}${wrDiff.toFixed(0)}pp)`);
+        }
+        if (btSharpe !== null) {
+          deltas.push(`Backtest Sharpe: ${btSharpe.toFixed(2)}`);
+        }
+
+        if (deltas.length > 0) {
+          const stratLabel = strategyName ? ` (${strategyName})` : '';
+          journalEntries.push({
+            category: 'backtest_delta',
+            title: `Backtest vs Actual${stratLabel}`,
+            content: deltas.join('. ') + '. ' +
+              (btReturn !== null && totalReturn < btReturn
+                ? 'Actual performance is lagging the backtest — common causes: execution timing, slippage, regime change.'
+                : 'Actual performance is meeting or exceeding backtest expectations.'),
+          });
+        }
+      }
+
+      // 5. Drawdown check
       if (maxDrawdown > goals.max_drawdown_pct) {
-        entries.push({
+        journalEntries.push({
           category: 'drawdown',
           title: `⚠️ Drawdown Exceeded — ${maxDrawdown.toFixed(1)}%`,
           content: `Peak drawdown of ${maxDrawdown.toFixed(1)}% has breached your ${goals.max_drawdown_pct}% constraint. ` +
-            `Industry practice: review position sizing, consider reducing exposure, or tighten stop levels. ` +
-            `Current cash allocation: ${cashPct.toFixed(1)}%.`,
+            `Review position sizing and consider reducing exposure. Cash: ${cashPct.toFixed(1)}%.`,
         });
       } else if (maxDrawdown > goals.max_drawdown_pct * 0.75) {
-        entries.push({
+        journalEntries.push({
           category: 'risk',
           title: `Drawdown Approaching Limit — ${maxDrawdown.toFixed(1)}%`,
           content: `Drawdown at ${maxDrawdown.toFixed(1)}% is within 25% of your ${goals.max_drawdown_pct}% limit. ` +
-            `Monitor closely. Remaining drawdown budget: ${(goals.max_drawdown_pct - maxDrawdown).toFixed(1)}%.`,
+            `Remaining budget: ${(goals.max_drawdown_pct - maxDrawdown).toFixed(1)}%.`,
         });
       }
 
-      // Concentration risk
-      if (topPosition && topPosition.pct > 30) {
-        entries.push({
-          category: 'risk',
-          title: `Concentration Alert — ${topPosition.ticker} at ${topPosition.pct.toFixed(0)}%`,
-          content: `${topPosition.ticker} represents ${topPosition.pct.toFixed(1)}% of portfolio value. ` +
-            `Institutional standard: no single position >5-10% for diversified portfolios. ` +
-            `Consider if this aligns with your ${goals.goal_type} objective and ${goals.risk_budget_pct}% risk budget.`,
-        });
-      }
-
-      // Milestones
+      // 6. Milestones
       if (totalReturn > 0 && Math.floor(totalReturn / 5) > 0) {
         const milestone = Math.floor(totalReturn / 5) * 5;
-        entries.push({
+        journalEntries.push({
           category: 'milestone',
-          title: `Milestone Reached: +${milestone}% Return`,
-          content: `Portfolio has crossed the ${milestone}% return threshold. ` +
-            `Active days: ${daysActive}. Positions held: ${positions.length}. Cash: ${cashPct.toFixed(1)}%.`,
+          title: `Milestone: +${milestone}% Return`,
+          content: `Crossed ${milestone}% return. Active days: ${daysActive}. Positions: ${positions.length}. Cash: ${cashPct.toFixed(1)}%.`,
         });
       }
 
@@ -200,16 +274,15 @@ export function PortfolioJournal({ portfolioId, initialCapital, currentValue, ca
         daysActive,
         topHolding: topPosition?.ticker || 'N/A',
         topHoldingPct: topPosition ? parseFloat(topPosition.pct.toFixed(1)) : 0,
+        holdings: sortedPositions.map(p => ({ ticker: p.ticker, pct: parseFloat(p.pct.toFixed(1)), value: parseFloat(p.value.toFixed(2)) })),
       };
 
       const benchmarkComparison = {
         benchmark: goals.benchmark_ticker,
-        note: `Compare your ${annualizedReturn.toFixed(1)}% annualized return against ${goals.benchmark_ticker} performance over the same period.`,
+        note: `Compare your ${annualizedReturn.toFixed(1)}% annualized return against ${goals.benchmark_ticker} over the same period.`,
       };
 
-      // Insert the primary entry (first one which is always performance)
-      const primaryEntry = entries[0];
-      const allInserts = entries.map(e => ({
+      const allInserts = journalEntries.map(e => ({
         portfolio_id: portfolioId,
         user_id: user.id,
         entry_type: 'auto',
@@ -222,6 +295,8 @@ export function PortfolioJournal({ portfolioId, initialCapital, currentValue, ca
 
       const { error } = await supabase.from('sim_portfolio_journal').insert(allInserts);
       if (error) throw error;
+
+      toast.success(`Generated ${journalEntries.length} journal entries`);
 
       toast.success(`Generated ${entries.length} journal entries`);
       fetchData();
