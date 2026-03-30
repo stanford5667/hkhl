@@ -193,6 +193,7 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
 
     const openPositions = Array.from(posMap.values()).filter(p => p.quantity > 0);
 
+    // Fetch live stock quotes
     const stockTickers = [...new Set(openPositions.filter(p => p.instrument_type === 'stock').map(p => p.ticker.toUpperCase()))];
     let quotes = new Map<string, any>();
     if (stockTickers.length > 0) {
@@ -202,6 +203,43 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
         console.error('Failed to fetch live quotes:', e);
       }
     }
+
+    // Fetch live option prices from Tradier
+    const optionPositions = openPositions.filter(p => p.instrument_type === 'option');
+    const optionsByUnderlying = new Map<string, Position[]>();
+    for (const pos of optionPositions) {
+      const underlying = pos.ticker.toUpperCase();
+      if (!optionsByUnderlying.has(underlying)) optionsByUnderlying.set(underlying, []);
+      optionsByUnderlying.get(underlying)!.push(pos);
+    }
+
+    // Fetch option chains per underlying + expiration to get real prices
+    const optionFetches = Array.from(optionsByUnderlying.entries()).flatMap(([underlying, positions]) => {
+      const expirations = [...new Set(positions.map(p => p.expiration_date).filter(Boolean))];
+      return expirations.map(async (exp) => {
+        try {
+          const { data } = await supabase.functions.invoke('yahoo-options-chain', {
+            body: { ticker: underlying, expirationDate: exp },
+          });
+          if (data?.ok && data.contracts) {
+            for (const pos of positions.filter(p => p.expiration_date === exp)) {
+              const match = data.contracts.find((c: any) =>
+                c.contract_type === pos.option_type &&
+                Math.abs(c.strike_price - (pos.strike_price || 0)) < 0.01 &&
+                c.expiration_date === pos.expiration_date
+              );
+              if (match) {
+                pos.current_price = match.mid || match.last_price || pos.avg_cost;
+              }
+            }
+          }
+        } catch (e) {
+          console.error(`Failed to fetch option prices for ${underlying} ${exp}:`, e);
+        }
+      });
+    });
+
+    await Promise.allSettled(optionFetches);
 
     for (const pos of openPositions) {
       if (pos.instrument_type === 'stock') {
@@ -215,10 +253,11 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
           }
         }
       } else {
-        pos.current_price = pos.avg_cost;
-        pos.current_value = pos.avg_cost * pos.quantity * pos.contract_multiplier;
-        pos.pnl = 0;
-        pos.pnl_pct = 0;
+        // Option: use fetched live price, or fall back to avg_cost
+        if (pos.current_price == null) pos.current_price = pos.avg_cost;
+        pos.current_value = pos.current_price * pos.quantity * pos.contract_multiplier;
+        pos.pnl = pos.current_value - pos.total_cost;
+        pos.pnl_pct = pos.total_cost > 0 ? (pos.pnl / pos.total_cost) * 100 : 0;
       }
     }
 
