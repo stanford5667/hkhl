@@ -87,6 +87,11 @@ export function CommunityHub({ defaultTab = 'chat', initialRoomId }: CommunityHu
         activeRoomId={selectedRoom?.id}
         onRoomSelect={handleRoomSelect}
       />
+      {isAdmin && (
+        <div className="p-3 border-t">
+          <CreateRoomDialog onCreateRoom={createRoom} />
+        </div>
+      )}
     </div>
   );
 
