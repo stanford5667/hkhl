@@ -29,8 +29,19 @@ export function PostFeed() {
     tickerFilter,
     setTickerFilter,
     vote,
+    deletePost,
     loadMore,
   } = useResearchPosts();
+
+  const handleDelete = async (postId: string) => {
+    if (!confirm('Are you sure you want to delete this post?')) return;
+    try {
+      await deletePost(postId);
+      toast.success('Post deleted');
+    } catch {
+      toast.error('Failed to delete post');
+    }
+  };
 
   const filteredPosts = useMemo(() => {
     if (!searchQuery) return posts;
