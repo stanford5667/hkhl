@@ -5441,6 +5441,53 @@ export type Database = {
         }
         Relationships: []
       }
+      stream_recordings: {
+        Row: {
+          created_at: string
+          duration_seconds: number | null
+          file_path: string
+          file_size: number | null
+          id: string
+          recorded_by: string
+          room_id: string
+          thumbnail_url: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number | null
+          file_path: string
+          file_size?: number | null
+          id?: string
+          recorded_by: string
+          room_id: string
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number | null
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          recorded_by?: string
+          room_id?: string
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stream_recordings_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "chat_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       study_materials: {
         Row: {
           category: string | null

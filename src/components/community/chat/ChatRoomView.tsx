@@ -11,6 +11,8 @@ import { useChatRooms } from '@/hooks/useChatRooms';
 import { LivestreamPlayer } from './LivestreamPlayer';
 import { LiveKitBroadcaster } from './LiveKitBroadcaster';
 import { LiveKitViewer } from './LiveKitViewer';
+import { StreamRecordingsList } from './StreamRecordingsList';
+import { useStreamRecordings } from '@/hooks/useStreamRecordings';
 import { useUsage } from '@/contexts/UsageContext';
 import { useAdmin } from '@/hooks/useAdmin';
 import { MessageList } from './MessageList';
@@ -59,6 +61,7 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
   const { pinnedMessages, pinMessage, unpinMessage, isMessagePinned } = usePinnedMessages(room.id);
   const { markRoomAsRead } = useUnreadMessages();
   const { fetchRooms, startLivestream, stopLivestream } = useChatRooms();
+  const { recordings, loading: recordingsLoading, saveRecording, deleteRecording } = useStreamRecordings(room.id);
   const {
     activeThread, threadReplies, threadInfo,
     loading: threadLoading, openThread, closeThread, sendThreadReply,
@@ -185,7 +188,11 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
       {(room.is_live || livekitMode) && canAccess && (
           room.live_stream_url === '__livekit__' || livekitMode ? (
             isAdmin ? (
-              <LiveKitBroadcaster roomId={room.id} onStopStream={handleStopLivestream} />
+              <LiveKitBroadcaster
+                roomId={room.id}
+                onStopStream={handleStopLivestream}
+                onRecordingSaved={(blob, duration) => saveRecording(blob, duration)}
+              />
             ) : (
               <LiveKitViewer roomId={room.id} />
             )
@@ -196,6 +203,15 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
               onStopStream={handleStopLivestream}
             />
           ) : null
+        )}
+
+        {canAccess && !room.is_live && !livekitMode && (
+          <StreamRecordingsList
+            recordings={recordings}
+            loading={recordingsLoading}
+            isAdmin={isAdmin}
+            onDelete={isAdmin ? deleteRecording : undefined}
+          />
         )}
         <ResizablePanelGroup direction="horizontal">
           <ResizablePanel defaultSize={activeThread ? 60 : 100} minSize={40}>
