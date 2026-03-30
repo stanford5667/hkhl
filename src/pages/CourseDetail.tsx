@@ -838,7 +838,7 @@ export default function CourseDetail() {
             }}
             disabled={isCheckoutLoading}
           >
-            {isCheckoutLoading ? 'Loading...' : 'Unlock Full Masterclass — from $83/mo'}
+            {isCheckoutLoading ? 'Loading...' : `Unlock Full Masterclass — from $${PRICING.annualPerMonth}/mo`}
           </Button>
         </div>
       )}
