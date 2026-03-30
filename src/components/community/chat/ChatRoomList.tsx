@@ -85,6 +85,15 @@ export function ChatRoomList({
                 PRO
               </Badge>
             )}
+            {room.is_admin_only && (
+              <Badge 
+                variant="outline" 
+                className="text-[10px] px-1.5 py-0 border-red-500/50 bg-red-500/10 text-red-500"
+              >
+                <Shield className="h-2.5 w-2.5 mr-0.5" />
+                ADMIN
+              </Badge>
+            )}
             {room.ticker && (
               <Badge variant="outline" className="text-[10px] px-1.5 py-0">
                 ${room.ticker}
