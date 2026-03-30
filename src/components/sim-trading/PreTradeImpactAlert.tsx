@@ -162,23 +162,37 @@ export function PreTradeImpactAlert({
       });
     }
 
-    // --- 5. Position size relative to drawdown constraint ---
+    // --- 5. Single-position risk relative to drawdown constraint ---
     if (action === 'buy') {
-      const maxLoss = tradeValue; // worst case for stocks/options
-      const maxLossPct = (maxLoss / totalPortfolio) * 100;
+      // This is the single-position worst case, not portfolio drawdown
+      const positionMaxLoss = tradeValue;
+      const positionMaxLossPct = (positionMaxLoss / totalPortfolio) * 100;
       const ddBudget = goals.max_drawdown_pct;
 
-      if (maxLossPct > ddBudget * 0.5) {
+      // Also compute total portfolio single-name exposure after trade
+      const totalExposureAfter = newPositionValue;
+      const totalExposurePct = (totalExposureAfter / postTradePortfolio) * 100;
+
+      if (totalExposurePct > ddBudget) {
         results.push({
           type: 'danger',
-          title: `Worst-case loss (${maxLossPct.toFixed(1)}%) uses >${(ddBudget * 0.5).toFixed(0)}% of drawdown budget`,
-          detail: `If ${ticker} went to zero, you'd lose ${maxLossPct.toFixed(1)}% — more than half your ${ddBudget}% max drawdown tolerance.`,
+          title: `${ticker} total exposure (${totalExposurePct.toFixed(1)}%) exceeds your ${ddBudget}% drawdown limit`,
+          detail: `Your total ${ticker} position would be $${totalExposureAfter.toFixed(0)} (${totalExposurePct.toFixed(1)}% of portfolio). ` +
+            `If ${ticker} went to zero, that alone would breach your ${ddBudget}% max drawdown constraint. ` +
+            `This is the single-position risk — actual portfolio drawdown depends on all holdings.`,
         });
-      } else if (maxLossPct > ddBudget * 0.25) {
+      } else if (positionMaxLossPct > ddBudget * 0.5) {
         results.push({
           type: 'warning',
-          title: `Worst-case loss uses ${((maxLossPct / ddBudget) * 100).toFixed(0)}% of drawdown budget`,
-          detail: `Total loss scenario: -${maxLossPct.toFixed(1)}% of portfolio vs ${ddBudget}% max drawdown tolerance.`,
+          title: `This trade alone risks ${positionMaxLossPct.toFixed(1)}% of portfolio (${ddBudget}% DD limit)`,
+          detail: `If this $${tradeValue.toFixed(0)} position lost 100%, your portfolio would drop ${positionMaxLossPct.toFixed(1)}%. ` +
+            `That's ${((positionMaxLossPct / ddBudget) * 100).toFixed(0)}% of your drawdown budget consumed by one position.`,
+        });
+      } else if (positionMaxLossPct > ddBudget * 0.25) {
+        results.push({
+          type: 'info',
+          title: `Position risk: ${positionMaxLossPct.toFixed(1)}% of portfolio (${((positionMaxLossPct / ddBudget) * 100).toFixed(0)}% of DD budget)`,
+          detail: `Worst-case loss on this trade: $${positionMaxLoss.toFixed(0)} (${positionMaxLossPct.toFixed(1)}% of portfolio). Your max drawdown tolerance is ${ddBudget}%.`,
         });
       }
     }
