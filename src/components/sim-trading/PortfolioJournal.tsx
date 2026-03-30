@@ -311,9 +311,7 @@ export function PortfolioJournal({ portfolioId, initialCapital, currentValue, ca
       const { error } = await supabase.from('sim_portfolio_journal').insert(allInserts);
       if (error) throw error;
 
-      toast.success(`Generated ${journalEntries.length} journal entries`);
-
-      toast.success(`Generated ${entries.length} journal entries`);
+      if (!silent) toast.success(`Generated ${journalEntries.length} journal entries`);
       fetchData();
     } catch (e: any) {
       toast.error(e.message || 'Failed to generate journal');
