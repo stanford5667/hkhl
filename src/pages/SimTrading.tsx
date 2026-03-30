@@ -130,28 +130,42 @@ export default function SimTrading() {
           <h1 className="text-2xl font-bold text-foreground">Simulation Trading</h1>
           <p className="text-muted-foreground text-sm">Paper trade stocks & options with virtual capital — track real performance forward</p>
         </div>
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <Dialog open={createOpen} onOpenChange={handleCreateDialogChange}>
           <DialogTrigger asChild>
             <Button><Plus className="w-4 h-4 mr-2" /> New Simulation</Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className={createStep === 'goals' ? 'sm:max-w-lg' : ''}>
             <DialogHeader>
-              <DialogTitle>Create Paper Trading Portfolio</DialogTitle>
+              <DialogTitle>
+                {createStep === 'info' ? 'Create Paper Trading Portfolio' : 'Set Your Portfolio Goals'}
+              </DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label>Portfolio Name</Label>
-                <Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g. Growth Strategy" />
+            {createStep === 'info' ? (
+              <div className="space-y-4">
+                <div>
+                  <Label>Portfolio Name</Label>
+                  <Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g. Growth Strategy" />
+                </div>
+                <div>
+                  <Label>Starting Capital ($)</Label>
+                  <Input type="number" value={newCapital} onChange={e => setNewCapital(e.target.value)} min="1000" step="1000" />
+                  <p className="text-xs text-muted-foreground mt-1">Minimum $1,000</p>
+                </div>
+                <Button onClick={createPortfolio} disabled={creating || !newName.trim()} className="w-full">
+                  {creating ? 'Creating...' : 'Next: Set Goals →'}
+                </Button>
               </div>
-              <div>
-                <Label>Starting Capital ($)</Label>
-                <Input type="number" value={newCapital} onChange={e => setNewCapital(e.target.value)} min="1000" step="1000" />
-                <p className="text-xs text-muted-foreground mt-1">Minimum $1,000</p>
+            ) : newPortfolioId ? (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Define your objectives so we can track your progress and provide relevant insights.
+                </p>
+                <PortfolioGoalsSetup portfolioId={newPortfolioId} onSaved={handleGoalsSaved} />
+                <Button variant="ghost" size="sm" className="w-full" onClick={handleGoalsSaved}>
+                  Skip for now
+                </Button>
               </div>
-              <Button onClick={createPortfolio} disabled={creating || !newName.trim()} className="w-full">
-                {creating ? 'Creating...' : 'Create Portfolio'}
-              </Button>
-            </div>
+            ) : null}
           </DialogContent>
         </Dialog>
       </div>
