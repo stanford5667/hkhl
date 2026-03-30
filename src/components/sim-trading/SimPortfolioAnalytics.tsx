@@ -182,7 +182,7 @@ function HistoricalPerformance({
           if (data) bars = bars.concat(data);
         }
 
-        if (dbError) throw dbError;
+        if (bars.length === 0) {
         if (!bars || bars.length === 0) {
           setError('No historical data found for these tickers');
           setLoading(false);
