@@ -14,8 +14,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import {
   BookOpen, FileText, Eye, TrendingUp, Briefcase, Plus, Pin, PinOff,
   Trash2, ExternalLink, Share2, Clock, ArrowLeft, StickyNote, BarChart3,
-  Copy, Pencil
+  Copy, Pencil, MessageSquare, Send
 } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
