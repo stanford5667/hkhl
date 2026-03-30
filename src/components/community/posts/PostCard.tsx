@@ -6,13 +6,16 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { VoteButtons } from './VoteButtons';
-import { MessageSquare, Share2, Bookmark, ImageIcon } from 'lucide-react';
+import { MessageSquare, Share2, Bookmark, ImageIcon, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAdmin } from '@/hooks/useAdmin';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface PostCardProps {
   post: ResearchPost;
   onVote: (postId: string, voteType: 1 | -1) => void;
   onTickerClick?: (ticker: string) => void;
+  onDelete?: (postId: string) => void;
   compact?: boolean;
 }
 
@@ -31,8 +34,11 @@ function getGradient(id: string) {
   return gradients[idx];
 }
 
-export function PostCard({ post, onVote, onTickerClick, compact = false }: PostCardProps) {
+export function PostCard({ post, onVote, onTickerClick, onDelete, compact = false }: PostCardProps) {
   const navigate = useNavigate();
+  const { isAdmin } = useAdmin();
+  const { user } = useAuth();
+  const canDelete = isAdmin || user?.id === post.user_id;
 
   const displayName = post.user_profile?.full_name || 'Anonymous';
   const initials = displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
@@ -149,6 +155,16 @@ export function PostCard({ post, onVote, onTickerClick, compact = false }: PostC
             <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground">
               <Bookmark className="h-3 w-3" />
             </Button>
+            {canDelete && onDelete && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                onClick={(e) => { e.stopPropagation(); onDelete(post.id); }}
+              >
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            )}
           </div>
         </div>
       </div>
