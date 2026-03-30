@@ -87,7 +87,7 @@ Guidelines:
           summary: theme.summary,
           detailedSummary: theme.detailedSummary,
           category: theme.category,
-          tickers: theme.tickers,
+          tickers: theme.tickers || [],
           headlines: theme.headlines,
           // Pass chat context as additional context
           chatMode: true,
