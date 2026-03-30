@@ -24,7 +24,6 @@ export default function ThemeAnalysis() {
   const [copied, setCopied] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const hasStarted = useRef(false);
-  const hasStarted = useRef(false);
 
   useEffect(() => {
     if (!theme || hasStarted.current) return;
