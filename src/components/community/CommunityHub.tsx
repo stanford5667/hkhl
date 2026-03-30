@@ -128,7 +128,7 @@ export function CommunityHub({ defaultTab = 'chat', initialRoomId }: CommunityHu
             variant={activeTab === 'chat' ? 'default' : 'ghost'}
             size="sm"
             className="gap-2"
-            onClick={() => setActiveTab('chat')}
+            onClick={() => { setActiveTab('chat'); navigate('/community', { replace: true }); }}
           >
             <MessageCircle className="h-4 w-4" />
             <span className="hidden sm:inline">Chat</span>
