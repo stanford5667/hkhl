@@ -451,6 +451,7 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
           </TabsTrigger>
           <TabsTrigger value="history">History ({trades.length})</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
+          <TabsTrigger value="journal">Journal</TabsTrigger>
           <TabsTrigger value="backtest">Backtest</TabsTrigger>
         </TabsList>
         <TabsContent value="positions">
@@ -464,6 +465,16 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
         </TabsContent>
         <TabsContent value="performance">
           <SimPortfolioAnalytics portfolioId={portfolioId} initialCapital={portfolio.initial_capital} trades={trades} positions={positions} currentValue={totalPortfolioValue} cashBalance={portfolio.cash_balance} />
+        </TabsContent>
+        <TabsContent value="journal">
+          <PortfolioJournal
+            portfolioId={portfolioId}
+            initialCapital={portfolio.initial_capital}
+            currentValue={totalPortfolioValue}
+            cashBalance={portfolio.cash_balance}
+            trades={trades}
+            positions={positions}
+          />
         </TabsContent>
         <TabsContent value="backtest">
           <SimBacktestTab
