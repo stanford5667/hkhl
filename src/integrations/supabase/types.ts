@@ -4580,6 +4580,7 @@ export type Database = {
           downvotes: number
           id: string
           is_pinned: boolean
+          thumbnail_url: string | null
           title: string
           updated_at: string
           upvotes: number
@@ -4593,6 +4594,7 @@ export type Database = {
           downvotes?: number
           id?: string
           is_pinned?: boolean
+          thumbnail_url?: string | null
           title: string
           updated_at?: string
           upvotes?: number
@@ -4606,6 +4608,7 @@ export type Database = {
           downvotes?: number
           id?: string
           is_pinned?: boolean
+          thumbnail_url?: string | null
           title?: string
           updated_at?: string
           upvotes?: number

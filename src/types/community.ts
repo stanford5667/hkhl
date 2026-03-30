@@ -100,6 +100,7 @@ export interface ResearchPost {
   user_id: string;
   title: string;
   content: string;
+  thumbnail_url: string | null;
   detected_tickers: string[];
   upvotes: number;
   downvotes: number;
