@@ -3,12 +3,10 @@ import {
   Room,
   RoomEvent,
   Track,
-  LocalTrack,
   RemoteTrack,
   RemoteTrackPublication,
   Participant,
   ConnectionState,
-  createLocalTracks,
 } from 'livekit-client';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -45,6 +43,19 @@ export function useLiveKit() {
   ) => {
     try {
       setState(s => ({ ...s, error: null }));
+
+      // IMPORTANT: Capture media BEFORE any async calls to preserve user gesture context.
+      // Browsers require getDisplayMedia/getUserMedia to be called synchronously from a click handler.
+      let preAcquiredStream: MediaStream | null = null;
+      if (screenShare) {
+        preAcquiredStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+      } else {
+        preAcquiredStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      }
+
+      // Show preview immediately while we connect
+      videoElement.srcObject = preAcquiredStream;
+
       const { token, wsUrl } = await getToken(roomId, true);
 
       const room = new Room({
@@ -69,25 +80,20 @@ export function useLiveKit() {
       await room.connect(wsUrl, token);
       setState(s => ({ ...s, participantCount: room.numParticipants }));
 
-      if (screenShare) {
-        await room.localParticipant.setScreenShareEnabled(true);
-      } else {
-        await room.localParticipant.setCameraEnabled(true);
-        await room.localParticipant.setMicrophoneEnabled(true);
+      // Publish the pre-acquired tracks directly to avoid re-prompting for media
+      for (const track of preAcquiredStream.getTracks()) {
+        const source = track.kind === 'video'
+          ? (screenShare ? Track.Source.ScreenShare : Track.Source.Camera)
+          : (screenShare ? Track.Source.ScreenShareAudio : Track.Source.Microphone);
+        await room.localParticipant.publishTrack(track, { source });
       }
 
-      // Attach local video to preview element — wait for track to appear
-      const source = screenShare ? Track.Source.ScreenShare : Track.Source.Camera;
-      const camPub = room.localParticipant.getTrackPublication(source);
+      // The video element already has srcObject set from pre-acquisition,
+      // but re-attach via LiveKit for consistency
+      const vidSource = screenShare ? Track.Source.ScreenShare : Track.Source.Camera;
+      const camPub = room.localParticipant.getTrackPublication(vidSource);
       if (camPub?.track) {
         camPub.track.attach(videoElement);
-      } else {
-        // Track may not be immediately available; listen for it
-        room.localParticipant.on('localTrackPublished' as any, (pub: any) => {
-          if (pub?.track && pub.source === source) {
-            pub.track.attach(videoElement);
-          }
-        });
       }
 
       setState(s => ({ ...s, isPublishing: true }));
