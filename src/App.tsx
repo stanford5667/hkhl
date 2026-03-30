@@ -188,6 +188,7 @@ const App = () => {
                               <Route path="/management-fee" element={<ManagementFee />} />
                               <Route path="/sms-consent" element={<SmsConsent />} />
                               <Route path="/sim-trading" element={<SimTrading />} />
+                              <Route path="/options-analyzer" element={<OptionsAnalyzerPage />} />
                               <Route path="/elite-onboarding" element={<EliteGuard><EliteOnboarding /></EliteGuard>} />
                               <Route path="/elite-dashboard" element={<EliteGuard><EliteDashboard /></EliteGuard>} />
                               <Route path="/elite-portfolio" element={<EliteGuard><ElitePortfolio /></EliteGuard>} />
