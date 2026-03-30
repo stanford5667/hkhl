@@ -251,42 +251,43 @@ function HistoricalPerformance({
           weight: normalizedWeightTotal > 0 ? h.weight / normalizedWeightTotal : 0,
         }));
 
-        // Find common dates across available holdings + benchmark
-        const holdingDateSets = normalizedHoldings.map(h => new Set(Object.keys(indexed[h.ticker] || {})));
-        const allSets = [...holdingDateSets, benchmarkDates];
-        const commonDates = [...allSets[0]].filter(d => allSets.every(s => s.has(d))).sort();
-
-        if (commonDates.length < 10) {
-          setError(`Only ${commonDates.length} common trading days found. Need at least 10.`);
-          setLoading(false);
-          return;
-        }
-
-        // Build portfolio & benchmark value series
+        // Build portfolio & benchmark series using benchmark dates as anchor
+        // (avoids hard-fail when one holding has partial missing dates)
+        const benchmarkDateList = [...benchmarkDates].sort();
         const portfolioValues: number[] = [initialCapital];
         const benchmarkValues: number[] = [initialCapital];
         const dailyReturns: number[] = [];
         const benchmarkReturns: number[] = [];
-        const dates: string[] = [commonDates[0]];
+        const dates: string[] = [];
 
-        for (let i = 1; i < commonDates.length; i++) {
-          const date = commonDates[i];
+        for (let i = 1; i < benchmarkDateList.length; i++) {
+          const date = benchmarkDateList[i];
+          const bmReturn = indexed['SPY']?.[date]?.return;
+          if (typeof bmReturn !== 'number' || Number.isNaN(bmReturn)) continue;
 
-          // Weighted portfolio return
+          const active = normalizedHoldings.filter(h => typeof indexed[h.ticker]?.[date]?.return === 'number');
+          if (active.length === 0) continue;
+
+          const activeWeightTotal = active.reduce((sum, h) => sum + h.weight, 0);
+          if (activeWeightTotal <= 0) continue;
+
           let portReturn = 0;
-          for (const h of normalizedHoldings) {
-            const r = indexed[h.ticker]?.[date]?.return || 0;
-            portReturn += r * h.weight;
+          for (const h of active) {
+            const r = indexed[h.ticker][date].return;
+            portReturn += r * (h.weight / activeWeightTotal);
           }
+
           dailyReturns.push(portReturn);
-          portfolioValues.push(portfolioValues[portfolioValues.length - 1] * (1 + portReturn));
-
-          // Benchmark
-          const bmReturn = indexed['SPY']?.[date]?.return || 0;
           benchmarkReturns.push(bmReturn);
+          portfolioValues.push(portfolioValues[portfolioValues.length - 1] * (1 + portReturn));
           benchmarkValues.push(benchmarkValues[benchmarkValues.length - 1] * (1 + bmReturn));
-
           dates.push(date);
+        }
+
+        if (dates.length < 10) {
+          setError(`Only ${dates.length} usable trading days found. Need at least 10.`);
+          setLoading(false);
+          return;
         }
 
         // Calculate metrics using existing service functions
