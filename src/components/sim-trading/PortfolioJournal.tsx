@@ -12,8 +12,10 @@ import type { SimTrade } from './SimPortfolioDetail';
 import type { Position } from './SimPortfolioDetail';
 import {
   BookOpen, RefreshCw, TrendingUp, TrendingDown, AlertTriangle,
-  CheckCircle, BarChart3, Clock, ArrowUpDown, Plus
+  CheckCircle, BarChart3, Clock, ArrowUpDown, Plus,
+  ChevronDown, ChevronUp, GraduationCap, Lightbulb
 } from 'lucide-react';
+import { getJournalTopics, EDUCATION_TOPICS } from './learning/tradeEducation';
 import { format, differenceInDays, parseISO } from 'date-fns';
 
 interface Props {
