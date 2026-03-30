@@ -6,8 +6,10 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { VoteButtons } from './VoteButtons';
-import { MessageSquare, Share2, Bookmark, ImageIcon } from 'lucide-react';
+import { MessageSquare, Share2, Bookmark, ImageIcon, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAdmin } from '@/hooks/useAdmin';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface PostCardProps {
   post: ResearchPost;
