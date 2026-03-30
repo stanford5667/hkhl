@@ -159,7 +159,7 @@ export function OptionsChainSelector({ underlyingTicker, onSelect, selectedContr
                 <button
                   key={contract.ticker}
                   onClick={() => onSelect(contract)}
-                  className={`w-full grid grid-cols-6 gap-1 px-2 py-1.5 text-xs font-mono hover:bg-accent/50 transition-colors border-t border-border/50 ${
+                  className={`w-full grid grid-cols-8 gap-1 px-2 py-1.5 text-xs font-mono hover:bg-accent/50 transition-colors border-t border-border/50 ${
                     isSelected ? 'bg-primary/10 border-primary/30' : ''
                   }`}
                 >
@@ -169,6 +169,8 @@ export function OptionsChainSelector({ underlyingTicker, onSelect, selectedContr
                   <span className="text-right">{contract.last_price > 0 ? `$${contract.last_price.toFixed(2)}` : '—'}</span>
                   <span className="text-right text-muted-foreground">{contract.volume > 0 ? contract.volume.toLocaleString() : '—'}</span>
                   <span className="text-right text-muted-foreground">{contract.open_interest > 0 ? contract.open_interest.toLocaleString() : '—'}</span>
+                  <span className="text-right text-muted-foreground">{contract.implied_volatility != null ? `${(contract.implied_volatility * 100).toFixed(0)}%` : '—'}</span>
+                  <span className="text-right text-muted-foreground">{contract.delta != null ? contract.delta.toFixed(2) : '—'}</span>
                 </button>
               );
             })}
