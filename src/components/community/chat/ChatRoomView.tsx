@@ -11,6 +11,8 @@ import { useChatRooms } from '@/hooks/useChatRooms';
 import { LivestreamPlayer } from './LivestreamPlayer';
 import { LiveKitBroadcaster } from './LiveKitBroadcaster';
 import { LiveKitViewer } from './LiveKitViewer';
+import { StreamRecordingsList } from './StreamRecordingsList';
+import { useStreamRecordings } from '@/hooks/useStreamRecordings';
 import { useUsage } from '@/contexts/UsageContext';
 import { useAdmin } from '@/hooks/useAdmin';
 import { MessageList } from './MessageList';
