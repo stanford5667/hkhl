@@ -82,29 +82,20 @@ export function useLiveKit() {
       await room.connect(wsUrl, token);
       setState(s => ({ ...s, participantCount: room.numParticipants }));
 
-      // Stop pre-acquired stream — LiveKit will re-acquire via its own APIs
-      // but user gesture context is now established for the browser
-      preAcquiredStream.getTracks().forEach(t => t.stop());
-      videoElement.srcObject = null;
-
-      if (screenShare) {
-        await room.localParticipant.setScreenShareEnabled(true);
-      } else {
-        await room.localParticipant.setCameraEnabled(true);
-        await room.localParticipant.setMicrophoneEnabled(true);
+      // Publish the pre-acquired tracks directly to avoid re-prompting for media
+      for (const track of preAcquiredStream.getTracks()) {
+        const source = track.kind === 'video'
+          ? (screenShare ? Track.Source.ScreenShare : Track.Source.Camera)
+          : (screenShare ? Track.Source.ScreenShareAudio : Track.Source.Microphone);
+        await room.localParticipant.publishTrack(track, { source });
       }
 
-      // Attach local video to preview element — wait for track to appear
-      const source = screenShare ? Track.Source.ScreenShare : Track.Source.Camera;
-      const camPub = room.localParticipant.getTrackPublication(source);
+      // The video element already has srcObject set from pre-acquisition,
+      // but re-attach via LiveKit for consistency
+      const vidSource = screenShare ? Track.Source.ScreenShare : Track.Source.Camera;
+      const camPub = room.localParticipant.getTrackPublication(vidSource);
       if (camPub?.track) {
         camPub.track.attach(videoElement);
-      } else {
-        room.localParticipant.on('localTrackPublished' as any, (pub: any) => {
-          if (pub?.track && pub.source === source) {
-            pub.track.attach(videoElement);
-          }
-        });
       }
 
       setState(s => ({ ...s, isPublishing: true }));
