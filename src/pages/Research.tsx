@@ -37,6 +37,7 @@ const fadeUp = {
 export default function ResearchPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isAdmin } = useAdmin();
   const { requireAuth, showAuthDialog, closeAuthDialog } = useRequireAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [recentSearches, setRecentSearches] = useState<string[]>(() => {
