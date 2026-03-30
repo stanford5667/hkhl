@@ -1,17 +1,19 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Brain, BarChart3, TrendingUp, Shield, Activity } from 'lucide-react';
+import { Search, Brain, BarChart3, TrendingUp, Shield, Activity, BookmarkPlus } from 'lucide-react';
 import { ProbabilityCone } from './ProbabilityCone';
 import { PnLDiagram } from './PnLDiagram';
 import { GreeksDashboard } from './GreeksDashboard';
 import { IVAnalysis } from './IVAnalysis';
 import { OptionsAdvisorChat } from './OptionsAdvisorChat';
+import { SavedAnalysesList } from './SavedAnalysesList';
 import { Explainer } from './Explainer';
+import { useOptionsAnalyzerStore } from '@/stores/optionsAnalyzerStore';
 
 export type TradeIntent = 'hedge' | 'income' | 'growth' | 'event-driven';
 
@@ -23,16 +25,13 @@ const INTENT_CONFIG: Record<TradeIntent, { label: string; icon: typeof Shield; c
 };
 
 export function OptionsAnalyzer() {
-  const [ticker, setTicker] = useState('');
-  const [activeTicker, setActiveTicker] = useState('');
-  const [intent, setIntent] = useState<TradeIntent>('growth');
-  const [activeTab, setActiveTab] = useState('advisor');
+  const { ticker, activeTicker, intent, activeTab, setTicker, setActiveTicker, setIntent, setActiveTab } = useOptionsAnalyzerStore();
 
   const handleSearch = useCallback(() => {
     if (ticker.trim()) {
       setActiveTicker(ticker.trim().toUpperCase());
     }
-  }, [ticker]);
+  }, [ticker, setActiveTicker]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -40,13 +39,11 @@ export function OptionsAnalyzer() {
       <div className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-[1600px] mx-auto px-6 py-4">
           <div className="flex items-center gap-5 flex-wrap">
-            {/* Title */}
             <div className="flex items-center gap-2 mr-4">
               <Brain className="h-5 w-5 text-primary" />
               <h1 className="text-lg font-bold tracking-tight">Options Analyzer</h1>
             </div>
 
-            {/* Ticker Search */}
             <div className="flex items-center gap-2">
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -63,14 +60,12 @@ export function OptionsAnalyzer() {
               </Button>
             </div>
 
-            {/* Active Ticker */}
             {activeTicker && (
               <Badge variant="outline" className="font-mono text-sm px-3 py-1 border-primary/50 text-primary">
                 {activeTicker}
               </Badge>
             )}
 
-            {/* Intent Selector */}
             <div className="flex items-center gap-2 ml-auto">
               <span className="text-xs text-muted-foreground">Your Goal:</span>
               <Select value={intent} onValueChange={(v) => setIntent(v as TradeIntent)}>
@@ -91,7 +86,6 @@ export function OptionsAnalyzer() {
             </div>
           </div>
 
-          {/* Intent Description */}
           <div className="mt-2 flex items-center gap-2">
             <span className={`text-xs ${INTENT_CONFIG[intent].color}`}>
               {INTENT_CONFIG[intent].description}
@@ -103,19 +97,22 @@ export function OptionsAnalyzer() {
       {/* Main Content */}
       <div className="max-w-[1600px] mx-auto px-6 py-6">
         {!activeTicker ? (
-          <Card className="p-16 text-center">
-            <Brain className="h-16 w-16 text-muted-foreground/30 mx-auto mb-6" />
-            <h2 className="text-xl font-semibold mb-3">Enter a stock ticker to get started</h2>
-            <p className="text-muted-foreground max-w-lg mx-auto mb-6">
-              Type a stock symbol like <span className="font-mono font-semibold text-foreground">AAPL</span> or <span className="font-mono font-semibold text-foreground">TSLA</span> above, 
-              then click <strong>Analyze</strong>. Our AI will help you find the best options strategy, 
-              show you potential profits and losses, and explain everything in plain English.
-            </p>
-            <Explainer>
-              <strong>New to options?</strong> An option gives you the right (but not the obligation) to buy or sell a stock at a specific price by a certain date. 
-              This tool helps you pick the best option based on what you're trying to achieve — whether that's protecting your investments, generating income, or making a directional bet.
-            </Explainer>
-          </Card>
+          <div className="space-y-6">
+            <Card className="p-16 text-center">
+              <Brain className="h-16 w-16 text-muted-foreground/30 mx-auto mb-6" />
+              <h2 className="text-xl font-semibold mb-3">Enter a stock ticker to get started</h2>
+              <p className="text-muted-foreground max-w-lg mx-auto mb-6">
+                Type a stock symbol like <span className="font-mono font-semibold text-foreground">AAPL</span> or <span className="font-mono font-semibold text-foreground">TSLA</span> above, 
+                then click <strong>Analyze</strong>. Our AI will help you find the best options strategy, 
+                show you potential profits and losses, and explain everything in plain English.
+              </p>
+              <Explainer>
+                <strong>New to options?</strong> An option gives you the right (but not the obligation) to buy or sell a stock at a specific price by a certain date. 
+                This tool helps you pick the best option based on what you're trying to achieve — whether that's protecting your investments, generating income, or making a directional bet.
+              </Explainer>
+            </Card>
+            <SavedAnalysesList />
+          </div>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList className="bg-card border border-border">
@@ -139,26 +136,29 @@ export function OptionsAnalyzer() {
                 <Shield className="h-3.5 w-3.5" />
                 IV Analysis
               </TabsTrigger>
+              <TabsTrigger value="saved" className="gap-1.5">
+                <BookmarkPlus className="h-3.5 w-3.5" />
+                Saved
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="advisor">
               <OptionsAdvisorChat ticker={activeTicker} intent={intent} />
             </TabsContent>
-
             <TabsContent value="probability">
               <ProbabilityCone ticker={activeTicker} />
             </TabsContent>
-
             <TabsContent value="pnl">
               <PnLDiagram ticker={activeTicker} />
             </TabsContent>
-
             <TabsContent value="greeks">
               <GreeksDashboard ticker={activeTicker} />
             </TabsContent>
-
             <TabsContent value="iv">
               <IVAnalysis ticker={activeTicker} />
+            </TabsContent>
+            <TabsContent value="saved">
+              <SavedAnalysesList />
             </TabsContent>
           </Tabs>
         )}
