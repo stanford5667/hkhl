@@ -76,12 +76,18 @@ export function useLiveKit() {
         await room.localParticipant.setMicrophoneEnabled(true);
       }
 
-      // Attach local video to preview element
-      const camPub = room.localParticipant.getTrackPublication(
-        screenShare ? Track.Source.ScreenShare : Track.Source.Camera
-      );
+      // Attach local video to preview element — wait for track to appear
+      const source = screenShare ? Track.Source.ScreenShare : Track.Source.Camera;
+      const camPub = room.localParticipant.getTrackPublication(source);
       if (camPub?.track) {
         camPub.track.attach(videoElement);
+      } else {
+        // Track may not be immediately available; listen for it
+        room.localParticipant.on('localTrackPublished' as any, (pub: any) => {
+          if (pub?.track && pub.source === source) {
+            pub.track.attach(videoElement);
+          }
+        });
       }
 
       setState(s => ({ ...s, isPublishing: true }));
