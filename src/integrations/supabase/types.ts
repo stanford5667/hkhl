@@ -4726,6 +4726,45 @@ export type Database = {
         }
         Relationships: []
       }
+      saved_theme_analyses: {
+        Row: {
+          analysis_content: string
+          category: string | null
+          created_at: string
+          id: string
+          is_public: boolean
+          share_id: string
+          theme_data: Json
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          analysis_content: string
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_public?: boolean
+          share_id?: string
+          theme_data: Json
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          analysis_content?: string
+          category?: string | null
+          created_at?: string
+          id?: string
+          is_public?: boolean
+          share_id?: string
+          theme_data?: Json
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       saved_theme_reports: {
         Row: {
           created_at: string
