@@ -118,6 +118,7 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
       await calculatePositions(tradeData);
 
       setPendingOrders(ordersRes.data || []);
+      if (goalsRes.data) setGoals(goalsRes.data);
 
       // Check pending orders against current prices
       if (portfolioRes.data && ordersRes.data && ordersRes.data.length > 0) {
