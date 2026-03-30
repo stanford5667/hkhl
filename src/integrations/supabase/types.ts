@@ -979,6 +979,7 @@ export type Database = {
           description: string | null
           icon: string | null
           id: string
+          is_admin_only: boolean
           is_live: boolean
           is_premium: boolean | null
           live_started_at: string | null
@@ -999,6 +1000,7 @@ export type Database = {
           description?: string | null
           icon?: string | null
           id?: string
+          is_admin_only?: boolean
           is_live?: boolean
           is_premium?: boolean | null
           live_started_at?: string | null
@@ -1019,6 +1021,7 @@ export type Database = {
           description?: string | null
           icon?: string | null
           id?: string
+          is_admin_only?: boolean
           is_live?: boolean
           is_premium?: boolean | null
           live_started_at?: string | null
