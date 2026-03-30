@@ -63,6 +63,7 @@ export function PortfolioJournal({ portfolioId, initialCapital, currentValue, ca
   const [goals, setGoals] = useState<Goals | null>(null);
   const [generating, setGenerating] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [autoGenAttempted, setAutoGenAttempted] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!user) return;
@@ -87,9 +88,23 @@ export function PortfolioJournal({ portfolioId, initialCapital, currentValue, ca
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const generateJournalEntry = async () => {
+  // Auto-generate once daily if goals exist and no entry today
+  useEffect(() => {
+    if (autoGenAttempted || !goals || loading || generating) return;
+    const today = new Date().toISOString().split('T')[0];
+    const hasEntryToday = entries.some(e => e.created_at.startsWith(today));
+    if (!hasEntryToday && positions.length > 0) {
+      setAutoGenAttempted(true);
+      generateJournalEntry(true);
+    } else {
+      setAutoGenAttempted(true);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [goals, loading, autoGenAttempted, entries]);
+
+  const generateJournalEntry = async (silent = false) => {
     if (!user || !goals) {
-      toast.error('Set your goals first before generating a journal entry');
+      if (!silent) toast.error('Set your goals first before generating a journal entry');
       return;
     }
     setGenerating(true);
@@ -296,9 +311,7 @@ export function PortfolioJournal({ portfolioId, initialCapital, currentValue, ca
       const { error } = await supabase.from('sim_portfolio_journal').insert(allInserts);
       if (error) throw error;
 
-      toast.success(`Generated ${journalEntries.length} journal entries`);
-
-      toast.success(`Generated ${entries.length} journal entries`);
+      if (!silent) toast.success(`Generated ${journalEntries.length} journal entries`);
       fetchData();
     } catch (e: any) {
       toast.error(e.message || 'Failed to generate journal');
@@ -320,7 +333,7 @@ export function PortfolioJournal({ portfolioId, initialCapital, currentValue, ca
           <Button
             size="sm"
             variant="outline"
-            onClick={generateJournalEntry}
+            onClick={() => generateJournalEntry(false)}
             disabled={generating || !goals}
             className="h-8 text-xs"
           >
