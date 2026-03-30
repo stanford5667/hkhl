@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Sparkles, Loader2, AlertCircle } from 'lucide-react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, Sparkles, Loader2, AlertCircle, Bookmark, Share2, Check, Link2, BookmarkCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import type { MarketTheme } from '@/data/marketThemes';
 import { ThemeChat } from '@/components/theme/ThemeChat';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export default function ThemeAnalysis() {
   const location = useLocation();
