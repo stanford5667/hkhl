@@ -93,13 +93,7 @@ export function LiveKitBroadcaster({ roomId, onStopStream, onRecordingSaved }: L
   const stopRecording = (): Promise<void> => {
     return new Promise((resolve) => {
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-        const originalOnStop = mediaRecorderRef.current.onstop;
-        mediaRecorderRef.current.onstop = async (e) => {
-          if (originalOnStop && typeof originalOnStop === 'function') {
-            await (originalOnStop as (e: Event) => Promise<void>)(e);
-          }
-          resolve();
-        };
+        recordingSavePromiseRef.current = { resolve };
         mediaRecorderRef.current.stop();
       } else {
         resolve();
