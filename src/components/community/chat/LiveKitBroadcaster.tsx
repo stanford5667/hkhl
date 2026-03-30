@@ -58,7 +58,7 @@ export function LiveKitBroadcaster({ roomId, onStopStream, onRecordingSaved }: L
       };
 
       recorder.onstop = async () => {
-        const blob = new Blob(recordingChunksRef.current, { type: mimeType });
+        const blob = new Blob(recordingChunksRef.current, { type: actualMime });
         const duration = (Date.now() - recordingStartRef.current) / 1000;
         
         if (blob.size > 0 && onRecordingSaved) {
