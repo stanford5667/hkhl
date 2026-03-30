@@ -17,7 +17,13 @@ export default function ThemeAnalysis() {
   const [content, setContent] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isSaved, setIsSaved] = useState(false);
+  const [savedId, setSavedId] = useState<string | null>(null);
+  const [shareId, setShareId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [copied, setCopied] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
+  const hasStarted = useRef(false);
   const hasStarted = useRef(false);
 
   useEffect(() => {
