@@ -34,7 +34,8 @@ export function CommunityHub({ defaultTab = 'chat', initialRoomId }: CommunityHu
   const isMobile = useIsMobile();
   const { isAuthenticated } = useAuth();
   const { isAdmin } = useAdmin();
-  const [activeTab, setActiveTab] = useState<'chat' | 'posts'>(defaultTab);
+  const isPostsRoute = location.pathname.startsWith('/community/posts') || location.pathname === '/community/new-post';
+  const [activeTab, setActiveTab] = useState<'chat' | 'posts'>(isPostsRoute ? 'posts' : defaultTab);
   const [selectedRoom, setSelectedRoom] = useState<ChatRoomType | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
