@@ -137,7 +137,7 @@ export function OptionsChainSelector({ underlyingTicker, onSelect, selectedContr
         <div className="border rounded-lg overflow-hidden">
           {/* Delayed data notice */}
           <div className="px-2 py-1 bg-muted/50 border-b border-border text-[10px] text-muted-foreground">
-            📊 Live options data · 15-min delayed
+            📊 Live options data via Tradier
           </div>
           {/* Header */}
           <div className="grid grid-cols-8 gap-1 px-2 py-1.5 bg-muted/50 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">

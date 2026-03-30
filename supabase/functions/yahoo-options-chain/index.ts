@@ -13,47 +13,45 @@ function json(data: unknown, status = 200) {
   });
 }
 
-const YAHOO_BASE = "https://query2.finance.yahoo.com/v7/finance/options";
+const TRADIER_BASE = "https://api.tradier.com/v1";
 
-async function yahooFetch(url: string) {
-  const res = await fetch(url, {
+async function tradierFetch(path: string, token: string) {
+  const res = await fetch(`${TRADIER_BASE}${path}`, {
     headers: {
-      "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+      Authorization: `Bearer ${token}`,
       Accept: "application/json",
     },
   });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`Yahoo API ${res.status}: ${text.slice(0, 200)}`);
+    throw new Error(`Tradier API ${res.status}: ${text.slice(0, 200)}`);
   }
   return res.json();
 }
 
-function unixToDate(ts: number): string {
-  return new Date(ts * 1000).toISOString().split("T")[0];
-}
-
 function mapContract(c: any, contractType: "call" | "put") {
   return {
-    ticker: c.contractSymbol || "",
+    ticker: c.symbol || "",
     strike_price: c.strike ?? 0,
     contract_type: contractType,
-    expiration_date: c.expiration ? unixToDate(c.expiration) : "",
+    expiration_date: c.expiration_date || "",
     shares_per_contract: 100,
     bid: c.bid ?? 0,
     ask: c.ask ?? 0,
-    mid: c.bid != null && c.ask != null ? Math.round(((c.bid + c.ask) / 2) * 100) / 100 : c.lastPrice ?? 0,
-    last_price: c.lastPrice ?? 0,
+    mid: c.bid != null && c.ask != null
+      ? Math.round(((c.bid + c.ask) / 2) * 100) / 100
+      : c.last ?? 0,
+    last_price: c.last ?? 0,
     volume: c.volume ?? 0,
-    open_interest: c.openInterest ?? 0,
-    implied_volatility: c.impliedVolatility ?? null,
-    delta: null,
-    gamma: null,
-    theta: null,
-    vega: null,
+    open_interest: c.open_interest ?? 0,
+    implied_volatility: c.greeks?.mid_iv ?? null,
+    delta: c.greeks?.delta ?? null,
+    gamma: c.greeks?.gamma ?? null,
+    theta: c.greeks?.theta ?? null,
+    vega: c.greeks?.vega ?? null,
     change: c.change ?? 0,
-    change_percent: c.percentChange ?? 0,
-    in_the_money: c.inTheMoney ?? false,
+    change_percent: c.change_percentage ?? 0,
+    in_the_money: c.bid > 0 && c.ask > 0,
   };
 }
 
@@ -63,6 +61,11 @@ serve(async (req) => {
   }
 
   try {
+    const token = Deno.env.get("TRADIER_API_TOKEN");
+    if (!token) {
+      return json({ ok: false, error: "TRADIER_API_TOKEN not configured" }, 500);
+    }
+
     const { ticker, expirationDate } = await req.json();
     if (!ticker || typeof ticker !== "string") {
       return json({ ok: false, error: "ticker is required" }, 400);
@@ -70,20 +73,32 @@ serve(async (req) => {
 
     const upperTicker = ticker.toUpperCase();
 
-    // Step 1: Fetch base options data (includes expirations list + nearest chain)
-    const baseData = await yahooFetch(`${YAHOO_BASE}/${upperTicker}`);
-    const optionChain = baseData?.optionChain;
-    if (!optionChain?.result?.length) {
-      return json({ ok: false, error: "No options data found for " + upperTicker }, 404);
+    // Step 1: Get stock quote for current price
+    let stockPrice = 0;
+    try {
+      const quoteData = await tradierFetch(
+        `/markets/quotes?symbols=${upperTicker}&greeks=false`,
+        token
+      );
+      const quote = quoteData?.quotes?.quote;
+      stockPrice = quote?.last ?? quote?.close ?? 0;
+    } catch (e) {
+      console.error("[tradier-options] Quote fetch error:", e);
     }
 
-    const result = optionChain.result[0];
-    const quote = result.quote || {};
-    const stockPrice = quote.regularMarketPrice ?? 0;
-
-    // All available expiration timestamps
-    const expirationTimestamps: number[] = result.expirationDates || [];
-    const expirations = expirationTimestamps.map(unixToDate);
+    // Step 2: Get available expirations
+    const expData = await tradierFetch(
+      `/markets/options/expirations?symbol=${upperTicker}&includeAllRoots=true&strikes=false`,
+      token
+    );
+    
+    let expirations: string[] = [];
+    const rawExp = expData?.expirations?.date;
+    if (Array.isArray(rawExp)) {
+      expirations = rawExp;
+    } else if (typeof rawExp === "string") {
+      expirations = [rawExp];
+    }
 
     if (expirations.length === 0) {
       return json({
@@ -95,33 +110,21 @@ serve(async (req) => {
       });
     }
 
-    // Step 2: If a specific expiration was requested, fetch that chain
-    let targetData = result;
-    let selectedExpiration: string;
+    const selectedExpiration = expirationDate || expirations[0];
 
-    if (expirationDate) {
-      // Convert date string to unix timestamp
-      const targetTs = expirationTimestamps.find(
-        (ts) => unixToDate(ts) === expirationDate
-      );
-      if (targetTs) {
-        const expData = await yahooFetch(
-          `${YAHOO_BASE}/${upperTicker}?date=${targetTs}`
-        );
-        targetData = expData?.optionChain?.result?.[0] || result;
-      }
-      selectedExpiration = expirationDate;
-    } else {
-      selectedExpiration = expirations[0];
-    }
-
-    // Step 3: Map calls and puts
-    const options = targetData.options?.[0] || {};
-    const calls = (options.calls || []).map((c: any) => mapContract(c, "call"));
-    const puts = (options.puts || []).map((c: any) => mapContract(c, "put"));
-    const contracts = [...calls, ...puts].sort(
-      (a: any, b: any) => a.strike_price - b.strike_price
+    // Step 3: Get options chain for selected expiration
+    const chainData = await tradierFetch(
+      `/markets/options/chains?symbol=${upperTicker}&expiration=${selectedExpiration}&greeks=true`,
+      token
     );
+
+    let rawOptions = chainData?.options?.option;
+    if (!rawOptions) rawOptions = [];
+    if (!Array.isArray(rawOptions)) rawOptions = [rawOptions];
+
+    const contracts = rawOptions.map((c: any) =>
+      mapContract(c, c.option_type === "call" ? "call" : "put")
+    ).sort((a: any, b: any) => a.strike_price - b.strike_price);
 
     return json({
       ok: true,
@@ -132,7 +135,7 @@ serve(async (req) => {
       contracts,
     });
   } catch (err) {
-    console.error("[yahoo-options-chain] Error:", err);
+    console.error("[tradier-options] Error:", err);
     return json({ ok: false, error: err.message || "Unknown error" }, 500);
   }
 });
