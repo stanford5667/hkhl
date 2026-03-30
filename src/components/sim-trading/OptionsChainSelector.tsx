@@ -46,7 +46,7 @@ export function OptionsChainSelector({ underlyingTicker, onSelect, selectedContr
     setError('');
 
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('polygon-options-chain', {
+      const { data, error: fnError } = await supabase.functions.invoke('yahoo-options-chain', {
         body: { ticker: underlyingTicker, expirationDate: expDate || undefined },
       });
 
@@ -135,18 +135,20 @@ export function OptionsChainSelector({ underlyingTicker, onSelect, selectedContr
 
       {!loading && !error && filteredContracts.length > 0 && (
         <div className="border rounded-lg overflow-hidden">
-          {/* Estimated price notice */}
-          <div className="px-2 py-1 bg-amber-500/10 border-b border-amber-500/20 text-[10px] text-amber-600 dark:text-amber-400">
-            ⚡ Prices estimated from stock price model. Upgrade data plan for live quotes.
+          {/* Delayed data notice */}
+          <div className="px-2 py-1 bg-muted/50 border-b border-border text-[10px] text-muted-foreground">
+            📊 Live options data · 15-min delayed
           </div>
           {/* Header */}
-          <div className="grid grid-cols-6 gap-1 px-2 py-1.5 bg-muted/50 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+          <div className="grid grid-cols-8 gap-1 px-2 py-1.5 bg-muted/50 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
             <span>Strike</span>
             <span className="text-right">Bid</span>
             <span className="text-right">Ask</span>
             <span className="text-right">Last</span>
             <span className="text-right">Vol</span>
             <span className="text-right">OI</span>
+            <span className="text-right">IV</span>
+            <span className="text-right">Δ</span>
           </div>
 
           {/* Rows */}
@@ -157,7 +159,7 @@ export function OptionsChainSelector({ underlyingTicker, onSelect, selectedContr
                 <button
                   key={contract.ticker}
                   onClick={() => onSelect(contract)}
-                  className={`w-full grid grid-cols-6 gap-1 px-2 py-1.5 text-xs font-mono hover:bg-accent/50 transition-colors border-t border-border/50 ${
+                  className={`w-full grid grid-cols-8 gap-1 px-2 py-1.5 text-xs font-mono hover:bg-accent/50 transition-colors border-t border-border/50 ${
                     isSelected ? 'bg-primary/10 border-primary/30' : ''
                   }`}
                 >
@@ -167,6 +169,8 @@ export function OptionsChainSelector({ underlyingTicker, onSelect, selectedContr
                   <span className="text-right">{contract.last_price > 0 ? `$${contract.last_price.toFixed(2)}` : '—'}</span>
                   <span className="text-right text-muted-foreground">{contract.volume > 0 ? contract.volume.toLocaleString() : '—'}</span>
                   <span className="text-right text-muted-foreground">{contract.open_interest > 0 ? contract.open_interest.toLocaleString() : '—'}</span>
+                  <span className="text-right text-muted-foreground">{contract.implied_volatility != null ? `${(contract.implied_volatility * 100).toFixed(0)}%` : '—'}</span>
+                  <span className="text-right text-muted-foreground">{contract.delta != null ? contract.delta.toFixed(2) : '—'}</span>
                 </button>
               );
             })}
