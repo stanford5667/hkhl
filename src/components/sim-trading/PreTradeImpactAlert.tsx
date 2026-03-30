@@ -84,21 +84,24 @@ export function PreTradeImpactAlert({
     if (action === 'buy') {
       const postCash = cashBalance - tradeValue;
       const postCashPct = (postCash / postTradePortfolio) * 100;
-      const deployedPct = 100 - postCashPct;
-      const riskBudget = goals.risk_budget_pct;
 
-      if (deployedPct > riskBudget) {
-        results.push({
-          type: 'danger',
-          title: `Risk budget exceeded: ${deployedPct.toFixed(0)}% deployed vs ${riskBudget}% limit`,
-          detail: `After this trade you'd have only $${postCash.toFixed(0)} cash (${postCashPct.toFixed(1)}%). Your goal allows ${riskBudget}% max deployment.`,
-        });
-      } else if (deployedPct > riskBudget * 0.9) {
-        results.push({
-          type: 'warning',
-          title: `Near risk budget: ${deployedPct.toFixed(0)}% deployed of ${riskBudget}% allowed`,
-          detail: `$${postCash.toFixed(0)} cash remaining. Close to your self-set deployment ceiling.`,
-        });
+      if (goals) {
+        const deployedPct = 100 - postCashPct;
+        const riskBudget = goals.risk_budget_pct;
+
+        if (deployedPct > riskBudget) {
+          results.push({
+            type: 'danger',
+            title: `Risk budget exceeded: ${deployedPct.toFixed(0)}% deployed vs ${riskBudget}% limit`,
+            detail: `After this trade you'd have only $${postCash.toFixed(0)} cash (${postCashPct.toFixed(1)}%). Your goal allows ${riskBudget}% max deployment.`,
+          });
+        } else if (deployedPct > riskBudget * 0.9) {
+          results.push({
+            type: 'warning',
+            title: `Near risk budget: ${deployedPct.toFixed(0)}% deployed of ${riskBudget}% allowed`,
+            detail: `$${postCash.toFixed(0)} cash remaining. Close to your self-set deployment ceiling.`,
+          });
+        }
       }
 
       if (postCashPct < 5) {
@@ -111,44 +114,46 @@ export function PreTradeImpactAlert({
     }
 
     // --- 3. Goal alignment check ---
-    const goalType = goals.goal_type;
+    if (goals) {
+      const goalType = goals.goal_type;
 
-    if (goalType === 'preservation' && action === 'buy') {
-      const tradeAsPct = (tradeValue / totalPortfolio) * 100;
-      if (tradeAsPct > 10) {
-        results.push({
-          type: 'warning',
-          title: `Large trade for a preservation goal`,
-          detail: `Adding ${tradeAsPct.toFixed(1)}% in a single position. Capital preservation strategies typically use smaller, more incremental positions.`,
-        });
+      if (goalType === 'preservation' && action === 'buy') {
+        const tradeAsPct = (tradeValue / totalPortfolio) * 100;
+        if (tradeAsPct > 10) {
+          results.push({
+            type: 'warning',
+            title: `Large trade for a preservation goal`,
+            detail: `Adding ${tradeAsPct.toFixed(1)}% in a single position. Capital preservation strategies typically use smaller, more incremental positions.`,
+          });
+        }
+        if (instrumentType === 'option') {
+          results.push({
+            type: 'warning',
+            title: `Options in a preservation portfolio`,
+            detail: `Options carry expiration risk and can lose 100% of premium. Ensure this aligns with your capital preservation objective.`,
+          });
+        }
       }
-      if (instrumentType === 'option') {
-        results.push({
-          type: 'warning',
-          title: `Options in a preservation portfolio`,
-          detail: `Options carry expiration risk and can lose 100% of premium. Ensure this aligns with your capital preservation objective.`,
-        });
-      }
-    }
 
-    if (goalType === 'income') {
-      if (instrumentType === 'option' && optionType === 'call' && action === 'buy') {
-        results.push({
-          type: 'info',
-          title: `Long calls don't generate income`,
-          detail: `Your goal is income generation. Long calls are a growth/speculative play. Consider covered calls or cash-secured puts for income.`,
-        });
+      if (goalType === 'income') {
+        if (instrumentType === 'option' && optionType === 'call' && action === 'buy') {
+          results.push({
+            type: 'info',
+            title: `Long calls don't generate income`,
+            detail: `Your goal is income generation. Long calls are a growth/speculative play. Consider covered calls or cash-secured puts for income.`,
+          });
+        }
       }
-    }
 
-    if (goalType === 'benchmark_beat') {
-      const sameTickerPositions = positions.filter(p => p.ticker.toUpperCase() === ticker.toUpperCase()).length;
-      if (sameTickerPositions > 0 && action === 'buy') {
-        results.push({
-          type: 'info',
-          title: `Adding to existing ${ticker} position`,
-          detail: `You already hold ${ticker}. Doubling down increases active risk vs ${goals.benchmark_ticker}. New weight: ${newConcentration.toFixed(1)}%.`,
-        });
+      if (goalType === 'benchmark_beat') {
+        const sameTickerPositions = positions.filter(p => p.ticker.toUpperCase() === ticker.toUpperCase()).length;
+        if (sameTickerPositions > 0 && action === 'buy') {
+          results.push({
+            type: 'info',
+            title: `Adding to existing ${ticker} position`,
+            detail: `You already hold ${ticker}. Doubling down increases active risk vs ${goals.benchmark_ticker}. New weight: ${newConcentration.toFixed(1)}%.`,
+          });
+        }
       }
     }
 
