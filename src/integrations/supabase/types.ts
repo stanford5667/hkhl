@@ -5112,6 +5112,56 @@ export type Database = {
           },
         ]
       }
+      sim_trade_reflections: {
+        Row: {
+          action: string
+          created_at: string
+          emotion: string | null
+          id: string
+          lesson_learned: string | null
+          portfolio_id: string
+          thesis: string | null
+          ticker: string
+          trade_id: string
+          user_id: string
+          would_repeat: boolean | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          emotion?: string | null
+          id?: string
+          lesson_learned?: string | null
+          portfolio_id: string
+          thesis?: string | null
+          ticker: string
+          trade_id: string
+          user_id: string
+          would_repeat?: boolean | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          emotion?: string | null
+          id?: string
+          lesson_learned?: string | null
+          portfolio_id?: string
+          thesis?: string | null
+          ticker?: string
+          trade_id?: string
+          user_id?: string
+          would_repeat?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sim_trade_reflections_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "sim_portfolios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sim_trades: {
         Row: {
           action: string
@@ -5168,6 +5218,41 @@ export type Database = {
           },
         ]
       }
+      sim_trading_achievements: {
+        Row: {
+          achievement_id: string
+          id: string
+          metadata: Json | null
+          portfolio_id: string
+          unlocked_at: string
+          user_id: string
+        }
+        Insert: {
+          achievement_id: string
+          id?: string
+          metadata?: Json | null
+          portfolio_id: string
+          unlocked_at?: string
+          user_id: string
+        }
+        Update: {
+          achievement_id?: string
+          id?: string
+          metadata?: Json | null
+          portfolio_id?: string
+          unlocked_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sim_trading_achievements_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "sim_portfolios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sim_watchlist: {
         Row: {
           added_at: string
@@ -5188,6 +5273,53 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      sim_weekly_reports: {
+        Row: {
+          created_at: string
+          grades: Json
+          id: string
+          improvement_tips: Json
+          insights: Json
+          metrics: Json
+          overall_grade: string
+          portfolio_id: string
+          user_id: string
+          week_start: string
+        }
+        Insert: {
+          created_at?: string
+          grades?: Json
+          id?: string
+          improvement_tips?: Json
+          insights?: Json
+          metrics?: Json
+          overall_grade: string
+          portfolio_id: string
+          user_id: string
+          week_start: string
+        }
+        Update: {
+          created_at?: string
+          grades?: Json
+          id?: string
+          improvement_tips?: Json
+          insights?: Json
+          metrics?: Json
+          overall_grade?: string
+          portfolio_id?: string
+          user_id?: string
+          week_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sim_weekly_reports_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "sim_portfolios"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       stock_price_cache: {
         Row: {
