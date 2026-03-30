@@ -34,8 +34,11 @@ function getGradient(id: string) {
   return gradients[idx];
 }
 
-export function PostCard({ post, onVote, onTickerClick, compact = false }: PostCardProps) {
+export function PostCard({ post, onVote, onTickerClick, onDelete, compact = false }: PostCardProps) {
   const navigate = useNavigate();
+  const { isAdmin } = useAdmin();
+  const { user } = useAuth();
+  const canDelete = isAdmin || user?.id === post.user_id;
 
   const displayName = post.user_profile?.full_name || 'Anonymous';
   const initials = displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
