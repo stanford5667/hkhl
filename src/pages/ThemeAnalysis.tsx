@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import type { MarketTheme } from '@/data/marketThemes';
+import { ThemeChat } from '@/components/theme/ThemeChat';
 
 export default function ThemeAnalysis() {
   const location = useLocation();
@@ -269,6 +270,11 @@ export default function ThemeAnalysis() {
             </div>
           ) : null}
         </div>
+
+        {/* Chat interface for forming trade ideas */}
+        {!isLoading && content && (
+          <ThemeChat theme={theme} analysisContent={content} />
+        )}
 
         {/* Bottom nav */}
         {!isLoading && content && (
