@@ -188,7 +188,11 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
       {(room.is_live || livekitMode) && canAccess && (
           room.live_stream_url === '__livekit__' || livekitMode ? (
             isAdmin ? (
-              <LiveKitBroadcaster roomId={room.id} onStopStream={handleStopLivestream} />
+              <LiveKitBroadcaster
+                roomId={room.id}
+                onStopStream={handleStopLivestream}
+                onRecordingSaved={(blob, duration) => saveRecording(blob, duration)}
+              />
             ) : (
               <LiveKitViewer roomId={room.id} />
             )
@@ -199,6 +203,15 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
               onStopStream={handleStopLivestream}
             />
           ) : null
+        )}
+
+        {canAccess && !room.is_live && !livekitMode && (
+          <StreamRecordingsList
+            recordings={recordings}
+            loading={recordingsLoading}
+            isAdmin={isAdmin}
+            onDelete={isAdmin ? deleteRecording : undefined}
+          />
         )}
         <ResizablePanelGroup direction="horizontal">
           <ResizablePanel defaultSize={activeThread ? 60 : 100} minSize={40}>
