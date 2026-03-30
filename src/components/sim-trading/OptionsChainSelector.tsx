@@ -135,6 +135,10 @@ export function OptionsChainSelector({ underlyingTicker, onSelect, selectedContr
 
       {!loading && !error && filteredContracts.length > 0 && (
         <div className="border rounded-lg overflow-hidden">
+          {/* Estimated price notice */}
+          <div className="px-2 py-1 bg-amber-500/10 border-b border-amber-500/20 text-[10px] text-amber-600 dark:text-amber-400">
+            ⚡ Prices estimated from stock price model. Upgrade data plan for live quotes.
+          </div>
           {/* Header */}
           <div className="grid grid-cols-6 gap-1 px-2 py-1.5 bg-muted/50 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
             <span>Strike</span>
