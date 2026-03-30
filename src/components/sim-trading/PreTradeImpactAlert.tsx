@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
-import { AlertTriangle, CheckCircle, TrendingDown, BarChart3, ShieldAlert } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { AlertTriangle, CheckCircle, BarChart3, ShieldAlert, ChevronDown, ChevronUp, BookOpen, Lightbulb, GraduationCap } from 'lucide-react';
+import { getRelevantTopics, EDUCATION_TOPICS } from './learning/tradeEducation';
 
 interface Position {
   ticker: string;
@@ -37,6 +38,8 @@ interface Alert {
 export function PreTradeImpactAlert({
   ticker, action, tradeValue, currentValue, cashBalance, positions, goals, instrumentType, optionType,
 }: Props) {
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+
   const alerts = useMemo(() => {
     if (!tradeValue || tradeValue <= 0 || !goals) return [];
 
@@ -44,9 +47,7 @@ export function PreTradeImpactAlert({
     const totalPortfolio = currentValue;
     if (totalPortfolio <= 0) return [];
 
-    const postTradePortfolio = action === 'buy'
-      ? totalPortfolio // value stays same, cash→position
-      : totalPortfolio; // sell: position→cash
+    const postTradePortfolio = action === 'buy' ? totalPortfolio : totalPortfolio;
 
     // --- 1. Concentration after trade ---
     const existingValue = positions
@@ -141,7 +142,6 @@ export function PreTradeImpactAlert({
     }
 
     if (goalType === 'benchmark_beat') {
-      // Check if adding more of same sector increases tracking error
       const sameTickerPositions = positions.filter(p => p.ticker.toUpperCase() === ticker.toUpperCase()).length;
       if (sameTickerPositions > 0 && action === 'buy') {
         results.push({
@@ -165,52 +165,32 @@ export function PreTradeImpactAlert({
     // --- 5. Portfolio-level drawdown analysis ---
     if (action === 'buy') {
       const ddBudget = goals.max_drawdown_pct;
-
-      // Build post-trade position map: ticker → value
       const positionMap = new Map<string, number>();
       for (const p of positions) {
         const t = p.ticker.toUpperCase();
         positionMap.set(t, (positionMap.get(t) || 0) + (p.current_value || 0));
       }
-      // Apply this trade
       const tradeTicker = ticker.toUpperCase();
       const currentVal = positionMap.get(tradeTicker) || 0;
       positionMap.set(tradeTicker, currentVal + tradeValue);
 
-      // Calculate total invested (non-cash) value after trade
       let totalInvested = 0;
       for (const v of positionMap.values()) totalInvested += v;
 
       const postCash = cashBalance - tradeValue;
       const postPortfolio = totalInvested + postCash;
 
-      // Concentration-based portfolio max drawdown estimate:
-      // Sum of (weight_i^2) gives HHI — higher HHI = more concentrated = higher drawdown risk
-      // Worst-case portfolio drawdown = if all positions drop simultaneously
-      // More realistic: estimate using position weights and a correlation assumption
       const weights: number[] = [];
-      const posValues: number[] = [];
       for (const v of positionMap.values()) {
-        if (v > 0) {
-          weights.push(v / postPortfolio);
-          posValues.push(v);
-        }
+        if (v > 0) weights.push(v / postPortfolio);
       }
 
-      // HHI (Herfindahl-Hirschman Index) — measures concentration
       const hhi = weights.reduce((sum, w) => sum + w * w, 0);
       const numPositions = weights.length;
-
-      // Worst-case: 100% correlated — max drawdown = total invested %
       const worstCaseDD = (totalInvested / postPortfolio) * 100;
-
-      // Diversified estimate: assume avg correlation ~0.5 for equities
-      // Portfolio vol scales roughly as sqrt(HHI + (1-HHI)*avg_corr) relative to single stock
       const avgCorr = 0.5;
       const diversificationFactor = Math.sqrt(hhi + (1 - hhi) * avgCorr);
       const estimatedDD = worstCaseDD * diversificationFactor;
-
-      // Largest single position risk
       const maxWeight = Math.max(...weights);
       const largestPct = maxWeight * 100;
 
@@ -264,17 +244,85 @@ export function PreTradeImpactAlert({
   return (
     <div className="space-y-1.5">
       <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-        Pre-Trade Impact Analysis
+        Pre-Trade Impact Analysis — <span className="text-primary">click alerts to learn more</span>
       </p>
-      {alerts.map((alert, i) => (
-        <div key={i} className={`flex items-start gap-2 p-2 rounded border text-xs ${bgMap[alert.type]}`}>
-          {iconMap[alert.type]}
-          <div className="min-w-0">
-            <p className="font-medium leading-tight">{alert.title}</p>
-            <p className="text-muted-foreground leading-snug mt-0.5">{alert.detail}</p>
+      {alerts.map((alert, i) => {
+        const isExpanded = expandedIndex === i;
+        const topicIds = getRelevantTopics(alert.title, alert.detail, alert.type);
+        const topics = topicIds.map(id => EDUCATION_TOPICS[id]).filter(Boolean);
+
+        return (
+          <div key={i} className="rounded border overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setExpandedIndex(isExpanded ? null : i)}
+              className={`flex items-start gap-2 p-2 w-full text-left text-xs transition-colors hover:brightness-110 ${bgMap[alert.type]}`}
+            >
+              {iconMap[alert.type]}
+              <div className="min-w-0 flex-1">
+                <p className="font-medium leading-tight">{alert.title}</p>
+                <p className="text-muted-foreground leading-snug mt-0.5">{alert.detail}</p>
+              </div>
+              <div className="shrink-0 flex items-center gap-1 text-muted-foreground">
+                {topics.length > 0 && <BookOpen className="h-3 w-3 text-primary/70" />}
+                {isExpanded
+                  ? <ChevronUp className="h-3 w-3" />
+                  : <ChevronDown className="h-3 w-3" />
+                }
+              </div>
+            </button>
+
+            {isExpanded && topics.length > 0 && (
+              <div className="border-t border-border/30 bg-muted/30 p-3 space-y-3">
+                {topics.map(topic => (
+                  <div key={topic.id} className="space-y-2">
+                    <div className="flex items-center gap-1.5">
+                      <GraduationCap className="h-3.5 w-3.5 text-primary" />
+                      <span className="text-xs font-semibold text-primary">{topic.title}</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed whitespace-pre-line">
+                      {topic.explanation}
+                    </p>
+                    <div className="rounded bg-blue-500/10 border border-blue-500/20 p-2">
+                      <div className="flex items-center gap-1 mb-1">
+                        <Lightbulb className="h-3 w-3 text-blue-400" />
+                        <span className="text-[10px] font-semibold text-blue-400 uppercase">Real-World Example</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">{topic.realWorldExample}</p>
+                    </div>
+                    <div className="rounded bg-emerald-500/10 border border-emerald-500/20 p-2">
+                      <p className="text-[11px] font-medium text-emerald-400">
+                        💡 {topic.keyTakeaway}
+                      </p>
+                    </div>
+                    {topic.relatedConcepts.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        <span className="text-[9px] text-muted-foreground">Related:</span>
+                        {topic.relatedConcepts.map(rc => {
+                          const related = EDUCATION_TOPICS[rc];
+                          return related ? (
+                            <span key={rc} className="text-[9px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+                              {related.title}
+                            </span>
+                          ) : null;
+                        })}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {isExpanded && topics.length === 0 && (
+              <div className="border-t border-border/30 bg-muted/30 p-3">
+                <p className="text-[11px] text-muted-foreground italic">
+                  This alert is informational. Continue to monitor this metric as you build your portfolio.
+                </p>
+              </div>
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
       {hasDanger && (
         <p className="text-[10px] text-red-400 font-medium">
           ⚠ This trade has alignment issues with your portfolio goals. You can still proceed.
