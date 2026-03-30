@@ -246,9 +246,33 @@ export default function ThemeAnalysis() {
             </div>
           </div>
           {isLoading && (
-            <div className="ml-auto flex items-center gap-1.5 text-primary">
+            <div className="flex items-center gap-1.5 text-primary">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
               <span className="text-[10px] font-mono hidden sm:inline">Analyzing…</span>
+            </div>
+          )}
+          {!isLoading && content && (
+            <div className="ml-auto flex items-center gap-1.5">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSave}
+                disabled={isSaving || isSaved}
+                className="text-xs"
+              >
+                {isSaved ? <BookmarkCheck className="h-3.5 w-3.5 mr-1 text-primary" /> : <Bookmark className="h-3.5 w-3.5 mr-1" />}
+                {isSaved ? 'Saved' : 'Save'}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleShare}
+                disabled={isSaving}
+                className="text-xs"
+              >
+                {copied ? <Check className="h-3.5 w-3.5 mr-1 text-primary" /> : <Share2 className="h-3.5 w-3.5 mr-1" />}
+                {copied ? 'Copied!' : 'Share'}
+              </Button>
             </div>
           )}
         </div>
