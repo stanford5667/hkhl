@@ -53,6 +53,8 @@ const CATEGORY_CONFIG: Record<string, { icon: typeof TrendingUp; color: string }
   rebalance: { icon: ArrowUpDown, color: 'text-purple-400' },
   risk: { icon: AlertTriangle, color: 'text-red-400' },
   benchmark: { icon: TrendingUp, color: 'text-cyan-400' },
+  asset: { icon: BarChart3, color: 'text-indigo-400' },
+  backtest_delta: { icon: ArrowUpDown, color: 'text-orange-400' },
 };
 
 export function PortfolioJournal({ portfolioId, initialCapital, currentValue, cashBalance, trades, positions }: Props) {
