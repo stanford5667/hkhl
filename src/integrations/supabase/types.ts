@@ -4926,6 +4926,109 @@ export type Database = {
           },
         ]
       }
+      sim_portfolio_goals: {
+        Row: {
+          benchmark_ticker: string | null
+          created_at: string
+          current_value: number | null
+          goal_type: string
+          id: string
+          max_drawdown_pct: number | null
+          notes: string | null
+          portfolio_id: string
+          risk_budget_pct: number | null
+          target_annual_return_pct: number | null
+          target_value: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          benchmark_ticker?: string | null
+          created_at?: string
+          current_value?: number | null
+          goal_type: string
+          id?: string
+          max_drawdown_pct?: number | null
+          notes?: string | null
+          portfolio_id: string
+          risk_budget_pct?: number | null
+          target_annual_return_pct?: number | null
+          target_value?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          benchmark_ticker?: string | null
+          created_at?: string
+          current_value?: number | null
+          goal_type?: string
+          id?: string
+          max_drawdown_pct?: number | null
+          notes?: string | null
+          portfolio_id?: string
+          risk_budget_pct?: number | null
+          target_annual_return_pct?: number | null
+          target_value?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sim_portfolio_goals_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: true
+            referencedRelation: "sim_portfolios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sim_portfolio_journal: {
+        Row: {
+          benchmark_comparison: Json | null
+          category: string
+          content: string
+          created_at: string
+          entry_type: string
+          id: string
+          metrics: Json | null
+          portfolio_id: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          benchmark_comparison?: Json | null
+          category?: string
+          content: string
+          created_at?: string
+          entry_type?: string
+          id?: string
+          metrics?: Json | null
+          portfolio_id: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          benchmark_comparison?: Json | null
+          category?: string
+          content?: string
+          created_at?: string
+          entry_type?: string
+          id?: string
+          metrics?: Json | null
+          portfolio_id?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sim_portfolio_journal_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "sim_portfolios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sim_portfolios: {
         Row: {
           backtest_results: Json | null
