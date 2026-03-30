@@ -14,8 +14,16 @@ serve(async (req) => {
   try {
     const { title, summary, detailedSummary, category, tickers, headlines, chatMode, systemPromptOverride, chatMessages } = await req.json();
 
-    if (!title || !tickers || tickers.length === 0) {
-      return new Response(JSON.stringify({ error: "Missing theme data" }), {
+    if (!title) {
+      return new Response(JSON.stringify({ error: "Missing theme title" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // For standard analysis mode, require tickers; for chat mode, tickers are optional
+    if (!chatMode && (!tickers || tickers.length === 0)) {
+      return new Response(JSON.stringify({ error: "Missing theme tickers" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
