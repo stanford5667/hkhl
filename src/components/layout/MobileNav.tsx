@@ -45,6 +45,7 @@ const adminMobileNavItems = [
 export function MobileNav() {
   const location = useLocation();
   const [open, setOpen] = useState(false);
+  const { isAdmin } = useAdmin();
 
   return (
     <>
