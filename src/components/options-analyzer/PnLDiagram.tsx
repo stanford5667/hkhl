@@ -1,10 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Loader2 } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine } from 'recharts';
+import { supabase } from '@/integrations/supabase/client';
 import { Explainer } from './Explainer';
 
 interface Props {
@@ -26,21 +28,53 @@ const STRATEGIES: Record<StrategyType, { label: string; description: string }> =
 
 export function PnLDiagram({ ticker }: Props) {
   const [strategy, setStrategy] = useState<StrategyType>('long-call');
-  const [spotPrice, setSpotPrice] = useState('150');
-  const [strike1, setStrike1] = useState('155');
-  const [strike2, setStrike2] = useState('165');
-  const [strike3, setStrike3] = useState('145');
-  const [strike4, setStrike4] = useState('170');
+  const [spotPrice, setSpotPrice] = useState('');
+  const [loadingPrice, setLoadingPrice] = useState(true);
+  const [strike1, setStrike1] = useState('');
+  const [strike2, setStrike2] = useState('');
+  const [strike3, setStrike3] = useState('');
+  const [strike4, setStrike4] = useState('');
   const [premium1, setPremium1] = useState('3.50');
   const [premium2, setPremium2] = useState('1.50');
   const [contracts, setContracts] = useState('1');
 
+  // Fetch live price from Polygon
+  useEffect(() => {
+    async function fetchPrice() {
+      setLoadingPrice(true);
+      try {
+        const { data } = await supabase.functions.invoke('polygon-stock-quotes', {
+          body: { symbols: [ticker.toUpperCase()] },
+        });
+        const quote = data?.quotes?.[ticker.toUpperCase()] || data?.quotes?.[Object.keys(data?.quotes || {})[0]];
+        const price = quote?.price || quote?.last || quote?.c || 0;
+        if (price > 0) {
+          const p = price.toFixed(2);
+          setSpotPrice(p);
+          // Set sensible default strikes based on price
+          const rounded = Math.round(price);
+          setStrike1((rounded + 5).toString());
+          setStrike2((rounded + 15).toString());
+          setStrike3((rounded - 10).toString());
+          setStrike4((rounded + 20).toString());
+        }
+      } catch (e) {
+        console.error('Failed to fetch price for P&L:', e);
+      } finally {
+        setLoadingPrice(false);
+      }
+    }
+    fetchPrice();
+  }, [ticker]);
+
+  const spot = parseFloat(spotPrice) || 0;
+
   const pnlData = useMemo(() => {
-    const spot = parseFloat(spotPrice) || 150;
-    const k1 = parseFloat(strike1) || 155;
-    const k2 = parseFloat(strike2) || 165;
-    const k3 = parseFloat(strike3) || 145;
-    const k4 = parseFloat(strike4) || 170;
+    if (!spot) return [];
+    const k1 = parseFloat(strike1) || spot + 5;
+    const k2 = parseFloat(strike2) || spot + 15;
+    const k3 = parseFloat(strike3) || spot - 10;
+    const k4 = parseFloat(strike4) || spot + 20;
     const p1 = parseFloat(premium1) || 3.5;
     const p2 = parseFloat(premium2) || 1.5;
     const mult = (parseInt(contracts) || 1) * 100;
@@ -66,7 +100,7 @@ export function PnLDiagram({ ticker }: Props) {
       data.push({ price: Math.round(price * 100) / 100, pnl: Math.round(pnl * 100) / 100 });
     }
     return data;
-  }, [strategy, spotPrice, strike1, strike2, strike3, strike4, premium1, premium2, contracts]);
+  }, [strategy, spot, strike1, strike2, strike3, strike4, premium1, premium2, contracts]);
 
   const metrics = useMemo(() => {
     if (pnlData.length === 0) return null;
@@ -82,9 +116,17 @@ export function PnLDiagram({ ticker }: Props) {
   const showSecondStrike = ['bull-call-spread', 'bear-put-spread', 'iron-condor', 'strangle'].includes(strategy);
   const showThirdFourthStrike = strategy === 'iron-condor';
 
+  if (loadingPrice) {
+    return (
+      <Card className="p-8 flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <span className="ml-2 text-sm text-muted-foreground">Loading {ticker} price...</span>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      {/* Beginner Explainer */}
       <Explainer>
         <strong>What is a P&L Diagram?</strong> It shows how much money you'd make (or lose) at every possible stock price when your option expires. 
         The horizontal axis is the stock price; the vertical axis is your profit or loss. Where the line crosses zero is your "breakeven" — 
@@ -95,6 +137,15 @@ export function PnLDiagram({ ticker }: Props) {
         {/* Config Panel */}
         <Card className="p-5 space-y-4 lg:col-span-1">
           <h3 className="text-sm font-semibold">Strategy Builder</h3>
+          
+          {/* Live price badge */}
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="font-mono text-xs">
+              {ticker} ${spot.toFixed(2)}
+            </Badge>
+            <span className="text-[10px] text-muted-foreground">Live price</span>
+          </div>
+
           <div>
             <Label className="text-xs mb-1.5 block">Strategy</Label>
             <Select value={strategy} onValueChange={(v) => setStrategy(v as StrategyType)}>
@@ -106,10 +157,6 @@ export function PnLDiagram({ ticker }: Props) {
               </SelectContent>
             </Select>
             <p className="text-[11px] text-muted-foreground mt-2 leading-relaxed">{STRATEGIES[strategy].description}</p>
-          </div>
-          <div>
-            <Label className="text-xs mb-1.5 block">Current Stock Price ($)</Label>
-            <Input value={spotPrice} onChange={(e) => setSpotPrice(e.target.value)} className="h-8 text-xs font-mono" type="number" />
           </div>
           <div>
             <Label className="text-xs mb-1.5 block">Strike Price ($)</Label>
@@ -154,7 +201,6 @@ export function PnLDiagram({ ticker }: Props) {
 
         {/* P&L Chart */}
         <Card className="p-5 lg:col-span-3">
-          {/* Metrics Bar */}
           {metrics && (
             <div className="flex items-center gap-6 mb-5 flex-wrap">
               <div className="text-center">
@@ -192,7 +238,7 @@ export function PnLDiagram({ ticker }: Props) {
                 labelFormatter={(v) => `If stock is at $${v}`}
               />
               <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
-              <ReferenceLine x={parseFloat(spotPrice)} stroke="hsl(var(--foreground) / 0.5)" strokeDasharray="4 4" label={{ value: 'Current Price', position: 'top', fontSize: 10 }} />
+              <ReferenceLine x={spot} stroke="hsl(var(--foreground) / 0.5)" strokeDasharray="4 4" label={{ value: 'Current Price', position: 'top', fontSize: 10 }} />
               <defs>
                 <linearGradient id="pnlGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="hsl(var(--chart-2))" stopOpacity={0.4} />
