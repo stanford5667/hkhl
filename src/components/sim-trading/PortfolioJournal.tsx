@@ -12,7 +12,7 @@ import type { StockQuote } from '@/services/finnhubService';
 import type { SimTrade } from './SimPortfolioDetail';
 import type { Position } from './SimPortfolioDetail';
 import {
-  BookOpen, RefreshCw, Clock, ChevronDown, ChevronUp,
+  BookOpen, RefreshCw, Clock,
   TrendingUp, TrendingDown, AlertTriangle
 } from 'lucide-react';
 import { format, differenceInDays, parseISO } from 'date-fns';
@@ -63,7 +63,7 @@ export function PortfolioJournal({ portfolioId, initialCapital, currentValue, ca
   const [generating, setGenerating] = useState(false);
   const [loading, setLoading] = useState(true);
   const [autoGenAttempted, setAutoGenAttempted] = useState(false);
-  const [expandedEntryId, setExpandedEntryId] = useState<string | null>(null);
+  
   const prevPositionsRef = useRef<string>('');
 
   const fetchData = useCallback(async () => {
@@ -578,130 +578,106 @@ export function PortfolioJournal({ portfolioId, initialCapital, currentValue, ca
             </div>
           )}
 
-          <ScrollArea className="max-h-[600px]">
-            <div className="space-y-1">
+          <ScrollArea className="max-h-[700px]">
+            <div className="space-y-6">
               {sortedDates.map((date) => {
                 const dateEntries = groupedEntries[date] || [];
                 const isToday = date === today;
                 
                 return dateEntries.map((entry) => {
-                  const isExpanded = expandedEntryId === entry.id;
                   const metrics = entry.metrics as Record<string, any>;
                   const returnVal = metrics?.totalReturn;
                   const isPositive = returnVal !== undefined && returnVal >= 0;
 
                   return (
-                    <div key={entry.id} className="group">
-                      <button
-                        type="button"
-                        onClick={() => setExpandedEntryId(isExpanded ? null : entry.id)}
-                        className={`w-full text-left px-3 py-3 rounded-lg transition-all ${
-                          isExpanded
-                            ? 'bg-muted/60 border border-border/50'
-                            : 'hover:bg-muted/30'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className={`shrink-0 w-10 h-10 rounded-full flex flex-col items-center justify-center text-[10px] font-medium ${
-                              isToday ? 'bg-primary/15 text-primary border border-primary/30' : 'bg-muted text-muted-foreground'
-                            }`}>
-                              <span className="leading-none">{format(parseISO(date), 'MMM')}</span>
-                              <span className="text-sm font-bold leading-none">{format(parseISO(date), 'd')}</span>
-                            </div>
-                            
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium truncate">
-                                  {format(parseISO(date), 'EEEE')}
-                                </span>
-                                {isToday && (
-                                  <Badge className="text-[9px] h-4 bg-primary/20 text-primary border-primary/30">Today</Badge>
-                                )}
-                              </div>
-                              <p className="text-[11px] text-muted-foreground truncate max-w-md">
-                                {entry.content.split('\n\n')[0]?.slice(0, 90)}...
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-3 shrink-0">
-                            {returnVal !== undefined && (
-                              <div className={`flex items-center gap-1 text-xs font-mono font-medium ${isPositive ? 'text-success' : 'text-destructive'}`}>
-                                {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                                {isPositive ? '+' : ''}{returnVal}%
-                              </div>
-                            )}
-                            {isExpanded
-                              ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" />
-                              : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                            }
-                          </div>
+                    <div key={entry.id} className="border-b border-border/30 pb-5 last:border-b-0 last:pb-0">
+                      {/* Date header */}
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className={`shrink-0 w-10 h-10 rounded-full flex flex-col items-center justify-center text-[10px] font-medium ${
+                          isToday ? 'bg-primary/15 text-primary border border-primary/30' : 'bg-muted text-muted-foreground'
+                        }`}>
+                          <span className="leading-none">{format(parseISO(date), 'MMM')}</span>
+                          <span className="text-sm font-bold leading-none">{format(parseISO(date), 'd')}</span>
                         </div>
-                      </button>
-
-                      {isExpanded && (
-                        <div className="px-3 pb-4 pt-1 ml-[52px]">
-                          {/* Metric pills */}
-                          {metrics && (
-                            <div className="flex flex-wrap gap-1.5 mb-3">
-                              {metrics.portfolioDayPnL != null && metrics.portfolioDayPnL !== 0 && (
-                                <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${
-                                  metrics.portfolioDayPnL >= 0
-                                    ? 'bg-success/10 text-success border-success/20'
-                                    : 'bg-destructive/10 text-destructive border-destructive/20'
-                                }`}>
-                                  Today: {metrics.portfolioDayPnL >= 0 ? '+' : ''}{fmtUSD(metrics.portfolioDayPnL, 2)}
-                                </span>
-                              )}
-                              {metrics.benchmarkDayChange != null && (
-                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border/30">
-                                  {metrics.benchmarkDayChange >= 0 ? '📈' : '📉'} SPY: {fmtPct(metrics.benchmarkDayChange, 2)}
-                                </span>
-                              )}
-                              {metrics.maxDrawdown !== undefined && (
-                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border/30">
-                                  Max DD: -{metrics.maxDrawdown}%
-                                </span>
-                              )}
-                              {metrics.winRate !== undefined && metrics.winRate > 0 && (
-                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border/30">
-                                  Win Rate: {metrics.winRate}%
-                                </span>
-                              )}
-                              {metrics.positionCount !== undefined && (
-                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border/30">
-                                  {metrics.positionCount} positions
-                                </span>
-                              )}
-                              {metrics.daysActive !== undefined && metrics.daysActive > 0 && (
-                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border/30">
-                                  Day {metrics.daysActive}
-                                </span>
-                              )}
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium">{format(parseISO(date), 'EEEE, MMMM d, yyyy')}</span>
+                            {isToday && (
+                              <Badge className="text-[9px] h-4 bg-primary/20 text-primary border-primary/30">Today</Badge>
+                            )}
+                          </div>
+                          {returnVal !== undefined && (
+                            <div className={`flex items-center gap-1 text-xs font-mono font-medium mt-0.5 ${isPositive ? 'text-success' : 'text-destructive'}`}>
+                              {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                              {isPositive ? '+' : ''}{returnVal}% overall
                             </div>
                           )}
+                        </div>
+                      </div>
 
-                          {/* Written narrative */}
-                          <div className="space-y-3">
-                            {entry.content.split('\n\n').map((paragraph, i) => {
-                              const hasWarning = paragraph.includes('⚠️') || paragraph.includes('🚨');
+                      {/* Full narrative — always visible */}
+                      <div className="space-y-3 mb-3">
+                        {entry.content.split('\n\n').map((paragraph, i) => {
+                          const hasWarning = paragraph.includes('⚠️') || paragraph.includes('🚨');
 
-                              if (hasWarning) {
-                                return (
-                                  <div key={i} className="flex gap-2 p-2.5 rounded-lg border bg-destructive/5 border-destructive/20">
-                                    <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
-                                    <p className="text-xs text-foreground/90 leading-relaxed">{paragraph.replace(/⚠️|🚨/g, '').trim()}</p>
-                                  </div>
-                                );
-                              }
-                              return (
-                                <p key={i} className="text-xs text-foreground/80 leading-relaxed">
-                                  {paragraph}
-                                </p>
-                              );
-                            })}
-                          </div>
+                          if (hasWarning) {
+                            return (
+                              <div key={i} className="flex gap-2 p-2.5 rounded-lg border bg-destructive/5 border-destructive/20">
+                                <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                                <p className="text-xs text-foreground/90 leading-relaxed">{paragraph.replace(/⚠️|🚨/g, '').trim()}</p>
+                              </div>
+                            );
+                          }
+                          return (
+                            <p key={i} className="text-xs text-foreground/80 leading-relaxed">
+                              {paragraph}
+                            </p>
+                          );
+                        })}
+                      </div>
+
+                      {/* Metric pills underneath */}
+                      {metrics && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {metrics.portfolioDayPnL != null && metrics.portfolioDayPnL !== 0 && (
+                            <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${
+                              metrics.portfolioDayPnL >= 0
+                                ? 'bg-success/10 text-success border-success/20'
+                                : 'bg-destructive/10 text-destructive border-destructive/20'
+                            }`}>
+                              Day P&L: {metrics.portfolioDayPnL >= 0 ? '+' : ''}{fmtUSD(metrics.portfolioDayPnL, 2)}
+                            </span>
+                          )}
+                          {metrics.benchmarkDayChange != null && (
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border/30">
+                              SPY: {fmtPct(metrics.benchmarkDayChange, 2)}
+                            </span>
+                          )}
+                          {metrics.maxDrawdown !== undefined && (
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border/30">
+                              Max DD: -{metrics.maxDrawdown}%
+                            </span>
+                          )}
+                          {metrics.winRate !== undefined && metrics.winRate > 0 && (
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border/30">
+                              Win Rate: {metrics.winRate}%
+                            </span>
+                          )}
+                          {metrics.positionCount !== undefined && (
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border/30">
+                              {metrics.positionCount} positions
+                            </span>
+                          )}
+                          {metrics.cashPct !== undefined && (
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border/30">
+                              Cash: {metrics.cashPct}%
+                            </span>
+                          )}
+                          {metrics.daysActive !== undefined && metrics.daysActive > 0 && (
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border/30">
+                              Day {metrics.daysActive}
+                            </span>
+                          )}
                         </div>
                       )}
                     </div>
