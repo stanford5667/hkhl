@@ -291,7 +291,7 @@ function HistoricalPerformance({
         }
 
         // Calculate metrics using existing service functions
-        const years = commonDates.length / 252;
+        const years = dailyReturns.length / 252;
         const totalReturn = ((portfolioValues[portfolioValues.length - 1] - initialCapital) / initialCapital) * 100;
         const cagr = calculateCAGR(initialCapital, portfolioValues[portfolioValues.length - 1], years) * 100;
         const volatility = annualizedVolatility(dailyReturns) * 100;
