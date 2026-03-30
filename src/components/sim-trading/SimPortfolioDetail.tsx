@@ -15,6 +15,7 @@ import { SimPortfolioAnalytics } from './SimPortfolioAnalytics';
 import { BacktestComparisonOverlay } from './BacktestComparisonOverlay';
 import { SimBacktestTab } from './SimBacktestTab';
 import { StrategySignalBadge } from './StrategySignalBadge';
+import { PortfolioJournal } from './PortfolioJournal';
 import { useOrderExecution } from '@/hooks/useOrderExecution';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
