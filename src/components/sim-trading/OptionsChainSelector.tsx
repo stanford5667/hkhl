@@ -198,108 +198,166 @@ export function OptionsChainSelector({ underlyingTicker, onSelect, selectedContr
             <span>{chainData.length} strikes</span>
           </div>
 
-          {/* Spread header */}
-          <div className={`grid gap-0 px-0 py-1 bg-muted/50 text-[10px] font-medium text-muted-foreground uppercase tracking-wider border-b border-border ${
-            viewMode === 'all' ? 'grid-cols-[1fr_auto_1fr]' : ''
-          }`}>
-            {showCalls && (
-              <div className={`grid ${viewMode === 'all' ? 'grid-cols-5' : 'grid-cols-7'} gap-0.5 px-1.5`}>
-                {viewMode !== 'all' && <span>Strike</span>}
-                <span className="text-right">Δ</span>
-                <span className="text-right">IV</span>
-                <span className="text-right">Bid</span>
-                <span className="text-right">Ask</span>
-                <span className="text-right">Vol</span>
-                {viewMode !== 'all' && <span className="text-right">OI</span>}
-              </div>
-            )}
-            {viewMode === 'all' && (
-              <div className="text-center font-bold text-foreground px-1">Strike</div>
-            )}
-            {showPuts && (
-              <div className={`grid ${viewMode === 'all' ? 'grid-cols-5' : 'grid-cols-7'} gap-0.5 px-1.5`}>
-                {viewMode !== 'all' && <span>Strike</span>}
-                <span className="text-right">Bid</span>
-                <span className="text-right">Ask</span>
-                <span className="text-right">IV</span>
-                <span className="text-right">Δ</span>
-                <span className="text-right">Vol</span>
-                {viewMode !== 'all' && <span className="text-right">OI</span>}
-              </div>
-            )}
-          </div>
-
-          {/* Rows */}
           <ScrollArea className="max-h-[400px]">
-            {chainData.map(([strike, { call, put }]) => {
-              const isATM = stockPrice > 0 && Math.abs(strike - stockPrice) / stockPrice < 0.01;
-              const isITMCall = call && strike < stockPrice;
-              const isITMPut = put && strike > stockPrice;
-
-              return (
-                <div
-                  key={strike}
-                  className={`grid gap-0 border-t border-border/30 text-xs font-mono ${
-                    isATM ? 'bg-primary/5 border-primary/30' : ''
-                  } ${viewMode === 'all' ? 'grid-cols-[1fr_auto_1fr]' : ''}`}
-                >
-                  {/* Calls side */}
+            <table className="w-full text-[10px] font-mono border-collapse">
+              <thead className="sticky top-0 z-10 bg-muted">
+                <tr className="text-muted-foreground uppercase tracking-wider">
                   {showCalls && (
-                    <button
-                      onClick={() => call && onSelect(call)}
-                      disabled={!call}
-                      className={`grid ${viewMode === 'all' ? 'grid-cols-5' : 'grid-cols-7'} gap-0.5 px-1.5 py-1 text-right hover:bg-success/10 transition-colors ${
-                        selectedContract?.ticker === call?.ticker ? 'bg-success/15' : ''
-                      } ${isITMCall ? 'bg-success/5' : ''}`}
-                    >
-                      {viewMode !== 'all' && (
-                        <span className="text-left font-semibold text-foreground">${strike.toFixed(2)}</span>
-                      )}
-                      <span className="text-muted-foreground">{call?.delta != null ? call.delta.toFixed(2) : '—'}</span>
-                      <span className="text-muted-foreground">{call?.implied_volatility != null ? `${(call.implied_volatility * 100).toFixed(0)}%` : '—'}</span>
-                      <span className="text-success">{call?.bid ? `$${call.bid.toFixed(2)}` : '—'}</span>
-                      <span className="text-destructive">{call?.ask ? `$${call.ask.toFixed(2)}` : '—'}</span>
-                      <span className="text-muted-foreground">{call?.volume ? call.volume.toLocaleString() : '—'}</span>
-                      {viewMode !== 'all' && (
-                        <span className="text-muted-foreground">{call?.open_interest ? call.open_interest.toLocaleString() : '—'}</span>
-                      )}
-                    </button>
+                    <>
+                      {viewMode !== 'all' && <th className="px-1 py-1 text-left font-medium">Strike</th>}
+                      <th className="px-1 py-1 text-right font-medium">Δ</th>
+                      <th className="px-1 py-1 text-right font-medium">IV</th>
+                      <th className="px-1 py-1 text-right font-medium">Bid</th>
+                      <th className="px-1 py-1 text-right font-medium">Ask</th>
+                      <th className="px-1 py-1 text-right font-medium">Vol</th>
+                      {viewMode !== 'all' && <th className="px-1 py-1 text-right font-medium">OI</th>}
+                    </>
                   )}
-
-                  {/* Strike column (center) */}
                   {viewMode === 'all' && (
-                    <div className={`flex items-center justify-center px-1 text-[11px] font-bold min-w-[60px] ${
-                      isATM ? 'text-primary' : 'text-foreground'
-                    }`}>
-                      ${strike.toFixed(0)}
-                    </div>
+                    <th className="px-2 py-1 text-center font-bold text-foreground">Strike</th>
                   )}
-
-                  {/* Puts side */}
                   {showPuts && (
-                    <button
-                      onClick={() => put && onSelect(put)}
-                      disabled={!put}
-                      className={`grid ${viewMode === 'all' ? 'grid-cols-5' : 'grid-cols-7'} gap-0.5 px-1.5 py-1 text-right hover:bg-destructive/10 transition-colors ${
-                        selectedContract?.ticker === put?.ticker ? 'bg-destructive/15' : ''
-                      } ${isITMPut ? 'bg-destructive/5' : ''}`}
-                    >
-                      {viewMode !== 'all' && (
-                        <span className="text-left font-semibold text-foreground">${strike.toFixed(2)}</span>
-                      )}
-                      <span className="text-success">{put?.bid ? `$${put.bid.toFixed(2)}` : '—'}</span>
-                      <span className="text-destructive">{put?.ask ? `$${put.ask.toFixed(2)}` : '—'}</span>
-                      <span className="text-muted-foreground">{put?.implied_volatility != null ? `${(put.implied_volatility * 100).toFixed(0)}%` : '—'}</span>
-                      <span className="text-muted-foreground">{put?.delta != null ? put.delta.toFixed(2) : '—'}</span>
-                      <span className="text-muted-foreground">{put?.volume ? put.volume.toLocaleString() : '—'}</span>
-                      {viewMode !== 'all' && (
-                        <span className="text-muted-foreground">{put?.open_interest ? put.open_interest.toLocaleString() : '—'}</span>
-                      )}
-                    </button>
+                    <>
+                      {viewMode !== 'all' && <th className="px-1 py-1 text-left font-medium">Strike</th>}
+                      <th className="px-1 py-1 text-right font-medium">Bid</th>
+                      <th className="px-1 py-1 text-right font-medium">Ask</th>
+                      <th className="px-1 py-1 text-right font-medium">IV</th>
+                      <th className="px-1 py-1 text-right font-medium">Δ</th>
+                      <th className="px-1 py-1 text-right font-medium">Vol</th>
+                      {viewMode !== 'all' && <th className="px-1 py-1 text-right font-medium">OI</th>}
+                    </>
                   )}
-                </div>
-              );
-            })}
+                </tr>
+              </thead>
+              <tbody>
+                {chainData.map(([strike, { call, put }]) => {
+                  const isATM = stockPrice > 0 && Math.abs(strike - stockPrice) / stockPrice < 0.01;
+                  const isITMCall = call && strike < stockPrice;
+                  const isITMPut = put && strike > stockPrice;
+
+                  return (
+                    <tr
+                      key={strike}
+                      className={`border-t border-border/20 ${isATM ? 'bg-primary/10' : ''}`}
+                    >
+                      {showCalls && (
+                        <>
+                          {viewMode !== 'all' && (
+                            <td className="px-1 py-1.5 text-left font-semibold text-foreground">${strike}</td>
+                          )}
+                          <td
+                            onClick={() => call && onSelect(call)}
+                            className={`px-1 py-1.5 text-right cursor-pointer hover:bg-success/10 ${
+                              selectedContract?.ticker === call?.ticker ? 'bg-success/15' : ''
+                            } ${isITMCall ? 'bg-success/5' : ''} text-muted-foreground`}
+                          >
+                            {call?.delta != null ? call.delta.toFixed(2) : '—'}
+                          </td>
+                          <td
+                            onClick={() => call && onSelect(call)}
+                            className={`px-1 py-1.5 text-right cursor-pointer hover:bg-success/10 ${
+                              isITMCall ? 'bg-success/5' : ''
+                            } text-muted-foreground`}
+                          >
+                            {call?.implied_volatility != null ? `${(call.implied_volatility * 100).toFixed(0)}%` : '—'}
+                          </td>
+                          <td
+                            onClick={() => call && onSelect(call)}
+                            className={`px-1 py-1.5 text-right cursor-pointer hover:bg-success/10 ${
+                              isITMCall ? 'bg-success/5' : ''
+                            } text-success whitespace-nowrap`}
+                          >
+                            {call?.bid ? call.bid.toFixed(2) : '—'}
+                          </td>
+                          <td
+                            onClick={() => call && onSelect(call)}
+                            className={`px-1 py-1.5 text-right cursor-pointer hover:bg-success/10 ${
+                              isITMCall ? 'bg-success/5' : ''
+                            } text-destructive whitespace-nowrap`}
+                          >
+                            {call?.ask ? call.ask.toFixed(2) : '—'}
+                          </td>
+                          <td
+                            onClick={() => call && onSelect(call)}
+                            className={`px-1 py-1.5 text-right cursor-pointer hover:bg-success/10 ${
+                              isITMCall ? 'bg-success/5' : ''
+                            } text-muted-foreground`}
+                          >
+                            {call?.volume || '—'}
+                          </td>
+                          {viewMode !== 'all' && (
+                            <td className="px-1 py-1.5 text-right text-muted-foreground">
+                              {call?.open_interest || '—'}
+                            </td>
+                          )}
+                        </>
+                      )}
+
+                      {viewMode === 'all' && (
+                        <td className={`px-2 py-1.5 text-center font-bold text-[11px] ${
+                          isATM ? 'text-primary' : 'text-foreground'
+                        }`}>
+                          ${strike}
+                        </td>
+                      )}
+
+                      {showPuts && (
+                        <>
+                          {viewMode !== 'all' && (
+                            <td className="px-1 py-1.5 text-left font-semibold text-foreground">${strike}</td>
+                          )}
+                          <td
+                            onClick={() => put && onSelect(put)}
+                            className={`px-1 py-1.5 text-right cursor-pointer hover:bg-destructive/10 ${
+                              selectedContract?.ticker === put?.ticker ? 'bg-destructive/15' : ''
+                            } ${isITMPut ? 'bg-destructive/5' : ''} text-success whitespace-nowrap`}
+                          >
+                            {put?.bid ? put.bid.toFixed(2) : '—'}
+                          </td>
+                          <td
+                            onClick={() => put && onSelect(put)}
+                            className={`px-1 py-1.5 text-right cursor-pointer hover:bg-destructive/10 ${
+                              isITMPut ? 'bg-destructive/5' : ''
+                            } text-destructive whitespace-nowrap`}
+                          >
+                            {put?.ask ? put.ask.toFixed(2) : '—'}
+                          </td>
+                          <td
+                            onClick={() => put && onSelect(put)}
+                            className={`px-1 py-1.5 text-right cursor-pointer hover:bg-destructive/10 ${
+                              isITMPut ? 'bg-destructive/5' : ''
+                            } text-muted-foreground`}
+                          >
+                            {put?.implied_volatility != null ? `${(put.implied_volatility * 100).toFixed(0)}%` : '—'}
+                          </td>
+                          <td
+                            onClick={() => put && onSelect(put)}
+                            className={`px-1 py-1.5 text-right cursor-pointer hover:bg-destructive/10 ${
+                              isITMPut ? 'bg-destructive/5' : ''
+                            } text-muted-foreground`}
+                          >
+                            {put?.delta != null ? put.delta.toFixed(2) : '—'}
+                          </td>
+                          <td
+                            onClick={() => put && onSelect(put)}
+                            className={`px-1 py-1.5 text-right cursor-pointer hover:bg-destructive/10 ${
+                              isITMPut ? 'bg-destructive/5' : ''
+                            } text-muted-foreground`}
+                          >
+                            {put?.volume || '—'}
+                          </td>
+                          {viewMode !== 'all' && (
+                            <td className="px-1 py-1.5 text-right text-muted-foreground">
+                              {put?.open_interest || '—'}
+                            </td>
+                          )}
+                        </>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </ScrollArea>
         </div>
       )}
