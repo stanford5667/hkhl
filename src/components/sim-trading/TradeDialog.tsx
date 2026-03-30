@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { getCachedQuotes } from '@/services/quoteCacheService';
@@ -12,6 +12,7 @@ import { Plus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { TickerSearchInput } from './TickerSearchInput';
 import { OptionsChainSelector } from './OptionsChainSelector';
+import { PreTradeImpactAlert } from './PreTradeImpactAlert';
 
 interface PositionForImpact {
   ticker: string;
