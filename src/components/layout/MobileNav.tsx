@@ -29,7 +29,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEliteAccess } from "@/hooks/useEliteAccess";
 import { supabase } from "@/integrations/supabase/client";
 
-const mobileNavItems = [
+const baseMobileNavItems = [
+  { label: "Research", href: "/research", icon: Search },
+  { label: "Academy", href: "/academy", icon: BookOpen },
+  { label: "More", href: "#menu", icon: Menu, isMenu: true },
+];
+
+const adminMobileNavItems = [
   { label: "Research", href: "/research", icon: Search },
   { label: "My Work", href: "/my-research", icon: ClipboardList },
   { label: "Academy", href: "/academy", icon: BookOpen },
