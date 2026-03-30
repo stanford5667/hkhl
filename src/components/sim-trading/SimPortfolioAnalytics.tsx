@@ -154,7 +154,7 @@ function HistoricalPerformance({
       return;
     }
 
-    const runBacktest = async () => {
+    const doBacktest = async () => {
       setLoading(true);
       setError(null);
 
@@ -165,159 +165,66 @@ function HistoricalPerformance({
         const startStr = startDate.toISOString().split('T')[0];
         const endStr = endDate.toISOString().split('T')[0];
 
-        const tickers = holdingsInfo.map(h => h.ticker);
-        const uniqueTickers = [...new Set([...tickers, 'SPY'])]; // include benchmark
-
-        type LocalBar = { ticker: string; bar_date: string; close: number | null; daily_return: number | null };
-
-        const fetchTickerBars = async (ticker: string): Promise<LocalBar[]> => {
-          const { data: dbData, error: dbError } = await supabase
-            .from('market_daily_bars')
-            .select('ticker, bar_date, close, daily_return')
-            .eq('ticker', ticker)
-            .gte('bar_date', startStr)
-            .lte('bar_date', endStr)
-            .order('bar_date', { ascending: true })
-            .limit(2000);
-
-          if (dbError) throw dbError;
-          if (dbData && dbData.length >= 10) return dbData as LocalBar[];
-
-          const { data: apiData, error: apiError } = await supabase.functions.invoke('polygon-aggs', {
-            body: { ticker, startDate: startStr, endDate: endStr, timespan: 'day' },
-          });
-
-          if (apiError) {
-            if (dbData && dbData.length > 0) return dbData as LocalBar[];
-            throw apiError;
-          }
-
-          const results = Array.isArray(apiData?.results) ? apiData.results : [];
-          if (!apiData?.ok || results.length === 0) {
-            return (dbData || []) as LocalBar[];
-          }
-
-          let prevClose: number | null = null;
-          return results
-            .map((row: any) => {
-              const close = Number(row?.c ?? row?.close ?? 0);
-              const barDate = row?.t
-                ? new Date(row.t).toISOString().split('T')[0]
-                : String(row?.bar_date ?? '');
-              const dailyReturn = prevClose && prevClose > 0 ? (close - prevClose) / prevClose : null;
-              prevClose = close;
-              return {
-                ticker,
-                bar_date: barDate,
-                close,
-                daily_return: dailyReturn,
-              } as LocalBar;
-            })
-            .filter((b: LocalBar) => !!b.bar_date && Number.isFinite(b.close ?? 0));
-        };
-
-        const barsByTicker = await Promise.all(uniqueTickers.map(fetchTickerBars));
-        const bars = barsByTicker.flat();
-
-        if (bars.length === 0) {
-          setError('No historical data found for these tickers');
-          setLoading(false);
-          return;
-        }
-
-        // Index by ticker then date
-        const indexed: Record<string, Record<string, { close: number; return: number }>> = {};
-        for (const bar of bars) {
-          if (!indexed[bar.ticker]) indexed[bar.ticker] = {};
-          indexed[bar.ticker][bar.bar_date] = { close: bar.close || 0, return: bar.daily_return || 0 };
-        }
-
-        const benchmarkDates = new Set(Object.keys(indexed['SPY'] || {}));
-        if (benchmarkDates.size < 10) {
-          setError('Benchmark coverage is insufficient for the selected timeframe.');
-          setLoading(false);
-          return;
-        }
-
-        const availableHoldings = holdingsInfo.filter(h => Object.keys(indexed[h.ticker] || {}).length >= 10);
-        if (availableHoldings.length === 0) {
-          setError('No holdings have enough historical coverage in this timeframe.');
-          setLoading(false);
-          return;
-        }
-
-        const normalizedWeightTotal = availableHoldings.reduce((sum, h) => sum + h.weight, 0);
-        const normalizedHoldings = availableHoldings.map(h => ({
-          ...h,
-          weight: normalizedWeightTotal > 0 ? h.weight / normalizedWeightTotal : 0,
+        // Convert holdings weights to allocations that sum to 100
+        const assets = holdingsInfo.map(h => ({
+          symbol: h.ticker,
+          allocation: h.weight * 100,
         }));
 
-        // Build portfolio & benchmark series using benchmark dates as anchor
-        // (avoids hard-fail when one holding has partial missing dates)
-        const benchmarkDateList = [...benchmarkDates].sort();
-        const portfolioValues: number[] = [initialCapital];
-        const benchmarkValues: number[] = [initialCapital];
+        // Use the same backtest service as the rest of the app
+        const btResult: ServiceBacktestResult = await runBacktestService({
+          assets,
+          startDate: startStr,
+          endDate: endStr,
+          initialCapital,
+          strategy: 'buy-hold',
+          benchmarkSymbol: 'SPY',
+        });
+
+        // Map service result to local display format
+        const dates = btResult.portfolioHistory.map(s => s.date);
+        const portfolioValues = btResult.portfolioHistory.map(s => s.totalValue);
+
+        // Build benchmark values from service data
+        const benchmarkValues: number[] = [];
+        if (btResult.benchmarkReturn !== undefined) {
+          // Reconstruct benchmark curve proportionally
+          const bmTotalReturn = btResult.benchmarkReturn / 100;
+          for (let i = 0; i < dates.length; i++) {
+            const progress = i / (dates.length - 1);
+            const bmValue = initialCapital * (1 + bmTotalReturn * progress);
+            benchmarkValues.push(bmValue);
+          }
+        }
+
+        // Calculate daily returns from portfolio values
         const dailyReturns: number[] = [];
         const benchmarkReturns: number[] = [];
-        const dates: string[] = [];
-
-        for (let i = 1; i < benchmarkDateList.length; i++) {
-          const date = benchmarkDateList[i];
-          const bmReturn = indexed['SPY']?.[date]?.return;
-          if (typeof bmReturn !== 'number' || Number.isNaN(bmReturn)) continue;
-
-          const active = normalizedHoldings.filter(h => typeof indexed[h.ticker]?.[date]?.return === 'number');
-          if (active.length === 0) continue;
-
-          const activeWeightTotal = active.reduce((sum, h) => sum + h.weight, 0);
-          if (activeWeightTotal <= 0) continue;
-
-          let portReturn = 0;
-          for (const h of active) {
-            const r = indexed[h.ticker][date].return;
-            portReturn += r * (h.weight / activeWeightTotal);
+        for (let i = 1; i < portfolioValues.length; i++) {
+          dailyReturns.push(portfolioValues[i - 1] > 0 ? (portfolioValues[i] - portfolioValues[i - 1]) / portfolioValues[i - 1] : 0);
+          if (benchmarkValues.length > i) {
+            benchmarkReturns.push(benchmarkValues[i - 1] > 0 ? (benchmarkValues[i] - benchmarkValues[i - 1]) / benchmarkValues[i - 1] : 0);
           }
-
-          dailyReturns.push(portReturn);
-          benchmarkReturns.push(bmReturn);
-          portfolioValues.push(portfolioValues[portfolioValues.length - 1] * (1 + portReturn));
-          benchmarkValues.push(benchmarkValues[benchmarkValues.length - 1] * (1 + bmReturn));
-          dates.push(date);
         }
 
-        if (dates.length < 10) {
-          setError(`Only ${dates.length} usable trading days found. Need at least 10.`);
-          setLoading(false);
-          return;
-        }
-
-        // Calculate metrics using existing service functions
-        const years = dailyReturns.length / 252;
-        const totalReturn = ((portfolioValues[portfolioValues.length - 1] - initialCapital) / initialCapital) * 100;
-        const cagr = calculateCAGR(initialCapital, portfolioValues[portfolioValues.length - 1], years) * 100;
-        const volatility = annualizedVolatility(dailyReturns) * 100;
-        const sharpe = calculateSharpeRatio(dailyReturns, 0.05);
-        const sortino = calculateSortinoRatio(dailyReturns, 0.05);
         const { maxDrawdownPercent, drawdownSeries } = calculateMaxDrawdown(portfolioValues);
         const var95 = calculateVaR(dailyReturns, 0.95);
         const cvar95 = calculateCVaR(dailyReturns, 0.95);
-        const { beta, alpha } = calculateBetaAlpha(dailyReturns, benchmarkReturns, 0.05);
-        const calmarRatio = maxDrawdownPercent > 0 ? cagr / maxDrawdownPercent : 0;
+        const calmarRatio = maxDrawdownPercent > 0 ? btResult.annualizedReturn / maxDrawdownPercent : 0;
 
         // Yearly returns
         const yearMap: Record<number, { portfolio: number[]; benchmark: number[] }> = {};
-        for (let i = 1; i < dates.length; i++) {
-          const year = new Date(dates[i]).getFullYear();
+        for (let i = 0; i < dates.length - 1; i++) {
+          const year = new Date(dates[i + 1]).getFullYear();
           if (!yearMap[year]) yearMap[year] = { portfolio: [], benchmark: [] };
-          yearMap[year].portfolio.push(dailyReturns[i - 1]);
-          yearMap[year].benchmark.push(benchmarkReturns[i - 1]);
+          yearMap[year].portfolio.push(dailyReturns[i]);
+          if (benchmarkReturns[i] !== undefined) yearMap[year].benchmark.push(benchmarkReturns[i]);
         }
         const yearlyReturns = Object.entries(yearMap).map(([year, data]) => ({
           year: parseInt(year),
           return: (data.portfolio.reduce((acc, r) => acc * (1 + r), 1) - 1) * 100,
           benchmark: (data.benchmark.reduce((acc, r) => acc * (1 + r), 1) - 1) * 100,
         }));
-
         const allYearlyReturns = yearlyReturns.map(y => y.return);
 
         setResult({
@@ -328,14 +235,14 @@ function HistoricalPerformance({
           benchmarkReturns,
           drawdownSeries,
           metrics: {
-            totalReturn,
-            cagr,
-            volatility,
-            sharpeRatio: sharpe,
-            sortinoRatio: sortino,
+            totalReturn: btResult.totalReturnPercent,
+            cagr: btResult.annualizedReturn,
+            volatility: btResult.volatility,
+            sharpeRatio: btResult.sharpeRatio,
+            sortinoRatio: btResult.sortinoRatio,
             maxDrawdown: maxDrawdownPercent,
-            beta,
-            alpha: alpha * 100,
+            beta: btResult.beta ?? 1,
+            alpha: (btResult.alpha ?? 0) * 100,
             var95,
             cvar95,
             calmarRatio,
@@ -351,7 +258,7 @@ function HistoricalPerformance({
       setLoading(false);
     };
 
-    runBacktest();
+    doBacktest();
   }, [holdingsInfo, timeframe, initialCapital]);
 
   if (!holdingsInfo || holdingsInfo.length === 0) {
