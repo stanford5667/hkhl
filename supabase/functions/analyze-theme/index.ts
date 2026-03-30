@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { title, summary, detailedSummary, category, tickers, headlines } = await req.json();
+    const { title, summary, detailedSummary, category, tickers, headlines, chatMode, systemPromptOverride, chatMessages } = await req.json();
 
     if (!title || !tickers || tickers.length === 0) {
       return new Response(JSON.stringify({ error: "Missing theme data" }), {
@@ -26,17 +26,27 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const tickerList = tickers
-      .map((t: any) => `${t.symbol} (${t.name}) — ${t.change >= 0 ? "+" : ""}${t.change.toFixed(1)}% — sentiment: ${t.sentiment}${t.themeRelevance ? ` — relevance: ${t.themeRelevance}` : ""}`)
-      .join("\n");
+    let messages: { role: string; content: string }[];
 
-    const headlineList = (headlines || [])
-      .map((h: any) => `• ${h.title} (${h.source}, ${h.time})`)
-      .join("\n");
+    if (chatMode && systemPromptOverride && chatMessages) {
+      // Chat mode: use the provided system prompt and message history
+      messages = [
+        { role: "system", content: systemPromptOverride },
+        ...chatMessages,
+      ];
+    } else {
+      // Standard analysis mode
+      const tickerList = tickers
+        .map((t: any) => `${t.symbol} (${t.name}) — ${t.change >= 0 ? "+" : ""}${t.change.toFixed(1)}% — sentiment: ${t.sentiment}${t.themeRelevance ? ` — relevance: ${t.themeRelevance}` : ""}`)
+        .join("\n");
 
-    const systemPrompt = `You are a senior equity research analyst writing a comprehensive theme analysis for retail investors. Your writing style is authoritative yet accessible — like a Goldman Sachs research note simplified for a smart individual investor. Use concrete data points, avoid vague language, and provide actionable insight.`;
+      const headlineList = (headlines || [])
+        .map((h: any) => `• ${h.title} (${h.source}, ${h.time})`)
+        .join("\n");
 
-    const userPrompt = `Analyze this market theme in depth:
+      const systemPrompt = `You are a senior equity research analyst writing a comprehensive theme analysis for retail investors. Your writing style is authoritative yet accessible — like a Goldman Sachs research note simplified for a smart individual investor. Use concrete data points, avoid vague language, and provide actionable insight.`;
+
+      const userPrompt = `Analyze this market theme in depth:
 
 **Theme:** ${title}
 **Category:** ${category}
@@ -70,6 +80,12 @@ The top 3 risks that could derail this theme.
 ## Bottom Line
 A concise 2-3 sentence conclusion with your overall stance on the theme (bullish/neutral/bearish) and what to watch next.`;
 
+      messages = [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ];
+    }
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -78,10 +94,7 @@ A concise 2-3 sentence conclusion with your overall stance on the theme (bullish
       },
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
+        messages,
         stream: true,
       }),
     });
