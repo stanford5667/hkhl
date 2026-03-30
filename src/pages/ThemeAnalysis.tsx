@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Sparkles, Loader2, AlertCircle } from 'lucide-react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, Sparkles, Loader2, AlertCircle, Bookmark, Share2, Check, Link2, BookmarkCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import type { MarketTheme } from '@/data/marketThemes';
 import { ThemeChat } from '@/components/theme/ThemeChat';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export default function ThemeAnalysis() {
   const location = useLocation();
@@ -15,6 +17,11 @@ export default function ThemeAnalysis() {
   const [content, setContent] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isSaved, setIsSaved] = useState(false);
+  const [savedId, setSavedId] = useState<string | null>(null);
+  const [shareId, setShareId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [copied, setCopied] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const hasStarted = useRef(false);
 
@@ -114,6 +121,87 @@ export default function ThemeAnalysis() {
     }
   };
 
+  const handleSave = async () => {
+    if (!theme || !content) return;
+    setIsSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Please sign in to save analyses');
+        return;
+      }
+      const { data, error: err } = await supabase
+        .from('saved_theme_analyses')
+        .insert({
+          user_id: user.id,
+          title: theme.title,
+          category: theme.category,
+          theme_data: { tickers: theme.tickers, summary: theme.summary, category: theme.category } as any,
+          analysis_content: content,
+          is_public: false,
+        })
+        .select('id, share_id')
+        .single();
+      if (err) throw err;
+      setSavedId(data.id);
+      setShareId(data.share_id);
+      setIsSaved(true);
+      toast.success('Analysis saved!');
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to save');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleShare = async () => {
+    if (!savedId || !shareId) {
+      // Save first then share
+      if (!theme || !content) return;
+      setIsSaving(true);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { toast.error('Please sign in to share'); return; }
+        const { data, error: err } = await supabase
+          .from('saved_theme_analyses')
+          .insert({
+            user_id: user.id,
+            title: theme.title,
+            category: theme.category,
+            theme_data: { tickers: theme.tickers, summary: theme.summary, category: theme.category } as any,
+            analysis_content: content,
+            is_public: true,
+          })
+          .select('id, share_id')
+          .single();
+        if (err) throw err;
+        setSavedId(data.id);
+        setShareId(data.share_id);
+        setIsSaved(true);
+        copyShareLink(data.share_id);
+      } catch (e: any) {
+        toast.error(e.message || 'Failed to share');
+      } finally {
+        setIsSaving(false);
+      }
+      return;
+    }
+    // Make public if not already
+    await supabase
+      .from('saved_theme_analyses')
+      .update({ is_public: true })
+      .eq('id', savedId);
+    copyShareLink(shareId);
+  };
+
+  const copyShareLink = (sid: string) => {
+    const url = `${window.location.origin}/shared/theme/${sid}`;
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    toast.success('Share link copied to clipboard!');
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   if (!theme) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -158,9 +246,33 @@ export default function ThemeAnalysis() {
             </div>
           </div>
           {isLoading && (
-            <div className="ml-auto flex items-center gap-1.5 text-primary">
+            <div className="flex items-center gap-1.5 text-primary">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
               <span className="text-[10px] font-mono hidden sm:inline">Analyzing…</span>
+            </div>
+          )}
+          {!isLoading && content && (
+            <div className="ml-auto flex items-center gap-1.5">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSave}
+                disabled={isSaving || isSaved}
+                className="text-xs"
+              >
+                {isSaved ? <BookmarkCheck className="h-3.5 w-3.5 mr-1 text-primary" /> : <Bookmark className="h-3.5 w-3.5 mr-1" />}
+                {isSaved ? 'Saved' : 'Save'}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleShare}
+                disabled={isSaving}
+                className="text-xs"
+              >
+                {copied ? <Check className="h-3.5 w-3.5 mr-1 text-primary" /> : <Share2 className="h-3.5 w-3.5 mr-1" />}
+                {copied ? 'Copied!' : 'Share'}
+              </Button>
             </div>
           )}
         </div>
