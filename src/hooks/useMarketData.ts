@@ -52,7 +52,7 @@ export interface CompanyInfo {
   description?: string;
 }
 
-// Hook for fetching stock quotes - uses Finnhub via quoteCacheService
+// Hook for fetching stock quotes - uses Polygon via quoteCacheService
 export function useStockQuote(ticker: string | null, options: { enabled?: boolean } = {}) {
   const { enabled = true } = options;
   
@@ -225,7 +225,7 @@ export function useTickerSearchHook(query: string, options: { enabled?: boolean;
   };
 }
 
-// Hook for market indices - uses Finnhub via quoteCacheService
+// Hook for market indices - uses Polygon via quoteCacheService
 export function useMarketIndices(options: { enabled?: boolean } = {}) {
   const { enabled = true } = options;
   
@@ -303,7 +303,7 @@ export function useMarketIndices(options: { enabled?: boolean } = {}) {
   };
 }
 
-// Hook for company info - uses Finnhub profile via quoteCacheService
+// Hook for company info - uses Polygon profile via quoteCacheService
 export function useCompanyInfo(ticker: string | null, options: { enabled?: boolean } = {}) {
   const { enabled = true } = options;
   

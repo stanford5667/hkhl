@@ -2,7 +2,7 @@
  * Multi-layer Quote Cache Service
  * Layer 1: In-memory cache (instant, survives within session)
  * Layer 2: LocalStorage cache (survives page refresh)
- * Layer 3: Polygon API fallback when Finnhub unavailable
+ * Layer 3: Polygon API (via finnhubService which now uses Polygon)
  * Layer 4: Request deduplication (prevents duplicate in-flight requests)
  */
 
@@ -120,41 +120,7 @@ function isProfileCacheValid(cached: CachedProfile): boolean {
 }
 
 /**
- * Fetch quote from Polygon API as fallback
- */
-async function fetchPolygonQuote(symbol: string): Promise<StockQuote | null> {
-  try {
-    console.log(`[Polygon Fallback] Fetching: ${symbol}`);
-    const { data, error } = await supabase.functions.invoke('polygon-stock-quotes', {
-      body: { symbols: [symbol] }
-    });
-    
-    if (error || !data?.success || !data.quotes?.length) {
-      console.warn('[Polygon Fallback] Failed:', error || 'No data');
-      return null;
-    }
-    
-    const q = data.quotes[0];
-    return {
-      symbol: q.symbol,
-      price: q.price,
-      change: q.change,
-      changePercent: q.changePercent,
-      high: q.high,
-      low: q.low,
-      open: q.open,
-      previousClose: q.previousClose,
-      timestamp: new Date(q.timestamp).getTime(),
-      companyName: q.name || symbol,
-    };
-  } catch (e) {
-    console.error('[Polygon Fallback] Error:', e);
-    return null;
-  }
-}
-
-/**
- * Get a single quote with multi-layer caching + Polygon fallback + deduplication
+ * Get a single quote with multi-layer caching + deduplication
  */
 export async function getCachedQuote(symbol: string): Promise<StockQuote | null> {
   const upperSymbol = symbol.toUpperCase();
@@ -178,19 +144,14 @@ export async function getCachedQuote(symbol: string): Promise<StockQuote | null>
   const cacheKey = createCacheKey('quote', upperSymbol);
   
   return requestDeduplicator.dedupe(cacheKey, async () => {
-    // Double-check cache after acquiring dedupe slot (another request may have just finished)
+    // Double-check cache after acquiring dedupe slot
     const freshMemCached = memoryCache.get(upperSymbol);
     if (freshMemCached && isCacheValid(freshMemCached)) {
       return freshMemCached.quote;
     }
 
-    // Try Finnhub first
-    let quote = await getQuote(upperSymbol);
-
-    // If Finnhub fails, try Polygon as fallback
-    if (!quote) {
-      quote = await fetchPolygonQuote(upperSymbol);
-    }
+    // Fetch via Polygon (getQuote now uses polygon-stock-quotes)
+    const quote = await getQuote(upperSymbol);
 
     if (quote) {
       const cached = { quote, fetchedAt: Date.now(), isMock: false };
