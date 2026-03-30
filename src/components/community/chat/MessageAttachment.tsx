@@ -1,4 +1,4 @@
-import { Image, FileText, Download, Mic } from 'lucide-react';
+import { Image, FileText, Download, Mic, Video } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -53,6 +53,21 @@ export function MessageAttachment({ url, type }: MessageAttachmentProps) {
             <img src={url} alt="Attachment" className="max-w-[90vw] max-h-[90vh] rounded-lg" />
           </div>
         )}
+      </div>
+    );
+  }
+
+  if (type === 'video') {
+    return (
+      <div className="mt-1.5 max-w-[400px]">
+        <video
+          controls
+          preload="metadata"
+          className="rounded-lg border border-border w-full max-h-[300px] bg-black"
+        >
+          <source src={url} />
+          Your browser does not support video playback.
+        </video>
       </div>
     );
   }

@@ -11,7 +11,6 @@ import { useChatRooms } from '@/hooks/useChatRooms';
 import { LivestreamPlayer } from './LivestreamPlayer';
 import { LiveKitBroadcaster } from './LiveKitBroadcaster';
 import { LiveKitViewer } from './LiveKitViewer';
-import { StreamRecordingsList } from './StreamRecordingsList';
 import { useStreamRecordings } from '@/hooks/useStreamRecordings';
 import { useUsage } from '@/contexts/UsageContext';
 import { useAdmin } from '@/hooks/useAdmin';
@@ -61,7 +60,7 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
   const { pinnedMessages, pinMessage, unpinMessage, isMessagePinned } = usePinnedMessages(room.id);
   const { markRoomAsRead } = useUnreadMessages();
   const { fetchRooms, startLivestream, stopLivestream } = useChatRooms();
-  const { recordings, loading: recordingsLoading, saveRecording, deleteRecording } = useStreamRecordings(room.id);
+  const { saveRecording } = useStreamRecordings(room.id);
   const {
     activeThread, threadReplies, threadInfo,
     loading: threadLoading, openThread, closeThread, sendThreadReply,
@@ -205,14 +204,6 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
           ) : null
         )}
 
-        {canAccess && !room.is_live && !livekitMode && (
-          <StreamRecordingsList
-            recordings={recordings}
-            loading={recordingsLoading}
-            isAdmin={isAdmin}
-            onDelete={isAdmin ? deleteRecording : undefined}
-          />
-        )}
         <ResizablePanelGroup direction="horizontal">
           <ResizablePanel defaultSize={activeThread ? 60 : 100} minSize={40}>
             <div className="flex flex-col h-full">

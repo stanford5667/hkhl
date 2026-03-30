@@ -55,6 +55,7 @@ export function useStreamRecordings(roomId: string) {
       .from('stream-recordings')
       .getPublicUrl(fileName);
 
+    // Save to recordings table
     const { error: insertError } = await supabase
       .from('stream_recordings')
       .insert({
@@ -65,8 +66,20 @@ export function useStreamRecordings(roomId: string) {
         file_path: publicUrl,
         file_size: blob.size,
       });
-
     if (insertError) throw insertError;
+
+    // Post as a chat message so it appears inline
+    const mins = Math.floor(durationSeconds / 60);
+    const secs = Math.round(durationSeconds % 60);
+    const duration = `${mins}:${secs.toString().padStart(2, '0')}`;
+    await supabase.from('chat_messages').insert({
+      room_id: roomId,
+      user_id: user.id,
+      content: `🎬 **Stream Recording** (${duration})`,
+      attachment_url: publicUrl,
+      attachment_type: 'video',
+    });
+
     await fetchRecordings();
   }, [roomId, user, fetchRecordings]);
 
