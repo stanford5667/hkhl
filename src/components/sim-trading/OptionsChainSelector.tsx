@@ -1,11 +1,13 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, TrendingUp, TrendingDown } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Slider } from '@/components/ui/slider';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-interface OptionContract {
+export interface OptionContract {
   ticker: string;
   strike_price: number;
   contract_type: 'call' | 'put';
@@ -32,13 +34,17 @@ interface Props {
   selectedContract: OptionContract | null;
 }
 
+type ViewMode = 'all' | 'calls' | 'puts';
+
 export function OptionsChainSelector({ underlyingTicker, onSelect, selectedContract }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [expirations, setExpirations] = useState<string[]>([]);
   const [selectedExpiration, setSelectedExpiration] = useState('');
   const [contracts, setContracts] = useState<OptionContract[]>([]);
-  const [optionType, setOptionType] = useState<'call' | 'put'>('call');
+  const [viewMode, setViewMode] = useState<ViewMode>('all');
+  const [deltaRange, setDeltaRange] = useState<[number, number]>([0, 100]);
+  const [stockPrice, setStockPrice] = useState(0);
 
   const fetchChain = useCallback(async (expDate?: string) => {
     if (!underlyingTicker) return;
@@ -55,6 +61,7 @@ export function OptionsChainSelector({ underlyingTicker, onSelect, selectedContr
 
       setExpirations(data.expirations || []);
       setContracts(data.contracts || []);
+      setStockPrice(data.stockPrice || 0);
       if (data.selectedExpiration && !expDate) {
         setSelectedExpiration(data.selectedExpiration);
       }
@@ -80,15 +87,47 @@ export function OptionsChainSelector({ underlyingTicker, onSelect, selectedContr
     fetchChain(exp);
   };
 
-  const filteredContracts = contracts
-    .filter(c => c.contract_type === optionType)
-    .sort((a, b) => a.strike_price - b.strike_price);
+  // Build strike-keyed chain: { strike -> { call, put } }
+  const chainData = useMemo(() => {
+    const map = new Map<number, { call?: OptionContract; put?: OptionContract }>();
+    for (const c of contracts) {
+      const entry = map.get(c.strike_price) || {};
+      if (c.contract_type === 'call') entry.call = c;
+      else entry.put = c;
+      map.set(c.strike_price, entry);
+    }
+
+    // Filter by delta range
+    const minDelta = deltaRange[0] / 100;
+    const maxDelta = deltaRange[1] / 100;
+
+    const filtered = new Map<number, { call?: OptionContract; put?: OptionContract }>();
+    for (const [strike, entry] of map) {
+      const callDelta = Math.abs(entry.call?.delta ?? 0);
+      const putDelta = Math.abs(entry.put?.delta ?? 0);
+      const matchesCall = callDelta >= minDelta && callDelta <= maxDelta;
+      const matchesPut = putDelta >= minDelta && putDelta <= maxDelta;
+
+      if (viewMode === 'calls' && matchesCall) {
+        filtered.set(strike, entry);
+      } else if (viewMode === 'puts' && matchesPut) {
+        filtered.set(strike, entry);
+      } else if (viewMode === 'all' && (matchesCall || matchesPut)) {
+        filtered.set(strike, entry);
+      }
+    }
+
+    return Array.from(filtered.entries()).sort((a, b) => a[0] - b[0]);
+  }, [contracts, deltaRange, viewMode]);
 
   if (!underlyingTicker) return null;
 
+  const showCalls = viewMode === 'all' || viewMode === 'calls';
+  const showPuts = viewMode === 'all' || viewMode === 'puts';
+
   return (
     <div className="space-y-3">
-      {/* Expiration & Type selectors */}
+      {/* Controls row */}
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label className="text-xs">Expiration</Label>
@@ -96,7 +135,7 @@ export function OptionsChainSelector({ underlyingTicker, onSelect, selectedContr
             <SelectTrigger className="h-8 text-xs">
               <SelectValue placeholder={loading ? 'Loading...' : 'Select expiry'} />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="max-h-[300px]">
               {expirations.map(exp => (
                 <SelectItem key={exp} value={exp} className="text-xs">{exp}</SelectItem>
               ))}
@@ -104,21 +143,40 @@ export function OptionsChainSelector({ underlyingTicker, onSelect, selectedContr
           </Select>
         </div>
         <div>
-          <Label className="text-xs">Type</Label>
-          <Select value={optionType} onValueChange={v => setOptionType(v as 'call' | 'put')}>
-            <SelectTrigger className="h-8 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="call">
-                <span className="flex items-center gap-1"><TrendingUp className="w-3 h-3 text-success" /> Call</span>
-              </SelectItem>
-              <SelectItem value="put">
-                <span className="flex items-center gap-1"><TrendingDown className="w-3 h-3 text-destructive" /> Put</span>
-              </SelectItem>
-            </SelectContent>
-          </Select>
+          <Label className="text-xs">View</Label>
+          <Tabs value={viewMode} onValueChange={v => setViewMode(v as ViewMode)} className="w-full">
+            <TabsList className="h-8 w-full grid grid-cols-3">
+              <TabsTrigger value="all" className="text-[10px] px-1">All</TabsTrigger>
+              <TabsTrigger value="calls" className="text-[10px] px-1">
+                <TrendingUp className="w-3 h-3 mr-0.5 text-success" />Calls
+              </TabsTrigger>
+              <TabsTrigger value="puts" className="text-[10px] px-1">
+                <TrendingDown className="w-3 h-3 mr-0.5 text-destructive" />Puts
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
+      </div>
+
+      {/* Delta filter */}
+      <div className="space-y-1">
+        <div className="flex justify-between text-[10px] text-muted-foreground">
+          <span>Delta range: |{(deltaRange[0] / 100).toFixed(2)}| – |{(deltaRange[1] / 100).toFixed(2)}|</span>
+          <button 
+            onClick={() => setDeltaRange([0, 100])} 
+            className="text-primary hover:underline"
+          >
+            Reset
+          </button>
+        </div>
+        <Slider
+          min={0}
+          max={100}
+          step={5}
+          value={deltaRange}
+          onValueChange={(v) => setDeltaRange(v as [number, number])}
+          className="w-full"
+        />
       </div>
 
       {loading && (
@@ -133,53 +191,121 @@ export function OptionsChainSelector({ underlyingTicker, onSelect, selectedContr
         </div>
       )}
 
-      {!loading && !error && filteredContracts.length > 0 && (
+      {!loading && !error && chainData.length > 0 && (
         <div className="border rounded-lg overflow-hidden">
-          {/* Delayed data notice */}
-          <div className="px-2 py-1 bg-muted/50 border-b border-border text-[10px] text-muted-foreground">
-            📊 Live options data via Tradier
+          <div className="px-2 py-1 bg-muted/50 border-b border-border flex justify-between text-[10px] text-muted-foreground">
+            <span>📊 Live via Tradier · {underlyingTicker} @ ${stockPrice.toFixed(2)}</span>
+            <span>{chainData.length} strikes</span>
           </div>
-          {/* Header */}
-          <div className="grid grid-cols-8 gap-1 px-2 py-1.5 bg-muted/50 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-            <span>Strike</span>
-            <span className="text-right">Bid</span>
-            <span className="text-right">Ask</span>
-            <span className="text-right">Last</span>
-            <span className="text-right">Vol</span>
-            <span className="text-right">OI</span>
-            <span className="text-right">IV</span>
-            <span className="text-right">Δ</span>
+
+          {/* Spread header */}
+          <div className={`grid gap-0 px-0 py-1 bg-muted/50 text-[10px] font-medium text-muted-foreground uppercase tracking-wider border-b border-border ${
+            viewMode === 'all' ? 'grid-cols-[1fr_auto_1fr]' : ''
+          }`}>
+            {showCalls && (
+              <div className={`grid ${viewMode === 'all' ? 'grid-cols-5' : 'grid-cols-7'} gap-0.5 px-1.5`}>
+                {viewMode !== 'all' && <span>Strike</span>}
+                <span className="text-right">Δ</span>
+                <span className="text-right">IV</span>
+                <span className="text-right">Bid</span>
+                <span className="text-right">Ask</span>
+                <span className="text-right">Vol</span>
+                {viewMode !== 'all' && <span className="text-right">OI</span>}
+              </div>
+            )}
+            {viewMode === 'all' && (
+              <div className="text-center font-bold text-foreground px-1">Strike</div>
+            )}
+            {showPuts && (
+              <div className={`grid ${viewMode === 'all' ? 'grid-cols-5' : 'grid-cols-7'} gap-0.5 px-1.5`}>
+                {viewMode !== 'all' && <span>Strike</span>}
+                <span className="text-right">Bid</span>
+                <span className="text-right">Ask</span>
+                <span className="text-right">IV</span>
+                <span className="text-right">Δ</span>
+                <span className="text-right">Vol</span>
+                {viewMode !== 'all' && <span className="text-right">OI</span>}
+              </div>
+            )}
           </div>
 
           {/* Rows */}
-          <ScrollArea className="max-h-[200px]">
-            {filteredContracts.map(contract => {
-              const isSelected = selectedContract?.ticker === contract.ticker;
+          <ScrollArea className="max-h-[400px]">
+            {chainData.map(([strike, { call, put }]) => {
+              const isATM = stockPrice > 0 && Math.abs(strike - stockPrice) / stockPrice < 0.01;
+              const isITMCall = call && strike < stockPrice;
+              const isITMPut = put && strike > stockPrice;
+
               return (
-                <button
-                  key={contract.ticker}
-                  onClick={() => onSelect(contract)}
-                  className={`w-full grid grid-cols-8 gap-1 px-2 py-1.5 text-xs font-mono hover:bg-accent/50 transition-colors border-t border-border/50 ${
-                    isSelected ? 'bg-primary/10 border-primary/30' : ''
-                  }`}
+                <div
+                  key={strike}
+                  className={`grid gap-0 border-t border-border/30 text-xs font-mono ${
+                    isATM ? 'bg-primary/5 border-primary/30' : ''
+                  } ${viewMode === 'all' ? 'grid-cols-[1fr_auto_1fr]' : ''}`}
                 >
-                  <span className="font-semibold text-foreground">${contract.strike_price.toFixed(2)}</span>
-                  <span className="text-right text-success">{contract.bid > 0 ? `$${contract.bid.toFixed(2)}` : '—'}</span>
-                  <span className="text-right text-destructive">{contract.ask > 0 ? `$${contract.ask.toFixed(2)}` : '—'}</span>
-                  <span className="text-right">{contract.last_price > 0 ? `$${contract.last_price.toFixed(2)}` : '—'}</span>
-                  <span className="text-right text-muted-foreground">{contract.volume > 0 ? contract.volume.toLocaleString() : '—'}</span>
-                  <span className="text-right text-muted-foreground">{contract.open_interest > 0 ? contract.open_interest.toLocaleString() : '—'}</span>
-                  <span className="text-right text-muted-foreground">{contract.implied_volatility != null ? `${(contract.implied_volatility * 100).toFixed(0)}%` : '—'}</span>
-                  <span className="text-right text-muted-foreground">{contract.delta != null ? contract.delta.toFixed(2) : '—'}</span>
-                </button>
+                  {/* Calls side */}
+                  {showCalls && (
+                    <button
+                      onClick={() => call && onSelect(call)}
+                      disabled={!call}
+                      className={`grid ${viewMode === 'all' ? 'grid-cols-5' : 'grid-cols-7'} gap-0.5 px-1.5 py-1 text-right hover:bg-success/10 transition-colors ${
+                        selectedContract?.ticker === call?.ticker ? 'bg-success/15' : ''
+                      } ${isITMCall ? 'bg-success/5' : ''}`}
+                    >
+                      {viewMode !== 'all' && (
+                        <span className="text-left font-semibold text-foreground">${strike.toFixed(2)}</span>
+                      )}
+                      <span className="text-muted-foreground">{call?.delta != null ? call.delta.toFixed(2) : '—'}</span>
+                      <span className="text-muted-foreground">{call?.implied_volatility != null ? `${(call.implied_volatility * 100).toFixed(0)}%` : '—'}</span>
+                      <span className="text-success">{call?.bid ? `$${call.bid.toFixed(2)}` : '—'}</span>
+                      <span className="text-destructive">{call?.ask ? `$${call.ask.toFixed(2)}` : '—'}</span>
+                      <span className="text-muted-foreground">{call?.volume ? call.volume.toLocaleString() : '—'}</span>
+                      {viewMode !== 'all' && (
+                        <span className="text-muted-foreground">{call?.open_interest ? call.open_interest.toLocaleString() : '—'}</span>
+                      )}
+                    </button>
+                  )}
+
+                  {/* Strike column (center) */}
+                  {viewMode === 'all' && (
+                    <div className={`flex items-center justify-center px-1 text-[11px] font-bold min-w-[60px] ${
+                      isATM ? 'text-primary' : 'text-foreground'
+                    }`}>
+                      ${strike.toFixed(0)}
+                    </div>
+                  )}
+
+                  {/* Puts side */}
+                  {showPuts && (
+                    <button
+                      onClick={() => put && onSelect(put)}
+                      disabled={!put}
+                      className={`grid ${viewMode === 'all' ? 'grid-cols-5' : 'grid-cols-7'} gap-0.5 px-1.5 py-1 text-right hover:bg-destructive/10 transition-colors ${
+                        selectedContract?.ticker === put?.ticker ? 'bg-destructive/15' : ''
+                      } ${isITMPut ? 'bg-destructive/5' : ''}`}
+                    >
+                      {viewMode !== 'all' && (
+                        <span className="text-left font-semibold text-foreground">${strike.toFixed(2)}</span>
+                      )}
+                      <span className="text-success">{put?.bid ? `$${put.bid.toFixed(2)}` : '—'}</span>
+                      <span className="text-destructive">{put?.ask ? `$${put.ask.toFixed(2)}` : '—'}</span>
+                      <span className="text-muted-foreground">{put?.implied_volatility != null ? `${(put.implied_volatility * 100).toFixed(0)}%` : '—'}</span>
+                      <span className="text-muted-foreground">{put?.delta != null ? put.delta.toFixed(2) : '—'}</span>
+                      <span className="text-muted-foreground">{put?.volume ? put.volume.toLocaleString() : '—'}</span>
+                      {viewMode !== 'all' && (
+                        <span className="text-muted-foreground">{put?.open_interest ? put.open_interest.toLocaleString() : '—'}</span>
+                      )}
+                    </button>
+                  )}
+                </div>
               );
             })}
           </ScrollArea>
         </div>
       )}
 
-      {!loading && !error && filteredContracts.length === 0 && selectedExpiration && (
-        <p className="text-xs text-muted-foreground text-center py-4">No {optionType} contracts found for this expiration.</p>
+      {!loading && !error && chainData.length === 0 && selectedExpiration && (
+        <p className="text-xs text-muted-foreground text-center py-4">No contracts match current filters.</p>
       )}
 
       {/* Selected contract details */}
@@ -205,24 +331,38 @@ export function OptionsChainSelector({ underlyingTicker, onSelect, selectedContr
               <span className="font-mono">${selectedContract.mid.toFixed(2)}</span>
             </div>
           </div>
-          {selectedContract.implied_volatility != null && (
-            <div className="text-[10px]">
+          <div className="grid grid-cols-4 gap-2 text-[10px]">
+            <div>
               <span className="text-muted-foreground">IV: </span>
-              <span className="font-mono">{(selectedContract.implied_volatility * 100).toFixed(1)}%</span>
-              {selectedContract.delta != null && (
-                <>
-                  <span className="text-muted-foreground ml-2">Δ: </span>
-                  <span className="font-mono">{selectedContract.delta.toFixed(3)}</span>
-                </>
-              )}
-              {selectedContract.theta != null && (
-                <>
-                  <span className="text-muted-foreground ml-2">Θ: </span>
-                  <span className="font-mono">{selectedContract.theta.toFixed(3)}</span>
-                </>
-              )}
+              <span className="font-mono">{selectedContract.implied_volatility != null ? `${(selectedContract.implied_volatility * 100).toFixed(1)}%` : '—'}</span>
             </div>
-          )}
+            <div>
+              <span className="text-muted-foreground">Δ: </span>
+              <span className="font-mono">{selectedContract.delta?.toFixed(3) ?? '—'}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Γ: </span>
+              <span className="font-mono">{selectedContract.gamma?.toFixed(4) ?? '—'}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Θ: </span>
+              <span className="font-mono">{selectedContract.theta?.toFixed(3) ?? '—'}</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-[10px]">
+            <div>
+              <span className="text-muted-foreground">Vol: </span>
+              <span className="font-mono">{selectedContract.volume.toLocaleString()}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">OI: </span>
+              <span className="font-mono">{selectedContract.open_interest.toLocaleString()}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Vega: </span>
+              <span className="font-mono">{selectedContract.vega?.toFixed(3) ?? '—'}</span>
+            </div>
+          </div>
         </div>
       )}
     </div>
