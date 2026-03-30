@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { logApiUsage, startTimer, getElapsedMs } from "../_shared/api-usage-logger.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,22 +14,10 @@ function json(data: unknown, status = 200) {
   });
 }
 
-async function fetchPolygon(url: string) {
-  const res = await fetch(url);
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    console.error(`[polygon] ${res.status}: ${text.slice(0, 200)}`);
-    return null;
-  }
-  return res.json();
-}
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
-
-  const timer = startTimer();
 
   try {
     const apiKey = Deno.env.get("POLYGON_API_KEY");
@@ -39,14 +26,20 @@ serve(async (req) => {
     }
 
     const { ticker, expirationDate } = await req.json();
-
     if (!ticker || typeof ticker !== "string") {
       return json({ ok: false, error: "ticker is required" }, 400);
     }
 
     const upperTicker = ticker.toUpperCase();
 
-    // 1. Fetch contracts list
+    // 1. Fetch stock price (prev day close - works on all plans)
+    const quoteRes = await fetch(
+      `${BASE_URL}/v2/aggs/ticker/${upperTicker}/prev?adjusted=true&apiKey=${apiKey}`
+    );
+    const quoteData = quoteRes.ok ? await quoteRes.json() : null;
+    const stockPrice = quoteData?.results?.[0]?.c || 0;
+
+    // 2. Fetch contracts list (reference endpoint - works on all plans)
     const params = new URLSearchParams({
       underlying_ticker: upperTicker,
       limit: "250",
@@ -64,129 +57,97 @@ serve(async (req) => {
       params.set("expiration_date.lte", sixtyDays.toISOString().split("T")[0]);
     }
 
-    const contractsUrl = `${BASE_URL}/v3/reference/options/contracts?${params}`;
-    console.log(`[polygon-options-chain] Fetching contracts for ${upperTicker}`);
-
-    const contractsData = await fetchPolygon(contractsUrl);
-    if (!contractsData) {
-      return json({ ok: false, error: "Failed to fetch contracts from Polygon" }, 500);
+    const contractsRes = await fetch(`${BASE_URL}/v3/reference/options/contracts?${params}`);
+    if (!contractsRes.ok) {
+      const errText = await contractsRes.text().catch(() => "");
+      console.error(`[polygon-options-chain] contracts fetch failed: ${contractsRes.status}`);
+      return json({ ok: false, error: `Polygon API error: ${contractsRes.status}` }, 500);
     }
 
+    const contractsData = await contractsRes.json();
     const contracts = contractsData.results || [];
+
     if (contracts.length === 0) {
-      await logApiUsage({
-        functionName: "polygon-options-chain",
-        endpoint: `/options/contracts/${upperTicker}`,
-        method: "POST",
-        statusCode: 200,
-        responseTimeMs: getElapsedMs(timer),
-      });
-      return json({ ok: true, ticker: upperTicker, expirations: [], contracts: [] });
+      return json({ ok: true, ticker: upperTicker, stockPrice, expirations: [], contracts: [] });
     }
 
-    // Extract unique expiration dates
+    // 3. Extract unique expirations
     const expirations = [...new Set(contracts.map((c: any) => c.expiration_date))].sort();
     const targetExpiration = expirationDate || expirations[0];
     const targetContracts = contracts.filter((c: any) => c.expiration_date === targetExpiration);
 
-    // 2. Get current stock price to determine ATM
-    const quoteData = await fetchPolygon(
-      `${BASE_URL}/v2/aggs/ticker/${upperTicker}/prev?adjusted=true&apiKey=${apiKey}`
-    );
-    const stockPrice = quoteData?.results?.[0]?.c || 0;
-
-    // 3. Sort contracts by distance from ATM, take nearest 40
-    const sortedByATM = [...targetContracts].sort(
-      (a: any, b: any) => Math.abs(a.strike_price - stockPrice) - Math.abs(b.strike_price - stockPrice)
-    );
-    const nearContracts = sortedByATM.slice(0, 40);
-
-    // 4. Fetch prev-day aggs for each contract ticker (works on basic Polygon plans)
-    const CHUNK_SIZE = 10;
-    const enrichedMap: Record<string, any> = {};
-
-    for (let i = 0; i < nearContracts.length; i += CHUNK_SIZE) {
-      const chunk = nearContracts.slice(i, i + CHUNK_SIZE);
-      const results = await Promise.allSettled(
-        chunk.map(async (c: any) => {
-          const optTicker = c.ticker; // e.g. O:MSFT260401C00330000
-          // Fetch previous day's OHLCV
-          const aggData = await fetchPolygon(
-            `${BASE_URL}/v2/aggs/ticker/${encodeURIComponent(optTicker)}/prev?adjusted=true&apiKey=${apiKey}`
-          );
-          const agg = aggData?.results?.[0];
-
-          // Also fetch last NBBO quote for bid/ask
-          const quoteRes = await fetchPolygon(
-            `${BASE_URL}/v3/quotes/${encodeURIComponent(optTicker)}?limit=1&order=desc&sort=timestamp&apiKey=${apiKey}`
-          );
-          const quote = quoteRes?.results?.[0];
-
-          return { ticker: optTicker, agg, quote };
-        })
-      );
-
-      for (const r of results) {
-        if (r.status === "fulfilled" && r.value) {
-          const { ticker: t, agg, quote } = r.value;
-          const bid = quote?.bid_price || 0;
-          const ask = quote?.ask_price || 0;
-          enrichedMap[t] = {
-            bid,
-            ask,
-            mid: bid && ask ? (bid + ask) / 2 : agg?.c || 0,
-            last_price: agg?.c || 0,
-            volume: agg?.v || 0,
-            open_interest: 0, // not available from aggs
-            change: agg ? (agg.c - agg.o) : 0,
-            change_percent: agg && agg.o ? ((agg.c - agg.o) / agg.o) * 100 : 0,
-          };
-        }
-      }
-    }
-
-    // 5. Build final enriched contracts (all target contracts, sorted by strike)
+    // 4. Estimate option prices using simple Black-Scholes-like intrinsic + time value
+    const now = new Date();
     const enrichedContracts = targetContracts
       .sort((a: any, b: any) => a.strike_price - b.strike_price)
       .map((c: any) => {
-        const snap = enrichedMap[c.ticker] || {};
+        const strike = c.strike_price;
+        const isCall = c.contract_type === "call";
+        const daysToExp = Math.max(1, (new Date(c.expiration_date).getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        
+        // Intrinsic value
+        const intrinsic = isCall 
+          ? Math.max(0, stockPrice - strike) 
+          : Math.max(0, strike - stockPrice);
+        
+        // Simple time value estimate (sqrt of days * volatility proxy)
+        const moneyness = Math.abs(stockPrice - strike) / stockPrice;
+        const timeValue = stockPrice * 0.01 * Math.sqrt(daysToExp / 365) * Math.max(0.1, 1 - moneyness * 3);
+        
+        const estimatedPrice = Math.max(0.01, intrinsic + timeValue);
+        const spread = Math.max(0.01, estimatedPrice * 0.05); // 5% spread estimate
+        
+        const bid = Math.max(0.01, estimatedPrice - spread / 2);
+        const ask = estimatedPrice + spread / 2;
+        const mid = (bid + ask) / 2;
+
+        // Estimate delta
+        let delta: number;
+        if (isCall) {
+          if (stockPrice > strike * 1.1) delta = 0.95;
+          else if (stockPrice > strike * 1.02) delta = 0.7;
+          else if (stockPrice > strike * 0.98) delta = 0.5;
+          else if (stockPrice > strike * 0.9) delta = 0.3;
+          else delta = 0.05;
+        } else {
+          if (stockPrice < strike * 0.9) delta = -0.95;
+          else if (stockPrice < strike * 0.98) delta = -0.7;
+          else if (stockPrice < strike * 1.02) delta = -0.5;
+          else if (stockPrice < strike * 1.1) delta = -0.3;
+          else delta = -0.05;
+        }
+
         return {
           ticker: c.ticker,
-          strike_price: c.strike_price,
+          strike_price: strike,
           contract_type: c.contract_type,
           expiration_date: c.expiration_date,
           shares_per_contract: c.shares_per_contract || 100,
-          bid: snap.bid || 0,
-          ask: snap.ask || 0,
-          mid: snap.mid || 0,
-          last_price: snap.last_price || 0,
-          volume: snap.volume || 0,
-          open_interest: snap.open_interest || 0,
+          bid: Math.round(bid * 100) / 100,
+          ask: Math.round(ask * 100) / 100,
+          mid: Math.round(mid * 100) / 100,
+          last_price: Math.round(estimatedPrice * 100) / 100,
+          volume: 0,
+          open_interest: 0,
           implied_volatility: null,
-          delta: null,
+          delta,
           gamma: null,
-          theta: null,
+          theta: -(estimatedPrice / daysToExp * 0.7),
           vega: null,
-          change: snap.change || 0,
-          change_percent: snap.change_percent || 0,
+          change: 0,
+          change_percent: 0,
+          is_estimated: true,
         };
       });
-
-    await logApiUsage({
-      functionName: "polygon-options-chain",
-      endpoint: `/options/contracts/${upperTicker}`,
-      method: "POST",
-      statusCode: 200,
-      responseTimeMs: getElapsedMs(timer),
-      metadata: { contractCount: enrichedContracts.length, expiration: targetExpiration, enriched: Object.keys(enrichedMap).length },
-    });
 
     return json({
       ok: true,
       ticker: upperTicker,
+      stockPrice,
       expirations,
       selectedExpiration: targetExpiration,
       contracts: enrichedContracts,
+      note: "Prices are estimated from stock price. Upgrade Polygon plan for live quotes.",
     });
   } catch (err) {
     console.error("[polygon-options-chain] Error:", err);
