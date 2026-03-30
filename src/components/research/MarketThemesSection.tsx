@@ -277,14 +277,25 @@ export function MarketThemesSection() {
             </p>
           </div>
         </div>
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={() => setShowAll(!showAll)}
-          className="text-[10px] sm:text-xs h-6 sm:h-7 px-2"
-        >
-          {showAll ? 'Less' : `All ${sourceThemes.length}`}
-        </Button>
+        <div className="flex items-center gap-1.5">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleOpenSaved}
+            className="text-[10px] sm:text-xs h-6 sm:h-7 px-2"
+          >
+            <Bookmark className="h-3 w-3 mr-1" />
+            Saved
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => setShowAll(!showAll)}
+            className="text-[10px] sm:text-xs h-6 sm:h-7 px-2"
+          >
+            {showAll ? 'Less' : `All ${sourceThemes.length}`}
+          </Button>
+        </div>
       </div>
 
       {/* Theme Cards - Horizontal Scroll or Grid */}
