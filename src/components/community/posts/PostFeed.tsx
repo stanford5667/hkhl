@@ -179,6 +179,7 @@ export function PostFeed() {
                 post={post}
                 onVote={handleVote}
                 onTickerClick={setTickerFilter}
+                onDelete={handleDelete}
               />
             ))}
           </div>
