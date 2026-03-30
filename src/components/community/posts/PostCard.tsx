@@ -15,6 +15,7 @@ interface PostCardProps {
   post: ResearchPost;
   onVote: (postId: string, voteType: 1 | -1) => void;
   onTickerClick?: (ticker: string) => void;
+  onDelete?: (postId: string) => void;
   compact?: boolean;
 }
 
