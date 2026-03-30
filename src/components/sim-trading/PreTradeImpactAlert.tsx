@@ -169,7 +169,7 @@ export function PreTradeImpactAlert({
 
     // --- 5. Portfolio-level drawdown analysis ---
     if (action === 'buy') {
-      const ddBudget = goals.max_drawdown_pct;
+      const ddBudget = goals?.max_drawdown_pct ?? 20; // default 20% if no goals
       const positionMap = new Map<string, number>();
       for (const p of positions) {
         const t = p.ticker.toUpperCase();
@@ -190,38 +190,40 @@ export function PreTradeImpactAlert({
         if (v > 0) weights.push(v / postPortfolio);
       }
 
-      const hhi = weights.reduce((sum, w) => sum + w * w, 0);
-      const numPositions = weights.length;
-      const worstCaseDD = (totalInvested / postPortfolio) * 100;
-      const avgCorr = 0.5;
-      const diversificationFactor = Math.sqrt(hhi + (1 - hhi) * avgCorr);
-      const estimatedDD = worstCaseDD * diversificationFactor;
-      const maxWeight = Math.max(...weights);
-      const largestPct = maxWeight * 100;
+      if (weights.length > 0) {
+        const hhi = weights.reduce((sum, w) => sum + w * w, 0);
+        const numPositions = weights.length;
+        const worstCaseDD = (totalInvested / postPortfolio) * 100;
+        const avgCorr = 0.5;
+        const diversificationFactor = Math.sqrt(hhi + (1 - hhi) * avgCorr);
+        const estimatedDD = worstCaseDD * diversificationFactor;
+        const maxWeight = Math.max(...weights);
+        const largestPct = maxWeight * 100;
 
-      if (estimatedDD > ddBudget * 1.2) {
-        results.push({
-          type: 'danger',
-          title: `Portfolio drawdown risk ~${estimatedDD.toFixed(1)}% exceeds your ${ddBudget}% limit`,
-          detail: `With ${numPositions} position${numPositions !== 1 ? 's' : ''} and ${postCash < 0 ? 'no' : `$${postCash.toFixed(0)}`} cash, ` +
-            `a correlated market selloff could draw down ~${estimatedDD.toFixed(1)}% of your portfolio. ` +
-            `Largest position is ${largestPct.toFixed(1)}% of portfolio. Worst-case (100% correlation): ${worstCaseDD.toFixed(1)}%.`,
-        });
-      } else if (estimatedDD > ddBudget * 0.8) {
-        results.push({
-          type: 'warning',
-          title: `Portfolio drawdown risk ~${estimatedDD.toFixed(1)}% is near your ${ddBudget}% limit`,
-          detail: `${numPositions} position${numPositions !== 1 ? 's' : ''}, ${((totalInvested / postPortfolio) * 100).toFixed(0)}% deployed. ` +
-            `In a broad selloff, estimated drawdown is ${estimatedDD.toFixed(1)}% (worst-case: ${worstCaseDD.toFixed(1)}%). ` +
-            `Consider whether additional cash buffer or diversification could reduce risk.`,
-        });
-      } else if (numPositions >= 2) {
-        results.push({
-          type: 'info',
-          title: `Portfolio drawdown estimate: ~${estimatedDD.toFixed(1)}% (budget: ${ddBudget}%)`,
-          detail: `${numPositions} positions across your portfolio with ${((postCash / postPortfolio) * 100).toFixed(1)}% cash. ` +
-            `Diversification reduces worst-case ${worstCaseDD.toFixed(1)}% to ~${estimatedDD.toFixed(1)}%.`,
-        });
+        if (estimatedDD > ddBudget * 1.2) {
+          results.push({
+            type: 'danger',
+            title: `Portfolio drawdown risk ~${estimatedDD.toFixed(1)}% exceeds ${goals ? 'your' : 'a'} ${ddBudget}% limit`,
+            detail: `With ${numPositions} position${numPositions !== 1 ? 's' : ''} and ${postCash < 0 ? 'no' : `$${postCash.toFixed(0)}`} cash, ` +
+              `a correlated market selloff could draw down ~${estimatedDD.toFixed(1)}% of your portfolio. ` +
+              `Largest position is ${largestPct.toFixed(1)}% of portfolio. Worst-case (100% correlation): ${worstCaseDD.toFixed(1)}%.`,
+          });
+        } else if (estimatedDD > ddBudget * 0.8) {
+          results.push({
+            type: 'warning',
+            title: `Portfolio drawdown risk ~${estimatedDD.toFixed(1)}% is near ${goals ? 'your' : 'the'} ${ddBudget}% limit`,
+            detail: `${numPositions} position${numPositions !== 1 ? 's' : ''}, ${((totalInvested / postPortfolio) * 100).toFixed(0)}% deployed. ` +
+              `In a broad selloff, estimated drawdown is ${estimatedDD.toFixed(1)}% (worst-case: ${worstCaseDD.toFixed(1)}%). ` +
+              `Consider whether additional cash buffer or diversification could reduce risk.`,
+          });
+        } else if (numPositions >= 2) {
+          results.push({
+            type: 'info',
+            title: `Portfolio drawdown estimate: ~${estimatedDD.toFixed(1)}% (budget: ${ddBudget}%)`,
+            detail: `${numPositions} positions across your portfolio with ${((postCash / postPortfolio) * 100).toFixed(1)}% cash. ` +
+              `Diversification reduces worst-case ${worstCaseDD.toFixed(1)}% to ~${estimatedDD.toFixed(1)}%.`,
+          });
+        }
       }
     }
 
