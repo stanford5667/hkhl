@@ -54,7 +54,7 @@ export function MobileNav() {
         style={{ zIndex: 50, paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
         <div className="flex items-center justify-around h-16 px-2">
-          {mobileNavItems.map((item) => {
+          {(isAdmin ? adminMobileNavItems : baseMobileNavItems).map((item) => {
             const isActive = item.href !== "#menu" && (
               location.pathname === item.href || 
               (item.href !== "/" && location.pathname.startsWith(item.href))
