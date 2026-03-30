@@ -63,7 +63,7 @@ export function PortfolioJournal({ portfolioId, initialCapital, currentValue, ca
   const [generating, setGenerating] = useState(false);
   const [loading, setLoading] = useState(true);
   const [autoGenAttempted, setAutoGenAttempted] = useState(false);
-  const [expandedEntryId, setExpandedEntryId] = useState<string | null>(null);
+  
   const prevPositionsRef = useRef<string>('');
 
   const fetchData = useCallback(async () => {
