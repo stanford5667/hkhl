@@ -271,6 +271,11 @@ export default function ThemeAnalysis() {
           ) : null}
         </div>
 
+        {/* Chat interface for forming trade ideas */}
+        {!isLoading && content && (
+          <ThemeChat theme={theme} analysisContent={content} />
+        )}
+
         {/* Bottom nav */}
         {!isLoading && content && (
           <div className="mt-10 pt-6 border-t border-border/30 flex flex-wrap gap-3">
