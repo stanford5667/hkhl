@@ -204,14 +204,6 @@ export function ChatRoomView({ room, onBack }: ChatRoomViewProps) {
           ) : null
         )}
 
-        {canAccess && !room.is_live && !livekitMode && (
-          <StreamRecordingsList
-            recordings={recordings}
-            loading={recordingsLoading}
-            isAdmin={isAdmin}
-            onDelete={isAdmin ? deleteRecording : undefined}
-          />
-        )}
         <ResizablePanelGroup direction="horizontal">
           <ResizablePanel defaultSize={activeThread ? 60 : 100} minSize={40}>
             <div className="flex flex-col h-full">
