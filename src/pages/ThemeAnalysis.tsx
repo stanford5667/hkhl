@@ -136,7 +136,7 @@ export default function ThemeAnalysis() {
           user_id: user.id,
           title: theme.title,
           category: theme.category,
-          theme_data: { tickers: theme.tickers, summary: theme.summary, category: theme.category },
+          theme_data: { tickers: theme.tickers, summary: theme.summary, category: theme.category } as any,
           analysis_content: content,
           is_public: false,
         })
@@ -168,7 +168,7 @@ export default function ThemeAnalysis() {
             user_id: user.id,
             title: theme.title,
             category: theme.category,
-            theme_data: { tickers: theme.tickers, summary: theme.summary, category: theme.category },
+            theme_data: { tickers: theme.tickers, summary: theme.summary, category: theme.category } as any,
             analysis_content: content,
             is_public: true,
           })
