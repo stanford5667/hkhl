@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAdmin } from '@/hooks/useAdmin';
 import { useResearchNotes, useCreateNote, useUpdateNote, useDeleteNote, ResearchNote } from '@/hooks/useResearchNotes';
 import { useWatchlistWithQuotes } from '@/hooks/useWatchlistWithQuotes';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
