@@ -178,21 +178,42 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
         });
       } else {
         if (trade.action === 'buy') {
-          const oldTotal = existing.avg_cost * existing.quantity * multiplier;
-          const newTotal = trade.price_at_execution * trade.quantity * multiplier;
-          const newQty = existing.quantity + trade.quantity;
-          if (newQty > 0) {
-            existing.avg_cost = (oldTotal + newTotal) / (newQty * multiplier);
+          if (existing.quantity >= 0) {
+            // Adding to long position — weighted average cost
+            const oldCostBasis = existing.avg_cost * existing.quantity * multiplier;
+            const newCostBasis = trade.price_at_execution * trade.quantity * multiplier;
+            const newQty = existing.quantity + trade.quantity;
+            existing.avg_cost = newQty > 0 ? (oldCostBasis + newCostBasis) / (newQty * multiplier) : trade.price_at_execution;
+            existing.quantity = newQty;
+          } else {
+            // Covering a short position
+            const covered = Math.min(trade.quantity, Math.abs(existing.quantity));
+            const remaining = trade.quantity - covered;
+            existing.quantity += trade.quantity;
+            if (existing.quantity > 0 && remaining > 0) {
+              // Flipped to long — new avg cost is the buy price for remaining shares
+              existing.avg_cost = trade.price_at_execution;
+            }
           }
-          existing.quantity = newQty;
         } else {
-          existing.quantity = Math.max(0, existing.quantity - trade.quantity);
+          // Sell
+          if (existing.quantity > 0) {
+            // Selling from long position — avg cost stays the same
+            existing.quantity = Math.max(0, existing.quantity - trade.quantity);
+          } else {
+            // Adding to short position
+            const oldCostBasis = existing.avg_cost * Math.abs(existing.quantity) * multiplier;
+            const newCostBasis = trade.price_at_execution * trade.quantity * multiplier;
+            const newQty = existing.quantity - trade.quantity;
+            existing.avg_cost = newQty !== 0 ? (oldCostBasis + newCostBasis) / (Math.abs(newQty) * multiplier) : trade.price_at_execution;
+            existing.quantity = newQty;
+          }
         }
-        existing.total_cost = existing.avg_cost * existing.quantity * multiplier;
+        existing.total_cost = existing.avg_cost * Math.abs(existing.quantity) * multiplier;
       }
     }
 
-    const openPositions = Array.from(posMap.values()).filter(p => p.quantity > 0);
+    const openPositions = Array.from(posMap.values()).filter(p => p.quantity !== 0);
 
     // Fetch live stock quotes
     const stockTickers = [...new Set(openPositions.filter(p => p.instrument_type === 'stock').map(p => p.ticker.toUpperCase()))];
@@ -246,21 +267,33 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
     await Promise.allSettled(optionFetches);
 
     for (const pos of openPositions) {
+      const absQty = Math.abs(pos.quantity);
+      const isShort = pos.quantity < 0;
+
       if (pos.instrument_type === 'stock') {
         const quote = quotes.get(pos.ticker.toUpperCase());
         if (quote) {
           pos.current_price = quote.price ?? null;
           if (pos.current_price !== null) {
-            pos.current_value = pos.current_price * pos.quantity;
-            pos.pnl = pos.current_value - pos.total_cost;
+            pos.current_value = pos.current_price * absQty;
+            if (isShort) {
+              // Short P&L: profit when price drops below avg_cost
+              pos.pnl = (pos.avg_cost - pos.current_price) * absQty;
+            } else {
+              pos.pnl = pos.current_value - pos.total_cost;
+            }
             pos.pnl_pct = pos.total_cost > 0 ? (pos.pnl / pos.total_cost) * 100 : 0;
           }
         }
       } else {
         // Option: use fetched live price, or fall back to avg_cost
         if (pos.current_price == null) pos.current_price = pos.avg_cost;
-        pos.current_value = pos.current_price * pos.quantity * pos.contract_multiplier;
-        pos.pnl = pos.current_value - pos.total_cost;
+        pos.current_value = pos.current_price * absQty * pos.contract_multiplier;
+        if (isShort) {
+          pos.pnl = (pos.avg_cost - pos.current_price) * absQty * pos.contract_multiplier;
+        } else {
+          pos.pnl = pos.current_value - pos.total_cost;
+        }
         pos.pnl_pct = pos.total_cost > 0 ? (pos.pnl / pos.total_cost) * 100 : 0;
       }
     }
@@ -423,10 +456,11 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
   }
 
   const totalPositionsValue = positions.reduce((sum, p) => sum + (p.current_value || 0), 0);
+  const totalPositionsCost = positions.reduce((sum, p) => sum + p.total_cost, 0);
   const totalPortfolioValue = portfolio.cash_balance + totalPositionsValue;
   const totalPnL = totalPortfolioValue - portfolio.initial_capital;
   const totalPnLPct = portfolio.initial_capital > 0 ? (totalPnL / portfolio.initial_capital) * 100 : 0;
-  const investedCapital = portfolio.initial_capital - portfolio.cash_balance;
+  const investedCapital = totalPositionsCost;
   const investedPct = portfolio.initial_capital > 0 ? (investedCapital / portfolio.initial_capital) * 100 : 0;
 
   return (
