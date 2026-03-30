@@ -189,7 +189,7 @@ export function CommunityHub({ defaultTab = 'chat', initialRoomId }: CommunityHu
           </>
         ) : (
           <div className="flex-1 p-4 overflow-auto">
-            <PostFeed />
+            {location.pathname === '/community/new-post' ? <NewPostForm /> : <PostFeed />}
           </div>
         )}
       </div>
