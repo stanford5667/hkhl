@@ -34,7 +34,8 @@ export function CommunityHub({ defaultTab = 'chat', initialRoomId }: CommunityHu
   const isMobile = useIsMobile();
   const { isAuthenticated } = useAuth();
   const { isAdmin } = useAdmin();
-  const [activeTab, setActiveTab] = useState<'chat' | 'posts'>(defaultTab);
+  const isPostsRoute = location.pathname.startsWith('/community/posts') || location.pathname === '/community/new-post';
+  const [activeTab, setActiveTab] = useState<'chat' | 'posts'>(isPostsRoute ? 'posts' : defaultTab);
   const [selectedRoom, setSelectedRoom] = useState<ChatRoomType | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -127,7 +128,7 @@ export function CommunityHub({ defaultTab = 'chat', initialRoomId }: CommunityHu
             variant={activeTab === 'chat' ? 'default' : 'ghost'}
             size="sm"
             className="gap-2"
-            onClick={() => setActiveTab('chat')}
+            onClick={() => { setActiveTab('chat'); navigate('/community', { replace: true }); }}
           >
             <MessageCircle className="h-4 w-4" />
             <span className="hidden sm:inline">Chat</span>
@@ -136,7 +137,7 @@ export function CommunityHub({ defaultTab = 'chat', initialRoomId }: CommunityHu
             variant={activeTab === 'posts' ? 'default' : 'ghost'}
             size="sm"
             className="gap-2"
-            onClick={() => setActiveTab('posts')}
+            onClick={() => { setActiveTab('posts'); navigate('/community/posts', { replace: true }); }}
           >
             <FileText className="h-4 w-4" />
             <span className="hidden sm:inline">Research</span>
