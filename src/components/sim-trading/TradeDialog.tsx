@@ -41,6 +41,18 @@ export function TradeDialog({ open, onOpenChange, portfolioId, cashBalance, curr
   const [fetchingPrice, setFetchingPrice] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [priceError, setPriceError] = useState('');
+  const [goals, setGoals] = useState<any>(null);
+
+  // Fetch goals for impact analysis
+  useEffect(() => {
+    if (!open || !user) return;
+    supabase
+      .from('sim_portfolio_goals')
+      .select('*')
+      .eq('portfolio_id', portfolioId)
+      .maybeSingle()
+      .then(({ data }) => { if (data) setGoals(data); });
+  }, [open, portfolioId, user]);
 
   // Order type
   const [orderType, setOrderType] = useState<'market' | 'limit' | 'stop'>('market');
