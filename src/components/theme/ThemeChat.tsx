@@ -84,12 +84,12 @@ Guidelines:
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
         body: JSON.stringify({
-          title: theme.title,
-          summary: theme.summary,
-          detailedSummary: theme.detailedSummary,
-          category: theme.category,
+          title: theme.title || 'Market Theme',
+          summary: theme.summary || '',
+          detailedSummary: theme.detailedSummary || '',
+          category: theme.category || '',
           tickers: theme.tickers || [],
-          headlines: theme.headlines,
+          headlines: theme.headlines || [],
           // Pass chat context as additional context
           chatMode: true,
           systemPromptOverride: systemPrompt,
