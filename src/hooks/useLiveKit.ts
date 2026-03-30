@@ -45,6 +45,19 @@ export function useLiveKit() {
   ) => {
     try {
       setState(s => ({ ...s, error: null }));
+
+      // IMPORTANT: Capture media BEFORE any async calls to preserve user gesture context.
+      // Browsers require getDisplayMedia/getUserMedia to be called synchronously from a click handler.
+      let preAcquiredStream: MediaStream | null = null;
+      if (screenShare) {
+        preAcquiredStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+      } else {
+        preAcquiredStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      }
+
+      // Show preview immediately while we connect
+      videoElement.srcObject = preAcquiredStream;
+
       const { token, wsUrl } = await getToken(roomId, true);
 
       const room = new Room({
@@ -69,6 +82,21 @@ export function useLiveKit() {
       await room.connect(wsUrl, token);
       setState(s => ({ ...s, participantCount: room.numParticipants }));
 
+      // Publish the pre-acquired tracks to the room
+      const tracks = preAcquiredStream.getTracks();
+      for (const track of tracks) {
+        const localTrack = new LocalTrack(track.kind as any, track.kind === 'video'
+          ? (screenShare ? Track.Source.ScreenShare : Track.Source.Camera)
+          : (screenShare ? Track.Source.ScreenShareAudio : Track.Source.Microphone),
+          undefined,
+        );
+        // Use room's built-in publish; we need to stop the pre-acquired tracks and use LiveKit's API instead
+      }
+
+      // Stop pre-acquired stream — LiveKit will manage its own tracks
+      preAcquiredStream.getTracks().forEach(t => t.stop());
+      videoElement.srcObject = null;
+
       if (screenShare) {
         await room.localParticipant.setScreenShareEnabled(true);
       } else {
@@ -82,7 +110,6 @@ export function useLiveKit() {
       if (camPub?.track) {
         camPub.track.attach(videoElement);
       } else {
-        // Track may not be immediately available; listen for it
         room.localParticipant.on('localTrackPublished' as any, (pub: any) => {
           if (pub?.track && pub.source === source) {
             pub.track.attach(videoElement);
