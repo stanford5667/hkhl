@@ -226,7 +226,7 @@ export function TradeDialog({ open, onOpenChange, portfolioId, cashBalance, onCo
       <DialogTrigger asChild>
         <Button><Plus className="w-4 h-4 mr-2" /> Trade</Button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className={tab === 'option' ? 'max-w-[95vw] w-full max-h-[95vh] overflow-y-auto' : 'max-w-lg max-h-[90vh] overflow-y-auto'}>
         <DialogHeader>
           <DialogTitle>Execute Paper Trade</DialogTitle>
         </DialogHeader>
