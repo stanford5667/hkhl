@@ -1,18 +1,19 @@
 /**
  * SimPortfolioAnalytics
  * Separated into two major sections:
- * 1. Portfolio Performance — historical snapshot-based (equity curve, drawdown, risk)
+ * 1. Portfolio Performance — historical backtested via backtesterService
  * 2. Trade Performance — since positions were taken (closed P&L, win rate, distribution)
  */
 
 import { useState, useEffect, useMemo } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Loader2, Download, TrendingUp, TrendingDown, Target, Activity, BarChart3, Percent, AlertTriangle, LineChart as LineChartIcon, Briefcase } from 'lucide-react';
 import { DrawdownChart } from '@/components/portfolio/DrawdownChart';
-import { calculateMaxDrawdown, calculateCAGR, annualizedVolatility, calculateSharpeRatio, calculateSortinoRatio, calculateVaR, calculateCVaR, calculateBetaAlpha } from '@/services/portfolioMetricsService';
+import { calculateMaxDrawdown, calculateVaR, calculateCVaR, calculateBetaAlpha } from '@/services/portfolioMetricsService';
+import { runBacktest as runBacktestService } from '@/services/backtesterService';
+import type { BacktestResult as ServiceBacktestResult } from '@/services/backtesterService';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LineChart, Line, CartesianGrid } from 'recharts';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import type { SimTrade } from './SimPortfolioDetail';
