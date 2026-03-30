@@ -732,7 +732,6 @@ function computeTradeMetrics(closedTrades: ClosedTrade[]) {
 // ────────────────────────────────────────────────
 
 export function SimPortfolioAnalytics({ portfolioId, initialCapital, trades, positions, currentValue, cashBalance }: Props) {
-  const [snapshots, setSnapshots] = useState<{ date: string; value: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [section, setSection] = useState('trades');
 
