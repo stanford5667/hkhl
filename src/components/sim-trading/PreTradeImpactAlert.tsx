@@ -162,37 +162,80 @@ export function PreTradeImpactAlert({
       });
     }
 
-    // --- 5. Single-position risk relative to drawdown constraint ---
+    // --- 5. Portfolio-level drawdown analysis ---
     if (action === 'buy') {
-      // This is the single-position worst case, not portfolio drawdown
-      const positionMaxLoss = tradeValue;
-      const positionMaxLossPct = (positionMaxLoss / totalPortfolio) * 100;
       const ddBudget = goals.max_drawdown_pct;
 
-      // Also compute total portfolio single-name exposure after trade
-      const totalExposureAfter = newPositionValue;
-      const totalExposurePct = (totalExposureAfter / postTradePortfolio) * 100;
+      // Build post-trade position map: ticker → value
+      const positionMap = new Map<string, number>();
+      for (const p of positions) {
+        const t = p.ticker.toUpperCase();
+        positionMap.set(t, (positionMap.get(t) || 0) + (p.current_value || 0));
+      }
+      // Apply this trade
+      const tradeTicker = ticker.toUpperCase();
+      const currentVal = positionMap.get(tradeTicker) || 0;
+      positionMap.set(tradeTicker, currentVal + tradeValue);
 
-      if (totalExposurePct > ddBudget) {
+      // Calculate total invested (non-cash) value after trade
+      let totalInvested = 0;
+      for (const v of positionMap.values()) totalInvested += v;
+
+      const postCash = cashBalance - tradeValue;
+      const postPortfolio = totalInvested + postCash;
+
+      // Concentration-based portfolio max drawdown estimate:
+      // Sum of (weight_i^2) gives HHI — higher HHI = more concentrated = higher drawdown risk
+      // Worst-case portfolio drawdown = if all positions drop simultaneously
+      // More realistic: estimate using position weights and a correlation assumption
+      const weights: number[] = [];
+      const posValues: number[] = [];
+      for (const v of positionMap.values()) {
+        if (v > 0) {
+          weights.push(v / postPortfolio);
+          posValues.push(v);
+        }
+      }
+
+      // HHI (Herfindahl-Hirschman Index) — measures concentration
+      const hhi = weights.reduce((sum, w) => sum + w * w, 0);
+      const numPositions = weights.length;
+
+      // Worst-case: 100% correlated — max drawdown = total invested %
+      const worstCaseDD = (totalInvested / postPortfolio) * 100;
+
+      // Diversified estimate: assume avg correlation ~0.5 for equities
+      // Portfolio vol scales roughly as sqrt(HHI + (1-HHI)*avg_corr) relative to single stock
+      const avgCorr = 0.5;
+      const diversificationFactor = Math.sqrt(hhi + (1 - hhi) * avgCorr);
+      const estimatedDD = worstCaseDD * diversificationFactor;
+
+      // Largest single position risk
+      const maxWeight = Math.max(...weights);
+      const largestPct = maxWeight * 100;
+
+      if (estimatedDD > ddBudget * 1.2) {
         results.push({
           type: 'danger',
-          title: `${ticker} total exposure (${totalExposurePct.toFixed(1)}%) exceeds your ${ddBudget}% drawdown limit`,
-          detail: `Your total ${ticker} position would be $${totalExposureAfter.toFixed(0)} (${totalExposurePct.toFixed(1)}% of portfolio). ` +
-            `If ${ticker} went to zero, that alone would breach your ${ddBudget}% max drawdown constraint. ` +
-            `This is the single-position risk — actual portfolio drawdown depends on all holdings.`,
+          title: `Portfolio drawdown risk ~${estimatedDD.toFixed(1)}% exceeds your ${ddBudget}% limit`,
+          detail: `With ${numPositions} position${numPositions !== 1 ? 's' : ''} and ${postCash < 0 ? 'no' : `$${postCash.toFixed(0)}`} cash, ` +
+            `a correlated market selloff could draw down ~${estimatedDD.toFixed(1)}% of your portfolio. ` +
+            `Largest position is ${largestPct.toFixed(1)}% of portfolio. Worst-case (100% correlation): ${worstCaseDD.toFixed(1)}%.`,
         });
-      } else if (positionMaxLossPct > ddBudget * 0.5) {
+      } else if (estimatedDD > ddBudget * 0.8) {
         results.push({
           type: 'warning',
-          title: `This trade alone risks ${positionMaxLossPct.toFixed(1)}% of portfolio (${ddBudget}% DD limit)`,
-          detail: `If this $${tradeValue.toFixed(0)} position lost 100%, your portfolio would drop ${positionMaxLossPct.toFixed(1)}%. ` +
-            `That's ${((positionMaxLossPct / ddBudget) * 100).toFixed(0)}% of your drawdown budget consumed by one position.`,
+          title: `Portfolio drawdown risk ~${estimatedDD.toFixed(1)}% is near your ${ddBudget}% limit`,
+          detail: `${numPositions} position${numPositions !== 1 ? 's' : ''}, ${((totalInvested / postPortfolio) * 100).toFixed(0)}% deployed. ` +
+            `In a broad selloff, estimated drawdown is ${estimatedDD.toFixed(1)}% (worst-case: ${worstCaseDD.toFixed(1)}%). ` +
+            `Consider whether additional cash buffer or diversification could reduce risk.`,
         });
-      } else if (positionMaxLossPct > ddBudget * 0.25) {
+      } else if (numPositions >= 2) {
         results.push({
           type: 'info',
-          title: `Position risk: ${positionMaxLossPct.toFixed(1)}% of portfolio (${((positionMaxLossPct / ddBudget) * 100).toFixed(0)}% of DD budget)`,
-          detail: `Worst-case loss on this trade: $${positionMaxLoss.toFixed(0)} (${positionMaxLossPct.toFixed(1)}% of portfolio). Your max drawdown tolerance is ${ddBudget}%.`,
+          title: `Portfolio drawdown estimate: ~${estimatedDD.toFixed(1)}% (budget: ${ddBudget}%)`,
+          detail: `${numPositions} positions across your portfolio with ${((postCash / postPortfolio) * 100).toFixed(1)}% cash. ` +
+            `Diversification reduces worst-case ${worstCaseDD.toFixed(1)}% to ~${estimatedDD.toFixed(1)}%.`,
         });
       }
     }
