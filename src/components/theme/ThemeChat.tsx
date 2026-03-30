@@ -46,7 +46,8 @@ export function ThemeChat({ theme, analysisContent }: ThemeChatProps) {
       ? theme.tickers.map(t => `${t.symbol} (${t.name}) ${t.change >= 0 ? '+' : ''}${t.change.toFixed(1)}% — ${t.sentiment}`).join('\n')
       : 'No specific tickers mapped to this theme.';
 
-    const systemPrompt = `You are a senior equity research analyst and trading strategist. The user is exploring the "${theme.title}" market theme and wants to form actionable trade ideas.
+    const themeTitle = theme.title || 'Market Theme';
+    const systemPrompt = `You are a senior equity research analyst and trading strategist. The user is exploring the "${themeTitle}" market theme and wants to form actionable trade ideas.
 
 Theme context:
 - Category: ${theme.category}
@@ -83,12 +84,12 @@ Guidelines:
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
         body: JSON.stringify({
-          title: theme.title,
-          summary: theme.summary,
-          detailedSummary: theme.detailedSummary,
-          category: theme.category,
+          title: theme.title || 'Market Theme',
+          summary: theme.summary || '',
+          detailedSummary: theme.detailedSummary || '',
+          category: theme.category || '',
           tickers: theme.tickers || [],
-          headlines: theme.headlines,
+          headlines: theme.headlines || [],
           // Pass chat context as additional context
           chatMode: true,
           systemPromptOverride: systemPrompt,
