@@ -16,6 +16,8 @@ import { BacktestComparisonOverlay } from './BacktestComparisonOverlay';
 import { SimBacktestTab } from './SimBacktestTab';
 import { StrategySignalBadge } from './StrategySignalBadge';
 import { PortfolioJournal } from './PortfolioJournal';
+import { TradingLearningHub } from './learning/TradingLearningHub';
+import { PostTradeReflection } from './learning/PostTradeReflection';
 import { useOrderExecution } from '@/hooks/useOrderExecution';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
@@ -92,13 +94,17 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [chartTicker, setChartTicker] = useState('SPY');
+  const [reflectionOpen, setReflectionOpen] = useState(false);
+  const [reflectionData, setReflectionData] = useState<{ tradeId: string; ticker: string; pnl: number | null; pnlPct: number | null } | null>(null);
+  const [goals, setGoals] = useState<any>(null);
 
   const fetchData = useCallback(async () => {
     try {
-      const [portfolioRes, tradesRes, ordersRes] = await Promise.all([
+      const [portfolioRes, tradesRes, ordersRes, goalsRes] = await Promise.all([
         supabase.from('sim_portfolios').select('*').eq('id', portfolioId).single(),
         supabase.from('sim_trades').select('*').eq('portfolio_id', portfolioId).order('executed_at', { ascending: true }),
         supabase.from('sim_pending_orders').select('*').eq('portfolio_id', portfolioId).eq('status', 'pending').order('created_at', { ascending: false }),
+        supabase.from('sim_portfolio_goals').select('*').eq('portfolio_id', portfolioId).maybeSingle(),
       ]);
 
       if (portfolioRes.error) {
@@ -112,6 +118,7 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
       await calculatePositions(tradeData);
 
       setPendingOrders(ordersRes.data || []);
+      if (goalsRes.data) setGoals(goalsRes.data);
 
       // Check pending orders against current prices
       if (portfolioRes.data && ordersRes.data && ordersRes.data.length > 0) {
@@ -297,6 +304,18 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
       toast.error('Position closed but failed to update balance');
     } else {
       toast.success(`Closed ${pos.ticker} for $${totalProceeds.toLocaleString(undefined, { minimumFractionDigits: 2 })}`);
+
+      // Trigger post-trade reflection
+      const latestTrades = await supabase.from('sim_trades').select('id').eq('portfolio_id', portfolio.id).order('executed_at', { ascending: false }).limit(1);
+      const tradeId = latestTrades.data?.[0]?.id || '';
+      setReflectionData({
+        tradeId,
+        ticker: pos.ticker,
+        pnl: pos.pnl,
+        pnlPct: pos.pnl_pct,
+      });
+      setReflectionOpen(true);
+
       fetchData();
     }
   };
@@ -454,6 +473,7 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
           <TabsTrigger value="history">History ({trades.length})</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="journal">Journal</TabsTrigger>
+          <TabsTrigger value="learning">Learning</TabsTrigger>
           <TabsTrigger value="backtest">Backtest</TabsTrigger>
         </TabsList>
         <TabsContent value="positions">
@@ -480,6 +500,17 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
             strategyName={portfolio.strategy_name}
           />
         </TabsContent>
+        <TabsContent value="learning">
+          <TradingLearningHub
+            portfolioId={portfolioId}
+            trades={trades}
+            positions={positions}
+            initialCapital={portfolio.initial_capital}
+            currentValue={totalPortfolioValue}
+            cashBalance={portfolio.cash_balance}
+            goals={goals}
+          />
+        </TabsContent>
         <TabsContent value="backtest">
           <SimBacktestTab
             heldTickers={positions.map(p => p.ticker.toUpperCase())}
@@ -488,6 +519,20 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
           />
         </TabsContent>
       </Tabs>
+
+      {/* Post-trade reflection dialog */}
+      {reflectionData && (
+        <PostTradeReflection
+          open={reflectionOpen}
+          onOpenChange={setReflectionOpen}
+          portfolioId={portfolioId}
+          tradeId={reflectionData.tradeId}
+          ticker={reflectionData.ticker}
+          action="sell"
+          pnl={reflectionData.pnl}
+          pnlPct={reflectionData.pnlPct}
+        />
+      )}
     </div>
   );
 }
