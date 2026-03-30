@@ -1,4 +1,4 @@
-// Backtester Service - Real historical data from Finnhub
+// Backtester Service - Real historical data from Polygon
 // Aligned with Portfolio Visualizer methodology
 // Reference: https://www.portfoliovisualizer.com/faq
 
