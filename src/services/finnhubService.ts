@@ -1,42 +1,11 @@
 /**
- * Finnhub API Service
- * Free tier: 60 calls/minute
- * https://finnhub.io/
- */
-
-/**
- * Finnhub API Service
- * Free tier: 60 calls/minute
- * https://finnhub.io/
+ * Market Data Service (Polygon.io)
+ * All market data now flows through Polygon edge functions.
+ * This file preserves the original API surface for backward compatibility.
  */
 
 import { API_CONFIG } from '@/config/apiConfig';
 import { supabase } from '@/integrations/supabase/client';
-
-const FINNHUB_API_KEY = import.meta.env.VITE_FINNHUB_API_KEY;
-const BASE_URL = 'https://finnhub.io/api/v1';
-
-const PROXY_OK_KEY = 'finnhub-proxy-ok';
-function markProxyOk() {
-  try {
-    localStorage.setItem(PROXY_OK_KEY, 'true');
-  } catch {
-    // ignore
-  }
-}
-
-// Rate limiter: max 60 calls per minute
-const rateLimiter = {
-  calls: [] as number[],
-  canCall(): boolean {
-    const now = Date.now();
-    this.calls = this.calls.filter(t => now - t < 60000);
-    return this.calls.length < 60;
-  },
-  recordCall() {
-    this.calls.push(Date.now());
-  }
-};
 
 export interface StockQuote {
   symbol: string;
@@ -48,7 +17,6 @@ export interface StockQuote {
   open: number;
   previousClose: number;
   timestamp: number;
-  // Extended fields for compatibility
   volume?: string;
   marketCap?: string;
   companyName?: string;
@@ -60,90 +28,60 @@ export interface SymbolSearchResult {
   description: string;
 }
 
-async function proxyInvoke<T>(action: string, body: Record<string, unknown>): Promise<T | null> {
-  try {
-    const { data, error } = await supabase.functions.invoke('finnhub-proxy', {
-      body: { action, ...body },
-    });
-
-    if (error) {
-      console.error('[Finnhub Proxy] invoke error:', error);
-      return null;
-    }
-
-    // shape: { ok: boolean, ... }
-    if (data?.ok) {
-      markProxyOk();
-      return data as T;
-    }
-
-    return data as T;
-  } catch (e) {
-    console.error('[Finnhub Proxy] invoke exception:', e);
-    return null;
-  }
+export interface CandleData {
+  date: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+  timestamp: number;
 }
 
-/**
- * Get a single stock quote from Finnhub
- */
+function formatMarketCap(value: number): string {
+  if (value >= 1e12) return `$${(value / 1e12).toFixed(2)}T`;
+  if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
+  if (value >= 1e6) return `$${(value / 1e6).toFixed(2)}M`;
+  return `$${value.toLocaleString()}`;
+}
+
 export async function getQuote(symbol: string): Promise<StockQuote | null> {
   if (!API_CONFIG.ENABLE_MARKET_DATA) {
-    console.log('[Finnhub] Market data disabled via kill switch');
+    console.log('[MarketData] Market data disabled via kill switch');
     return null;
   }
 
   const upper = symbol.toUpperCase();
 
-  // Prefer direct client-side calls if a client key exists (dev/local).
-  if (FINNHUB_API_KEY) {
-    if (!rateLimiter.canCall()) {
-      console.log('[RATE LIMITED] Finnhub - waiting...');
-      await new Promise(r => setTimeout(r, 1000));
-    }
+  try {
+    const { data, error } = await supabase.functions.invoke('polygon-stock-quotes', {
+      body: { symbols: [upper] },
+    });
 
-    rateLimiter.recordCall();
-
-    try {
-      const response = await fetch(`${BASE_URL}/quote?symbol=${upper}&token=${FINNHUB_API_KEY}`);
-
-      if (!response.ok) {
-        console.error('[Finnhub] Quote request failed:', response.status);
-        return null;
-      }
-
-      const data = await response.json();
-      if (!data || data.c === 0) {
-        console.warn('[Finnhub] No data for symbol:', symbol);
-        return null;
-      }
-
-      return {
-        symbol: upper,
-        price: data.c,
-        change: data.d || 0,
-        changePercent: data.dp || 0,
-        high: data.h,
-        low: data.l,
-        open: data.o,
-        previousClose: data.pc,
-        timestamp: data.t * 1000,
-        companyName: upper,
-      };
-    } catch (error) {
-      console.error('[Finnhub] Quote error:', error);
+    if (error || !data?.success || !data.quotes?.length) {
+      console.warn('[MarketData] Quote fetch failed:', error || 'No data');
       return null;
     }
-  }
 
-  // Otherwise, use the backend proxy (keeps the key off the client).
-  const res = await proxyInvoke<{ ok: boolean; quote: StockQuote | null }>('quote', { symbol: upper });
-  return res?.quote ?? null;
+    const q = data.quotes[0];
+    return {
+      symbol: upper,
+      price: q.price,
+      change: q.change,
+      changePercent: q.changePercent,
+      high: q.high,
+      low: q.low,
+      open: q.open,
+      previousClose: q.previousClose,
+      timestamp: new Date(q.timestamp).getTime(),
+      companyName: q.name || upper,
+    };
+  } catch (err) {
+    console.error('[MarketData] Quote error:', err);
+    return null;
+  }
 }
 
-/**
- * Get company profile for extended info
- */
 export async function getCompanyProfile(symbol: string): Promise<{
   name: string;
   ticker: string;
@@ -155,39 +93,27 @@ export async function getCompanyProfile(symbol: string): Promise<{
 
   const upper = symbol.toUpperCase();
 
-  if (FINNHUB_API_KEY) {
-    if (!rateLimiter.canCall()) {
-      await new Promise(r => setTimeout(r, 1000));
-    }
-    rateLimiter.recordCall();
+  try {
+    const { data, error } = await supabase.functions.invoke('polygon-ticker-details', {
+      body: { ticker: upper },
+    });
 
-    try {
-      const response = await fetch(`${BASE_URL}/stock/profile2?symbol=${upper}&token=${FINNHUB_API_KEY}`);
-      if (!response.ok) return null;
+    if (error || !data?.ok || !data.details) return null;
 
-      const data = await response.json();
-      if (!data || !data.name) return null;
-
-      return {
-        name: data.name,
-        ticker: data.ticker,
-        marketCap: data.marketCapitalization * 1000000,
-        exchange: data.exchange,
-        industry: data.finnhubIndustry,
-      };
-    } catch (error) {
-      console.error('[Finnhub] Profile error:', error);
-      return null;
-    }
+    const d = data.details;
+    return {
+      name: d.name,
+      ticker: d.ticker,
+      marketCap: d.marketCap || 0,
+      exchange: d.primaryExchange || '',
+      industry: d.industry || d.sector || '',
+    };
+  } catch (err) {
+    console.error('[MarketData] Profile error:', err);
+    return null;
   }
-
-  const res = await proxyInvoke<{ ok: boolean; profile: any | null }>('profile', { symbol: upper });
-  return res?.profile ?? null;
 }
 
-/**
- * Get a full quote with company profile info
- */
 export async function getFullQuote(symbol: string): Promise<StockQuote | null> {
   const [quote, profile] = await Promise.all([getQuote(symbol), getCompanyProfile(symbol)]);
   if (!quote) return null;
@@ -199,100 +125,68 @@ export async function getFullQuote(symbol: string): Promise<StockQuote | null> {
   };
 }
 
-/**
- * Get quotes for multiple symbols
- */
 export async function getBatchQuotes(symbols: string[]): Promise<Map<string, StockQuote>> {
   const results = new Map<string, StockQuote>();
   const upperSymbols = symbols.map(s => s.toUpperCase());
 
-  // If we have a client key, reuse the existing chunked approach.
-  if (FINNHUB_API_KEY) {
+  if (!API_CONFIG.ENABLE_MARKET_DATA || upperSymbols.length === 0) return results;
+
+  try {
+    // Polygon edge function handles up to 10 at a time; chunk if needed
     const chunks: string[][] = [];
-    for (let i = 0; i < upperSymbols.length; i += 10) chunks.push(upperSymbols.slice(i, i + 10));
-
-    for (const chunk of chunks) {
-      const quotes = await Promise.all(chunk.map(s => getQuote(s)));
-      quotes.forEach((q, i) => {
-        if (q) results.set(chunk[i].toUpperCase(), q);
-      });
-
-      if (chunks.indexOf(chunk) < chunks.length - 1) {
-        await new Promise(r => setTimeout(r, 200));
-      }
+    for (let i = 0; i < upperSymbols.length; i += 10) {
+      chunks.push(upperSymbols.slice(i, i + 10));
     }
 
-    return results;
+    for (const chunk of chunks) {
+      const { data, error } = await supabase.functions.invoke('polygon-stock-quotes', {
+        body: { symbols: chunk },
+      });
+
+      if (error || !data?.success) continue;
+
+      for (const q of data.quotes || []) {
+        results.set(q.symbol.toUpperCase(), {
+          symbol: q.symbol,
+          price: q.price,
+          change: q.change,
+          changePercent: q.changePercent,
+          high: q.high,
+          low: q.low,
+          open: q.open,
+          previousClose: q.previousClose,
+          timestamp: new Date(q.timestamp).getTime(),
+          companyName: q.name || q.symbol,
+        });
+      }
+    }
+  } catch (err) {
+    console.error('[MarketData] Batch quotes error:', err);
   }
 
-  // Otherwise, use backend proxy batch.
-  const res = await proxyInvoke<{ ok: boolean; quotes: Record<string, StockQuote> }>('batch', { symbols: upperSymbols });
-  const quotesObj = res?.quotes || {};
-  for (const [sym, q] of Object.entries(quotesObj)) {
-    if (q) results.set(sym.toUpperCase(), q);
-  }
   return results;
 }
 
-/**
- * Search for symbols
- */
 export async function searchSymbol(query: string): Promise<SymbolSearchResult[]> {
   if (!API_CONFIG.ENABLE_MARKET_DATA || !query) return [];
 
-  if (FINNHUB_API_KEY) {
-    if (!rateLimiter.canCall()) return [];
-    rateLimiter.recordCall();
+  try {
+    const { data, error } = await supabase.functions.invoke('polygon-ticker-search', {
+      body: { query, limit: 10 },
+    });
 
-    try {
-      const response = await fetch(`${BASE_URL}/search?q=${encodeURIComponent(query)}&token=${FINNHUB_API_KEY}`);
-      if (!response.ok) return [];
+    if (error || !data?.ok) return [];
 
-      const data = await response.json();
-      return (data.result || []).slice(0, 10).map((r: any) => ({
-        symbol: r.symbol,
-        description: r.description,
-      }));
-    } catch (error) {
-      console.error('[Finnhub] Search error:', error);
-      return [];
-    }
+    return (data.results || []).map((r: any) => ({
+      symbol: r.ticker,
+      description: r.name,
+    }));
+  } catch (err) {
+    console.error('[MarketData] Search error:', err);
+    return [];
   }
-
-  const res = await proxyInvoke<{ ok: boolean; results: SymbolSearchResult[] }>('search', { query });
-  return res?.results || [];
 }
 
-/**
- * Format market cap for display
- */
-function formatMarketCap(value: number): string {
-  if (value >= 1e12) return `$${(value / 1e12).toFixed(2)}T`;
-  if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
-  if (value >= 1e6) return `$${(value / 1e6).toFixed(2)}M`;
-  return `$${value.toLocaleString()}`;
-}
-
-/**
- * Candle data structure for historical prices
- */
-export interface CandleData {
-  date: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-  timestamp: number;
-}
-
-/**
- * Get historical candle data for a symbol
- * @param symbol - Stock symbol
- * @param resolution - D (daily), W (weekly), M (monthly)
- * @param from - Start timestamp (Unix seconds)
- * @param to - End timestamp (Unix seconds)
- */
 export async function getCandles(
   symbol: string,
   resolution: string,
@@ -300,63 +194,56 @@ export async function getCandles(
   to: number
 ): Promise<CandleData[]> {
   if (!API_CONFIG.ENABLE_MARKET_DATA) {
-    console.log('[Finnhub] Market data disabled via kill switch');
     throw new Error('Market data is disabled');
   }
 
   const upper = symbol.toUpperCase();
-  console.log(`[Finnhub] Fetching candles for ${upper} from ${new Date(from * 1000).toISOString().split('T')[0]} to ${new Date(to * 1000).toISOString().split('T')[0]}`);
+  const startDate = new Date(from * 1000).toISOString().split('T')[0];
+  const endDate = new Date(to * 1000).toISOString().split('T')[0];
 
-  // Use the edge function for candles
+  // Map resolution to Polygon timespan
+  const r = resolution.toUpperCase();
+  let timespan = 'day';
+  if (r === 'W') timespan = 'week';
+  else if (r === 'M') timespan = 'month';
+  else if (['1', '5', '15', '30', '60'].includes(r)) timespan = 'minute';
+
+  console.log(`[MarketData] Fetching candles for ${upper} from ${startDate} to ${endDate}`);
+
   try {
-    const { data, error } = await supabase.functions.invoke('finnhub-candles', {
-      body: { symbol: upper, resolution, from, to },
+    const { data, error } = await supabase.functions.invoke('polygon-aggs', {
+      body: { ticker: upper, startDate, endDate, timespan },
     });
 
     if (error) {
-      console.error('[Finnhub] Candles error:', error);
       throw new Error(`Failed to fetch candles: ${error.message}`);
     }
 
-    // Finnhub returns { s: 'ok', c: [], o: [], h: [], l: [], v: [], t: [] }
-    if (!data || data.s !== 'ok' || !data.c || data.c.length === 0) {
-      console.warn('[Finnhub] No candle data for symbol:', symbol);
+    if (!data?.ok || !data.results || data.results.length === 0) {
       throw new Error(`No historical data available for ${symbol}`);
     }
 
-    const candles: CandleData[] = [];
-    for (let i = 0; i < data.c.length; i++) {
-      const date = new Date(data.t[i] * 1000);
-      candles.push({
+    const candles: CandleData[] = data.results.map((r: any) => {
+      const date = new Date(r.t);
+      return {
         date: date.toISOString().split('T')[0],
-        open: data.o[i],
-        high: data.h[i],
-        low: data.l[i],
-        close: data.c[i],
-        volume: data.v[i],
-        timestamp: data.t[i],
-      });
-    }
+        open: r.o,
+        high: r.h,
+        low: r.l,
+        close: r.c,
+        volume: r.v,
+        timestamp: Math.floor(r.t / 1000),
+      };
+    });
 
-    console.log(`[Finnhub] Retrieved ${candles.length} candles for ${upper}`);
+    console.log(`[MarketData] Retrieved ${candles.length} candles for ${upper}`);
     return candles;
-  } catch (error) {
-    console.error('[Finnhub] Candles error:', error);
-    throw error;
+  } catch (err) {
+    console.error('[MarketData] Candles error:', err);
+    throw err;
   }
 }
 
-/**
- * Check if Finnhub API is configured
- * - true if a client key exists (local/dev)
- * - OR if we've successfully used the backend proxy in this browser
- */
 export function isFinnhubConfigured(): boolean {
-  if (FINNHUB_API_KEY) return true;
-  try {
-    return localStorage.getItem(PROXY_OK_KEY) === 'true';
-  } catch {
-    return false;
-  }
+  return true;
 }
-
