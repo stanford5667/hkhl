@@ -224,6 +224,32 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // Record daily snapshot for historical tracking
+  useEffect(() => {
+    if (!portfolio || positions.length === 0 && portfolio.cash_balance === portfolio.initial_capital) return;
+    const totalPosValue = positions.reduce((sum, p) => sum + (p.current_value || 0), 0);
+    const totalVal = portfolio.cash_balance + totalPosValue;
+    const today = new Date().toISOString().split('T')[0];
+
+    const recordSnapshot = async () => {
+      try {
+        await supabase.from('sim_snapshots').upsert(
+          {
+            portfolio_id: portfolio.id,
+            snapshot_date: today,
+            total_value: totalVal,
+            cash_balance: portfolio.cash_balance,
+            positions_value: totalPosValue,
+          },
+          { onConflict: 'portfolio_id,snapshot_date' }
+        );
+      } catch (e) {
+        console.warn('Failed to record snapshot:', e);
+      }
+    };
+    recordSnapshot();
+  }, [portfolio, positions]);
+
   const handleRefresh = async () => {
     setRefreshing(true);
     await fetchData();
