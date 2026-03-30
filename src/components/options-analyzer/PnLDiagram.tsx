@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine } from 'recharts';
+import { Explainer } from './Explainer';
 
 interface Props {
   ticker: string;
@@ -12,15 +13,15 @@ interface Props {
 
 type StrategyType = 'long-call' | 'long-put' | 'bull-call-spread' | 'bear-put-spread' | 'iron-condor' | 'covered-call' | 'straddle' | 'strangle';
 
-const STRATEGIES: Record<StrategyType, string> = {
-  'long-call': 'Long Call',
-  'long-put': 'Long Put',
-  'bull-call-spread': 'Bull Call Spread',
-  'bear-put-spread': 'Bear Put Spread',
-  'iron-condor': 'Iron Condor',
-  'covered-call': 'Covered Call',
-  'straddle': 'Long Straddle',
-  'strangle': 'Long Strangle',
+const STRATEGIES: Record<StrategyType, { label: string; description: string }> = {
+  'long-call': { label: 'Long Call', description: 'You buy a call — you profit if the stock goes UP above the strike. Your max loss is the premium you paid.' },
+  'long-put': { label: 'Long Put', description: 'You buy a put — you profit if the stock goes DOWN below the strike. Great for protecting against drops.' },
+  'bull-call-spread': { label: 'Bull Call Spread', description: 'Buy a call and sell a higher call. Cheaper than a single call, but caps your upside. Bullish strategy.' },
+  'bear-put-spread': { label: 'Bear Put Spread', description: 'Buy a put and sell a lower put. Profits when stock drops, with limited risk.' },
+  'iron-condor': { label: 'Iron Condor', description: 'Sell both a call spread and a put spread. You profit when the stock stays in a range. An income strategy.' },
+  'covered-call': { label: 'Covered Call', description: 'Own the stock and sell a call against it. Collects premium income, but caps your upside.' },
+  'straddle': { label: 'Long Straddle', description: 'Buy both a call and put at the same strike. Profits from a BIG move in either direction. Great before earnings.' },
+  'strangle': { label: 'Long Strangle', description: 'Buy a call and put at different strikes. Similar to straddle but cheaper. Needs an even bigger move to profit.' },
 };
 
 export function PnLDiagram({ ticker }: Props) {
@@ -43,47 +44,25 @@ export function PnLDiagram({ ticker }: Props) {
     const p1 = parseFloat(premium1) || 3.5;
     const p2 = parseFloat(premium2) || 1.5;
     const mult = (parseInt(contracts) || 1) * 100;
-
     const range = spot * 0.3;
     const lo = spot - range;
     const hi = spot + range;
     const step = (hi - lo) / 200;
-    const data: { price: number; pnl: number; breakeven?: boolean }[] = [];
-
+    const data: { price: number; pnl: number }[] = [];
     for (let price = lo; price <= hi; price += step) {
       let pnl = 0;
-
       switch (strategy) {
-        case 'long-call':
-          pnl = (Math.max(0, price - k1) - p1) * mult;
-          break;
-        case 'long-put':
-          pnl = (Math.max(0, k1 - price) - p1) * mult;
-          break;
-        case 'bull-call-spread':
-          pnl = (Math.max(0, price - k1) - Math.max(0, price - k2) - (p1 - p2)) * mult;
-          break;
-        case 'bear-put-spread':
-          pnl = (Math.max(0, k2 - price) - Math.max(0, k1 - price) - (p1 - p2)) * mult;
-          break;
+        case 'long-call': pnl = (Math.max(0, price - k1) - p1) * mult; break;
+        case 'long-put': pnl = (Math.max(0, k1 - price) - p1) * mult; break;
+        case 'bull-call-spread': pnl = (Math.max(0, price - k1) - Math.max(0, price - k2) - (p1 - p2)) * mult; break;
+        case 'bear-put-spread': pnl = (Math.max(0, k2 - price) - Math.max(0, k1 - price) - (p1 - p2)) * mult; break;
         case 'iron-condor':
-          // Sell k1 put, buy k3 put, sell k2 call, buy k4 call
-          pnl = (p1 + p2 
-            - Math.max(0, k3 - price) + Math.max(0, k1 - price)
-            - Math.max(0, price - k2) + Math.max(0, price - k4)
-          ) * mult * 0.5; // approximate net credit
+          pnl = (p1 + p2 - Math.max(0, k3 - price) + Math.max(0, k1 - price) - Math.max(0, price - k2) + Math.max(0, price - k4)) * mult * 0.5;
           break;
-        case 'covered-call':
-          pnl = ((price - spot) - Math.max(0, price - k1) + p1) * mult;
-          break;
-        case 'straddle':
-          pnl = (Math.max(0, price - k1) + Math.max(0, k1 - price) - p1 * 2) * mult;
-          break;
-        case 'strangle':
-          pnl = (Math.max(0, price - k2) + Math.max(0, k1 - price) - p1 - p2) * mult;
-          break;
+        case 'covered-call': pnl = ((price - spot) - Math.max(0, price - k1) + p1) * mult; break;
+        case 'straddle': pnl = (Math.max(0, price - k1) + Math.max(0, k1 - price) - p1 * 2) * mult; break;
+        case 'strangle': pnl = (Math.max(0, price - k2) + Math.max(0, k1 - price) - p1 - p2) * mult; break;
       }
-
       data.push({ price: Math.round(price * 100) / 100, pnl: Math.round(pnl * 100) / 100 });
     }
     return data;
@@ -104,90 +83,101 @@ export function PnLDiagram({ ticker }: Props) {
   const showThirdFourthStrike = strategy === 'iron-condor';
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+    <div className="space-y-6">
+      {/* Beginner Explainer */}
+      <Explainer>
+        <strong>What is a P&L Diagram?</strong> It shows how much money you'd make (or lose) at every possible stock price when your option expires. 
+        The horizontal axis is the stock price; the vertical axis is your profit or loss. Where the line crosses zero is your "breakeven" — 
+        you need the stock to be past that point to make money. The green zone is profit, the red zone is loss.
+      </Explainer>
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-5">
         {/* Config Panel */}
-        <Card className="p-4 space-y-3 lg:col-span-1">
+        <Card className="p-5 space-y-4 lg:col-span-1">
           <h3 className="text-sm font-semibold">Strategy Builder</h3>
           <div>
-            <Label className="text-xs">Strategy</Label>
+            <Label className="text-xs mb-1.5 block">Strategy</Label>
             <Select value={strategy} onValueChange={(v) => setStrategy(v as StrategyType)}>
               <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {Object.entries(STRATEGIES).map(([k, v]) => (
-                  <SelectItem key={k} value={k}>{v}</SelectItem>
+                  <SelectItem key={k} value={k}>{v.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            <p className="text-[11px] text-muted-foreground mt-2 leading-relaxed">{STRATEGIES[strategy].description}</p>
           </div>
           <div>
-            <Label className="text-xs">Current Price</Label>
+            <Label className="text-xs mb-1.5 block">Current Stock Price ($)</Label>
             <Input value={spotPrice} onChange={(e) => setSpotPrice(e.target.value)} className="h-8 text-xs font-mono" type="number" />
           </div>
           <div>
-            <Label className="text-xs">Strike 1</Label>
+            <Label className="text-xs mb-1.5 block">Strike Price ($)</Label>
             <Input value={strike1} onChange={(e) => setStrike1(e.target.value)} className="h-8 text-xs font-mono" type="number" />
+            <p className="text-[10px] text-muted-foreground mt-1">The price you can buy/sell the stock at</p>
           </div>
           {showSecondStrike && (
             <div>
-              <Label className="text-xs">Strike 2</Label>
+              <Label className="text-xs mb-1.5 block">Strike 2 ($)</Label>
               <Input value={strike2} onChange={(e) => setStrike2(e.target.value)} className="h-8 text-xs font-mono" type="number" />
             </div>
           )}
           {showThirdFourthStrike && (
             <>
               <div>
-                <Label className="text-xs">Strike 3 (lower put)</Label>
+                <Label className="text-xs mb-1.5 block">Strike 3 — lower put ($)</Label>
                 <Input value={strike3} onChange={(e) => setStrike3(e.target.value)} className="h-8 text-xs font-mono" type="number" />
               </div>
               <div>
-                <Label className="text-xs">Strike 4 (upper call)</Label>
+                <Label className="text-xs mb-1.5 block">Strike 4 — upper call ($)</Label>
                 <Input value={strike4} onChange={(e) => setStrike4(e.target.value)} className="h-8 text-xs font-mono" type="number" />
               </div>
             </>
           )}
           <div>
-            <Label className="text-xs">Premium (per share)</Label>
+            <Label className="text-xs mb-1.5 block">Premium (cost per share, $)</Label>
             <Input value={premium1} onChange={(e) => setPremium1(e.target.value)} className="h-8 text-xs font-mono" type="number" step="0.01" />
+            <p className="text-[10px] text-muted-foreground mt-1">What you pay (or receive) for the option</p>
           </div>
           {showSecondStrike && (
             <div>
-              <Label className="text-xs">Premium 2 (per share)</Label>
+              <Label className="text-xs mb-1.5 block">Premium 2 ($)</Label>
               <Input value={premium2} onChange={(e) => setPremium2(e.target.value)} className="h-8 text-xs font-mono" type="number" step="0.01" />
             </div>
           )}
           <div>
-            <Label className="text-xs">Contracts</Label>
+            <Label className="text-xs mb-1.5 block">Number of Contracts</Label>
             <Input value={contracts} onChange={(e) => setContracts(e.target.value)} className="h-8 text-xs font-mono" type="number" min="1" />
+            <p className="text-[10px] text-muted-foreground mt-1">Each contract = 100 shares</p>
           </div>
         </Card>
 
         {/* P&L Chart */}
-        <Card className="p-4 lg:col-span-3">
+        <Card className="p-5 lg:col-span-3">
           {/* Metrics Bar */}
           {metrics && (
-            <div className="flex items-center gap-4 mb-4 flex-wrap">
+            <div className="flex items-center gap-6 mb-5 flex-wrap">
               <div className="text-center">
-                <div className="text-[10px] text-muted-foreground">Max Profit</div>
-                <div className={`text-sm font-bold font-mono ${metrics.maxProfit > 10000000 ? 'text-green-400' : 'text-green-400'}`}>
-                  {metrics.maxProfit > 10000000 ? '∞' : `$${metrics.maxProfit.toLocaleString()}`}
+                <div className="text-xs text-muted-foreground mb-0.5">Max Profit</div>
+                <div className="text-sm font-bold font-mono text-green-400">
+                  {metrics.maxProfit > 10000000 ? 'Unlimited' : `$${metrics.maxProfit.toLocaleString()}`}
                 </div>
               </div>
               <div className="text-center">
-                <div className="text-[10px] text-muted-foreground">Max Loss</div>
+                <div className="text-xs text-muted-foreground mb-0.5">Max Loss</div>
                 <div className="text-sm font-bold font-mono text-red-400">
                   ${metrics.maxLoss.toLocaleString()}
                 </div>
               </div>
               {metrics.breakevens.length > 0 && (
                 <div className="text-center">
-                  <div className="text-[10px] text-muted-foreground">Breakeven(s)</div>
+                  <div className="text-xs text-muted-foreground mb-0.5">Breakeven Price(s)</div>
                   <div className="text-sm font-mono">
                     {metrics.breakevens.map(b => `$${b.toFixed(2)}`).join(', ')}
                   </div>
                 </div>
               )}
-              <Badge variant="outline" className="ml-auto font-mono text-xs">{STRATEGIES[strategy]}</Badge>
+              <Badge variant="outline" className="ml-auto font-mono text-xs">{STRATEGIES[strategy].label}</Badge>
             </div>
           )}
 
@@ -198,11 +188,11 @@ export function PnLDiagram({ ticker }: Props) {
               <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} tickFormatter={(v) => `$${v}`} />
               <Tooltip
                 contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 11 }}
-                formatter={(value: number) => [`$${value.toFixed(2)}`, 'P&L']}
-                labelFormatter={(v) => `Price: $${v}`}
+                formatter={(value: number) => [`$${value.toFixed(2)}`, 'Profit / Loss']}
+                labelFormatter={(v) => `If stock is at $${v}`}
               />
               <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
-              <ReferenceLine x={parseFloat(spotPrice)} stroke="hsl(var(--foreground) / 0.5)" strokeDasharray="4 4" label={{ value: 'Current', position: 'top', fontSize: 10 }} />
+              <ReferenceLine x={parseFloat(spotPrice)} stroke="hsl(var(--foreground) / 0.5)" strokeDasharray="4 4" label={{ value: 'Current Price', position: 'top', fontSize: 10 }} />
               <defs>
                 <linearGradient id="pnlGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="hsl(var(--chart-2))" stopOpacity={0.4} />
@@ -210,13 +200,7 @@ export function PnLDiagram({ ticker }: Props) {
                   <stop offset="100%" stopColor="hsl(0 84% 60%)" stopOpacity={0.3} />
                 </linearGradient>
               </defs>
-              <Area
-                type="monotone"
-                dataKey="pnl"
-                stroke="hsl(var(--primary))"
-                fill="url(#pnlGradient)"
-                strokeWidth={2}
-              />
+              <Area type="monotone" dataKey="pnl" stroke="hsl(var(--primary))" fill="url(#pnlGradient)" strokeWidth={2} />
             </AreaChart>
           </ResponsiveContainer>
         </Card>

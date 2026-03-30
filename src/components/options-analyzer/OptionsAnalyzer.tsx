@@ -11,6 +11,7 @@ import { PnLDiagram } from './PnLDiagram';
 import { GreeksDashboard } from './GreeksDashboard';
 import { IVAnalysis } from './IVAnalysis';
 import { OptionsAdvisorChat } from './OptionsAdvisorChat';
+import { Explainer } from './Explainer';
 
 export type TradeIntent = 'hedge' | 'income' | 'growth' | 'event-driven';
 
@@ -37,8 +38,8 @@ export function OptionsAnalyzer() {
     <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
       <div className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-[1600px] mx-auto px-4 py-3">
-          <div className="flex items-center gap-4 flex-wrap">
+        <div className="max-w-[1600px] mx-auto px-6 py-4">
+          <div className="flex items-center gap-5 flex-wrap">
             {/* Title */}
             <div className="flex items-center gap-2 mr-4">
               <Brain className="h-5 w-5 text-primary" />
@@ -53,8 +54,8 @@ export function OptionsAnalyzer() {
                   value={ticker}
                   onChange={(e) => setTicker(e.target.value.toUpperCase())}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  placeholder="Enter ticker..."
-                  className="pl-9 w-36 h-9 bg-background/50 font-mono"
+                  placeholder="e.g. AAPL, TSLA..."
+                  className="pl-9 w-40 h-9 bg-background/50 font-mono"
                 />
               </div>
               <Button size="sm" onClick={handleSearch} className="h-9">
@@ -71,7 +72,7 @@ export function OptionsAnalyzer() {
 
             {/* Intent Selector */}
             <div className="flex items-center gap-2 ml-auto">
-              <span className="text-xs text-muted-foreground">Strategy Goal:</span>
+              <span className="text-xs text-muted-foreground">Your Goal:</span>
               <Select value={intent} onValueChange={(v) => setIntent(v as TradeIntent)}>
                 <SelectTrigger className="w-44 h-9 bg-background/50">
                   <SelectValue />
@@ -91,7 +92,7 @@ export function OptionsAnalyzer() {
           </div>
 
           {/* Intent Description */}
-          <div className="mt-1.5 flex items-center gap-2">
+          <div className="mt-2 flex items-center gap-2">
             <span className={`text-xs ${INTENT_CONFIG[intent].color}`}>
               {INTENT_CONFIG[intent].description}
             </span>
@@ -100,18 +101,23 @@ export function OptionsAnalyzer() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-[1600px] mx-auto px-4 py-4">
+      <div className="max-w-[1600px] mx-auto px-6 py-6">
         {!activeTicker ? (
-          <Card className="p-12 text-center">
-            <Brain className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Enter a ticker to begin analysis</h2>
-            <p className="text-muted-foreground max-w-md mx-auto">
-              Get AI-powered options recommendations with probability analysis, P&L visualization, 
-              Greeks sensitivity, and IV analysis — all backed by live market data.
+          <Card className="p-16 text-center">
+            <Brain className="h-16 w-16 text-muted-foreground/30 mx-auto mb-6" />
+            <h2 className="text-xl font-semibold mb-3">Enter a stock ticker to get started</h2>
+            <p className="text-muted-foreground max-w-lg mx-auto mb-6">
+              Type a stock symbol like <span className="font-mono font-semibold text-foreground">AAPL</span> or <span className="font-mono font-semibold text-foreground">TSLA</span> above, 
+              then click <strong>Analyze</strong>. Our AI will help you find the best options strategy, 
+              show you potential profits and losses, and explain everything in plain English.
             </p>
+            <Explainer>
+              <strong>New to options?</strong> An option gives you the right (but not the obligation) to buy or sell a stock at a specific price by a certain date. 
+              This tool helps you pick the best option based on what you're trying to achieve — whether that's protecting your investments, generating income, or making a directional bet.
+            </Explainer>
           </Card>
         ) : (
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList className="bg-card border border-border">
               <TabsTrigger value="advisor" className="gap-1.5">
                 <Brain className="h-3.5 w-3.5" />
