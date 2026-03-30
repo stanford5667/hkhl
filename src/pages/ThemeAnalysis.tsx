@@ -13,11 +13,12 @@ export default function ThemeAnalysis() {
   const location = useLocation();
   const navigate = useNavigate();
   const theme = location.state?.theme as MarketTheme | undefined;
+  const savedContent = location.state?.savedContent as string | undefined;
 
-  const [content, setContent] = useState('');
+  const [content, setContent] = useState(savedContent || '');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isSaved, setIsSaved] = useState(false);
+  const [isSaved, setIsSaved] = useState(!!savedContent);
   const [savedId, setSavedId] = useState<string | null>(null);
   const [shareId, setShareId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -26,7 +27,7 @@ export default function ThemeAnalysis() {
   const hasStarted = useRef(false);
 
   useEffect(() => {
-    if (!theme || hasStarted.current) return;
+    if (!theme || hasStarted.current || savedContent) return;
     hasStarted.current = true;
     runAnalysis();
   }, [theme]);
