@@ -116,12 +116,12 @@ export function Sidebar() {
         icon: Search,
         isPremium: false,
       },
-      { 
+      ...(isAdmin ? [{ 
         label: "My Research", 
         subtitle: "Notes & Saved Work",
         href: "/my-research", 
         icon: ClipboardList,
-      },
+      }] : []),
       { 
         label: "Chat Room", 
         subtitle: "Trade Ideas & Chat",

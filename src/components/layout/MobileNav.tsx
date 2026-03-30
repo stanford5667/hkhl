@@ -29,7 +29,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEliteAccess } from "@/hooks/useEliteAccess";
 import { supabase } from "@/integrations/supabase/client";
 
-const mobileNavItems = [
+const baseMobileNavItems = [
+  { label: "Research", href: "/research", icon: Search },
+  { label: "Academy", href: "/academy", icon: BookOpen },
+  { label: "More", href: "#menu", icon: Menu, isMenu: true },
+];
+
+const adminMobileNavItems = [
   { label: "Research", href: "/research", icon: Search },
   { label: "My Work", href: "/my-research", icon: ClipboardList },
   { label: "Academy", href: "/academy", icon: BookOpen },
@@ -39,6 +45,7 @@ const mobileNavItems = [
 export function MobileNav() {
   const location = useLocation();
   const [open, setOpen] = useState(false);
+  const { isAdmin } = useAdmin();
 
   return (
     <>
@@ -48,7 +55,7 @@ export function MobileNav() {
         style={{ zIndex: 50, paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
         <div className="flex items-center justify-around h-16 px-2">
-          {mobileNavItems.map((item) => {
+          {(isAdmin ? adminMobileNavItems : baseMobileNavItems).map((item) => {
             const isActive = item.href !== "#menu" && (
               location.pathname === item.href || 
               (item.href !== "/" && location.pathname.startsWith(item.href))

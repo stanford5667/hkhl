@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAdmin } from '@/hooks/useAdmin';
 import { useResearchNotes, useCreateNote, useUpdateNote, useDeleteNote, ResearchNote } from '@/hooks/useResearchNotes';
 import { useWatchlistWithQuotes } from '@/hooks/useWatchlistWithQuotes';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -404,12 +405,17 @@ function EmptyState({ icon, text, sub, action }: { icon: React.ReactNode; text: 
 export default function MyResearchPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isAdmin, loading: adminLoading } = useAdmin();
 
   useEffect(() => {
     if (!user) navigate('/auth', { state: { from: '/my-research' } });
   }, [user, navigate]);
 
-  if (!user) return null;
+  useEffect(() => {
+    if (!adminLoading && user && !isAdmin) navigate('/research');
+  }, [isAdmin, adminLoading, user, navigate]);
+
+  if (!user || adminLoading || !isAdmin) return null;
 
   return (
     <div className="min-h-screen bg-background">

@@ -20,6 +20,7 @@ import { ResearchCommunityPreview } from '@/components/research/ResearchCommunit
 import { SocialProofSignals } from '@/components/research/SocialProofSignals';
 import { OnboardingNudges } from '@/components/research/OnboardingNudges';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAdmin } from '@/hooks/useAdmin';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { AuthGateDialog } from '@/components/auth/AuthGateDialog';
 
@@ -36,6 +37,7 @@ const fadeUp = {
 export default function ResearchPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isAdmin } = useAdmin();
   const { requireAuth, showAuthDialog, closeAuthDialog } = useRequireAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [recentSearches, setRecentSearches] = useState<string[]>(() => {
@@ -145,7 +147,7 @@ export default function ResearchPage() {
       {/* My Research CTA + Social Proof */}
       <div className="max-w-6xl mx-auto px-3 sm:px-6 -mt-1 mb-2 sm:mb-4 flex items-center justify-between gap-3">
         <SocialProofSignals />
-        {user && (
+        {user && isAdmin && (
           <Button variant="outline" size="sm" className="shrink-0 font-mono text-xs gap-1.5" onClick={() => navigate('/my-research')}>
             <BookOpen className="h-3.5 w-3.5" /> My Research
           </Button>
