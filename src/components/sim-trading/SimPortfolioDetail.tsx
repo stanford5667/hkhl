@@ -100,10 +100,11 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
 
   const fetchData = useCallback(async () => {
     try {
-      const [portfolioRes, tradesRes, ordersRes] = await Promise.all([
+      const [portfolioRes, tradesRes, ordersRes, goalsRes] = await Promise.all([
         supabase.from('sim_portfolios').select('*').eq('id', portfolioId).single(),
         supabase.from('sim_trades').select('*').eq('portfolio_id', portfolioId).order('executed_at', { ascending: true }),
         supabase.from('sim_pending_orders').select('*').eq('portfolio_id', portfolioId).eq('status', 'pending').order('created_at', { ascending: false }),
+        supabase.from('sim_portfolio_goals').select('*').eq('portfolio_id', portfolioId).maybeSingle(),
       ]);
 
       if (portfolioRes.error) {
