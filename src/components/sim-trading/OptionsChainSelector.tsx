@@ -154,41 +154,8 @@ export function OptionsChainSelector({ underlyingTicker, onSelect, selectedContr
   const showCalls = viewMode === 'all' || viewMode === 'calls';
   const showPuts = viewMode === 'all' || viewMode === 'puts';
 
-  // Column definitions per side — TOS style: Last, Bid, Ask, Vol, OI, IV, Delta
   const callCols = ['Last', 'Bid', 'Ask', 'Vol', 'OI', 'IV', 'Δ'];
   const putCols = ['Δ', 'IV', 'OI', 'Vol', 'Bid', 'Ask', 'Last'];
-
-  function renderCallCells(c: OptionContract | undefined, isITM: boolean, isSelected: boolean) {
-    const bg = isSelected ? 'bg-primary/20' : isITM ? 'bg-success/[0.06]' : '';
-    const cls = `px-1.5 py-1 text-right whitespace-nowrap cursor-pointer ${bg}`;
-    return (
-      <>
-        <td className={`${cls} text-foreground`}>{fmtPrice(c?.last_price)}</td>
-        <td className={`${cls} text-success`}>{fmtPrice(c?.bid)}</td>
-        <td className={`${cls} text-destructive`}>{fmtPrice(c?.ask)}</td>
-        <td className={`${cls} text-muted-foreground`}>{fmtVol(c?.volume)}</td>
-        <td className={`${cls} text-muted-foreground`}>{fmtVol(c?.open_interest)}</td>
-        <td className={`${cls} text-muted-foreground`}>{fmtIV(c?.implied_volatility)}</td>
-        <td className={`${cls} text-muted-foreground`}>{fmtDelta(c?.delta)}</td>
-      </>
-    );
-  }
-
-  function renderPutCells(c: OptionContract | undefined, isITM: boolean, isSelected: boolean) {
-    const bg = isSelected ? 'bg-primary/20' : isITM ? 'bg-destructive/[0.06]' : '';
-    const cls = `px-1.5 py-1 text-right whitespace-nowrap cursor-pointer ${bg}`;
-    return (
-      <>
-        <td className={`${cls} text-muted-foreground`}>{fmtDelta(c?.delta)}</td>
-        <td className={`${cls} text-muted-foreground`}>{fmtIV(c?.implied_volatility)}</td>
-        <td className={`${cls} text-muted-foreground`}>{fmtVol(c?.open_interest)}</td>
-        <td className={`${cls} text-muted-foreground`}>{fmtVol(c?.volume)}</td>
-        <td className={`${cls} text-success`}>{fmtPrice(c?.bid)}</td>
-        <td className={`${cls} text-destructive`}>{fmtPrice(c?.ask)}</td>
-        <td className={`${cls} text-foreground`}>{fmtPrice(c?.last_price)}</td>
-      </>
-    );
-  }
 
   return (
     <div className="space-y-2">
