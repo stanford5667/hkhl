@@ -473,6 +473,7 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
           <TabsTrigger value="history">History ({trades.length})</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="journal">Journal</TabsTrigger>
+          <TabsTrigger value="learning">Learning</TabsTrigger>
           <TabsTrigger value="backtest">Backtest</TabsTrigger>
         </TabsList>
         <TabsContent value="positions">
@@ -499,6 +500,17 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
             strategyName={portfolio.strategy_name}
           />
         </TabsContent>
+        <TabsContent value="learning">
+          <TradingLearningHub
+            portfolioId={portfolioId}
+            trades={trades}
+            positions={positions}
+            initialCapital={portfolio.initial_capital}
+            currentValue={totalPortfolioValue}
+            cashBalance={portfolio.cash_balance}
+            goals={goals}
+          />
+        </TabsContent>
         <TabsContent value="backtest">
           <SimBacktestTab
             heldTickers={positions.map(p => p.ticker.toUpperCase())}
@@ -507,6 +519,20 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
           />
         </TabsContent>
       </Tabs>
+
+      {/* Post-trade reflection dialog */}
+      {reflectionData && (
+        <PostTradeReflection
+          open={reflectionOpen}
+          onOpenChange={setReflectionOpen}
+          portfolioId={portfolioId}
+          tradeId={reflectionData.tradeId}
+          ticker={reflectionData.ticker}
+          action="sell"
+          pnl={reflectionData.pnl}
+          pnlPct={reflectionData.pnlPct}
+        />
+      )}
     </div>
   );
 }
