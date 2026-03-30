@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { TickerSearchInput } from './TickerSearchInput';
+import { OptionsChainSelector } from './OptionsChainSelector';
 
 interface Props {
   open: boolean;
@@ -37,17 +38,17 @@ export function TradeDialog({ open, onOpenChange, portfolioId, cashBalance, onCo
   const [stopPrice, setStopPrice] = useState('');
   const [timeInForce, setTimeInForce] = useState<'day' | 'gtc'>('gtc');
 
-  // Options fields
-  const [optionType, setOptionType] = useState<'call' | 'put'>('call');
-  const [strikePrice, setStrikePrice] = useState('');
-  const [expirationDate, setExpirationDate] = useState('');
-  const [premium, setPremium] = useState('');
+  // Options - now using live chain data
+  const [selectedOptionContract, setSelectedOptionContract] = useState<any>(null);
   const [contracts, setContracts] = useState('');
+  const [optionTicker, setOptionTicker] = useState('');
 
   const handleTickerSelect = useCallback(async (symbol: string, _name: string) => {
     setTicker(symbol);
+    setOptionTicker(symbol);
     setPriceError('');
     setLivePrice(null);
+    setSelectedOptionContract(null);
     setFetchingPrice(true);
     try {
       const quotes = await getCachedQuotes([symbol]);
@@ -57,6 +58,11 @@ export function TradeDialog({ open, onOpenChange, portfolioId, cashBalance, onCo
       }
     } catch (_) {}
     setFetchingPrice(false);
+  }, []);
+
+  const handleOptionTickerSelect = useCallback((symbol: string, _name: string) => {
+    setOptionTicker(symbol);
+    setSelectedOptionContract(null);
   }, []);
 
   const executeTrade = async (instrumentType: string, qty: number, price: number, totalCost: number, optFields: any = {}) => {
@@ -70,13 +76,16 @@ export function TradeDialog({ open, onOpenChange, portfolioId, cashBalance, onCo
 
     const { error: tradeErr } = await supabase.from('sim_trades').insert({
       portfolio_id: portfolioId,
-      ticker: ticker.toUpperCase(),
+      ticker: (optFields._underlyingTicker || ticker).toUpperCase(),
       instrument_type: instrumentType,
       action,
       quantity: qty,
       price_at_execution: price,
       total_cost: totalCost,
-      ...optFields,
+      option_type: optFields.option_type || null,
+      strike_price: optFields.strike_price || null,
+      expiration_date: optFields.expiration_date || null,
+      contract_multiplier: optFields.contract_multiplier || 1,
     });
 
     if (tradeErr) {
@@ -93,7 +102,7 @@ export function TradeDialog({ open, onOpenChange, portfolioId, cashBalance, onCo
     } else {
       const verb = action === 'buy' ? 'Bought' : 'Sold';
       const desc = instrumentType === 'option'
-        ? `${verb} ${qty} ${optFields.option_type} contract(s) of ${ticker.toUpperCase()}`
+        ? `${verb} ${qty} ${optFields.option_type} contract(s) of ${(optFields._underlyingTicker || ticker).toUpperCase()} $${optFields.strike_price} @ $${price.toFixed(2)}`
         : `${verb} ${qty} shares of ${ticker.toUpperCase()} @ $${price.toFixed(2)}`;
       toast.success(desc);
     }
@@ -125,9 +134,9 @@ export function TradeDialog({ open, onOpenChange, portfolioId, cashBalance, onCo
       limit_price: lp,
       stop_price: sp,
       time_in_force: timeInForce,
-      option_type: tab === 'option' ? optionType : null,
-      strike_price: tab === 'option' ? parseFloat(strikePrice) || null : null,
-      expiration_date: tab === 'option' ? expirationDate || null : null,
+      option_type: tab === 'option' && selectedOptionContract ? selectedOptionContract.contract_type : null,
+      strike_price: tab === 'option' && selectedOptionContract ? selectedOptionContract.strike_price : null,
+      expiration_date: tab === 'option' && selectedOptionContract ? selectedOptionContract.expiration_date : null,
       contract_multiplier: tab === 'option' ? 100 : 1,
     });
 
@@ -153,31 +162,43 @@ export function TradeDialog({ open, onOpenChange, portfolioId, cashBalance, onCo
   };
 
   const handleOptionSubmit = () => {
-    if (!ticker.trim() || !contracts || !premium || !strikePrice || !expirationDate) {
-      toast.error('Fill in all option fields');
+    if (!selectedOptionContract || !contracts) {
+      toast.error('Select an option contract and enter number of contracts');
       return;
     }
     const numContracts = parseFloat(contracts);
-    const premiumVal = parseFloat(premium);
-    if (numContracts <= 0 || premiumVal <= 0) { toast.error('Enter valid values'); return; }
-    const totalCost = premiumVal * numContracts * 100;
-    executeTrade('option', numContracts, premiumVal, totalCost, {
-      option_type: optionType,
-      strike_price: parseFloat(strikePrice),
-      expiration_date: expirationDate,
-      contract_multiplier: 100,
+    if (numContracts <= 0) { toast.error('Enter valid number of contracts'); return; }
+
+    // Use mid price for market orders, or ask for buy / bid for sell
+    const executionPrice = action === 'buy'
+      ? (selectedOptionContract.ask > 0 ? selectedOptionContract.ask : selectedOptionContract.mid)
+      : (selectedOptionContract.bid > 0 ? selectedOptionContract.bid : selectedOptionContract.mid);
+
+    if (executionPrice <= 0) {
+      toast.error('No valid price available for this contract');
+      return;
+    }
+
+    const multiplier = selectedOptionContract.shares_per_contract || 100;
+    const totalCost = executionPrice * numContracts * multiplier;
+
+    executeTrade('option', numContracts, executionPrice, totalCost, {
+      option_type: selectedOptionContract.contract_type,
+      strike_price: selectedOptionContract.strike_price,
+      expiration_date: selectedOptionContract.expiration_date,
+      contract_multiplier: multiplier,
+      _underlyingTicker: optionTicker,
     });
   };
 
   const resetForm = () => {
     setTicker('');
+    setOptionTicker('');
     setQuantity('');
     setLivePrice(null);
     setPriceError('');
-    setPremium('');
     setContracts('');
-    setStrikePrice('');
-    setExpirationDate('');
+    setSelectedOptionContract(null);
     setOrderType('market');
     setLimitPrice('');
     setStopPrice('');
@@ -185,7 +206,18 @@ export function TradeDialog({ open, onOpenChange, portfolioId, cashBalance, onCo
   };
 
   const stockTotal = livePrice && quantity ? livePrice * parseFloat(quantity || '0') : 0;
-  const optionTotal = premium && contracts ? parseFloat(premium) * parseFloat(contracts) * 100 : 0;
+
+  // Option total based on selected contract
+  const optionExecutionPrice = selectedOptionContract
+    ? (action === 'buy'
+      ? (selectedOptionContract.ask > 0 ? selectedOptionContract.ask : selectedOptionContract.mid)
+      : (selectedOptionContract.bid > 0 ? selectedOptionContract.bid : selectedOptionContract.mid))
+    : 0;
+  const optionMultiplier = selectedOptionContract?.shares_per_contract || 100;
+  const optionTotal = optionExecutionPrice && contracts
+    ? optionExecutionPrice * parseFloat(contracts || '0') * optionMultiplier
+    : 0;
+
   const currentTotal = tab === 'stock' ? stockTotal : optionTotal;
   const insufficientCash = action === 'buy' && currentTotal > cashBalance;
 
@@ -194,7 +226,7 @@ export function TradeDialog({ open, onOpenChange, portfolioId, cashBalance, onCo
       <DialogTrigger asChild>
         <Button><Plus className="w-4 h-4 mr-2" /> Trade</Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Execute Paper Trade</DialogTitle>
         </DialogHeader>
@@ -334,58 +366,54 @@ export function TradeDialog({ open, onOpenChange, portfolioId, cashBalance, onCo
             <div>
               <Label>Underlying Ticker</Label>
               <TickerSearchInput
-                value={ticker}
-                onChange={setTicker}
-                onSelect={(symbol) => setTicker(symbol)}
+                value={optionTicker}
+                onChange={(v) => { setOptionTicker(v); setSelectedOptionContract(null); }}
+                onSelect={handleOptionTickerSelect}
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Option Type</Label>
-                <Select value={optionType} onValueChange={v => setOptionType(v as 'call' | 'put')}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="call">Call</SelectItem>
-                    <SelectItem value="put">Put</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Strike Price ($)</Label>
-                <Input type="number" value={strikePrice} onChange={e => setStrikePrice(e.target.value)} placeholder="150.00" step="0.50" />
-              </div>
-            </div>
-            <div>
-              <Label>Expiration Date</Label>
-              <Input type="date" value={expirationDate} onChange={e => setExpirationDate(e.target.value)} min={new Date().toISOString().split('T')[0]} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Premium per Contract ($)</Label>
-                <Input type="number" step="0.01" value={premium} onChange={e => setPremium(e.target.value)} placeholder="3.50" />
-              </div>
-              <div>
-                <Label>Contracts</Label>
-                <Input type="number" value={contracts} onChange={e => setContracts(e.target.value)} placeholder="1" min="1" />
-              </div>
-            </div>
-            {optionTotal > 0 && (
-              <div className={`p-3 rounded-lg ${insufficientCash ? 'bg-destructive/10 border border-destructive/30' : 'bg-muted'}`}>
-                <div className="flex justify-between text-sm">
-                  <span>Total Cost</span>
-                  <span className="font-mono font-bold">${optionTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+
+            {/* Live Options Chain */}
+            <OptionsChainSelector
+              underlyingTicker={optionTicker}
+              onSelect={setSelectedOptionContract}
+              selectedContract={selectedOptionContract}
+            />
+
+            {/* Contracts input */}
+            {selectedOptionContract && (
+              <>
+                <div>
+                  <Label>Number of Contracts</Label>
+                  <Input type="number" value={contracts} onChange={e => setContracts(e.target.value)} placeholder="1" min="1" />
                 </div>
-                <p className="text-xs text-muted-foreground">{contracts} × ${premium} × 100 shares/contract</p>
-                {insufficientCash && <p className="text-xs text-destructive mt-1">Insufficient cash for this trade</p>}
-              </div>
+
+                {optionTotal > 0 && (
+                  <div className={`p-3 rounded-lg ${insufficientCash ? 'bg-destructive/10 border border-destructive/30' : 'bg-muted'}`}>
+                    <div className="flex justify-between text-sm">
+                      <span>Total Cost</span>
+                      <span className="font-mono font-bold">${optionTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {contracts} × ${optionExecutionPrice.toFixed(2)} × {optionMultiplier} shares/contract
+                      <span className="ml-1">({action === 'buy' ? 'Ask' : 'Bid'} price)</span>
+                    </p>
+                    {insufficientCash && <p className="text-xs text-destructive mt-1">Insufficient cash for this trade</p>}
+                  </div>
+                )}
+
+                <Button
+                  onClick={handleOptionSubmit}
+                  disabled={submitting || !selectedOptionContract || !contracts || (action === 'buy' && insufficientCash)}
+                  className="w-full"
+                >
+                  {submitting ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Executing...</>
+                  ) : (
+                    `${action === 'buy' ? 'Buy' : 'Sell'} ${selectedOptionContract.contract_type.toUpperCase()} $${selectedOptionContract.strike_price} ${selectedOptionContract.expiration_date}`
+                  )}
+                </Button>
+              </>
             )}
-            <Button
-              onClick={handleOptionSubmit}
-              disabled={submitting || !ticker || !premium || !contracts || !strikePrice || !expirationDate || (action === 'buy' && insufficientCash)}
-              className="w-full"
-            >
-              {submitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Executing...</> : `${action === 'buy' ? 'Buy' : 'Sell'} ${optionType.toUpperCase()} Option`}
-            </Button>
           </TabsContent>
         </Tabs>
       </DialogContent>
