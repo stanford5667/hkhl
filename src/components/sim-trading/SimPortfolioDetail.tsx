@@ -213,7 +213,7 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
       }
     }
 
-    const openPositions = Array.from(posMap.values()).filter(p => p.quantity > 0);
+    const openPositions = Array.from(posMap.values()).filter(p => p.quantity !== 0);
 
     // Fetch live stock quotes
     const stockTickers = [...new Set(openPositions.filter(p => p.instrument_type === 'stock').map(p => p.ticker.toUpperCase()))];
