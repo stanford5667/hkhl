@@ -160,6 +160,9 @@ export function MarketThemesSection() {
   const [selectedTheme, setSelectedTheme] = useState<MarketTheme | null>(null);
   const [showAll, setShowAll] = useState(false);
   const [sheetExpanded, setSheetExpanded] = useState(false);
+  const [showSaved, setShowSaved] = useState(false);
+  const [savedAnalyses, setSavedAnalyses] = useState<any[]>([]);
+  const [loadingSaved, setLoadingSaved] = useState(false);
 
   // Fetch AI-generated themes from database
   const { data: dbThemes, isLoading: themesLoading } = useMarketThemes();
