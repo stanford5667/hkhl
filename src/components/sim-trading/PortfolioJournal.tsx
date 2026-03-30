@@ -104,7 +104,7 @@ export function PortfolioJournal({ portfolioId, initialCapital, currentValue, ca
 
   const generateJournalEntry = async (silent = false) => {
     if (!user || !goals) {
-      toast.error('Set your goals first before generating a journal entry');
+      if (!silent) toast.error('Set your goals first before generating a journal entry');
       return;
     }
     setGenerating(true);
@@ -335,7 +335,7 @@ export function PortfolioJournal({ portfolioId, initialCapital, currentValue, ca
           <Button
             size="sm"
             variant="outline"
-            onClick={generateJournalEntry}
+            onClick={() => generateJournalEntry(false)}
             disabled={generating || !goals}
             className="h-8 text-xs"
           >
