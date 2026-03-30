@@ -737,55 +737,9 @@ export function SimPortfolioAnalytics({ portfolioId, initialCapital, trades, pos
   const [section, setSection] = useState('trades');
 
   useEffect(() => {
-    const fetchSnapshots = async () => {
-      const { data } = await supabase
-        .from('sim_snapshots')
-        .select('snapshot_date, total_value')
-        .eq('portfolio_id', portfolioId)
-        .order('snapshot_date', { ascending: true });
-
-      if (data && data.length > 0) {
-        setSnapshots(data.map((s: any) => ({
-          date: s.snapshot_date,
-          value: Number(s.total_value),
-        })));
-      }
-      setLoading(false);
-    };
-    fetchSnapshots();
+    // Just set loading false — historical data is now fetched inside HistoricalPerformance
+    setLoading(false);
   }, [portfolioId]);
-
-  const dates = useMemo(() => snapshots.map(s => s.date), [snapshots]);
-  const portfolioValues = useMemo(() => snapshots.map(s => s.value), [snapshots]);
-  const dailyReturns = useMemo(() => calculateSimpleReturns(portfolioValues), [portfolioValues]);
-
-  const advancedMetrics: AdvancedRiskMetrics | null = useMemo(() => {
-    if (dailyReturns.length < 2 || portfolioValues.length < 2) return null;
-    const ddResult = calculateMaxDrawdown(portfolioValues);
-    const maxDD = ddResult.maxDrawdownPercent;
-    const years = dailyReturns.length / 252;
-    const startVal = portfolioValues[0];
-    const endVal = portfolioValues[portfolioValues.length - 1];
-    const annualizedReturn = years > 0 ? (Math.pow(endVal / startVal, 1 / years) - 1) * 100 : 0;
-    return calculateAllAdvancedMetrics(dailyReturns, portfolioValues, new Map(), annualizedReturn, maxDD, 1, undefined);
-  }, [dailyReturns, portfolioValues]);
-
-  const perfSummary = useMemo(() => {
-    if (!advancedMetrics) return null;
-    return {
-      startBalance: initialCapital,
-      endBalance: portfolioValues[portfolioValues.length - 1] ?? initialCapital,
-      cagr: advancedMetrics.cagr,
-      volatility: advancedMetrics.monthlyVolatility * Math.sqrt(12),
-      sharpeRatio: advancedMetrics.sharpeRatio,
-      sortinoRatio: advancedMetrics.sortinoRatio,
-      maxDrawdown: advancedMetrics.maxDrawdown,
-      bestYear: advancedMetrics.bestYear,
-      worstYear: advancedMetrics.worstYear,
-      beta: advancedMetrics.beta,
-      alpha: advancedMetrics.alpha,
-    };
-  }, [advancedMetrics, initialCapital, portfolioValues]);
 
   const closedTrades = useMemo(() => computeClosedTrades(trades), [trades]);
   const tradeMetrics = useMemo(() => computeTradeMetrics(closedTrades), [closedTrades]);
