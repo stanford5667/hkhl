@@ -22,7 +22,7 @@ export function LiveKitBroadcaster({ roomId, onStopStream, onRecordingSaved }: L
   const [mode, setMode] = useState<'camera' | 'screen' | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [savingRecording, setSavingRecording] = useState(false);
-
+  const recordingSavePromiseRef = useRef<{ resolve: () => void } | null>(null);
   const startRecording = () => {
     const video = videoRef.current;
     if (!video || !video.srcObject) {
