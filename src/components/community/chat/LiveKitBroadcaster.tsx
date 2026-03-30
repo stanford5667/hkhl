@@ -73,6 +73,11 @@ export function LiveKitBroadcaster({ roomId, onStopStream, onRecordingSaved }: L
           }
         }
         setIsRecording(false);
+        // Resolve the promise so handleStop knows saving is done
+        if (recordingSavePromiseRef.current) {
+          recordingSavePromiseRef.current.resolve();
+          recordingSavePromiseRef.current = null;
+        }
       };
 
       recorder.start(1000); // collect data every second
