@@ -57,7 +57,7 @@ const CATEGORY_CONFIG: Record<string, { icon: typeof TrendingUp; color: string }
   backtest_delta: { icon: ArrowUpDown, color: 'text-orange-400' },
 };
 
-export function PortfolioJournal({ portfolioId, initialCapital, currentValue, cashBalance, trades, positions }: Props) {
+export function PortfolioJournal({ portfolioId, initialCapital, currentValue, cashBalance, trades, positions, backtestResults, strategyName }: Props) {
   const { user } = useAuth();
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [goals, setGoals] = useState<Goals | null>(null);
