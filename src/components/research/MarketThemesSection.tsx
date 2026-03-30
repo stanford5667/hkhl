@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Plus, ExternalLink, Sparkles, Loader2 } from 'lucide-react';
+import { ArrowRight, Plus, ExternalLink, Sparkles, Loader2, Bookmark, Clock, Share2, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -8,6 +8,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { getRandomizedThemes, MARKET_THEMES, type MarketTheme, type ThemeTicker } from '@/data/marketThemes';
 import { useMarketThemes } from '@/hooks/useMarketThemes';
+import { supabase } from '@/integrations/supabase/client';
+import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 function TickerPill({ ticker, onClick }: { ticker: ThemeTicker; onClick: () => void }) {
   const sentimentColor = {
