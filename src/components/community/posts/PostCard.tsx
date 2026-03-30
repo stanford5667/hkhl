@@ -155,6 +155,16 @@ export function PostCard({ post, onVote, onTickerClick, onDelete, compact = fals
             <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground">
               <Bookmark className="h-3 w-3" />
             </Button>
+            {canDelete && onDelete && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                onClick={(e) => { e.stopPropagation(); onDelete(post.id); }}
+              >
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            )}
           </div>
         </div>
       </div>
