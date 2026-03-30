@@ -358,7 +358,6 @@ export function PortfolioJournal({ portfolioId, initialCapital, currentValue, ca
 
   return (
     <div className="space-y-4">
-      <PortfolioGoalsSetup portfolioId={portfolioId} onSaved={fetchData} />
 
       <Card className="border-border/50">
         <CardHeader className="pb-2 flex flex-row items-center justify-between">
