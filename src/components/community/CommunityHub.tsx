@@ -7,6 +7,8 @@ import { ChatRoomView } from './chat/ChatRoomView';
 import { PostFeed } from './posts/PostFeed';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAdmin } from '@/hooks/useAdmin';
+import { CreateRoomDialog } from './chat/CreateRoomDialog';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
