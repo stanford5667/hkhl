@@ -345,6 +345,17 @@ export function PortfolioJournal({ portfolioId, initialCapital, currentValue, ca
 
   const sortedDates = Object.keys(groupedEntries).sort((a, b) => b.localeCompare(a));
 
+  const EducationCard = ({ topic }: { topic: typeof EDUCATION_TOPICS[string] }) => (
+    <div className="rounded bg-muted/40 border border-border/30 p-2 space-y-1.5">
+      <div className="flex items-center gap-1.5">
+        <Lightbulb className="h-3 w-3 text-primary" />
+        <span className="text-[10px] font-semibold text-primary">{topic.title}</span>
+      </div>
+      <p className="text-[10px] text-muted-foreground leading-relaxed">{topic.summary}</p>
+      <p className="text-[10px] text-emerald-400 font-medium">💡 {topic.keyTakeaway}</p>
+    </div>
+  );
+
   return (
     <div className="space-y-4">
       <PortfolioGoalsSetup portfolioId={portfolioId} onSaved={fetchData} />
