@@ -178,17 +178,38 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
         });
       } else {
         if (trade.action === 'buy') {
-          const oldTotal = existing.avg_cost * existing.quantity * multiplier;
-          const newTotal = trade.price_at_execution * trade.quantity * multiplier;
-          const newQty = existing.quantity + trade.quantity;
-          if (newQty > 0) {
-            existing.avg_cost = (oldTotal + newTotal) / (newQty * multiplier);
+          if (existing.quantity >= 0) {
+            // Adding to long position — weighted average cost
+            const oldCostBasis = existing.avg_cost * existing.quantity * multiplier;
+            const newCostBasis = trade.price_at_execution * trade.quantity * multiplier;
+            const newQty = existing.quantity + trade.quantity;
+            existing.avg_cost = newQty > 0 ? (oldCostBasis + newCostBasis) / (newQty * multiplier) : trade.price_at_execution;
+            existing.quantity = newQty;
+          } else {
+            // Covering a short position
+            const covered = Math.min(trade.quantity, Math.abs(existing.quantity));
+            const remaining = trade.quantity - covered;
+            existing.quantity += trade.quantity;
+            if (existing.quantity > 0 && remaining > 0) {
+              // Flipped to long — new avg cost is the buy price for remaining shares
+              existing.avg_cost = trade.price_at_execution;
+            }
           }
-          existing.quantity = newQty;
         } else {
-          existing.quantity = Math.max(0, existing.quantity - trade.quantity);
+          // Sell
+          if (existing.quantity > 0) {
+            // Selling from long position — avg cost stays the same
+            existing.quantity = Math.max(0, existing.quantity - trade.quantity);
+          } else {
+            // Adding to short position
+            const oldCostBasis = existing.avg_cost * Math.abs(existing.quantity) * multiplier;
+            const newCostBasis = trade.price_at_execution * trade.quantity * multiplier;
+            const newQty = existing.quantity - trade.quantity;
+            existing.avg_cost = newQty !== 0 ? (oldCostBasis + newCostBasis) / (Math.abs(newQty) * multiplier) : trade.price_at_execution;
+            existing.quantity = newQty;
+          }
         }
-        existing.total_cost = existing.avg_cost * existing.quantity * multiplier;
+        existing.total_cost = existing.avg_cost * Math.abs(existing.quantity) * multiplier;
       }
     }
 
