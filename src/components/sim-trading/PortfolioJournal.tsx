@@ -12,7 +12,7 @@ import type { StockQuote } from '@/services/finnhubService';
 import type { SimTrade } from './SimPortfolioDetail';
 import type { Position } from './SimPortfolioDetail';
 import {
-  BookOpen, RefreshCw, Clock, ChevronDown, ChevronUp,
+  BookOpen, RefreshCw, Clock,
   TrendingUp, TrendingDown, AlertTriangle
 } from 'lucide-react';
 import { format, differenceInDays, parseISO } from 'date-fns';
