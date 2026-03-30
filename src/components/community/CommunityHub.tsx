@@ -115,18 +115,26 @@ export function CommunityHub({ defaultTab = 'chat', initialRoomId }: CommunityHu
           </Sheet>
         )}
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'chat' | 'posts')}>
-          <TabsList>
-            <TabsTrigger value="chat" className="gap-2">
-              <MessageCircle className="h-4 w-4" />
-              <span className="hidden sm:inline">Chat</span>
-            </TabsTrigger>
-            <TabsTrigger value="posts" className="gap-2">
-              <FileText className="h-4 w-4" />
-              <span className="hidden sm:inline">Research</span>
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+          <Button
+            variant={activeTab === 'chat' ? 'default' : 'ghost'}
+            size="sm"
+            className="gap-2"
+            onClick={() => setActiveTab('chat')}
+          >
+            <MessageCircle className="h-4 w-4" />
+            <span className="hidden sm:inline">Chat</span>
+          </Button>
+          <Button
+            variant={activeTab === 'posts' ? 'default' : 'ghost'}
+            size="sm"
+            className="gap-2"
+            onClick={() => setActiveTab('posts')}
+          >
+            <FileText className="h-4 w-4" />
+            <span className="hidden sm:inline">Research</span>
+          </Button>
+        </div>
 
         <div className="ml-auto flex items-center gap-2 text-sm text-muted-foreground">
           {!isAuthenticated ? (
