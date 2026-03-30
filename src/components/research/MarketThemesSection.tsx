@@ -479,6 +479,112 @@ export function MarketThemesSection() {
           )}
         </SheetContent>
       </Sheet>
+
+      {/* Saved Analyses Sheet */}
+      <Sheet open={showSaved} onOpenChange={setShowSaved}>
+        <SheetContent side="right" className="w-full sm:max-w-md bg-background border-border">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <Bookmark className="h-4 w-4 text-primary" />
+              Saved Analyses
+            </SheetTitle>
+          </SheetHeader>
+          <ScrollArea className="h-[calc(100vh-80px)] mt-4">
+            {loadingSaved ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : savedAnalyses.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <Bookmark className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No saved analyses yet</p>
+                <p className="text-xs mt-1">Analyze a theme and click Save to keep it here</p>
+              </div>
+            ) : (
+              <div className="space-y-2 pr-2">
+                {savedAnalyses.map((analysis) => {
+                  const themeData = analysis.theme_data as any;
+                  const tickers = themeData?.tickers || [];
+                  return (
+                    <div
+                      key={analysis.id}
+                      className="p-3 rounded-lg bg-card border border-border/60 hover:border-primary/30 transition-all group"
+                    >
+                      <button
+                        className="w-full text-left"
+                        onClick={() => {
+                          setShowSaved(false);
+                          navigate('/theme-analysis', {
+                            state: {
+                              theme: {
+                                title: analysis.title,
+                                category: analysis.category,
+                                summary: themeData?.summary || '',
+                                detailedSummary: themeData?.summary || '',
+                                tickers: tickers,
+                                headlines: [],
+                                id: analysis.id,
+                                sentimentScore: 0.5,
+                                impactPercent: 0,
+                              },
+                              savedContent: analysis.analysis_content,
+                            },
+                          });
+                        }}
+                      >
+                        <h4 className="text-sm font-semibold text-foreground truncate">
+                          {analysis.title}
+                        </h4>
+                        <div className="flex items-center gap-2 mt-1">
+                          {analysis.category && (
+                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4">
+                              {analysis.category}
+                            </Badge>
+                          )}
+                          <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                            <Clock className="h-2.5 w-2.5" />
+                            {format(new Date(analysis.created_at), 'MMM d, yyyy')}
+                          </span>
+                        </div>
+                        {tickers.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {tickers.slice(0, 4).map((t: any) => (
+                              <span key={t.symbol} className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted/50 text-muted-foreground">
+                                {t.symbol}
+                              </span>
+                            ))}
+                            {tickers.length > 4 && (
+                              <span className="text-[10px] text-muted-foreground">+{tickers.length - 4}</span>
+                            )}
+                          </div>
+                        )}
+                      </button>
+                      <div className="flex items-center gap-1 mt-2 pt-2 border-t border-border/30">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 text-[10px] px-2 text-muted-foreground hover:text-primary"
+                          onClick={() => handleCopyShareLink(analysis)}
+                        >
+                          <Share2 className="h-3 w-3 mr-1" /> Share
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 text-[10px] px-2 text-muted-foreground hover:text-destructive ml-auto"
+                          onClick={() => handleDeleteSaved(analysis.id)}
+                        >
+                          <Trash2 className="h-3 w-3 mr-1" /> Delete
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
     </section>
   );
 }
