@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Plus, Activity, Wallet, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { SimPortfolioDetail } from '@/components/sim-trading/SimPortfolioDetail';
+import { PortfolioGoalsSetup } from '@/components/sim-trading/PortfolioGoalsSetup';
 import { format, differenceInDays } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 
@@ -66,23 +67,40 @@ export default function SimTrading() {
     if (!user || !newName.trim()) return;
     setCreating(true);
     const capital = Math.max(1000, parseFloat(newCapital) || 100000);
-    const { error } = await supabase.from('sim_portfolios').insert({
+    const { data, error } = await supabase.from('sim_portfolios').insert({
       user_id: user.id,
       name: newName.trim(),
       initial_capital: capital,
       cash_balance: capital,
-    });
+    }).select('id').single();
     if (error) {
       console.error('Create portfolio error:', error);
       toast.error('Failed to create simulation: ' + error.message);
+      setCreating(false);
     } else {
-      toast.success('Simulation created!');
-      setNewName('');
-      setNewCapital('100000');
-      setCreateOpen(false);
+      toast.success('Portfolio created! Now set your goals.');
+      setNewPortfolioId(data.id);
+      setCreateStep('goals');
+      setCreating(false);
       fetchPortfolios();
     }
-    setCreating(false);
+  };
+
+  const handleGoalsSaved = () => {
+    toast.success('Goals saved! Your portfolio is ready.');
+    setNewName('');
+    setNewCapital('100000');
+    setCreateStep('info');
+    setNewPortfolioId(null);
+    setCreateOpen(false);
+  };
+
+  const handleCreateDialogChange = (open: boolean) => {
+    setCreateOpen(open);
+    if (!open) {
+      setCreateStep('info');
+      setNewPortfolioId(null);
+    }
   };
 
   if (!user) {
