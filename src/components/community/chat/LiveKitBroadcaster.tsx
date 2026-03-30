@@ -85,10 +85,21 @@ export function LiveKitBroadcaster({ roomId, onStopStream, onRecordingSaved }: L
     }
   };
 
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
-    }
+  const stopRecording = (): Promise<void> => {
+    return new Promise((resolve) => {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        const originalOnStop = mediaRecorderRef.current.onstop;
+        mediaRecorderRef.current.onstop = async (e) => {
+          if (originalOnStop && typeof originalOnStop === 'function') {
+            await (originalOnStop as (e: Event) => Promise<void>)(e);
+          }
+          resolve();
+        };
+        mediaRecorderRef.current.stop();
+      } else {
+        resolve();
+      }
+    });
   };
 
   const handleStart = async (screenShare: boolean) => {
@@ -107,8 +118,10 @@ export function LiveKitBroadcaster({ roomId, onStopStream, onRecordingSaved }: L
     }
   };
 
-  const handleStop = () => {
-    if (isRecording) stopRecording();
+  const handleStop = async () => {
+    if (isRecording) {
+      await stopRecording();
+    }
     disconnect();
     onStopStream();
   };
