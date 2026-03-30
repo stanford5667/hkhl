@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Hash, TrendingUp, Lock, Plus, Users, Crown } from 'lucide-react';
+import { Hash, TrendingUp, Lock, Plus, Users, Crown, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { UnreadBadge } from './UnreadBadge';
 
