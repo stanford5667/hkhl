@@ -170,13 +170,21 @@ export function useResearchPosts() {
   const deletePost = async (postId: string) => {
     if (!user) throw new Error('Must be authenticated');
 
+    // Try deleting as owner first
     const { error } = await supabase
       .from('research_posts')
       .delete()
       .eq('id', postId)
       .eq('user_id', user.id);
 
-    if (error) throw error;
+    if (error) {
+      // If owner delete fails, try admin delete (RLS policy allows admins)
+      const { error: adminError } = await supabase
+        .from('research_posts')
+        .delete()
+        .eq('id', postId);
+      if (adminError) throw adminError;
+    }
 
     setPosts(prev => prev.filter(p => p.id !== postId));
   };
