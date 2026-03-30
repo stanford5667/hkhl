@@ -15,6 +15,16 @@ function json(data: unknown, status = 200) {
   });
 }
 
+async function fetchPolygon(url: string) {
+  const res = await fetch(url);
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    console.error(`[polygon] ${res.status}: ${text.slice(0, 200)}`);
+    return null;
+  }
+  return res.json();
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -36,8 +46,7 @@ serve(async (req) => {
 
     const upperTicker = ticker.toUpperCase();
 
-    // Build Polygon options chain URL
-    // GET /v3/reference/options/contracts?underlying_ticker=AAPL&expiration_date=2024-01-19
+    // 1. Fetch contracts list
     const params = new URLSearchParams({
       underlying_ticker: upperTicker,
       limit: "250",
@@ -49,130 +58,127 @@ serve(async (req) => {
     if (expirationDate) {
       params.set("expiration_date", expirationDate);
     } else {
-      // Default: get contracts expiring in the next 60 days
       const now = new Date();
       const sixtyDays = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000);
       params.set("expiration_date.gte", now.toISOString().split("T")[0]);
       params.set("expiration_date.lte", sixtyDays.toISOString().split("T")[0]);
     }
 
-    // Fetch contracts list
     const contractsUrl = `${BASE_URL}/v3/reference/options/contracts?${params}`;
     console.log(`[polygon-options-chain] Fetching contracts for ${upperTicker}`);
 
-    const contractsRes = await fetch(contractsUrl);
-    if (!contractsRes.ok) {
-      const text = await contractsRes.text();
-      console.error(`[polygon-options-chain] Contracts API error ${contractsRes.status}: ${text}`);
-      return json({ ok: false, error: `Polygon API error: ${contractsRes.status}`, status: contractsRes.status }, contractsRes.status === 403 ? 403 : 500);
+    const contractsData = await fetchPolygon(contractsUrl);
+    if (!contractsData) {
+      return json({ ok: false, error: "Failed to fetch contracts from Polygon" }, 500);
     }
 
-    const contractsData = await contractsRes.json();
     const contracts = contractsData.results || [];
-
     if (contracts.length === 0) {
       await logApiUsage({
         functionName: "polygon-options-chain",
-        endpoint: `/v3/reference/options/contracts/${upperTicker}`,
+        endpoint: `/options/contracts/${upperTicker}`,
         method: "POST",
         statusCode: 200,
         responseTimeMs: getElapsedMs(timer),
       });
-      return json({ ok: true, ticker: upperTicker, expirations: [], contracts: [], snapshots: {} });
+      return json({ ok: true, ticker: upperTicker, expirations: [], contracts: [] });
     }
 
     // Extract unique expiration dates
     const expirations = [...new Set(contracts.map((c: any) => c.expiration_date))].sort();
-
-    // Get the target expiration (first one or the requested one)
     const targetExpiration = expirationDate || expirations[0];
-
-    // Filter contracts for the target expiration
     const targetContracts = contracts.filter((c: any) => c.expiration_date === targetExpiration);
 
-    // Now fetch snapshots for these contracts to get bid/ask/last price
-    // GET /v3/snapshot/options/{underlyingAsset}?expiration_date=2024-01-19
-    const snapshotParams = new URLSearchParams({
-      expiration_date: targetExpiration,
-      limit: "250",
-      order: "asc",
-      sort: "strike_price",
-      apiKey,
-    });
+    // 2. Get current stock price to determine ATM
+    const quoteData = await fetchPolygon(
+      `${BASE_URL}/v2/aggs/ticker/${upperTicker}/prev?adjusted=true&apiKey=${apiKey}`
+    );
+    const stockPrice = quoteData?.results?.[0]?.c || 0;
 
-    const snapshotUrl = `${BASE_URL}/v3/snapshot/options/${upperTicker}?${snapshotParams}`;
-    console.log(`[polygon-options-chain] Fetching snapshots for ${upperTicker} exp ${targetExpiration}`);
+    // 3. Sort contracts by distance from ATM, take nearest 40
+    const sortedByATM = [...targetContracts].sort(
+      (a: any, b: any) => Math.abs(a.strike_price - stockPrice) - Math.abs(b.strike_price - stockPrice)
+    );
+    const nearContracts = sortedByATM.slice(0, 40);
 
-    const snapshotRes = await fetch(snapshotUrl);
-    let snapshots: any[] = [];
+    // 4. Fetch prev-day aggs for each contract ticker (works on basic Polygon plans)
+    const CHUNK_SIZE = 10;
+    const enrichedMap: Record<string, any> = {};
 
-    if (snapshotRes.ok) {
-      const snapshotData = await snapshotRes.json();
-      snapshots = snapshotData.results || [];
-    } else {
-      console.warn(`[polygon-options-chain] Snapshot API error ${snapshotRes.status}, continuing with contracts only`);
+    for (let i = 0; i < nearContracts.length; i += CHUNK_SIZE) {
+      const chunk = nearContracts.slice(i, i + CHUNK_SIZE);
+      const results = await Promise.allSettled(
+        chunk.map(async (c: any) => {
+          const optTicker = c.ticker; // e.g. O:MSFT260401C00330000
+          // Fetch previous day's OHLCV
+          const aggData = await fetchPolygon(
+            `${BASE_URL}/v2/aggs/ticker/${encodeURIComponent(optTicker)}/prev?adjusted=true&apiKey=${apiKey}`
+          );
+          const agg = aggData?.results?.[0];
+
+          // Also fetch last NBBO quote for bid/ask
+          const quoteRes = await fetchPolygon(
+            `${BASE_URL}/v3/quotes/${encodeURIComponent(optTicker)}?limit=1&order=desc&sort=timestamp&apiKey=${apiKey}`
+          );
+          const quote = quoteRes?.results?.[0];
+
+          return { ticker: optTicker, agg, quote };
+        })
+      );
+
+      for (const r of results) {
+        if (r.status === "fulfilled" && r.value) {
+          const { ticker: t, agg, quote } = r.value;
+          const bid = quote?.bid_price || 0;
+          const ask = quote?.ask_price || 0;
+          enrichedMap[t] = {
+            bid,
+            ask,
+            mid: bid && ask ? (bid + ask) / 2 : agg?.c || 0,
+            last_price: agg?.c || 0,
+            volume: agg?.v || 0,
+            open_interest: 0, // not available from aggs
+            change: agg ? (agg.c - agg.o) : 0,
+            change_percent: agg && agg.o ? ((agg.c - agg.o) / agg.o) * 100 : 0,
+          };
+        }
+      }
     }
 
-    // Build a map of option ticker -> snapshot data
-    const snapshotMap: Record<string, any> = {};
-    for (const snap of snapshots) {
-      const details = snap.details || {};
-      const dayData = snap.day || {};
-      const lastQuote = snap.last_quote || {};
-      const greeks = snap.greeks || {};
-
-      snapshotMap[details.ticker || snap.ticker] = {
-        strike_price: details.strike_price,
-        contract_type: details.contract_type,
-        expiration_date: details.expiration_date,
-        bid: lastQuote.bid || 0,
-        ask: lastQuote.ask || 0,
-        mid: lastQuote.midpoint || ((lastQuote.bid || 0) + (lastQuote.ask || 0)) / 2,
-        last_price: dayData.close || snap.value || 0,
-        volume: dayData.volume || 0,
-        open_interest: snap.open_interest || 0,
-        implied_volatility: snap.implied_volatility || greeks.iv || null,
-        delta: greeks.delta || null,
-        gamma: greeks.gamma || null,
-        theta: greeks.theta || null,
-        vega: greeks.vega || null,
-        change: dayData.change || 0,
-        change_percent: dayData.change_percent || 0,
-      };
-    }
-
-    // Merge contracts with snapshot data
-    const enrichedContracts = targetContracts.map((c: any) => {
-      const snap = snapshotMap[c.ticker] || {};
-      return {
-        ticker: c.ticker,
-        strike_price: c.strike_price,
-        contract_type: c.contract_type, // "call" or "put"
-        expiration_date: c.expiration_date,
-        shares_per_contract: c.shares_per_contract || 100,
-        bid: snap.bid || 0,
-        ask: snap.ask || 0,
-        mid: snap.mid || 0,
-        last_price: snap.last_price || 0,
-        volume: snap.volume || 0,
-        open_interest: snap.open_interest || 0,
-        implied_volatility: snap.implied_volatility,
-        delta: snap.delta,
-        gamma: snap.gamma,
-        theta: snap.theta,
-        vega: snap.vega,
-        change: snap.change || 0,
-        change_percent: snap.change_percent || 0,
-      };
-    });
+    // 5. Build final enriched contracts (all target contracts, sorted by strike)
+    const enrichedContracts = targetContracts
+      .sort((a: any, b: any) => a.strike_price - b.strike_price)
+      .map((c: any) => {
+        const snap = enrichedMap[c.ticker] || {};
+        return {
+          ticker: c.ticker,
+          strike_price: c.strike_price,
+          contract_type: c.contract_type,
+          expiration_date: c.expiration_date,
+          shares_per_contract: c.shares_per_contract || 100,
+          bid: snap.bid || 0,
+          ask: snap.ask || 0,
+          mid: snap.mid || 0,
+          last_price: snap.last_price || 0,
+          volume: snap.volume || 0,
+          open_interest: snap.open_interest || 0,
+          implied_volatility: null,
+          delta: null,
+          gamma: null,
+          theta: null,
+          vega: null,
+          change: snap.change || 0,
+          change_percent: snap.change_percent || 0,
+        };
+      });
 
     await logApiUsage({
       functionName: "polygon-options-chain",
-      endpoint: `/v3/reference/options/contracts/${upperTicker}`,
+      endpoint: `/options/contracts/${upperTicker}`,
       method: "POST",
       statusCode: 200,
       responseTimeMs: getElapsedMs(timer),
-      metadata: { contractCount: enrichedContracts.length, expiration: targetExpiration },
+      metadata: { contractCount: enrichedContracts.length, expiration: targetExpiration, enriched: Object.keys(enrichedMap).length },
     });
 
     return json({
