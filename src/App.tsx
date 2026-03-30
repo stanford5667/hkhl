@@ -68,6 +68,7 @@ const Community = lazy(() => import('./pages/Community'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const StockDiscovery = lazy(() => import('./pages/StockDiscovery'));
 const ThemeAnalysis = lazy(() => import('./pages/ThemeAnalysis'));
+const SharedThemeAnalysis = lazy(() => import('./pages/SharedThemeAnalysis'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 const Upgrade = lazy(() => import('./pages/Upgrade'));
 const Affiliate = lazy(() => import('./pages/Affiliate'));
