@@ -88,7 +88,21 @@ export function PortfolioJournal({ portfolioId, initialCapital, currentValue, ca
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const generateJournalEntry = async () => {
+  // Auto-generate once daily if goals exist and no entry today
+  useEffect(() => {
+    if (autoGenAttempted || !goals || loading || generating) return;
+    const today = new Date().toISOString().split('T')[0];
+    const hasEntryToday = entries.some(e => e.created_at.startsWith(today));
+    if (!hasEntryToday && positions.length > 0) {
+      setAutoGenAttempted(true);
+      generateJournalEntry(true);
+    } else {
+      setAutoGenAttempted(true);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [goals, loading, autoGenAttempted, entries]);
+
+  const generateJournalEntry = async (silent = false) => {
     if (!user || !goals) {
       toast.error('Set your goals first before generating a journal entry');
       return;
