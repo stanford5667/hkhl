@@ -4529,6 +4529,45 @@ export type Database = {
           },
         ]
       }
+      research_notes: {
+        Row: {
+          category: string | null
+          content: string
+          created_at: string
+          id: string
+          is_pinned: boolean | null
+          theme_id: string | null
+          ticker: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          is_pinned?: boolean | null
+          theme_id?: string | null
+          ticker?: string | null
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          is_pinned?: boolean | null
+          theme_id?: string | null
+          ticker?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       research_posts: {
         Row: {
           comment_count: number

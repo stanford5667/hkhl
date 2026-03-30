@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { GlobalThemesWidget } from '@/components/research/GlobalThemesWidget';
 import { useNavigate } from 'react-router-dom';
 import { 
-  TrendingUp, Loader2, FileText, ArrowRight
+  TrendingUp, Loader2, FileText, ArrowRight, BookOpen
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { useTrendingTickers } from '@/hooks/useTrendingTickers';
 import { useCategoryCounts, useETFCount } from '@/hooks/useCategoryCounts';
@@ -141,9 +142,14 @@ export default function ResearchPage() {
         onClearRecent={clearRecentSearches}
       />
 
-      {/* Social Proof Signals */}
-      <div className="max-w-6xl mx-auto px-3 sm:px-6 -mt-1 mb-2 sm:mb-4">
+      {/* My Research CTA + Social Proof */}
+      <div className="max-w-6xl mx-auto px-3 sm:px-6 -mt-1 mb-2 sm:mb-4 flex items-center justify-between gap-3">
         <SocialProofSignals />
+        {user && (
+          <Button variant="outline" size="sm" className="shrink-0 font-mono text-xs gap-1.5" onClick={() => navigate('/my-research')}>
+            <BookOpen className="h-3.5 w-3.5" /> My Research
+          </Button>
+        )}
       </div>
 
       {/* Main Content */}
