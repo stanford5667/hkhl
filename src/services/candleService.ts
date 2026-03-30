@@ -1,7 +1,6 @@
 /**
- * Finnhub Candle Data Service
- * Fetches OHLCV data for candlestick charts via edge function
- * Free tier: 60 calls/minute
+ * Candle Data Service
+ * Fetches OHLCV data via Polygon (polygon-aggs edge function)
  */
 
 import { API_CONFIG } from '@/config/apiConfig';
@@ -33,7 +32,7 @@ const candleCache = new Map<string, { data: CandleData[]; fetchedAt: number }>()
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 /**
- * Get candle data from Finnhub
+ * Get candle data via Polygon
  * @param symbol Stock symbol (e.g., 'AAPL')
  * @param resolution Candle resolution: 1, 5, 15, 30, 60 (minutes), D (daily), W (weekly), M (monthly)
  * @param from Start timestamp (Unix)
@@ -66,16 +65,25 @@ export async function getCandles(
     return cached.data;
   }
 
-  try {
-    console.log(`[Candles] Fetching via finnhub-proxy: ${upperSymbol} ${resolution}`);
+  // Map resolution to Polygon timespan
+  const r = resolution.toUpperCase();
+  let timespan = 'day';
+  if (r === 'W') timespan = 'week';
+  else if (r === 'M') timespan = 'month';
+  else if (['1', '5', '15', '30', '60'].includes(r)) timespan = 'minute';
 
-    const res = await supabase.functions.invoke('finnhub-proxy', {
+  const startDate = new Date(fromTime * 1000).toISOString().split('T')[0];
+  const endDate = new Date(toTime * 1000).toISOString().split('T')[0];
+
+  try {
+    console.log(`[Candles] Fetching via polygon-aggs: ${upperSymbol} ${resolution}`);
+
+    const res = await supabase.functions.invoke('polygon-aggs', {
       body: {
-        action: 'candles',
-        symbol: upperSymbol,
-        resolution,
-        from: fromTime,
-        to: toTime,
+        ticker: upperSymbol,
+        startDate,
+        endDate,
+        timespan,
       },
     });
 
@@ -84,31 +92,23 @@ export async function getCandles(
     }
 
     const payload = (res.data as any) || {};
-    if (!payload.ok) {
-      throw new Error(payload.error || 'Failed to fetch candle data');
+    if (!payload.ok || !payload.results || payload.results.length === 0) {
+      throw new Error(`No candle data returned for ${upperSymbol}`);
     }
 
-    const finnhub = payload.candles;
-
-    // Finnhub returns { s: 'ok', c: [], h: [], l: [], o: [], t: [], v: [] }
-    if (finnhub?.s !== 'ok' || !finnhub?.c || finnhub.c.length === 0) {
-      const status = finnhub?.s ?? 'unknown';
-      throw new Error(`No candle data returned (status: ${status})`);
-    }
-
-    const candles: CandleData[] = finnhub.t.map((timestamp: number, i: number) => ({
-      time: timestamp,
-      open: finnhub.o[i],
-      high: finnhub.h[i],
-      low: finnhub.l[i],
-      close: finnhub.c[i],
-      volume: finnhub.v?.[i],
+    const candles: CandleData[] = payload.results.map((bar: any) => ({
+      time: Math.floor(bar.t / 1000), // Polygon returns ms, convert to seconds
+      open: bar.o,
+      high: bar.h,
+      low: bar.l,
+      close: bar.c,
+      volume: bar.v,
     }));
 
     candleCache.set(cacheKey, { data: candles, fetchedAt: Date.now() });
     return candles;
   } catch (err) {
-    // If Finnhub candles are blocked/rate-limited, create a synthetic series anchored to the live quote.
+    // If Polygon candles fail, create a synthetic series anchored to the live quote.
     console.warn('[Candles] Falling back to quote-anchored candles:', err);
 
     try {
