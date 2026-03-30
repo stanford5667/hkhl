@@ -190,7 +190,13 @@ export function CommunityHub({ defaultTab = 'chat', initialRoomId }: CommunityHu
           </>
         ) : (
           <div className="flex-1 p-4 overflow-auto">
-            {location.pathname === '/community/new-post' ? <NewPostForm /> : <PostFeed />}
+            {location.pathname === '/community/new-post' ? (
+              <NewPostForm />
+            ) : location.pathname.match(/^\/community\/posts\/[^/]+$/) ? (
+              <PostDetailView />
+            ) : (
+              <PostFeed />
+            )}
           </div>
         )}
       </div>
