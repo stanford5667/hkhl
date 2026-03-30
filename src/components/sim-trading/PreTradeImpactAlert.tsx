@@ -41,13 +41,13 @@ export function PreTradeImpactAlert({
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
   const alerts = useMemo(() => {
-    if (!tradeValue || tradeValue <= 0 || !goals) return [];
+    if (!tradeValue || tradeValue <= 0) return [];
 
     const results: Alert[] = [];
     const totalPortfolio = currentValue;
     if (totalPortfolio <= 0) return [];
 
-    const postTradePortfolio = action === 'buy' ? totalPortfolio : totalPortfolio;
+    const postTradePortfolio = totalPortfolio;
 
     // --- 1. Concentration after trade ---
     const existingValue = positions
