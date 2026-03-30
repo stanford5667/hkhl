@@ -31,8 +31,8 @@ import { supabase } from "@/integrations/supabase/client";
 
 const mobileNavItems = [
   { label: "Research", href: "/research", icon: Search },
+  { label: "My Work", href: "/my-research", icon: ClipboardList },
   { label: "Academy", href: "/academy", icon: BookOpen },
-  { label: "Builder", href: "/portfolio-visualizer", icon: PieChart },
   { label: "More", href: "#menu", icon: Menu, isMenu: true },
 ];
 

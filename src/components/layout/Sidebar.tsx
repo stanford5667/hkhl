@@ -117,6 +117,12 @@ export function Sidebar() {
         isPremium: false,
       },
       { 
+        label: "My Research", 
+        subtitle: "Notes & Saved Work",
+        href: "/my-research", 
+        icon: ClipboardList,
+      },
+      { 
         label: "Chat Room", 
         subtitle: "Trade Ideas & Chat",
         href: "/community", 
