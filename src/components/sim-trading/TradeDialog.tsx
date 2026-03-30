@@ -363,6 +363,19 @@ export function TradeDialog({ open, onOpenChange, portfolioId, cashBalance, curr
               </div>
             )}
 
+            {stockTotal > 0 && ticker.trim() && (
+              <PreTradeImpactAlert
+                ticker={ticker.toUpperCase()}
+                action={action}
+                tradeValue={stockTotal}
+                currentValue={currentPortfolioValue}
+                cashBalance={cashBalance}
+                positions={positions}
+                goals={goals}
+                instrumentType="stock"
+              />
+            )}
+
             <Button
               onClick={handleStockSubmit}
               disabled={
@@ -421,6 +434,20 @@ export function TradeDialog({ open, onOpenChange, portfolioId, cashBalance, curr
                     </p>
                     {insufficientCash && <p className="text-xs text-destructive mt-1">Insufficient cash for this trade</p>}
                   </div>
+                )}
+
+                {optionTotal > 0 && (
+                  <PreTradeImpactAlert
+                    ticker={optionTicker.toUpperCase()}
+                    action={action}
+                    tradeValue={optionTotal}
+                    currentValue={currentPortfolioValue}
+                    cashBalance={cashBalance}
+                    positions={positions}
+                    goals={goals}
+                    instrumentType="option"
+                    optionType={selectedOptionContract?.contract_type}
+                  />
                 )}
 
                 <Button
