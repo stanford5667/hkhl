@@ -34,6 +34,8 @@ export default function SimTrading() {
   const [newName, setNewName] = useState('');
   const [newCapital, setNewCapital] = useState('100000');
   const [creating, setCreating] = useState(false);
+  const [createStep, setCreateStep] = useState<'info' | 'goals'>('info');
+  const [newPortfolioId, setNewPortfolioId] = useState<string | null>(null);
 
   const fetchPortfolios = async () => {
     if (!user) {
