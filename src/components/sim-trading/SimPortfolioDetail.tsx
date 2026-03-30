@@ -304,6 +304,18 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
       toast.error('Position closed but failed to update balance');
     } else {
       toast.success(`Closed ${pos.ticker} for $${totalProceeds.toLocaleString(undefined, { minimumFractionDigits: 2 })}`);
+
+      // Trigger post-trade reflection
+      const latestTrades = await supabase.from('sim_trades').select('id').eq('portfolio_id', portfolio.id).order('executed_at', { ascending: false }).limit(1);
+      const tradeId = latestTrades.data?.[0]?.id || '';
+      setReflectionData({
+        tradeId,
+        ticker: pos.ticker,
+        pnl: pos.pnl,
+        pnlPct: pos.pnl_pct,
+      });
+      setReflectionOpen(true);
+
       fetchData();
     }
   };
