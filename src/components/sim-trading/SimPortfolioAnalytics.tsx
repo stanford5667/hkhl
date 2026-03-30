@@ -87,36 +87,231 @@ function computeClosedTrades(trades: SimTrade[]): ClosedTrade[] {
 }
 
 // ────────────────────────────────────────────────
-// Sub-section: Historical Portfolio Performance
+// Sub-section: Historical Backtested Performance
+// Uses market_daily_bars to backtest current holdings over selected timeframe
 // ────────────────────────────────────────────────
 
-function HistoricalPerformance({
-  snapshots,
-  initialCapital,
-  advancedMetrics,
-  dailyReturns,
-  portfolioValues,
-  dates,
-  perfSummary,
-}: {
-  snapshots: { date: string; value: number }[];
-  initialCapital: number;
-  advancedMetrics: AdvancedRiskMetrics | null;
-  dailyReturns: number[];
-  portfolioValues: number[];
+const TIMEFRAMES = [
+  { label: '1M', months: 1 },
+  { label: '3M', months: 3 },
+  { label: '6M', months: 6 },
+  { label: '1Y', months: 12 },
+  { label: '3Y', months: 36 },
+  { label: '5Y', months: 60 },
+];
+
+interface BacktestResult {
   dates: string[];
-  perfSummary: any;
+  portfolioValues: number[];
+  benchmarkValues: number[];
+  dailyReturns: number[];
+  benchmarkReturns: number[];
+  drawdownSeries: number[];
+  metrics: {
+    totalReturn: number;
+    cagr: number;
+    volatility: number;
+    sharpeRatio: number;
+    sortinoRatio: number;
+    maxDrawdown: number;
+    beta: number;
+    alpha: number;
+    var95: number;
+    cvar95: number;
+    calmarRatio: number;
+    bestYear: number;
+    worstYear: number;
+  };
+  yearlyReturns: { year: number; return: number; benchmark: number }[];
+}
+
+function HistoricalPerformance({
+  positions,
+  initialCapital,
+}: {
+  positions: Position[];
+  initialCapital: number;
 }) {
   const [histTab, setHistTab] = useState('growth');
-  const hasData = snapshots.length >= 1;
+  const [timeframe, setTimeframe] = useState(12); // months
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<BacktestResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!hasData) {
+  // Get stock tickers with weights based on cost basis
+  const holdingsInfo = useMemo(() => {
+    const stockPositions = positions.filter(p => p.instrument_type === 'stock' && p.ticker);
+    if (stockPositions.length === 0) return null;
+
+    const totalCost = stockPositions.reduce((s, p) => s + p.total_cost, 0);
+    if (totalCost <= 0) return null;
+
+    return stockPositions.map(p => ({
+      ticker: p.ticker.toUpperCase(),
+      weight: p.total_cost / totalCost, // weight by cost basis
+    }));
+  }, [positions]);
+
+  // Run backtest when timeframe or holdings change
+  useEffect(() => {
+    if (!holdingsInfo || holdingsInfo.length === 0) {
+      setResult(null);
+      return;
+    }
+
+    const runBacktest = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setMonth(startDate.getMonth() - timeframe);
+        const startStr = startDate.toISOString().split('T')[0];
+        const endStr = endDate.toISOString().split('T')[0];
+
+        const tickers = holdingsInfo.map(h => h.ticker);
+        const uniqueTickers = [...new Set([...tickers, 'SPY'])]; // include benchmark
+
+        // Fetch all ticker data in one query
+        const { data: bars, error: dbError } = await supabase
+          .from('market_daily_bars')
+          .select('ticker, bar_date, close, daily_return')
+          .in('ticker', uniqueTickers)
+          .gte('bar_date', startStr)
+          .lte('bar_date', endStr)
+          .order('bar_date', { ascending: true });
+
+        if (dbError) throw dbError;
+        if (!bars || bars.length === 0) {
+          setError('No historical data found for these tickers');
+          setLoading(false);
+          return;
+        }
+
+        // Index by ticker then date
+        const indexed: Record<string, Record<string, { close: number; return: number }>> = {};
+        for (const bar of bars) {
+          if (!indexed[bar.ticker]) indexed[bar.ticker] = {};
+          indexed[bar.ticker][bar.bar_date] = { close: bar.close || 0, return: bar.daily_return || 0 };
+        }
+
+        // Find common dates across all holdings
+        const holdingDateSets = tickers.map(t => new Set(Object.keys(indexed[t] || {})));
+        const benchmarkDates = new Set(Object.keys(indexed['SPY'] || {}));
+        const allSets = [...holdingDateSets, benchmarkDates];
+
+        if (allSets.length === 0 || allSets[0].size === 0) {
+          setError('Insufficient data coverage for backtest');
+          setLoading(false);
+          return;
+        }
+
+        const commonDates = [...allSets[0]].filter(d => allSets.every(s => s.has(d))).sort();
+
+        if (commonDates.length < 10) {
+          setError(`Only ${commonDates.length} common trading days found. Need at least 10.`);
+          setLoading(false);
+          return;
+        }
+
+        // Build portfolio & benchmark value series
+        const portfolioValues: number[] = [initialCapital];
+        const benchmarkValues: number[] = [initialCapital];
+        const dailyReturns: number[] = [];
+        const benchmarkReturns: number[] = [];
+        const dates: string[] = [commonDates[0]];
+
+        for (let i = 1; i < commonDates.length; i++) {
+          const date = commonDates[i];
+
+          // Weighted portfolio return
+          let portReturn = 0;
+          for (const h of holdingsInfo) {
+            const r = indexed[h.ticker]?.[date]?.return || 0;
+            portReturn += r * h.weight;
+          }
+          dailyReturns.push(portReturn);
+          portfolioValues.push(portfolioValues[portfolioValues.length - 1] * (1 + portReturn));
+
+          // Benchmark
+          const bmReturn = indexed['SPY']?.[date]?.return || 0;
+          benchmarkReturns.push(bmReturn);
+          benchmarkValues.push(benchmarkValues[benchmarkValues.length - 1] * (1 + bmReturn));
+
+          dates.push(date);
+        }
+
+        // Calculate metrics using existing service functions
+        const years = commonDates.length / 252;
+        const totalReturn = ((portfolioValues[portfolioValues.length - 1] - initialCapital) / initialCapital) * 100;
+        const cagr = calculateCAGR(initialCapital, portfolioValues[portfolioValues.length - 1], years) * 100;
+        const volatility = annualizedVolatility(dailyReturns) * 100;
+        const sharpe = calculateSharpeRatio(dailyReturns, 0.05);
+        const sortino = calculateSortinoRatio(dailyReturns, 0.05);
+        const { maxDrawdownPercent, drawdownSeries } = calculateMaxDrawdown(portfolioValues);
+        const var95 = calculateVaR(dailyReturns, 0.95);
+        const cvar95 = calculateCVaR(dailyReturns, 0.95);
+        const { beta, alpha } = calculateBetaAlpha(dailyReturns, benchmarkReturns, 0.05);
+        const calmarRatio = maxDrawdownPercent > 0 ? cagr / maxDrawdownPercent : 0;
+
+        // Yearly returns
+        const yearMap: Record<number, { portfolio: number[]; benchmark: number[] }> = {};
+        for (let i = 1; i < dates.length; i++) {
+          const year = new Date(dates[i]).getFullYear();
+          if (!yearMap[year]) yearMap[year] = { portfolio: [], benchmark: [] };
+          yearMap[year].portfolio.push(dailyReturns[i - 1]);
+          yearMap[year].benchmark.push(benchmarkReturns[i - 1]);
+        }
+        const yearlyReturns = Object.entries(yearMap).map(([year, data]) => ({
+          year: parseInt(year),
+          return: (data.portfolio.reduce((acc, r) => acc * (1 + r), 1) - 1) * 100,
+          benchmark: (data.benchmark.reduce((acc, r) => acc * (1 + r), 1) - 1) * 100,
+        }));
+
+        const allYearlyReturns = yearlyReturns.map(y => y.return);
+
+        setResult({
+          dates,
+          portfolioValues,
+          benchmarkValues,
+          dailyReturns,
+          benchmarkReturns,
+          drawdownSeries,
+          metrics: {
+            totalReturn,
+            cagr,
+            volatility,
+            sharpeRatio: sharpe,
+            sortinoRatio: sortino,
+            maxDrawdown: maxDrawdownPercent,
+            beta,
+            alpha: alpha * 100,
+            var95,
+            cvar95,
+            calmarRatio,
+            bestYear: allYearlyReturns.length > 0 ? Math.max(...allYearlyReturns) : 0,
+            worstYear: allYearlyReturns.length > 0 ? Math.min(...allYearlyReturns) : 0,
+          },
+          yearlyReturns,
+        });
+      } catch (e: any) {
+        console.error('Historical backtest error:', e);
+        setError(e.message || 'Failed to run historical analysis');
+      }
+      setLoading(false);
+    };
+
+    runBacktest();
+  }, [holdingsInfo, timeframe, initialCapital]);
+
+  if (!holdingsInfo || holdingsInfo.length === 0) {
     return (
       <Card>
         <CardContent className="py-8 text-center">
           <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-          <p className="text-muted-foreground">Not enough snapshot data for historical charts yet.</p>
-          <p className="text-xs text-muted-foreground mt-1">Portfolio value is recorded each visit. Come back over multiple sessions to build history.</p>
+          <p className="text-muted-foreground">No stock positions to analyze historically.</p>
+          <p className="text-xs text-muted-foreground mt-1">Buy some stocks first, then view their historical backtested performance here.</p>
         </CardContent>
       </Card>
     );
@@ -124,61 +319,149 @@ function HistoricalPerformance({
 
   return (
     <div className="space-y-4">
-      <Tabs value={histTab} onValueChange={setHistTab}>
-        <TabsList className="w-full grid grid-cols-4">
-          <TabsTrigger value="growth" className="text-xs">Growth & Drawdown</TabsTrigger>
-          <TabsTrigger value="risk" className="text-xs">Risk Metrics</TabsTrigger>
-          <TabsTrigger value="returns" className="text-xs">Returns</TabsTrigger>
-          <TabsTrigger value="advanced" className="text-xs">Advanced</TabsTrigger>
-        </TabsList>
+      {/* Timeframe selector */}
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-muted-foreground">Timeframe:</span>
+        <div className="flex gap-1">
+          {TIMEFRAMES.map(tf => (
+            <Button
+              key={tf.months}
+              variant={timeframe === tf.months ? 'default' : 'outline'}
+              size="sm"
+              className="h-7 px-3 text-xs"
+              onClick={() => setTimeframe(tf.months)}
+            >
+              {tf.label}
+            </Button>
+          ))}
+        </div>
+        <span className="text-xs text-muted-foreground ml-2">
+          Holdings: {holdingsInfo.map(h => h.ticker).join(', ')}
+        </span>
+      </div>
 
-        <TabsContent value="growth" className="space-y-6 mt-4">
-          <PortfolioGrowthChart dates={dates} portfolioValues={portfolioValues} initialCapital={initialCapital} />
-          <div className="grid gap-6 lg:grid-cols-2">
-            {perfSummary && <PerformanceSummaryTable {...perfSummary} />}
-            <DrawdownChart dates={dates} portfolioValues={portfolioValues} />
+      {loading && (
+        <div className="flex items-center justify-center py-12 text-muted-foreground">
+          <Loader2 className="w-5 h-5 animate-spin mr-2" /> Running historical analysis...
+        </div>
+      )}
+
+      {error && (
+        <Card>
+          <CardContent className="py-8 text-center">
+            <AlertTriangle className="w-6 h-6 mx-auto mb-2 text-destructive" />
+            <p className="text-muted-foreground">{error}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {!loading && result && (
+        <>
+          {/* Key metrics row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2">
+            {[
+              { label: 'Total Return', value: `${result.metrics.totalReturn >= 0 ? '+' : ''}${result.metrics.totalReturn.toFixed(1)}%`, color: result.metrics.totalReturn >= 0 ? 'text-success' : 'text-destructive' },
+              { label: 'CAGR', value: `${result.metrics.cagr.toFixed(1)}%`, color: result.metrics.cagr >= 0 ? 'text-success' : 'text-destructive' },
+              { label: 'Volatility', value: `${result.metrics.volatility.toFixed(1)}%`, color: 'text-foreground' },
+              { label: 'Sharpe', value: result.metrics.sharpeRatio.toFixed(2), color: result.metrics.sharpeRatio >= 1 ? 'text-success' : 'text-foreground' },
+              { label: 'Sortino', value: result.metrics.sortinoRatio.toFixed(2), color: result.metrics.sortinoRatio >= 1 ? 'text-success' : 'text-foreground' },
+              { label: 'Max DD', value: `${result.metrics.maxDrawdown.toFixed(1)}%`, color: 'text-destructive' },
+              { label: 'Beta', value: result.metrics.beta.toFixed(2), color: 'text-foreground' },
+              { label: 'Alpha', value: `${result.metrics.alpha >= 0 ? '+' : ''}${result.metrics.alpha.toFixed(1)}%`, color: result.metrics.alpha >= 0 ? 'text-success' : 'text-destructive' },
+            ].map(m => (
+              <Card key={m.label}>
+                <CardContent className="pt-2 pb-1.5 px-2">
+                  <span className="text-[10px] text-muted-foreground">{m.label}</span>
+                  <p className={`text-sm font-bold font-mono ${m.color}`}>{m.value}</p>
+                </CardContent>
+              </Card>
+            ))}
           </div>
-        </TabsContent>
 
-        <TabsContent value="risk" className="mt-4">
-          {advancedMetrics ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {[
-                { label: 'VaR (95%)', value: `${(advancedMetrics.var95 * 100).toFixed(2)}%`, desc: 'Max daily loss at 95% confidence' },
-                { label: 'CVaR (95%)', value: `${(advancedMetrics.cvar95 * 100).toFixed(2)}%`, desc: 'Expected loss beyond VaR' },
-                { label: 'Sortino', value: advancedMetrics.sortinoRatio.toFixed(2), desc: 'Return per unit downside risk' },
-                { label: 'Calmar', value: advancedMetrics.calmarRatio.toFixed(2), desc: 'Return / Max Drawdown' },
-                { label: 'Skewness', value: advancedMetrics.skewness.toFixed(2), desc: 'Return distribution asymmetry' },
-                { label: 'Kurtosis', value: advancedMetrics.kurtosis.toFixed(2), desc: 'Tail risk (fat tails)' },
-                { label: 'Ulcer Index', value: advancedMetrics.ulcerIndex.toFixed(2), desc: 'Drawdown pain measure' },
-                { label: 'Omega', value: advancedMetrics.omega.toFixed(2), desc: 'Gain/loss probability ratio' },
-              ].map(m => (
-                <Card key={m.label}>
-                  <CardContent className="pt-3 pb-2">
-                    <span className="text-[10px] text-muted-foreground">{m.label}</span>
-                    <p className="text-lg font-bold font-mono">{m.value}</p>
-                    <p className="text-[10px] text-muted-foreground">{m.desc}</p>
+          <Tabs value={histTab} onValueChange={setHistTab}>
+            <TabsList className="w-full grid grid-cols-4">
+              <TabsTrigger value="growth" className="text-xs">Growth vs SPY</TabsTrigger>
+              <TabsTrigger value="drawdown" className="text-xs">Drawdown</TabsTrigger>
+              <TabsTrigger value="risk" className="text-xs">Risk Metrics</TabsTrigger>
+              <TabsTrigger value="returns" className="text-xs">Annual Returns</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="growth" className="mt-4">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Growth of ${(initialCapital / 1000).toFixed(0)}k — Portfolio vs SPY</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={result.dates.map((d, i) => ({ date: d, portfolio: result.portfolioValues[i], benchmark: result.benchmarkValues[i] }))}>
+                      <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                      <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={v => { try { return format(parseISO(v), 'MM/yy'); } catch { return v; } }} />
+                      <YAxis tick={{ fontSize: 10 }} tickFormatter={v => `$${v >= 1000 ? `${(v/1000).toFixed(0)}k` : v.toFixed(0)}`} />
+                      <Tooltip
+                        formatter={(value: number, name: string) => [`$${value.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, name === 'portfolio' ? 'Portfolio' : 'SPY']}
+                        labelFormatter={v => { try { return format(parseISO(v as string), 'MMM d, yyyy'); } catch { return v as string; } }}
+                      />
+                      <Line type="monotone" dataKey="portfolio" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} name="portfolio" />
+                      <Line type="monotone" dataKey="benchmark" stroke="hsl(var(--muted-foreground))" strokeWidth={1.5} strokeDasharray="4 2" dot={false} name="benchmark" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="drawdown" className="mt-4">
+              <DrawdownChart dates={result.dates} portfolioValues={result.portfolioValues} />
+            </TabsContent>
+
+            <TabsContent value="risk" className="mt-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[
+                  { label: 'VaR (95%)', value: `${(result.metrics.var95 * 100).toFixed(2)}%`, desc: 'Max daily loss at 95% confidence' },
+                  { label: 'CVaR (95%)', value: `${(result.metrics.cvar95 * 100).toFixed(2)}%`, desc: 'Expected loss beyond VaR' },
+                  { label: 'Calmar', value: result.metrics.calmarRatio.toFixed(2), desc: 'Return / Max Drawdown' },
+                  { label: 'Best Year', value: `${result.metrics.bestYear.toFixed(1)}%`, desc: 'Best annual return' },
+                  { label: 'Worst Year', value: `${result.metrics.worstYear.toFixed(1)}%`, desc: 'Worst annual return' },
+                  { label: 'Max Drawdown', value: `${result.metrics.maxDrawdown.toFixed(1)}%`, desc: 'Largest peak-to-trough decline' },
+                  { label: 'Beta (SPY)', value: result.metrics.beta.toFixed(2), desc: 'Systematic risk vs market' },
+                  { label: 'Alpha', value: `${result.metrics.alpha.toFixed(2)}%`, desc: 'Excess return vs benchmark' },
+                ].map(m => (
+                  <Card key={m.label}>
+                    <CardContent className="pt-3 pb-2">
+                      <span className="text-[10px] text-muted-foreground">{m.label}</span>
+                      <p className="text-lg font-bold font-mono">{m.value}</p>
+                      <p className="text-[10px] text-muted-foreground">{m.desc}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="returns" className="mt-4">
+              {result.yearlyReturns.length > 0 ? (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Annual Returns — Portfolio vs SPY</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={250}>
+                      <BarChart data={result.yearlyReturns}>
+                        <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                        <XAxis dataKey="year" tick={{ fontSize: 10 }} />
+                        <YAxis tickFormatter={v => `${v.toFixed(0)}%`} tick={{ fontSize: 10 }} />
+                        <Tooltip formatter={(v: number) => [`${v.toFixed(2)}%`]} />
+                        <Bar dataKey="return" name="Portfolio" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="benchmark" name="SPY" fill="hsl(var(--muted-foreground))" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
                   </CardContent>
                 </Card>
-              ))}
-            </div>
-          ) : (
-            <Card><CardContent className="py-8 text-center text-muted-foreground">Insufficient data for risk metrics</CardContent></Card>
-          )}
-        </TabsContent>
-
-        <TabsContent value="returns" className="mt-4">
-          <AnnualReturnsChart dates={dates} portfolioReturns={dailyReturns} />
-        </TabsContent>
-
-        <TabsContent value="advanced" className="mt-4">
-          {advancedMetrics ? (
-            <AdvancedMetricsDashboard metrics={advancedMetrics} />
-          ) : (
-            <Card><CardContent className="py-8 text-center text-muted-foreground">Need more data points for advanced metrics</CardContent></Card>
-          )}
-        </TabsContent>
-      </Tabs>
+              ) : (
+                <Card><CardContent className="py-8 text-center text-muted-foreground">Need at least 1 year of data for annual returns</CardContent></Card>
+              )}
+            </TabsContent>
+          </Tabs>
+        </>
+      )}
     </div>
   );
 }
