@@ -23,6 +23,8 @@ interface Props {
   cashBalance: number;
   trades: SimTrade[];
   positions: Position[];
+  backtestResults?: any;
+  strategyName?: string | null;
 }
 
 interface JournalEntry {
