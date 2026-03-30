@@ -7,6 +7,8 @@ import { ChatRoomView } from './chat/ChatRoomView';
 import { PostFeed } from './posts/PostFeed';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAdmin } from '@/hooks/useAdmin';
+import { CreateRoomDialog } from './chat/CreateRoomDialog';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -31,11 +33,12 @@ export function CommunityHub({ defaultTab = 'chat', initialRoomId }: CommunityHu
   const location = useLocation();
   const isMobile = useIsMobile();
   const { isAuthenticated } = useAuth();
+  const { isAdmin } = useAdmin();
   const [activeTab, setActiveTab] = useState<'chat' | 'posts'>(defaultTab);
   const [selectedRoom, setSelectedRoom] = useState<ChatRoomType | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const { rooms, loading: roomsLoading } = useChatRooms();
+  const { rooms, loading: roomsLoading, createRoom } = useChatRooms();
 
   // Select initial room: URL param > localStorage > first room
   useEffect(() => {
@@ -84,6 +87,11 @@ export function CommunityHub({ defaultTab = 'chat', initialRoomId }: CommunityHu
         activeRoomId={selectedRoom?.id}
         onRoomSelect={handleRoomSelect}
       />
+      {isAdmin && (
+        <div className="p-3 border-t">
+          <CreateRoomDialog onCreateRoom={createRoom} />
+        </div>
+      )}
     </div>
   );
 

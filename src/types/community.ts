@@ -21,6 +21,7 @@ export interface ChatRoom {
   live_stream_url: string | null;
   live_started_by: string | null;
   live_started_at: string | null;
+  is_admin_only: boolean;
 }
 
 export interface ChatMessage {

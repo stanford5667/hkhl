@@ -39,7 +39,8 @@ export function useChatRooms() {
     description: string,
     roomType: RoomType = 'public',
     ticker?: string,
-    icon: string = '💬'
+    icon: string = '💬',
+    isAdminOnly: boolean = false
   ) => {
     if (!user) throw new Error('Must be authenticated to create a room');
 
@@ -55,6 +56,7 @@ export function useChatRooms() {
         ticker: ticker || null,
         icon,
         created_by: user.id,
+        is_admin_only: isAdminOnly,
       })
       .select()
       .single();
