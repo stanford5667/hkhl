@@ -191,16 +191,16 @@ function WatchlistTab() {
   return (
     <div className="space-y-2">
       {items.map(item => (
-        <Card key={item.ticker} className="cursor-pointer hover:border-primary/30 transition-colors" onClick={() => navigate(`/stock/${item.ticker}`)}>
+        <Card key={item.item_id} className="cursor-pointer hover:border-primary/30 transition-colors" onClick={() => navigate(`/stock/${item.item_id}`)}>
           <CardContent className="p-3 flex items-center justify-between">
             <div>
-              <span className="font-mono font-bold text-sm">{item.ticker}</span>
-              <span className="text-xs text-muted-foreground ml-2 truncate">{item.name}</span>
+              <span className="font-mono font-bold text-sm">{item.item_id}</span>
+              <span className="text-xs text-muted-foreground ml-2 truncate">{item.item_name}</span>
             </div>
             <div className="text-right">
-              <span className="font-mono text-sm">${item.price?.toFixed(2) || '—'}</span>
+              <span className="font-mono text-sm">${item.currentPrice?.toFixed(2) || '—'}</span>
               {item.changePercent != null && (
-                <span className={cn('ml-2 text-xs font-mono', item.changePercent >= 0 ? 'text-emerald-500' : 'text-red-500')}>
+                <span className={cn('ml-2 text-xs font-mono', item.changePercent >= 0 ? 'text-[hsl(var(--primary))]' : 'text-destructive')}>
                   {item.changePercent >= 0 ? '+' : ''}{item.changePercent.toFixed(2)}%
                 </span>
               )}

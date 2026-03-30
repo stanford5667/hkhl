@@ -76,6 +76,7 @@ const InvestmentHeatmap = lazy(() => import('./pages/InvestmentHeatmap'));
 const ManagementFee = lazy(() => import('./pages/ManagementFee'));
 const SmsConsent = lazy(() => import('./pages/SmsConsent'));
 const SimTrading = lazy(() => import('./pages/SimTrading'));
+const MyResearch = lazy(() => import('./pages/MyResearch'));
 const OptionsAnalyzerPage = lazy(() => import('./pages/OptionsAnalyzer'));
 const EliteOnboarding = lazy(() => import('./pages/EliteOnboarding'));
 const EliteDashboard = lazy(() => import('./pages/EliteDashboard'));
@@ -190,6 +191,7 @@ const App = () => {
                               <Route path="/management-fee" element={<ManagementFee />} />
                               <Route path="/sms-consent" element={<SmsConsent />} />
                               <Route path="/sim-trading" element={<SimTrading />} />
+                              <Route path="/my-research" element={<MyResearch />} />
                               <Route path="/options-analyzer" element={<OptionsAnalyzerPage />} />
                               <Route path="/elite-onboarding" element={<EliteGuard><EliteOnboarding /></EliteGuard>} />
                               <Route path="/elite-dashboard" element={<EliteGuard><EliteDashboard /></EliteGuard>} />
