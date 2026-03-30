@@ -167,20 +167,56 @@ function HistoricalPerformance({
         const tickers = holdingsInfo.map(h => h.ticker);
         const uniqueTickers = [...new Set([...tickers, 'SPY'])]; // include benchmark
 
-        // Fetch all ticker data - fetch per ticker to avoid 1000-row limit
-        let bars: Array<{ ticker: string; bar_date: string; close: number | null; daily_return: number | null }> = [];
-        for (const t of uniqueTickers) {
-          const { data, error: dbError } = await supabase
+        type LocalBar = { ticker: string; bar_date: string; close: number | null; daily_return: number | null };
+
+        const fetchTickerBars = async (ticker: string): Promise<LocalBar[]> => {
+          const { data: dbData, error: dbError } = await supabase
             .from('market_daily_bars')
             .select('ticker, bar_date, close, daily_return')
-            .eq('ticker', t)
+            .eq('ticker', ticker)
             .gte('bar_date', startStr)
             .lte('bar_date', endStr)
             .order('bar_date', { ascending: true })
             .limit(2000);
+
           if (dbError) throw dbError;
-          if (data) bars = bars.concat(data);
-        }
+          if (dbData && dbData.length >= 10) return dbData as LocalBar[];
+
+          const { data: apiData, error: apiError } = await supabase.functions.invoke('polygon-aggs', {
+            body: { ticker, startDate: startStr, endDate: endStr, timespan: 'day' },
+          });
+
+          if (apiError) {
+            if (dbData && dbData.length > 0) return dbData as LocalBar[];
+            throw apiError;
+          }
+
+          const results = Array.isArray(apiData?.results) ? apiData.results : [];
+          if (!apiData?.ok || results.length === 0) {
+            return (dbData || []) as LocalBar[];
+          }
+
+          let prevClose: number | null = null;
+          return results
+            .map((row: any) => {
+              const close = Number(row?.c ?? row?.close ?? 0);
+              const barDate = row?.t
+                ? new Date(row.t).toISOString().split('T')[0]
+                : String(row?.bar_date ?? '');
+              const dailyReturn = prevClose && prevClose > 0 ? (close - prevClose) / prevClose : null;
+              prevClose = close;
+              return {
+                ticker,
+                bar_date: barDate,
+                close,
+                daily_return: dailyReturn,
+              } as LocalBar;
+            })
+            .filter((b: LocalBar) => !!b.bar_date && Number.isFinite(b.close ?? 0));
+        };
+
+        const barsByTicker = await Promise.all(uniqueTickers.map(fetchTickerBars));
+        const bars = barsByTicker.flat();
 
         if (bars.length === 0) {
           setError('No historical data found for these tickers');
@@ -195,17 +231,29 @@ function HistoricalPerformance({
           indexed[bar.ticker][bar.bar_date] = { close: bar.close || 0, return: bar.daily_return || 0 };
         }
 
-        // Find common dates across all holdings
-        const holdingDateSets = tickers.map(t => new Set(Object.keys(indexed[t] || {})));
         const benchmarkDates = new Set(Object.keys(indexed['SPY'] || {}));
-        const allSets = [...holdingDateSets, benchmarkDates];
-
-        if (allSets.length === 0 || allSets[0].size === 0) {
-          setError('Insufficient data coverage for backtest');
+        if (benchmarkDates.size < 10) {
+          setError('Benchmark coverage is insufficient for the selected timeframe.');
           setLoading(false);
           return;
         }
 
+        const availableHoldings = holdingsInfo.filter(h => Object.keys(indexed[h.ticker] || {}).length >= 10);
+        if (availableHoldings.length === 0) {
+          setError('No holdings have enough historical coverage in this timeframe.');
+          setLoading(false);
+          return;
+        }
+
+        const normalizedWeightTotal = availableHoldings.reduce((sum, h) => sum + h.weight, 0);
+        const normalizedHoldings = availableHoldings.map(h => ({
+          ...h,
+          weight: normalizedWeightTotal > 0 ? h.weight / normalizedWeightTotal : 0,
+        }));
+
+        // Find common dates across available holdings + benchmark
+        const holdingDateSets = normalizedHoldings.map(h => new Set(Object.keys(indexed[h.ticker] || {})));
+        const allSets = [...holdingDateSets, benchmarkDates];
         const commonDates = [...allSets[0]].filter(d => allSets.every(s => s.has(d))).sort();
 
         if (commonDates.length < 10) {
@@ -226,7 +274,7 @@ function HistoricalPerformance({
 
           // Weighted portfolio return
           let portReturn = 0;
-          for (const h of holdingsInfo) {
+          for (const h of normalizedHoldings) {
             const r = indexed[h.ticker]?.[date]?.return || 0;
             portReturn += r * h.weight;
           }
