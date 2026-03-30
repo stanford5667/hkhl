@@ -108,7 +108,7 @@ function HistoricalPerformance({
   perfSummary: any;
 }) {
   const [histTab, setHistTab] = useState('growth');
-  const hasData = snapshots.length >= 2;
+  const hasData = snapshots.length >= 1;
 
   if (!hasData) {
     return (
