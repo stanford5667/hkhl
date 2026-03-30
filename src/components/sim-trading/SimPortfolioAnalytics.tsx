@@ -112,7 +112,8 @@ export function SimPortfolioAnalytics({ portfolioId, initialCapital, trades }: P
   const advancedMetrics: AdvancedRiskMetrics | null = useMemo(() => {
     if (dailyReturns.length < 2 || portfolioValues.length < 2) return null;
 
-    const maxDD = calculateMaxDrawdown(portfolioValues);
+    const ddResult = calculateMaxDrawdown(portfolioValues);
+    const maxDD = ddResult.maxDrawdownPercent;
     const years = dailyReturns.length / 252;
     const startVal = portfolioValues[0];
     const endVal = portfolioValues[portfolioValues.length - 1];
@@ -121,11 +122,11 @@ export function SimPortfolioAnalytics({ portfolioId, initialCapital, trades }: P
     return calculateAllAdvancedMetrics(
       dailyReturns,
       portfolioValues,
-      new Map(), // no weight data for sim
+      new Map(),
       annualizedReturn,
       maxDD,
-      1, // beta default
-      undefined // no benchmark
+      1,
+      undefined
     );
   }, [dailyReturns, portfolioValues]);
 
