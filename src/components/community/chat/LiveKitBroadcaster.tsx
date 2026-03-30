@@ -32,11 +32,25 @@ export function LiveKitBroadcaster({ roomId, onStopStream, onRecordingSaved }: L
 
     try {
       const stream = video.srcObject as MediaStream;
-      const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
-        ? 'video/webm;codecs=vp9,opus'
-        : 'video/webm';
       
-      const recorder = new MediaRecorder(stream, { mimeType });
+      // Find a supported MIME type (Safari doesn't support webm)
+      const candidates = [
+        'video/webm;codecs=vp9,opus',
+        'video/webm;codecs=vp8,opus',
+        'video/webm',
+        'video/mp4;codecs=h264,aac',
+        'video/mp4',
+        '',  // empty string = browser default
+      ];
+      const mimeType = candidates.find(m => {
+        try { return m === '' || MediaRecorder.isTypeSupported(m); } catch { return false; }
+      }) || '';
+      
+      const recorderOptions: MediaRecorderOptions = {};
+      if (mimeType) recorderOptions.mimeType = mimeType;
+      
+      const recorder = new MediaRecorder(stream, recorderOptions);
+      const actualMime = recorder.mimeType || 'video/webm';
       recordingChunksRef.current = [];
       
       recorder.ondataavailable = (e) => {
