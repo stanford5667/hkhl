@@ -334,7 +334,7 @@ export function OptionsChainSelector({ underlyingTicker, onSelect, selectedContr
                   const callSelected = selectedContract?.ticker === call?.ticker;
                   const putSelected = selectedContract?.ticker === put?.ticker;
 
-                  return (
+                    return (
                     <tr
                       key={strike}
                       ref={isATM ? atmRef : undefined}
@@ -342,22 +342,10 @@ export function OptionsChainSelector({ underlyingTicker, onSelect, selectedContr
                         isATM ? 'border-t-2 border-b-2 border-primary/40' : ''
                       }`}
                     >
-                      {showCalls && viewMode === 'all' && (
-                        <>{renderCallCells(call, isITMCall, callSelected).props.children}</>
-                      )}
-                      {showCalls && viewMode === 'all' && (
-                        // Wrap the call side to be clickable
-                        null
-                      )}
-
-                      {/* For "all" mode: calls | strike | puts */}
                       {showCalls && viewMode !== 'all' && (
-                        <>
-                          <td className="px-1.5 py-1 text-left font-semibold text-foreground">${strike}</td>
-                        </>
+                        <td className="px-1.5 py-1 text-left font-semibold text-foreground">${strike}</td>
                       )}
 
-                      {/* Render call cells with click handler */}
                       {showCalls && (() => {
                         const isITM = isITMCall;
                         const isSelected = callSelected;
@@ -365,20 +353,6 @@ export function OptionsChainSelector({ underlyingTicker, onSelect, selectedContr
                         const bg = isSelected ? 'bg-primary/20' : isITM ? 'bg-success/[0.06]' : '';
                         const cls = `px-1.5 py-1 text-right whitespace-nowrap cursor-pointer ${bg}`;
                         const onClick = () => c && onSelect(c);
-                        
-                        if (viewMode === 'all') {
-                          return (
-                            <>
-                              <td onClick={onClick} className={`${cls} text-foreground`}>{fmtPrice(c?.last_price)}</td>
-                              <td onClick={onClick} className={`${cls} text-success`}>{fmtPrice(c?.bid)}</td>
-                              <td onClick={onClick} className={`${cls} text-destructive`}>{fmtPrice(c?.ask)}</td>
-                              <td onClick={onClick} className={`${cls} text-muted-foreground`}>{fmtVol(c?.volume)}</td>
-                              <td onClick={onClick} className={`${cls} text-muted-foreground`}>{fmtVol(c?.open_interest)}</td>
-                              <td onClick={onClick} className={`${cls} text-muted-foreground`}>{fmtIV(c?.implied_volatility)}</td>
-                              <td onClick={onClick} className={`${cls} text-muted-foreground border-r border-border/30`}>{fmtDelta(c?.delta)}</td>
-                            </>
-                          );
-                        }
                         return (
                           <>
                             <td onClick={onClick} className={`${cls} text-foreground`}>{fmtPrice(c?.last_price)}</td>
