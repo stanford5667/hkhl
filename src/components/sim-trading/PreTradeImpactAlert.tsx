@@ -41,13 +41,13 @@ export function PreTradeImpactAlert({
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
   const alerts = useMemo(() => {
-    if (!tradeValue || tradeValue <= 0 || !goals) return [];
+    if (!tradeValue || tradeValue <= 0) return [];
 
     const results: Alert[] = [];
     const totalPortfolio = currentValue;
     if (totalPortfolio <= 0) return [];
 
-    const postTradePortfolio = action === 'buy' ? totalPortfolio : totalPortfolio;
+    const postTradePortfolio = totalPortfolio;
 
     // --- 1. Concentration after trade ---
     const existingValue = positions
@@ -84,21 +84,24 @@ export function PreTradeImpactAlert({
     if (action === 'buy') {
       const postCash = cashBalance - tradeValue;
       const postCashPct = (postCash / postTradePortfolio) * 100;
-      const deployedPct = 100 - postCashPct;
-      const riskBudget = goals.risk_budget_pct;
 
-      if (deployedPct > riskBudget) {
-        results.push({
-          type: 'danger',
-          title: `Risk budget exceeded: ${deployedPct.toFixed(0)}% deployed vs ${riskBudget}% limit`,
-          detail: `After this trade you'd have only $${postCash.toFixed(0)} cash (${postCashPct.toFixed(1)}%). Your goal allows ${riskBudget}% max deployment.`,
-        });
-      } else if (deployedPct > riskBudget * 0.9) {
-        results.push({
-          type: 'warning',
-          title: `Near risk budget: ${deployedPct.toFixed(0)}% deployed of ${riskBudget}% allowed`,
-          detail: `$${postCash.toFixed(0)} cash remaining. Close to your self-set deployment ceiling.`,
-        });
+      if (goals) {
+        const deployedPct = 100 - postCashPct;
+        const riskBudget = goals.risk_budget_pct;
+
+        if (deployedPct > riskBudget) {
+          results.push({
+            type: 'danger',
+            title: `Risk budget exceeded: ${deployedPct.toFixed(0)}% deployed vs ${riskBudget}% limit`,
+            detail: `After this trade you'd have only $${postCash.toFixed(0)} cash (${postCashPct.toFixed(1)}%). Your goal allows ${riskBudget}% max deployment.`,
+          });
+        } else if (deployedPct > riskBudget * 0.9) {
+          results.push({
+            type: 'warning',
+            title: `Near risk budget: ${deployedPct.toFixed(0)}% deployed of ${riskBudget}% allowed`,
+            detail: `$${postCash.toFixed(0)} cash remaining. Close to your self-set deployment ceiling.`,
+          });
+        }
       }
 
       if (postCashPct < 5) {
@@ -111,44 +114,46 @@ export function PreTradeImpactAlert({
     }
 
     // --- 3. Goal alignment check ---
-    const goalType = goals.goal_type;
+    if (goals) {
+      const goalType = goals.goal_type;
 
-    if (goalType === 'preservation' && action === 'buy') {
-      const tradeAsPct = (tradeValue / totalPortfolio) * 100;
-      if (tradeAsPct > 10) {
-        results.push({
-          type: 'warning',
-          title: `Large trade for a preservation goal`,
-          detail: `Adding ${tradeAsPct.toFixed(1)}% in a single position. Capital preservation strategies typically use smaller, more incremental positions.`,
-        });
+      if (goalType === 'preservation' && action === 'buy') {
+        const tradeAsPct = (tradeValue / totalPortfolio) * 100;
+        if (tradeAsPct > 10) {
+          results.push({
+            type: 'warning',
+            title: `Large trade for a preservation goal`,
+            detail: `Adding ${tradeAsPct.toFixed(1)}% in a single position. Capital preservation strategies typically use smaller, more incremental positions.`,
+          });
+        }
+        if (instrumentType === 'option') {
+          results.push({
+            type: 'warning',
+            title: `Options in a preservation portfolio`,
+            detail: `Options carry expiration risk and can lose 100% of premium. Ensure this aligns with your capital preservation objective.`,
+          });
+        }
       }
-      if (instrumentType === 'option') {
-        results.push({
-          type: 'warning',
-          title: `Options in a preservation portfolio`,
-          detail: `Options carry expiration risk and can lose 100% of premium. Ensure this aligns with your capital preservation objective.`,
-        });
-      }
-    }
 
-    if (goalType === 'income') {
-      if (instrumentType === 'option' && optionType === 'call' && action === 'buy') {
-        results.push({
-          type: 'info',
-          title: `Long calls don't generate income`,
-          detail: `Your goal is income generation. Long calls are a growth/speculative play. Consider covered calls or cash-secured puts for income.`,
-        });
+      if (goalType === 'income') {
+        if (instrumentType === 'option' && optionType === 'call' && action === 'buy') {
+          results.push({
+            type: 'info',
+            title: `Long calls don't generate income`,
+            detail: `Your goal is income generation. Long calls are a growth/speculative play. Consider covered calls or cash-secured puts for income.`,
+          });
+        }
       }
-    }
 
-    if (goalType === 'benchmark_beat') {
-      const sameTickerPositions = positions.filter(p => p.ticker.toUpperCase() === ticker.toUpperCase()).length;
-      if (sameTickerPositions > 0 && action === 'buy') {
-        results.push({
-          type: 'info',
-          title: `Adding to existing ${ticker} position`,
-          detail: `You already hold ${ticker}. Doubling down increases active risk vs ${goals.benchmark_ticker}. New weight: ${newConcentration.toFixed(1)}%.`,
-        });
+      if (goalType === 'benchmark_beat') {
+        const sameTickerPositions = positions.filter(p => p.ticker.toUpperCase() === ticker.toUpperCase()).length;
+        if (sameTickerPositions > 0 && action === 'buy') {
+          results.push({
+            type: 'info',
+            title: `Adding to existing ${ticker} position`,
+            detail: `You already hold ${ticker}. Doubling down increases active risk vs ${goals.benchmark_ticker}. New weight: ${newConcentration.toFixed(1)}%.`,
+          });
+        }
       }
     }
 
@@ -164,7 +169,7 @@ export function PreTradeImpactAlert({
 
     // --- 5. Portfolio-level drawdown analysis ---
     if (action === 'buy') {
-      const ddBudget = goals.max_drawdown_pct;
+      const ddBudget = goals?.max_drawdown_pct ?? 20; // default 20% if no goals
       const positionMap = new Map<string, number>();
       for (const p of positions) {
         const t = p.ticker.toUpperCase();
@@ -185,38 +190,40 @@ export function PreTradeImpactAlert({
         if (v > 0) weights.push(v / postPortfolio);
       }
 
-      const hhi = weights.reduce((sum, w) => sum + w * w, 0);
-      const numPositions = weights.length;
-      const worstCaseDD = (totalInvested / postPortfolio) * 100;
-      const avgCorr = 0.5;
-      const diversificationFactor = Math.sqrt(hhi + (1 - hhi) * avgCorr);
-      const estimatedDD = worstCaseDD * diversificationFactor;
-      const maxWeight = Math.max(...weights);
-      const largestPct = maxWeight * 100;
+      if (weights.length > 0) {
+        const hhi = weights.reduce((sum, w) => sum + w * w, 0);
+        const numPositions = weights.length;
+        const worstCaseDD = (totalInvested / postPortfolio) * 100;
+        const avgCorr = 0.5;
+        const diversificationFactor = Math.sqrt(hhi + (1 - hhi) * avgCorr);
+        const estimatedDD = worstCaseDD * diversificationFactor;
+        const maxWeight = Math.max(...weights);
+        const largestPct = maxWeight * 100;
 
-      if (estimatedDD > ddBudget * 1.2) {
-        results.push({
-          type: 'danger',
-          title: `Portfolio drawdown risk ~${estimatedDD.toFixed(1)}% exceeds your ${ddBudget}% limit`,
-          detail: `With ${numPositions} position${numPositions !== 1 ? 's' : ''} and ${postCash < 0 ? 'no' : `$${postCash.toFixed(0)}`} cash, ` +
-            `a correlated market selloff could draw down ~${estimatedDD.toFixed(1)}% of your portfolio. ` +
-            `Largest position is ${largestPct.toFixed(1)}% of portfolio. Worst-case (100% correlation): ${worstCaseDD.toFixed(1)}%.`,
-        });
-      } else if (estimatedDD > ddBudget * 0.8) {
-        results.push({
-          type: 'warning',
-          title: `Portfolio drawdown risk ~${estimatedDD.toFixed(1)}% is near your ${ddBudget}% limit`,
-          detail: `${numPositions} position${numPositions !== 1 ? 's' : ''}, ${((totalInvested / postPortfolio) * 100).toFixed(0)}% deployed. ` +
-            `In a broad selloff, estimated drawdown is ${estimatedDD.toFixed(1)}% (worst-case: ${worstCaseDD.toFixed(1)}%). ` +
-            `Consider whether additional cash buffer or diversification could reduce risk.`,
-        });
-      } else if (numPositions >= 2) {
-        results.push({
-          type: 'info',
-          title: `Portfolio drawdown estimate: ~${estimatedDD.toFixed(1)}% (budget: ${ddBudget}%)`,
-          detail: `${numPositions} positions across your portfolio with ${((postCash / postPortfolio) * 100).toFixed(1)}% cash. ` +
-            `Diversification reduces worst-case ${worstCaseDD.toFixed(1)}% to ~${estimatedDD.toFixed(1)}%.`,
-        });
+        if (estimatedDD > ddBudget * 1.2) {
+          results.push({
+            type: 'danger',
+            title: `Portfolio drawdown risk ~${estimatedDD.toFixed(1)}% exceeds ${goals ? 'your' : 'a'} ${ddBudget}% limit`,
+            detail: `With ${numPositions} position${numPositions !== 1 ? 's' : ''} and ${postCash < 0 ? 'no' : `$${postCash.toFixed(0)}`} cash, ` +
+              `a correlated market selloff could draw down ~${estimatedDD.toFixed(1)}% of your portfolio. ` +
+              `Largest position is ${largestPct.toFixed(1)}% of portfolio. Worst-case (100% correlation): ${worstCaseDD.toFixed(1)}%.`,
+          });
+        } else if (estimatedDD > ddBudget * 0.8) {
+          results.push({
+            type: 'warning',
+            title: `Portfolio drawdown risk ~${estimatedDD.toFixed(1)}% is near ${goals ? 'your' : 'the'} ${ddBudget}% limit`,
+            detail: `${numPositions} position${numPositions !== 1 ? 's' : ''}, ${((totalInvested / postPortfolio) * 100).toFixed(0)}% deployed. ` +
+              `In a broad selloff, estimated drawdown is ${estimatedDD.toFixed(1)}% (worst-case: ${worstCaseDD.toFixed(1)}%). ` +
+              `Consider whether additional cash buffer or diversification could reduce risk.`,
+          });
+        } else if (numPositions >= 2) {
+          results.push({
+            type: 'info',
+            title: `Portfolio drawdown estimate: ~${estimatedDD.toFixed(1)}% (budget: ${ddBudget}%)`,
+            detail: `${numPositions} positions across your portfolio with ${((postCash / postPortfolio) * 100).toFixed(1)}% cash. ` +
+              `Diversification reduces worst-case ${worstCaseDD.toFixed(1)}% to ~${estimatedDD.toFixed(1)}%.`,
+          });
+        }
       }
     }
 
