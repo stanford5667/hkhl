@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { getCachedQuotes } from '@/services/quoteCacheService';
@@ -12,16 +12,26 @@ import { Plus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { TickerSearchInput } from './TickerSearchInput';
 import { OptionsChainSelector } from './OptionsChainSelector';
+import { PreTradeImpactAlert } from './PreTradeImpactAlert';
+
+interface PositionForImpact {
+  ticker: string;
+  current_value: number | null;
+  quantity: number;
+  instrument_type: string;
+}
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   portfolioId: string;
   cashBalance: number;
+  currentPortfolioValue: number;
+  positions: PositionForImpact[];
   onComplete: () => void;
 }
 
-export function TradeDialog({ open, onOpenChange, portfolioId, cashBalance, onComplete }: Props) {
+export function TradeDialog({ open, onOpenChange, portfolioId, cashBalance, currentPortfolioValue, positions, onComplete }: Props) {
   const { user } = useAuth();
   const [tab, setTab] = useState('stock');
   const [action, setAction] = useState<'buy' | 'sell'>('buy');
@@ -31,6 +41,18 @@ export function TradeDialog({ open, onOpenChange, portfolioId, cashBalance, onCo
   const [fetchingPrice, setFetchingPrice] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [priceError, setPriceError] = useState('');
+  const [goals, setGoals] = useState<any>(null);
+
+  // Fetch goals for impact analysis
+  useEffect(() => {
+    if (!open || !user) return;
+    supabase
+      .from('sim_portfolio_goals')
+      .select('*')
+      .eq('portfolio_id', portfolioId)
+      .maybeSingle()
+      .then(({ data }) => { if (data) setGoals(data); });
+  }, [open, portfolioId, user]);
 
   // Order type
   const [orderType, setOrderType] = useState<'market' | 'limit' | 'stop'>('market');
@@ -341,6 +363,19 @@ export function TradeDialog({ open, onOpenChange, portfolioId, cashBalance, onCo
               </div>
             )}
 
+            {stockTotal > 0 && ticker.trim() && (
+              <PreTradeImpactAlert
+                ticker={ticker.toUpperCase()}
+                action={action}
+                tradeValue={stockTotal}
+                currentValue={currentPortfolioValue}
+                cashBalance={cashBalance}
+                positions={positions}
+                goals={goals}
+                instrumentType="stock"
+              />
+            )}
+
             <Button
               onClick={handleStockSubmit}
               disabled={
@@ -399,6 +434,20 @@ export function TradeDialog({ open, onOpenChange, portfolioId, cashBalance, onCo
                     </p>
                     {insufficientCash && <p className="text-xs text-destructive mt-1">Insufficient cash for this trade</p>}
                   </div>
+                )}
+
+                {optionTotal > 0 && (
+                  <PreTradeImpactAlert
+                    ticker={optionTicker.toUpperCase()}
+                    action={action}
+                    tradeValue={optionTotal}
+                    currentValue={currentPortfolioValue}
+                    cashBalance={cashBalance}
+                    positions={positions}
+                    goals={goals}
+                    instrumentType="option"
+                    optionType={selectedOptionContract?.contract_type}
+                  />
                 )}
 
                 <Button

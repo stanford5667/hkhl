@@ -346,6 +346,8 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
           onOpenChange={setTradeOpen}
           portfolioId={portfolio.id}
           cashBalance={portfolio.cash_balance}
+          currentPortfolioValue={totalPortfolioValue}
+          positions={positions}
           onComplete={handleTradeComplete}
         />
         <AlertDialog>
