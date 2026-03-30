@@ -11,7 +11,7 @@ import { TradeHistory } from './TradeHistory';
 import { SimChartSection } from './SimChartSection';
 import { PendingOrdersTab } from './PendingOrdersTab';
 import { SimWatchlist } from './SimWatchlist';
-import { PerformanceAnalytics } from './PerformanceAnalytics';
+import { SimPortfolioAnalytics } from './SimPortfolioAnalytics';
 import { BacktestComparisonOverlay } from './BacktestComparisonOverlay';
 import { SimBacktestTab } from './SimBacktestTab';
 import { StrategySignalBadge } from './StrategySignalBadge';
@@ -436,7 +436,7 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
           <TradeHistory trades={trades} />
         </TabsContent>
         <TabsContent value="performance">
-          <PerformanceAnalytics portfolioId={portfolioId} initialCapital={portfolio.initial_capital} trades={trades} />
+          <SimPortfolioAnalytics portfolioId={portfolioId} initialCapital={portfolio.initial_capital} trades={trades} />
         </TabsContent>
         <TabsContent value="backtest">
           <SimBacktestTab
