@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Plus, Activity, Wallet, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { SimPortfolioDetail } from '@/components/sim-trading/SimPortfolioDetail';
+import { PortfolioGoalsSetup } from '@/components/sim-trading/PortfolioGoalsSetup';
 import { format, differenceInDays } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 
@@ -34,6 +35,8 @@ export default function SimTrading() {
   const [newName, setNewName] = useState('');
   const [newCapital, setNewCapital] = useState('100000');
   const [creating, setCreating] = useState(false);
+  const [createStep, setCreateStep] = useState<'info' | 'goals'>('info');
+  const [newPortfolioId, setNewPortfolioId] = useState<string | null>(null);
 
   const fetchPortfolios = async () => {
     if (!user) {
@@ -64,23 +67,40 @@ export default function SimTrading() {
     if (!user || !newName.trim()) return;
     setCreating(true);
     const capital = Math.max(1000, parseFloat(newCapital) || 100000);
-    const { error } = await supabase.from('sim_portfolios').insert({
+    const { data, error } = await supabase.from('sim_portfolios').insert({
       user_id: user.id,
       name: newName.trim(),
       initial_capital: capital,
       cash_balance: capital,
-    });
+    }).select('id').single();
     if (error) {
       console.error('Create portfolio error:', error);
       toast.error('Failed to create simulation: ' + error.message);
+      setCreating(false);
     } else {
-      toast.success('Simulation created!');
-      setNewName('');
-      setNewCapital('100000');
-      setCreateOpen(false);
+      toast.success('Portfolio created! Now set your goals.');
+      setNewPortfolioId(data.id);
+      setCreateStep('goals');
+      setCreating(false);
       fetchPortfolios();
     }
-    setCreating(false);
+  };
+
+  const handleGoalsSaved = () => {
+    toast.success('Goals saved! Your portfolio is ready.');
+    setNewName('');
+    setNewCapital('100000');
+    setCreateStep('info');
+    setNewPortfolioId(null);
+    setCreateOpen(false);
+  };
+
+  const handleCreateDialogChange = (open: boolean) => {
+    setCreateOpen(open);
+    if (!open) {
+      setCreateStep('info');
+      setNewPortfolioId(null);
+    }
   };
 
   if (!user) {
@@ -110,28 +130,42 @@ export default function SimTrading() {
           <h1 className="text-2xl font-bold text-foreground">Simulation Trading</h1>
           <p className="text-muted-foreground text-sm">Paper trade stocks & options with virtual capital — track real performance forward</p>
         </div>
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <Dialog open={createOpen} onOpenChange={handleCreateDialogChange}>
           <DialogTrigger asChild>
             <Button><Plus className="w-4 h-4 mr-2" /> New Simulation</Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className={createStep === 'goals' ? 'sm:max-w-lg' : ''}>
             <DialogHeader>
-              <DialogTitle>Create Paper Trading Portfolio</DialogTitle>
+              <DialogTitle>
+                {createStep === 'info' ? 'Create Paper Trading Portfolio' : 'Set Your Portfolio Goals'}
+              </DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label>Portfolio Name</Label>
-                <Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g. Growth Strategy" />
+            {createStep === 'info' ? (
+              <div className="space-y-4">
+                <div>
+                  <Label>Portfolio Name</Label>
+                  <Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g. Growth Strategy" />
+                </div>
+                <div>
+                  <Label>Starting Capital ($)</Label>
+                  <Input type="number" value={newCapital} onChange={e => setNewCapital(e.target.value)} min="1000" step="1000" />
+                  <p className="text-xs text-muted-foreground mt-1">Minimum $1,000</p>
+                </div>
+                <Button onClick={createPortfolio} disabled={creating || !newName.trim()} className="w-full">
+                  {creating ? 'Creating...' : 'Next: Set Goals →'}
+                </Button>
               </div>
-              <div>
-                <Label>Starting Capital ($)</Label>
-                <Input type="number" value={newCapital} onChange={e => setNewCapital(e.target.value)} min="1000" step="1000" />
-                <p className="text-xs text-muted-foreground mt-1">Minimum $1,000</p>
+            ) : newPortfolioId ? (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  Define your objectives so we can track your progress and provide relevant insights.
+                </p>
+                <PortfolioGoalsSetup portfolioId={newPortfolioId} onSaved={handleGoalsSaved} />
+                <Button variant="ghost" size="sm" className="w-full" onClick={handleGoalsSaved}>
+                  Skip for now
+                </Button>
               </div>
-              <Button onClick={createPortfolio} disabled={creating || !newName.trim()} className="w-full">
-                {creating ? 'Creating...' : 'Create Portfolio'}
-              </Button>
-            </div>
+            ) : null}
           </DialogContent>
         </Dialog>
       </div>
