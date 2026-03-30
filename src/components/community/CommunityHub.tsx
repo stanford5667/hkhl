@@ -33,11 +33,12 @@ export function CommunityHub({ defaultTab = 'chat', initialRoomId }: CommunityHu
   const location = useLocation();
   const isMobile = useIsMobile();
   const { isAuthenticated } = useAuth();
+  const { isAdmin } = useAdmin();
   const [activeTab, setActiveTab] = useState<'chat' | 'posts'>(defaultTab);
   const [selectedRoom, setSelectedRoom] = useState<ChatRoomType | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const { rooms, loading: roomsLoading } = useChatRooms();
+  const { rooms, loading: roomsLoading, createRoom } = useChatRooms();
 
   // Select initial room: URL param > localStorage > first room
   useEffect(() => {
