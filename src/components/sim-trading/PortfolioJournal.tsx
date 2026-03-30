@@ -6,12 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { getCachedQuotes } from '@/services/quoteCacheService';
+import type { StockQuote } from '@/services/finnhubService';
 
 import type { SimTrade } from './SimPortfolioDetail';
 import type { Position } from './SimPortfolioDetail';
 import {
   BookOpen, RefreshCw, Clock, ChevronDown, ChevronUp,
-  TrendingUp, TrendingDown, AlertTriangle, CheckCircle, Shield
+  TrendingUp, TrendingDown, AlertTriangle
 } from 'lucide-react';
 import { format, differenceInDays, parseISO } from 'date-fns';
 
@@ -43,6 +45,15 @@ interface Goals {
   max_drawdown_pct: number;
   benchmark_ticker: string;
   risk_budget_pct: number;
+}
+
+// Helper: format dollar amounts naturally
+function fmtUSD(n: number, decimals = 0): string {
+  return '$' + n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
+
+function fmtPct(n: number, decimals = 1): string {
+  return `${n >= 0 ? '+' : ''}${n.toFixed(decimals)}%`;
 }
 
 export function PortfolioJournal({ portfolioId, initialCapital, currentValue, cashBalance, trades, positions, backtestResults, strategyName }: Props) {
@@ -106,16 +117,43 @@ export function PortfolioJournal({ portfolioId, initialCapital, currentValue, ca
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [positions]);
 
-  const buildJournalContent = () => {
+  /**
+   * Build journal content using LIVE market data from Polygon.
+   * Every number comes from either:
+   *  - The user's actual trade/position data in the DB
+   *  - Live quotes fetched via getCachedQuotes (Polygon API)
+   *  - Calculations derived from the above
+   */
+  const buildJournalContent = async () => {
+    if (!goals) return null;
+
+    // ── Fetch live quotes for all held tickers + benchmark ──
+    const tickers = [...new Set([
+      ...positions.map(p => p.ticker),
+      goals.benchmark_ticker || 'SPY',
+    ])];
+    
+    let quotes = new Map<string, StockQuote>();
+    try {
+      quotes = await getCachedQuotes(tickers);
+    } catch (e) {
+      console.warn('[Journal] Quote fetch failed, proceeding with position data only:', e);
+    }
+
+    const benchmarkTicker = goals.benchmark_ticker || 'SPY';
+    const benchmarkQuote = quotes.get(benchmarkTicker.toUpperCase()) || quotes.get(benchmarkTicker);
+
+    // ── Core calculations from real trade data ──
     const totalReturn = ((currentValue - initialCapital) / initialCapital) * 100;
+    const totalPnL = currentValue - initialCapital;
     const daysActive = trades.length > 0
-      ? differenceInDays(new Date(), parseISO(trades[trades.length - 1]?.executed_at || new Date().toISOString()))
+      ? differenceInDays(new Date(), parseISO(trades[0]?.executed_at || new Date().toISOString()))
       : 0;
     const annualizedReturn = daysActive > 30
       ? (Math.pow(currentValue / initialCapital, 365 / Math.max(daysActive, 1)) - 1) * 100
       : totalReturn;
 
-    // Drawdown
+    // Drawdown from actual trade sequence
     let peak = initialCapital;
     let maxDrawdown = 0;
     let runningValue = initialCapital;
@@ -130,7 +168,7 @@ export function PortfolioJournal({ portfolioId, initialCapital, currentValue, ca
       if (dd > maxDrawdown) maxDrawdown = dd;
     }
 
-    // Win rate
+    // Win rate from closed trades
     const closedTrades = sortedTrades.filter(t => t.action === 'sell');
     const winCount = closedTrades.filter(t => {
       const buyTrade = sortedTrades.find(
@@ -140,151 +178,285 @@ export function PortfolioJournal({ portfolioId, initialCapital, currentValue, ca
     }).length;
     const winRate = closedTrades.length > 0 ? (winCount / closedTrades.length) * 100 : 0;
 
-    // Position data
-    const posValues = positions.map(p => ({
-      ticker: p.ticker,
-      value: p.current_value || 0,
-      pct: ((p.current_value || 0) / currentValue) * 100,
-      pnl: p.pnl ?? 0,
-      pnl_pct: p.pnl_pct ?? 0,
-    }));
-    const sortedPositions = [...posValues].sort((a, b) => b.pct - a.pct);
-    const cashPct = (cashBalance / currentValue) * 100;
+    // Per-position enrichment with live quotes
+    const enrichedPositions = positions.map(p => {
+      const quote = quotes.get(p.ticker.toUpperCase()) || quotes.get(p.ticker);
+      const livePrice = quote?.price ?? p.current_price ?? 0;
+      const dayChange = quote?.changePercent ?? 0;
+      const dayChangeDollar = quote?.change ?? 0;
+      const todayHigh = quote?.high ?? 0;
+      const todayLow = quote?.low ?? 0;
+      const volume = quote?.volume ?? '';
+      const companyName = quote?.companyName ?? p.ticker;
+      const posValue = (p.current_value || 0);
+      const weight = currentValue > 0 ? (posValue / currentValue) * 100 : 0;
+      const positionDayPnL = (p.quantity || 0) * (dayChangeDollar) * (p.instrument_type === 'option' ? (p.contract_multiplier || 100) : 1);
 
-    if (!goals) return null;
+      return {
+        ...p,
+        livePrice,
+        dayChange,
+        dayChangeDollar,
+        todayHigh,
+        todayLow,
+        volume,
+        companyName,
+        weight,
+        positionDayPnL,
+      };
+    }).sort((a, b) => b.weight - a.weight);
 
+    const cashPct = currentValue > 0 ? (cashBalance / currentValue) * 100 : 100;
     const onTrack = annualizedReturn >= goals.target_annual_return_pct;
 
-    // ---- Build human-readable narrative ----
+    // Today's trades
+    const todayStr = new Date().toISOString().split('T')[0];
+    const todayTrades = sortedTrades.filter(t => t.executed_at.startsWith(todayStr));
+
+    // Portfolio-wide today P&L from live quotes
+    const portfolioDayPnL = enrichedPositions.reduce((sum, p) => sum + p.positionDayPnL, 0);
+
+    // ── Build rich narrative paragraphs ──
     const paragraphs: string[] = [];
 
-    // Opening summary
-    const portfolioDirection = totalReturn >= 0 ? 'up' : 'down';
-    const returnAbs = Math.abs(totalReturn).toFixed(1);
+    // §1 — Portfolio Overview
+    const direction = totalReturn >= 0 ? 'gained' : 'lost';
     paragraphs.push(
-      `Your portfolio is ${portfolioDirection} ${returnAbs}% overall since you started${daysActive > 0 ? ` ${daysActive} days ago` : ''}. ` +
-      `Right now it's worth $${currentValue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}, ` +
-      `and you have $${cashBalance.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} in cash (${cashPct.toFixed(0)}% of your portfolio).`
+      `Today is ${format(new Date(), 'EEEE, MMMM d, yyyy')}. Your simulated portfolio is currently valued at ${fmtUSD(currentValue)}, ` +
+      `which means you've ${direction} ${fmtUSD(Math.abs(totalPnL))} (${fmtPct(totalReturn)}) since you started with ${fmtUSD(initialCapital)} ` +
+      `${daysActive > 0 ? `${daysActive} days ago` : 'recently'}. ` +
+      `You're holding ${fmtUSD(cashBalance)} in cash, which represents ${cashPct.toFixed(0)}% of your total portfolio value.`
     );
 
-    // Goal progress
+    // §2 — Today's Market Action (from live quotes)
+    if (benchmarkQuote) {
+      const bmDir = benchmarkQuote.changePercent >= 0 ? 'up' : 'down';
+      const bmName = benchmarkQuote.companyName || benchmarkTicker;
+      paragraphs.push(
+        `The broader market (${bmName}, ${benchmarkTicker}) is ${bmDir} ${Math.abs(benchmarkQuote.changePercent).toFixed(2)}% today, ` +
+        `trading at $${benchmarkQuote.price.toFixed(2)}. ` +
+        (portfolioDayPnL !== 0
+          ? `Meanwhile, your portfolio ${portfolioDayPnL >= 0 ? 'gained' : 'lost'} an estimated ${fmtUSD(Math.abs(portfolioDayPnL))} today based on live price movements. ` +
+            (portfolioDayPnL >= 0 && benchmarkQuote.changePercent < 0
+              ? `That's a good sign — you're holding up while the market pulls back.`
+              : portfolioDayPnL < 0 && benchmarkQuote.changePercent >= 0
+              ? `Your positions are lagging the broader market today. Worth keeping an eye on.`
+              : `Your portfolio is moving roughly in line with the market.`)
+          : `No significant portfolio movement to report from today's session.`)
+      );
+    }
+
+    // §3 — Position-by-Position Update (live data)
+    if (enrichedPositions.length > 0) {
+      const posNarratives = enrichedPositions.slice(0, 8).map(p => {
+        const name = p.companyName !== p.ticker ? `${p.companyName} (${p.ticker})` : p.ticker;
+        const pnlDir = (p.pnl ?? 0) >= 0 ? 'up' : 'down';
+        const pnlAbs = Math.abs(p.pnl ?? 0);
+        const pnlPctAbs = Math.abs(p.pnl_pct ?? 0);
+        const dayDir = p.dayChange >= 0 ? 'up' : 'down';
+        const isOption = p.instrument_type === 'option';
+        const optLabel = isOption ? ` ${p.option_type?.toUpperCase()} $${p.strike_price} exp ${p.expiration_date}` : '';
+        
+        let line = `${name}${optLabel} — ${p.weight.toFixed(1)}% of your portfolio. ` +
+          `You're ${pnlDir} ${fmtUSD(pnlAbs)} (${pnlPctAbs.toFixed(1)}%) on this position overall. `;
+
+        if (p.livePrice > 0) {
+          line += `The stock is trading at $${p.livePrice.toFixed(2)}, ${dayDir} ${Math.abs(p.dayChange).toFixed(2)}% today`;
+          if (p.todayHigh > 0 && p.todayLow > 0) {
+            line += ` with a range of $${p.todayLow.toFixed(2)}–$${p.todayHigh.toFixed(2)}`;
+          }
+          line += '. ';
+        }
+
+        // Your avg cost vs current price
+        if (p.avg_cost > 0 && p.livePrice > 0 && !isOption) {
+          const gap = ((p.livePrice - p.avg_cost) / p.avg_cost * 100);
+          if (gap > 20) {
+            line += `Your average cost is $${p.avg_cost.toFixed(2)}, so the stock is trading ${gap.toFixed(0)}% above your entry — a solid cushion.`;
+          } else if (gap < -10) {
+            line += `Your average cost is $${p.avg_cost.toFixed(2)}, meaning the stock is ${Math.abs(gap).toFixed(0)}% below where you bought in. Consider whether your thesis still holds.`;
+          }
+        }
+
+        return line;
+      });
+
+      paragraphs.push(
+        `Here's what's happening with your ${positions.length} position${positions.length !== 1 ? 's' : ''}:\n\n` +
+        posNarratives.join('\n\n')
+      );
+    } else {
+      paragraphs.push(
+        `You don't have any open positions right now — you're sitting in 100% cash at ${fmtUSD(cashBalance)}. ` +
+        `There's nothing wrong with that. Cash gives you optionality to act when you see a high-conviction setup. ` +
+        `The best traders are often the most patient ones.`
+      );
+    }
+
+    // §4 — Concentration & Diversification Analysis
+    if (enrichedPositions.length > 0) {
+      const concentrated = enrichedPositions.filter(p => p.weight > 25);
+      const topWeight = enrichedPositions[0]?.weight || 0;
+      
+      if (concentrated.length > 0) {
+        const names = concentrated.map(c => c.ticker).join(', ');
+        paragraphs.push(
+          `⚠️ Concentration alert: ${names} ${concentrated.length === 1 ? 'represents' : 'together represent'} a large chunk of your portfolio ` +
+          `(${concentrated.map(c => `${c.ticker} at ${c.weight.toFixed(0)}%`).join(', ')}). ` +
+          `Professional fund managers typically cap individual positions at 5-10%. ` +
+          `If one of these names drops 10%, it could drag your entire portfolio down by ${(topWeight * 0.10).toFixed(1)}% or more. ` +
+          `Think about whether you'd be comfortable with that outcome.`
+        );
+      } else if (enrichedPositions.length >= 5) {
+        paragraphs.push(
+          `Your portfolio is reasonably diversified across ${enrichedPositions.length} positions. ` +
+          `Your largest holding (${enrichedPositions[0].ticker}) represents ${topWeight.toFixed(0)}% of the portfolio, which is within a healthy range. ` +
+          `Good diversification doesn't eliminate risk, but it does prevent any single bad trade from causing catastrophic damage.`
+        );
+      }
+    }
+
+    // §5 — Today's Trading Activity
+    if (todayTrades.length > 0) {
+      const buyTrades = todayTrades.filter(t => t.action === 'buy');
+      const sellTrades = todayTrades.filter(t => t.action === 'sell');
+      let activityText = `You made ${todayTrades.length} trade${todayTrades.length !== 1 ? 's' : ''} today: `;
+      const parts: string[] = [];
+      
+      buyTrades.forEach(t => {
+        parts.push(`bought ${t.quantity} shares of ${t.ticker} at $${t.price_at_execution.toFixed(2)} (${fmtUSD(t.total_cost)} total)`);
+      });
+      sellTrades.forEach(t => {
+        parts.push(`sold ${t.quantity} shares of ${t.ticker} at $${t.price_at_execution.toFixed(2)} (${fmtUSD(t.total_cost)} total)`);
+      });
+      activityText += parts.join('; ') + '. ';
+
+      if (todayTrades.length > 5) {
+        activityText += `That's a lot of activity for one day. High-frequency trading tends to increase costs and emotional decision-making. Make sure each trade has a clear thesis behind it.`;
+      }
+      paragraphs.push(activityText);
+    }
+
+    // §6 — Goal Progress & Performance Context
     if (onTrack) {
       paragraphs.push(
-        `Good news — you're on track to hit your ${goals.target_annual_return_pct}% annual return target. ` +
-        `Your annualized pace is ${annualizedReturn.toFixed(1)}%, which is ${(annualizedReturn - goals.target_annual_return_pct).toFixed(1)} percentage points ahead of where you need to be.`
+        `You're on pace to hit your ${goals.target_annual_return_pct}% annual return goal. ` +
+        `Your annualized return is currently ${annualizedReturn.toFixed(1)}%, which puts you ${(annualizedReturn - goals.target_annual_return_pct).toFixed(1)} percentage points ahead of target. ` +
+        `That said, markets can shift quickly — don't let a good run make you overconfident or take on more risk than your plan allows.`
       );
     } else {
+      const gap = goals.target_annual_return_pct - annualizedReturn;
       paragraphs.push(
-        `You're currently behind your ${goals.target_annual_return_pct}% annual return target. ` +
-        `At your current pace of ${annualizedReturn.toFixed(1)}% annualized, you're ${(goals.target_annual_return_pct - annualizedReturn).toFixed(1)} percentage points below your goal. ` +
-        `This doesn't mean you need to trade more — sometimes patience is the best strategy.`
+        `You're currently trailing your ${goals.target_annual_return_pct}% annual return target by ${gap.toFixed(1)} percentage points ` +
+        `(your annualized pace is ${annualizedReturn.toFixed(1)}%). ` +
+        `Before making changes, ask yourself: is this a process problem or just bad timing? ` +
+        `If your thesis for each trade was solid, stick with your approach. ` +
+        `If you notice repeated mistakes (like chasing momentum or holding losers too long), that's what needs fixing — not the target.`
       );
     }
 
-    // Holdings narrative
-    if (sortedPositions.length > 0) {
-      const holdingParts = sortedPositions.slice(0, 5).map(p => {
-        const dir = p.pnl >= 0 ? 'up' : 'down';
-        return `${p.ticker} (${p.pct.toFixed(0)}% of your portfolio, ${dir} ${Math.abs(p.pnl_pct).toFixed(1)}%)`;
-      });
-      const holdingsText = holdingParts.length <= 2
-        ? holdingParts.join(' and ')
-        : holdingParts.slice(0, -1).join(', ') + ', and ' + holdingParts[holdingParts.length - 1];
-      
+    // §7 — Risk Assessment
+    const ddPct = maxDrawdown;
+    const ddLimit = goals.max_drawdown_pct;
+    if (ddPct > ddLimit) {
       paragraphs.push(
-        `You're holding ${positions.length} position${positions.length !== 1 ? 's' : ''}: ${holdingsText}.` +
-        (sortedPositions.length > 5 ? ` Plus ${sortedPositions.length - 5} more.` : '')
+        `🚨 Your maximum drawdown has reached ${ddPct.toFixed(1)}%, which exceeds your ${ddLimit}% risk limit. ` +
+        `This is a serious concern. At some point during your trading, you lost more than you said you were willing to lose. ` +
+        `This usually happens when position sizes are too large relative to the portfolio, or when losses are left to run without stop-losses. ` +
+        `Consider reducing position sizes on your next trades and setting firm exit points before entering.`
       );
-
-      // Concentration warning
-      const concentrated = sortedPositions.filter(p => p.pct > 25);
-      if (concentrated.length > 0) {
-        paragraphs.push(
-          `⚠️ Heads up: ${concentrated.map(c => c.ticker).join(' and ')} make${concentrated.length === 1 ? 's' : ''} up more than 25% of your portfolio. ` +
-          `That's a lot of eggs in one basket. If ${concentrated[0].ticker} has a bad day, it'll hit your whole portfolio hard. Consider whether you're comfortable with that level of concentration.`
-        );
-      }
-    } else {
+    } else if (ddPct > ddLimit * 0.7) {
       paragraphs.push(
-        `You don't have any open positions right now — you're 100% in cash. If you're waiting for the right opportunity, that's totally fine. ` +
-        `Cash is a position too.`
-      );
-    }
-
-    // Risk check
-    if (maxDrawdown > goals.max_drawdown_pct) {
-      paragraphs.push(
-        `🚨 Your biggest drawdown so far has been ${maxDrawdown.toFixed(1)}%, which exceeds your ${goals.max_drawdown_pct}% limit. ` +
-        `This means at some point you lost more than you said you were comfortable with. ` +
-        `Think about whether your position sizes are too large, or if you need tighter stop-losses.`
-      );
-    } else if (maxDrawdown > goals.max_drawdown_pct * 0.7) {
-      paragraphs.push(
-        `Your max drawdown is ${maxDrawdown.toFixed(1)}%, getting close to your ${goals.max_drawdown_pct}% limit. ` +
-        `You still have ${(goals.max_drawdown_pct - maxDrawdown).toFixed(1)}% of buffer left. Keep an eye on this — one bad trade could push you over.`
+        `Your maximum drawdown stands at ${ddPct.toFixed(1)}%, which is approaching your ${ddLimit}% limit ` +
+        `(only ${(ddLimit - ddPct).toFixed(1)}% of buffer remaining). ` +
+        `You're not in the danger zone yet, but one bad position could push you over. ` +
+        `This might be a good time to tighten stop-losses on your weaker holdings and avoid adding new risk.`
       );
     } else {
       paragraphs.push(
-        `Your risk is well managed — your worst drawdown has only been ${maxDrawdown.toFixed(1)}%, well within your ${goals.max_drawdown_pct}% comfort zone.`
+        `Your risk management looks solid. The worst drawdown you've experienced is ${ddPct.toFixed(1)}%, ` +
+        `well within your ${ddLimit}% comfort zone with ${(ddLimit - ddPct).toFixed(1)}% of buffer. ` +
+        `Keep doing what you're doing — protecting capital is just as important as growing it.`
       );
     }
 
-    // Win rate insight
-    if (closedTrades.length > 0) {
+    // §8 — Win/Loss Analysis
+    if (closedTrades.length >= 3) {
       const lossCount = closedTrades.length - winCount;
-      if (winRate >= 60) {
-        paragraphs.push(
-          `You've closed ${closedTrades.length} trades so far with a ${winRate.toFixed(0)}% win rate (${winCount} winners, ${lossCount} losers). That's solid — keep doing what's working.`
+      // Calculate average win/loss size
+      let totalWinAmt = 0, totalLossAmt = 0;
+      closedTrades.forEach(t => {
+        const buyTrade = sortedTrades.find(
+          bt => bt.ticker === t.ticker && bt.action === 'buy' && new Date(bt.executed_at) < new Date(t.executed_at)
         );
-      } else if (winRate >= 40) {
-        paragraphs.push(
-          `Your win rate is ${winRate.toFixed(0)}% across ${closedTrades.length} closed trades. That's in the average range. ` +
-          `What matters more than win rate is whether your winners are bigger than your losers. Review your recent trades to check that.`
-        );
-      } else {
-        paragraphs.push(
-          `Your win rate is ${winRate.toFixed(0)}% — you've had more losing trades than winning ones. ` +
-          `Don't panic though. Many successful strategies have low win rates but large winners. ` +
-          `The key question: are your gains on winners bigger than your losses? If not, it might be time to tighten your entry criteria.`
-        );
-      }
+        if (buyTrade) {
+          const profit = (t.price_at_execution - buyTrade.price_at_execution) * t.quantity;
+          if (profit >= 0) totalWinAmt += profit;
+          else totalLossAmt += Math.abs(profit);
+        }
+      });
+      const avgWin = winCount > 0 ? totalWinAmt / winCount : 0;
+      const avgLoss = lossCount > 0 ? totalLossAmt / lossCount : 0;
+      const profitFactor = totalLossAmt > 0 ? totalWinAmt / totalLossAmt : totalWinAmt > 0 ? Infinity : 0;
+
+      paragraphs.push(
+        `Across your ${closedTrades.length} closed trades, you've won ${winCount} and lost ${lossCount} (${winRate.toFixed(0)}% win rate). ` +
+        (avgWin > 0 || avgLoss > 0
+          ? `Your average winner made ${fmtUSD(avgWin, 2)} and your average loser cost ${fmtUSD(avgLoss, 2)}. ` +
+            (profitFactor >= 1.5
+              ? `Your profit factor is ${profitFactor.toFixed(1)}x, meaning your winners significantly outpace your losers. That's a strong edge — keep it up.`
+              : profitFactor >= 1.0
+              ? `Your profit factor is ${profitFactor.toFixed(1)}x — you're making money, but the margin is thin. Try to let your winners run longer or cut your losers earlier.`
+              : `Your profit factor is below 1.0, which means your losses are outpacing your gains. Focus on position sizing and stricter stop-losses.`)
+          : '')
+      );
+    } else if (closedTrades.length > 0) {
+      paragraphs.push(
+        `You've closed ${closedTrades.length} trade${closedTrades.length !== 1 ? 's' : ''} so far. ` +
+        `Once you have a few more, the journal will start tracking your win rate and average gain/loss to help you spot patterns.`
+      );
     }
 
-    // Backtest comparison
+    // §9 — Backtest Comparison
     if (backtestResults) {
       const bt = backtestResults;
       const btReturn = bt.totalReturn ?? bt.total_return ?? bt.cagr ?? null;
       if (btReturn !== null) {
         const diff = totalReturn - btReturn;
-        if (diff > 0) {
-          paragraphs.push(
-            `Compared to your backtest${strategyName ? ` (${strategyName})` : ''}, you're actually doing ${diff.toFixed(1)} percentage points better. ` +
-            `Real trading is beating the model — nice work sticking to the plan (or improving on it).`
-          );
-        } else {
-          paragraphs.push(
-            `Your backtest${strategyName ? ` (${strategyName})` : ''} predicted ${btReturn.toFixed(1)}% returns, but you're at ${totalReturn.toFixed(1)}%. ` +
-            `That ${Math.abs(diff).toFixed(1)} point gap could be from timing differences, emotional decisions, or just market conditions. ` +
-            `Review whether you've been following the strategy closely.`
-          );
-        }
+        paragraphs.push(
+          diff >= 0
+            ? `Your live performance (${fmtPct(totalReturn)}) is beating your backtest${strategyName ? ` (${strategyName})` : ''} ` +
+              `projection of ${fmtPct(btReturn)} by ${diff.toFixed(1)} percentage points. ` +
+              `This suggests either good execution, favorable market conditions, or improvements you've made to the strategy. Keep tracking this gap over time.`
+            : `Your live performance (${fmtPct(totalReturn)}) is behind your backtest${strategyName ? ` (${strategyName})` : ''} ` +
+              `expectation of ${fmtPct(btReturn)} by ${Math.abs(diff).toFixed(1)} points. ` +
+              `Slippage between backtest and live trading is normal — it can come from timing, fees, or emotional exits. ` +
+              `Review your last few trades to see if you deviated from the strategy.`
+        );
       }
     }
 
-    // Daily tip
-    const tips = [
-      'Remember: the best traders aren\'t right the most — they manage risk the best.',
-      'Before your next trade, write down why you\'re making it. If you can\'t explain it in one sentence, reconsider.',
-      'Check if any of your positions have changed their fundamental story. If the reason you bought no longer holds, it might be time to exit.',
-      'Zoom out. Daily fluctuations don\'t matter much — focus on whether your process is sound.',
-      'Ask yourself: would I buy this position today at this price? If not, why are you still holding it?',
-    ];
-    const tipIndex = new Date().getDate() % tips.length;
-    paragraphs.push(`💡 Today's thought: ${tips[tipIndex]}`);
+    // §10 — Cash Deployment Context
+    const deployedPct = 100 - cashPct;
+    if (goals.risk_budget_pct > 0) {
+      if (deployedPct > goals.risk_budget_pct) {
+        paragraphs.push(
+          `⚠️ You currently have ${deployedPct.toFixed(0)}% of your capital deployed in positions, which exceeds your ${goals.risk_budget_pct}% risk budget. ` +
+          `This means you have less cash reserve than planned. If the market drops, you won't have dry powder to buy the dip or manage margin. ` +
+          `Consider trimming a position to bring your deployment back within budget.`
+        );
+      } else if (deployedPct < goals.risk_budget_pct * 0.5 && positions.length > 0) {
+        paragraphs.push(
+          `You're only using ${deployedPct.toFixed(0)}% of your ${goals.risk_budget_pct}% risk budget. ` +
+          `Having extra cash is conservative and safe, but if you have high-conviction ideas, you have room to add exposure. ` +
+          `Just make sure any new position fits your overall strategy and doesn't concentrate risk.`
+        );
+      }
+    }
 
     // Title
     const emoji = onTrack ? '✅' : (totalReturn >= 0 ? '📈' : '📉');
-    const title = `${emoji} ${format(new Date(), 'MMMM d, yyyy')} — Portfolio ${portfolioDirection} ${returnAbs}%`;
+    const title = `${emoji} ${format(new Date(), 'MMMM d, yyyy')} — ${fmtPct(totalReturn)} overall, portfolio at ${fmtUSD(currentValue)}`;
 
     const metrics = {
       totalReturn: parseFloat(totalReturn.toFixed(2)),
@@ -294,11 +466,14 @@ export function PortfolioJournal({ portfolioId, initialCapital, currentValue, ca
       positionCount: positions.length,
       cashPct: parseFloat(cashPct.toFixed(1)),
       daysActive,
+      portfolioDayPnL: parseFloat(portfolioDayPnL.toFixed(2)),
+      benchmarkDayChange: benchmarkQuote?.changePercent ? parseFloat(benchmarkQuote.changePercent.toFixed(2)) : null,
     };
 
     const benchmarkComparison = {
-      benchmark: goals.benchmark_ticker,
-      note: `Compare against ${goals.benchmark_ticker} over the same period.`,
+      benchmark: benchmarkTicker,
+      benchmarkPrice: benchmarkQuote?.price ?? null,
+      benchmarkChange: benchmarkQuote?.changePercent ?? null,
     };
 
     return {
@@ -317,7 +492,7 @@ export function PortfolioJournal({ portfolioId, initialCapital, currentValue, ca
     setGenerating(true);
 
     try {
-      const result = buildJournalContent();
+      const result = await buildJournalContent();
       if (!result) throw new Error('Could not build journal content');
 
       const today = new Date().toISOString().split('T')[0];
@@ -417,7 +592,6 @@ export function PortfolioJournal({ portfolioId, initialCapital, currentValue, ca
 
                   return (
                     <div key={entry.id} className="group">
-                      {/* Entry row */}
                       <button
                         type="button"
                         onClick={() => setExpandedEntryId(isExpanded ? null : entry.id)}
@@ -429,7 +603,6 @@ export function PortfolioJournal({ portfolioId, initialCapital, currentValue, ca
                       >
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3 min-w-0">
-                            {/* Date circle */}
                             <div className={`shrink-0 w-10 h-10 rounded-full flex flex-col items-center justify-center text-[10px] font-medium ${
                               isToday ? 'bg-primary/15 text-primary border border-primary/30' : 'bg-muted text-muted-foreground'
                             }`}>
@@ -447,7 +620,7 @@ export function PortfolioJournal({ portfolioId, initialCapital, currentValue, ca
                                 )}
                               </div>
                               <p className="text-[11px] text-muted-foreground truncate max-w-md">
-                                {entry.content.split('\n\n')[0]?.slice(0, 80)}...
+                                {entry.content.split('\n\n')[0]?.slice(0, 90)}...
                               </p>
                             </div>
                           </div>
@@ -467,30 +640,38 @@ export function PortfolioJournal({ portfolioId, initialCapital, currentValue, ca
                         </div>
                       </button>
 
-                      {/* Expanded content */}
                       {isExpanded && (
                         <div className="px-3 pb-4 pt-1 ml-[52px]">
                           {/* Metric pills */}
                           {metrics && (
                             <div className="flex flex-wrap gap-1.5 mb-3">
-                              {metrics.maxDrawdown !== undefined && (
-                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 border border-amber-500/20">
-                                  Max Drawdown: -{metrics.maxDrawdown}%
+                              {metrics.portfolioDayPnL != null && metrics.portfolioDayPnL !== 0 && (
+                                <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${
+                                  metrics.portfolioDayPnL >= 0
+                                    ? 'bg-success/10 text-success border-success/20'
+                                    : 'bg-destructive/10 text-destructive border-destructive/20'
+                                }`}>
+                                  Today: {metrics.portfolioDayPnL >= 0 ? '+' : ''}{fmtUSD(metrics.portfolioDayPnL, 2)}
                                 </span>
                               )}
-                              {metrics.winRate !== undefined && (
-                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/20">
+                              {metrics.benchmarkDayChange != null && (
+                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border/30">
+                                  {metrics.benchmarkDayChange >= 0 ? '📈' : '📉'} SPY: {fmtPct(metrics.benchmarkDayChange, 2)}
+                                </span>
+                              )}
+                              {metrics.maxDrawdown !== undefined && (
+                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border/30">
+                                  Max DD: -{metrics.maxDrawdown}%
+                                </span>
+                              )}
+                              {metrics.winRate !== undefined && metrics.winRate > 0 && (
+                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border/30">
                                   Win Rate: {metrics.winRate}%
                                 </span>
                               )}
                               {metrics.positionCount !== undefined && (
                                 <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border/30">
                                   {metrics.positionCount} positions
-                                </span>
-                              )}
-                              {metrics.cashPct !== undefined && (
-                                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border/30">
-                                  {metrics.cashPct}% cash
                                 </span>
                               )}
                               {metrics.daysActive !== undefined && metrics.daysActive > 0 && (
@@ -505,21 +686,12 @@ export function PortfolioJournal({ portfolioId, initialCapital, currentValue, ca
                           <div className="space-y-3">
                             {entry.content.split('\n\n').map((paragraph, i) => {
                               const hasWarning = paragraph.includes('⚠️') || paragraph.includes('🚨');
-                              const hasTip = paragraph.includes('💡');
 
                               if (hasWarning) {
                                 return (
-                                  <div key={i} className="flex gap-2 p-2.5 rounded-lg bg-amber-500/5 border border-amber-500/20">
-                                    <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                                  <div key={i} className="flex gap-2 p-2.5 rounded-lg border bg-destructive/5 border-destructive/20">
+                                    <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
                                     <p className="text-xs text-foreground/90 leading-relaxed">{paragraph.replace(/⚠️|🚨/g, '').trim()}</p>
-                                  </div>
-                                );
-                              }
-                              if (hasTip) {
-                                return (
-                                  <div key={i} className="flex gap-2 p-2.5 rounded-lg bg-primary/5 border border-primary/20">
-                                    <span className="text-sm shrink-0">💡</span>
-                                    <p className="text-xs text-muted-foreground leading-relaxed italic">{paragraph.replace('💡', '').trim()}</p>
                                   </div>
                                 );
                               }
