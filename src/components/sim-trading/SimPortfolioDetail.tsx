@@ -16,6 +16,8 @@ import { BacktestComparisonOverlay } from './BacktestComparisonOverlay';
 import { SimBacktestTab } from './SimBacktestTab';
 import { StrategySignalBadge } from './StrategySignalBadge';
 import { PortfolioJournal } from './PortfolioJournal';
+import { TradingLearningHub } from './learning/TradingLearningHub';
+import { PostTradeReflection } from './learning/PostTradeReflection';
 import { useOrderExecution } from '@/hooks/useOrderExecution';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
@@ -92,6 +94,9 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [chartTicker, setChartTicker] = useState('SPY');
+  const [reflectionOpen, setReflectionOpen] = useState(false);
+  const [reflectionData, setReflectionData] = useState<{ tradeId: string; ticker: string; pnl: number | null; pnlPct: number | null } | null>(null);
+  const [goals, setGoals] = useState<any>(null);
 
   const fetchData = useCallback(async () => {
     try {
