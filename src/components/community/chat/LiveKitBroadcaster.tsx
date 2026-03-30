@@ -22,7 +22,7 @@ export function LiveKitBroadcaster({ roomId, onStopStream, onRecordingSaved }: L
   const [mode, setMode] = useState<'camera' | 'screen' | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [savingRecording, setSavingRecording] = useState(false);
-
+  const recordingSavePromiseRef = useRef<{ resolve: () => void } | null>(null);
   const startRecording = () => {
     const video = videoRef.current;
     if (!video || !video.srcObject) {
@@ -73,6 +73,11 @@ export function LiveKitBroadcaster({ roomId, onStopStream, onRecordingSaved }: L
           }
         }
         setIsRecording(false);
+        // Resolve the promise so handleStop knows saving is done
+        if (recordingSavePromiseRef.current) {
+          recordingSavePromiseRef.current.resolve();
+          recordingSavePromiseRef.current = null;
+        }
       };
 
       recorder.start(1000); // collect data every second
@@ -85,10 +90,15 @@ export function LiveKitBroadcaster({ roomId, onStopStream, onRecordingSaved }: L
     }
   };
 
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
-    }
+  const stopRecording = (): Promise<void> => {
+    return new Promise((resolve) => {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        recordingSavePromiseRef.current = { resolve };
+        mediaRecorderRef.current.stop();
+      } else {
+        resolve();
+      }
+    });
   };
 
   const handleStart = async (screenShare: boolean) => {
@@ -107,8 +117,10 @@ export function LiveKitBroadcaster({ roomId, onStopStream, onRecordingSaved }: L
     }
   };
 
-  const handleStop = () => {
-    if (isRecording) stopRecording();
+  const handleStop = async () => {
+    if (isRecording) {
+      await stopRecording();
+    }
     disconnect();
     onStopStream();
   };
