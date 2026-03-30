@@ -4684,6 +4684,39 @@ export type Database = {
           },
         ]
       }
+      saved_options_analyses: {
+        Row: {
+          created_at: string
+          id: string
+          intent: string
+          messages: Json
+          ticker: string
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          intent: string
+          messages?: Json
+          ticker: string
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          intent?: string
+          messages?: Json
+          ticker?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       saved_portfolios: {
         Row: {
           allocations: Json
