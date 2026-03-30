@@ -3,9 +3,12 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Brain, User, Loader2, RotateCcw } from 'lucide-react';
+import { Send, Brain, User, Loader2, RotateCcw, Save } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useOptionsAnalyzerStore } from '@/stores/optionsAnalyzerStore';
 import type { TradeIntent } from './OptionsAnalyzer';
 
 interface Message {
@@ -28,28 +31,33 @@ const INTENT_PROMPTS: Record<TradeIntent, string> = {
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/options-advisor`;
 
 export function OptionsAdvisorChat({ ticker, intent }: Props) {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const { user } = useAuth();
+  const { getSession, setMessages: storeSetMessages, setHasStarted: storeSetHasStarted, resetSession } = useOptionsAnalyzerStore();
+  const session = getSession(ticker);
+  const messages = session.messages;
+  const hasStarted = session.hasStarted;
+
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [hasStarted, setHasStarted] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const prevTickerRef = useRef(ticker);
 
-  // Auto-scroll to bottom
+  const setMessages = useCallback((msgs: Message[] | ((prev: Message[]) => Message[])) => {
+    if (typeof msgs === 'function') {
+      const current = useOptionsAnalyzerStore.getState().getSession(ticker).messages;
+      storeSetMessages(ticker, msgs(current));
+    } else {
+      storeSetMessages(ticker, msgs);
+    }
+  }, [ticker, storeSetMessages]);
+
+  const setHasStarted = useCallback((v: boolean) => storeSetHasStarted(ticker, v), [ticker, storeSetHasStarted]);
+
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
-
-  // Reset on ticker change
-  useEffect(() => {
-    if (ticker !== prevTickerRef.current) {
-      setMessages([]);
-      setHasStarted(false);
-      prevTickerRef.current = ticker;
-    }
-  }, [ticker]);
 
   const streamChat = useCallback(async (allMessages: Message[]) => {
     const resp = await fetch(CHAT_URL, {
@@ -74,12 +82,13 @@ export function OptionsAdvisorChat({ ticker, intent }: Props) {
 
     const upsert = (chunk: string) => {
       assistantSoFar += chunk;
+      const finalContent = assistantSoFar;
       setMessages(prev => {
         const last = prev[prev.length - 1];
         if (last?.role === 'assistant') {
-          return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: assistantSoFar } : m);
+          return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: finalContent } : m);
         }
-        return [...prev, { role: 'assistant', content: assistantSoFar }];
+        return [...prev, { role: 'assistant', content: finalContent }];
       });
     };
 
@@ -109,7 +118,7 @@ export function OptionsAdvisorChat({ ticker, intent }: Props) {
         }
       }
     }
-  }, [ticker]);
+  }, [ticker, setMessages]);
 
   const handleSend = useCallback(async (overrideMsg?: string) => {
     const text = overrideMsg || input.trim();
@@ -130,7 +139,7 @@ export function OptionsAdvisorChat({ ticker, intent }: Props) {
     } finally {
       setIsLoading(false);
     }
-  }, [input, isLoading, messages, streamChat]);
+  }, [input, isLoading, messages, streamChat, setMessages, setHasStarted]);
 
   const startAnalysis = useCallback(() => {
     const prompt = `I'm looking at ${ticker} options. ${INTENT_PROMPTS[intent]} Please analyze the current options chain and recommend the best strikes and expiration dates. Show me the probability analysis, expected move, and risk/reward for your top recommendations.`;
@@ -138,28 +147,64 @@ export function OptionsAdvisorChat({ ticker, intent }: Props) {
   }, [ticker, intent, handleSend]);
 
   const handleReset = useCallback(() => {
-    setMessages([]);
-    setHasStarted(false);
-  }, []);
+    resetSession(ticker);
+  }, [ticker, resetSession]);
+
+  const handleSave = useCallback(async () => {
+    if (!user) {
+      toast.error('Sign in to save analyses');
+      return;
+    }
+    if (messages.length === 0) return;
+
+    setIsSaving(true);
+    try {
+      const firstAssistant = messages.find(m => m.role === 'assistant');
+      const title = `${ticker} ${intent} analysis` + (firstAssistant ? ` — ${firstAssistant.content.slice(0, 60)}...` : '');
+
+      const { error } = await supabase
+        .from('saved_options_analyses' as any)
+        .insert({
+          user_id: user.id,
+          ticker,
+          intent,
+          messages: messages as any,
+          title,
+        });
+
+      if (error) throw error;
+      toast.success('Analysis saved!');
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to save');
+    } finally {
+      setIsSaving(false);
+    }
+  }, [user, messages, ticker, intent]);
 
   return (
     <Card className="flex flex-col h-[calc(100vh-200px)] min-h-[500px]">
-      {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <div className="flex items-center gap-2">
           <Brain className="h-4 w-4 text-primary" />
           <span className="font-semibold text-sm">Options Strategy Advisor</span>
           <span className="text-xs text-muted-foreground">· Live {ticker} data</span>
         </div>
-        {hasStarted && (
-          <Button variant="ghost" size="sm" onClick={handleReset} className="gap-1.5 h-7 text-xs">
-            <RotateCcw className="h-3 w-3" />
-            New Analysis
-          </Button>
-        )}
+        <div className="flex items-center gap-1">
+          {hasStarted && messages.length > 0 && (
+            <Button variant="ghost" size="sm" onClick={handleSave} disabled={isSaving} className="gap-1.5 h-7 text-xs">
+              <Save className="h-3 w-3" />
+              {isSaving ? 'Saving...' : 'Save'}
+            </Button>
+          )}
+          {hasStarted && (
+            <Button variant="ghost" size="sm" onClick={handleReset} className="gap-1.5 h-7 text-xs">
+              <RotateCcw className="h-3 w-3" />
+              New Analysis
+            </Button>
+          )}
+        </div>
       </div>
 
-      {/* Messages */}
       <ScrollArea className="flex-1 p-4" ref={scrollRef}>
         {!hasStarted ? (
           <div className="flex flex-col items-center justify-center h-full text-center space-y-6 py-12">
@@ -222,7 +267,6 @@ export function OptionsAdvisorChat({ ticker, intent }: Props) {
         )}
       </ScrollArea>
 
-      {/* Input */}
       {hasStarted && (
         <div className="border-t border-border p-3">
           <div className="flex gap-2 max-w-4xl mx-auto">
