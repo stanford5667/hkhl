@@ -13,15 +13,24 @@ import { toast } from 'sonner';
 import { TickerSearchInput } from './TickerSearchInput';
 import { OptionsChainSelector } from './OptionsChainSelector';
 
+interface PositionForImpact {
+  ticker: string;
+  current_value: number | null;
+  quantity: number;
+  instrument_type: string;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   portfolioId: string;
   cashBalance: number;
+  currentPortfolioValue: number;
+  positions: PositionForImpact[];
   onComplete: () => void;
 }
 
-export function TradeDialog({ open, onOpenChange, portfolioId, cashBalance, onComplete }: Props) {
+export function TradeDialog({ open, onOpenChange, portfolioId, cashBalance, currentPortfolioValue, positions, onComplete }: Props) {
   const { user } = useAuth();
   const [tab, setTab] = useState('stock');
   const [action, setAction] = useState<'buy' | 'sell'>('buy');
