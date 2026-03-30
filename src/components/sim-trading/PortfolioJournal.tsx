@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { PortfolioGoalsSetup } from './PortfolioGoalsSetup';
+
 import type { SimTrade } from './SimPortfolioDetail';
 import type { Position } from './SimPortfolioDetail';
 import {
