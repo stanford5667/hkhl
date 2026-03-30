@@ -267,21 +267,33 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
     await Promise.allSettled(optionFetches);
 
     for (const pos of openPositions) {
+      const absQty = Math.abs(pos.quantity);
+      const isShort = pos.quantity < 0;
+
       if (pos.instrument_type === 'stock') {
         const quote = quotes.get(pos.ticker.toUpperCase());
         if (quote) {
           pos.current_price = quote.price ?? null;
           if (pos.current_price !== null) {
-            pos.current_value = pos.current_price * pos.quantity;
-            pos.pnl = pos.current_value - pos.total_cost;
+            pos.current_value = pos.current_price * absQty;
+            if (isShort) {
+              // Short P&L: profit when price drops below avg_cost
+              pos.pnl = (pos.avg_cost - pos.current_price) * absQty;
+            } else {
+              pos.pnl = pos.current_value - pos.total_cost;
+            }
             pos.pnl_pct = pos.total_cost > 0 ? (pos.pnl / pos.total_cost) * 100 : 0;
           }
         }
       } else {
         // Option: use fetched live price, or fall back to avg_cost
         if (pos.current_price == null) pos.current_price = pos.avg_cost;
-        pos.current_value = pos.current_price * pos.quantity * pos.contract_multiplier;
-        pos.pnl = pos.current_value - pos.total_cost;
+        pos.current_value = pos.current_price * absQty * pos.contract_multiplier;
+        if (isShort) {
+          pos.pnl = (pos.avg_cost - pos.current_price) * absQty * pos.contract_multiplier;
+        } else {
+          pos.pnl = pos.current_value - pos.total_cost;
+        }
         pos.pnl_pct = pos.total_cost > 0 ? (pos.pnl / pos.total_cost) * 100 : 0;
       }
     }
