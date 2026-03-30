@@ -4,6 +4,7 @@ import { PostSortOption, PostTimeFilter } from '@/types/community';
 import { useResearchPosts } from '@/hooks/useResearchPosts';
 import { PostCard } from './PostCard';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
