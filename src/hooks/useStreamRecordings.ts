@@ -43,10 +43,11 @@ export function useStreamRecordings(roomId: string) {
   ) => {
     if (!user) throw new Error('Not authenticated');
 
-    const fileName = `${roomId}/${Date.now()}.webm`;
+    const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
+    const fileName = `${roomId}/${Date.now()}.${ext}`;
     const { error: uploadError } = await supabase.storage
       .from('stream-recordings')
-      .upload(fileName, blob, { contentType: 'video/webm' });
+      .upload(fileName, blob, { contentType: blob.type || 'video/webm' });
 
     if (uploadError) throw uploadError;
 
