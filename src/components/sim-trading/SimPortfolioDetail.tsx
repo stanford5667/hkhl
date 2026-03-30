@@ -11,7 +11,7 @@ import { TradeHistory } from './TradeHistory';
 import { SimChartSection } from './SimChartSection';
 import { PendingOrdersTab } from './PendingOrdersTab';
 import { SimWatchlist } from './SimWatchlist';
-import { PerformanceAnalytics } from './PerformanceAnalytics';
+import { SimPortfolioAnalytics } from './SimPortfolioAnalytics';
 import { BacktestComparisonOverlay } from './BacktestComparisonOverlay';
 import { SimBacktestTab } from './SimBacktestTab';
 import { StrategySignalBadge } from './StrategySignalBadge';
