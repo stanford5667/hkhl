@@ -167,17 +167,22 @@ function HistoricalPerformance({
         const tickers = holdingsInfo.map(h => h.ticker);
         const uniqueTickers = [...new Set([...tickers, 'SPY'])]; // include benchmark
 
-        // Fetch all ticker data in one query
-        const { data: bars, error: dbError } = await supabase
-          .from('market_daily_bars')
-          .select('ticker, bar_date, close, daily_return')
-          .in('ticker', uniqueTickers)
-          .gte('bar_date', startStr)
-          .lte('bar_date', endStr)
-          .order('bar_date', { ascending: true });
+        // Fetch all ticker data - fetch per ticker to avoid 1000-row limit
+        let bars: Array<{ ticker: string; bar_date: string; close: number | null; daily_return: number | null }> = [];
+        for (const t of uniqueTickers) {
+          const { data, error: dbError } = await supabase
+            .from('market_daily_bars')
+            .select('ticker, bar_date, close, daily_return')
+            .eq('ticker', t)
+            .gte('bar_date', startStr)
+            .lte('bar_date', endStr)
+            .order('bar_date', { ascending: true })
+            .limit(2000);
+          if (dbError) throw dbError;
+          if (data) bars = bars.concat(data);
+        }
 
-        if (dbError) throw dbError;
-        if (!bars || bars.length === 0) {
+        if (bars.length === 0) {
           setError('No historical data found for these tickers');
           setLoading(false);
           return;
