@@ -82,18 +82,8 @@ export function useLiveKit() {
       await room.connect(wsUrl, token);
       setState(s => ({ ...s, participantCount: room.numParticipants }));
 
-      // Publish the pre-acquired tracks to the room
-      const tracks = preAcquiredStream.getTracks();
-      for (const track of tracks) {
-        const localTrack = new LocalTrack(track.kind as any, track.kind === 'video'
-          ? (screenShare ? Track.Source.ScreenShare : Track.Source.Camera)
-          : (screenShare ? Track.Source.ScreenShareAudio : Track.Source.Microphone),
-          undefined,
-        );
-        // Use room's built-in publish; we need to stop the pre-acquired tracks and use LiveKit's API instead
-      }
-
-      // Stop pre-acquired stream — LiveKit will manage its own tracks
+      // Stop pre-acquired stream — LiveKit will re-acquire via its own APIs
+      // but user gesture context is now established for the browser
       preAcquiredStream.getTracks().forEach(t => t.stop());
       videoElement.srcObject = null;
 
