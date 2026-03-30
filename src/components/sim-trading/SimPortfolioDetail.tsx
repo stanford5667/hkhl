@@ -18,6 +18,7 @@ import { StrategySignalBadge } from './StrategySignalBadge';
 import { PortfolioJournal } from './PortfolioJournal';
 import { TradingLearningHub } from './learning/TradingLearningHub';
 import { PostTradeReflection } from './learning/PostTradeReflection';
+import { PositionDetailDialog } from './PositionDetailDialog';
 import { useOrderExecution } from '@/hooks/useOrderExecution';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
@@ -97,6 +98,8 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
   const [reflectionOpen, setReflectionOpen] = useState(false);
   const [reflectionData, setReflectionData] = useState<{ tradeId: string; ticker: string; pnl: number | null; pnlPct: number | null } | null>(null);
   const [goals, setGoals] = useState<any>(null);
+  const [selectedPosition, setSelectedPosition] = useState<Position | null>(null);
+  const [positionDetailOpen, setPositionDetailOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -332,7 +335,44 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
   };
 
   const handlePositionClick = (pos: Position) => {
+    setSelectedPosition(pos);
+    setPositionDetailOpen(true);
     setChartTicker(pos.ticker.toUpperCase());
+  };
+
+  const handleSellPartial = async (pos: Position, qty: number) => {
+    if (!portfolio || !user) return;
+    const multiplier = pos.instrument_type === 'option' ? pos.contract_multiplier : 1;
+    const sellPrice = pos.current_price || pos.avg_cost;
+    const totalProceeds = sellPrice * qty * multiplier;
+
+    const { error: tradeErr } = await supabase.from('sim_trades').insert({
+      portfolio_id: portfolio.id,
+      ticker: pos.ticker,
+      instrument_type: pos.instrument_type,
+      action: 'sell',
+      quantity: qty,
+      price_at_execution: sellPrice,
+      total_cost: totalProceeds,
+      option_type: pos.option_type,
+      strike_price: pos.strike_price,
+      expiration_date: pos.expiration_date,
+      contract_multiplier: multiplier,
+    });
+
+    if (tradeErr) {
+      toast.error('Failed to sell: ' + tradeErr.message);
+      return;
+    }
+
+    await supabase.from('sim_portfolios').update({ cash_balance: portfolio.cash_balance + totalProceeds }).eq('id', portfolio.id);
+    toast.success(`Sold ${qty} ${pos.ticker} for $${totalProceeds.toLocaleString(undefined, { minimumFractionDigits: 2 })}`);
+
+    const latestTrades = await supabase.from('sim_trades').select('id').eq('portfolio_id', portfolio.id).order('executed_at', { ascending: false }).limit(1);
+    const tradeId = latestTrades.data?.[0]?.id || '';
+    setReflectionData({ tradeId, ticker: pos.ticker, pnl: null, pnlPct: null });
+    setReflectionOpen(true);
+    fetchData();
   };
 
   if (loading || !portfolio) {
@@ -519,6 +559,17 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
           />
         </TabsContent>
       </Tabs>
+
+      {/* Position detail dialog */}
+      <PositionDetailDialog
+        position={selectedPosition}
+        open={positionDetailOpen}
+        onOpenChange={setPositionDetailOpen}
+        onSellFull={handleClosePosition}
+        onSellPartial={handleSellPartial}
+        portfolioValue={totalPortfolioValue}
+        cashBalance={portfolio.cash_balance}
+      />
 
       {/* Post-trade reflection dialog */}
       {reflectionData && (
