@@ -5,6 +5,7 @@ import { useChatRooms } from '@/hooks/useChatRooms';
 import { ChatRoomList } from './chat/ChatRoomList';
 import { ChatRoomView } from './chat/ChatRoomView';
 import { PostFeed } from './posts/PostFeed';
+import { NewPostForm } from './posts/NewPostForm';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdmin } from '@/hooks/useAdmin';
@@ -188,7 +189,7 @@ export function CommunityHub({ defaultTab = 'chat', initialRoomId }: CommunityHu
           </>
         ) : (
           <div className="flex-1 p-4 overflow-auto">
-            <PostFeed />
+            {location.pathname === '/community/new-post' ? <NewPostForm /> : <PostFeed />}
           </div>
         )}
       </div>
