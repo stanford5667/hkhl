@@ -229,7 +229,10 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
                 c.expiration_date === pos.expiration_date
               );
               if (match) {
-                pos.current_price = match.mid || match.last_price || pos.avg_cost;
+                // Prefer last_price (actual trade), then mid of bid/ask, then fallback
+                const lastTrade = match.last_price > 0 ? match.last_price : null;
+                const midPrice = (match.bid > 0 && match.ask > 0) ? Math.round(((match.bid + match.ask) / 2) * 100) / 100 : null;
+                pos.current_price = lastTrade ?? midPrice ?? pos.avg_cost;
               }
             }
           }
