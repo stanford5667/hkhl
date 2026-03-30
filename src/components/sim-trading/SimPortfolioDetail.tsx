@@ -436,7 +436,7 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
           <TradeHistory trades={trades} />
         </TabsContent>
         <TabsContent value="performance">
-          <SimPortfolioAnalytics portfolioId={portfolioId} initialCapital={portfolio.initial_capital} trades={trades} />
+          <SimPortfolioAnalytics portfolioId={portfolioId} initialCapital={portfolio.initial_capital} trades={trades} positions={positions} currentValue={totalPortfolioValue} cashBalance={portfolio.cash_balance} />
         </TabsContent>
         <TabsContent value="backtest">
           <SimBacktestTab
