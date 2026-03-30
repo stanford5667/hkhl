@@ -92,6 +92,12 @@ export function useLiveKit() {
 
       setState(s => ({ ...s, isPublishing: true }));
     } catch (err: any) {
+      // If user cancelled screen share picker, disconnect cleanly
+      if (roomRef.current && !roomRef.current.localParticipant.getTrackPublication(Track.Source.Camera) 
+          && !roomRef.current.localParticipant.getTrackPublication(Track.Source.ScreenShare)) {
+        roomRef.current.disconnect();
+        roomRef.current = null;
+      }
       console.error('LiveKit publish error:', err);
       setState(s => ({ ...s, error: err.message }));
       throw err;
