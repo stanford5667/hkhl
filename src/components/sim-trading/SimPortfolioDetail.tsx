@@ -444,10 +444,11 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
   }
 
   const totalPositionsValue = positions.reduce((sum, p) => sum + (p.current_value || 0), 0);
+  const totalPositionsCost = positions.reduce((sum, p) => sum + p.total_cost, 0);
   const totalPortfolioValue = portfolio.cash_balance + totalPositionsValue;
   const totalPnL = totalPortfolioValue - portfolio.initial_capital;
   const totalPnLPct = portfolio.initial_capital > 0 ? (totalPnL / portfolio.initial_capital) * 100 : 0;
-  const investedCapital = portfolio.initial_capital - portfolio.cash_balance;
+  const investedCapital = totalPositionsCost;
   const investedPct = portfolio.initial_capital > 0 ? (investedCapital / portfolio.initial_capital) * 100 : 0;
 
   return (
