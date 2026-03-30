@@ -16,6 +16,7 @@ import { BacktestComparisonOverlay } from './BacktestComparisonOverlay';
 import { SimBacktestTab } from './SimBacktestTab';
 import { StrategySignalBadge } from './StrategySignalBadge';
 import { PortfolioJournal } from './PortfolioJournal';
+import { PortfolioGoalsSetup } from './PortfolioGoalsSetup';
 import { TradingLearningHub } from './learning/TradingLearningHub';
 import { PostTradeReflection } from './learning/PostTradeReflection';
 import { PositionDetailDialog } from './PositionDetailDialog';
@@ -555,6 +556,7 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
           <TabsTrigger value="history">History ({trades.length})</TabsTrigger>
           <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="journal">Journal</TabsTrigger>
+          <TabsTrigger value="goals">Goals</TabsTrigger>
           <TabsTrigger value="learning">Learning</TabsTrigger>
           <TabsTrigger value="backtest">Backtest</TabsTrigger>
         </TabsList>
@@ -581,6 +583,9 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
             backtestResults={portfolio.backtest_results}
             strategyName={portfolio.strategy_name}
           />
+        </TabsContent>
+        <TabsContent value="goals">
+          <PortfolioGoalsSetup portfolioId={portfolioId} onSaved={fetchData} />
         </TabsContent>
         <TabsContent value="learning">
           <TradingLearningHub

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { PortfolioGoalsSetup } from './PortfolioGoalsSetup';
+
 import type { SimTrade } from './SimPortfolioDetail';
 import type { Position } from './SimPortfolioDetail';
 import {
@@ -358,7 +358,6 @@ export function PortfolioJournal({ portfolioId, initialCapital, currentValue, ca
 
   return (
     <div className="space-y-4">
-      <PortfolioGoalsSetup portfolioId={portfolioId} onSaved={fetchData} />
 
       <Card className="border-border/50">
         <CardHeader className="pb-2 flex flex-row items-center justify-between">
