@@ -14,7 +14,7 @@ serve(async (req) => {
   try {
     const { title, summary, detailedSummary, category, tickers, headlines, chatMode, systemPromptOverride, chatMessages } = await req.json();
 
-    if (!title) {
+    if (!chatMode && !title) {
       return new Response(JSON.stringify({ error: "Missing theme title" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

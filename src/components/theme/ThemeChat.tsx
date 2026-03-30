@@ -46,7 +46,8 @@ export function ThemeChat({ theme, analysisContent }: ThemeChatProps) {
       ? theme.tickers.map(t => `${t.symbol} (${t.name}) ${t.change >= 0 ? '+' : ''}${t.change.toFixed(1)}% — ${t.sentiment}`).join('\n')
       : 'No specific tickers mapped to this theme.';
 
-    const systemPrompt = `You are a senior equity research analyst and trading strategist. The user is exploring the "${theme.title}" market theme and wants to form actionable trade ideas.
+    const themeTitle = theme.title || 'Market Theme';
+    const systemPrompt = `You are a senior equity research analyst and trading strategist. The user is exploring the "${themeTitle}" market theme and wants to form actionable trade ideas.
 
 Theme context:
 - Category: ${theme.category}
