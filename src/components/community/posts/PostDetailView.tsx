@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ShareArticleDialog } from './ShareArticleDialog';
 import ReactMarkdown from 'react-markdown';
 import { useNavigate, useParams } from 'react-router-dom';
 import { usePostDetail } from '@/hooks/useResearchPosts';
@@ -10,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { VoteButtons } from './VoteButtons';
-import { ArrowLeft, MessageSquare, Send, ImageIcon } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Send, ImageIcon, Share2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TickerBadge } from '@/components/ui/TickerBadge';
 import { toast } from 'sonner';
@@ -22,6 +23,7 @@ export function PostDetailView() {
   const { post, comments, loading, addComment } = usePostDetail(postId ?? null);
   const [commentText, setCommentText] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
 
   const handleSubmitComment = async () => {
     if (!commentText.trim()) return;
@@ -145,7 +147,24 @@ export function PostDetailView() {
           <MessageSquare className="h-4 w-4" />
           <span className="text-sm">{post.comment_count} comments</span>
         </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-1.5 text-muted-foreground hover:text-foreground ml-auto"
+          onClick={() => setShareOpen(true)}
+        >
+          <Share2 className="h-4 w-4" />
+          Share
+        </Button>
       </div>
+
+      <ShareArticleDialog
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        postId={post.id}
+        postTitle={post.title}
+        postTickers={post.detected_tickers}
+      />
 
       {/* Comment input */}
       {isAuthenticated && (

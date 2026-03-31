@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ResearchPost } from '@/types/community';
 import { formatDistanceToNow } from 'date-fns';
@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { VoteButtons } from './VoteButtons';
 import { MessageSquare, Share2, Bookmark, ImageIcon, Trash2 } from 'lucide-react';
+import { ShareArticleDialog } from './ShareArticleDialog';
 import { cn } from '@/lib/utils';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useAuth } from '@/contexts/AuthContext';
@@ -39,6 +40,7 @@ export function PostCard({ post, onVote, onTickerClick, onDelete, compact = fals
   const { isAdmin } = useAdmin();
   const { user } = useAuth();
   const canDelete = isAdmin || user?.id === post.user_id;
+  const [shareOpen, setShareOpen] = useState(false);
 
   const displayName = post.user_profile?.full_name || 'Anonymous';
   const initials = displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
@@ -166,6 +168,14 @@ export function PostCard({ post, onVote, onTickerClick, onDelete, compact = fals
               <MessageSquare className="h-3 w-3" />
             </Button>
             <span className="text-[10px] text-muted-foreground -ml-1">{post.comment_count}</span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 text-muted-foreground hover:text-foreground"
+              onClick={(e) => { e.stopPropagation(); setShareOpen(true); }}
+            >
+              <Share2 className="h-3 w-3" />
+            </Button>
             <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground">
               <Bookmark className="h-3 w-3" />
             </Button>
@@ -182,6 +192,14 @@ export function PostCard({ post, onVote, onTickerClick, onDelete, compact = fals
           </div>
         </div>
       </div>
+
+      <ShareArticleDialog
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        postId={post.id}
+        postTitle={post.title}
+        postTickers={post.detected_tickers}
+      />
     </div>
   );
 }
