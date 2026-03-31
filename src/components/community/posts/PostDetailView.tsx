@@ -112,11 +112,20 @@ export function PostDetailView() {
       </div>
 
       {/* Content */}
-      <div className="prose prose-sm dark:prose-invert max-w-none">
+      <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:mt-8 prose-headings:mb-3 prose-headings:font-bold prose-p:mb-4 prose-p:leading-relaxed">
         <ReactMarkdown
           components={{
+            h2: ({ node, children, ...props }) => (
+              <h2 {...props} className="text-xl font-bold mt-8 mb-3 text-foreground">{children}</h2>
+            ),
+            h3: ({ node, children, ...props }) => (
+              <h3 {...props} className="text-lg font-bold mt-6 mb-2 text-foreground">{children}</h3>
+            ),
+            p: ({ node, children, ...props }) => (
+              <p {...props} className="mb-5 leading-relaxed text-foreground/90">{children}</p>
+            ),
             img: ({ node, ...props }) => (
-              <img {...props} className="rounded-lg border border-border/50 my-4 max-w-full" loading="lazy" />
+              <img {...props} className="rounded-lg border border-border/50 my-6 max-w-full" loading="lazy" />
             ),
           }}
         >
