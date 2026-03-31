@@ -195,6 +195,10 @@ const MessageItem = memo(function MessageItem({
           )}
         </div>
 
+        {/* Shared article embed */}
+        {sharedArticleId && <ArticleEmbed postId={sharedArticleId} />}
+
+
         {/* Inline ticker chart previews */}
         {detectedTickers.length > 0 && (
           <TickerChartPreview tickers={detectedTickers} />
