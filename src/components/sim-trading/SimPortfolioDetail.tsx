@@ -505,84 +505,8 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
         </AlertDialog>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid gap-3 grid-cols-2 md:grid-cols-5">
-        <Card>
-          <CardContent className="pt-4 pb-3">
-            <p className="text-xs text-muted-foreground">Portfolio Value</p>
-            <p className="text-lg font-bold font-mono">${totalPortfolioValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 pb-3">
-            <p className="text-xs text-muted-foreground">Cash</p>
-            <p className="text-lg font-bold font-mono">${portfolio.cash_balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 pb-3">
-            <p className="text-xs text-muted-foreground">Invested</p>
-            <p className="text-lg font-bold font-mono">${investedCapital.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-            <p className="text-xs text-muted-foreground">{investedPct.toFixed(1)}% deployed</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 pb-3">
-            <p className="text-xs text-muted-foreground">Open Positions</p>
-            <p className="text-lg font-bold">{positions.length}</p>
-            <p className="text-xs text-muted-foreground">{trades.length} total trades</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 pb-3">
-            <p className="text-xs text-muted-foreground">Total P&L</p>
-            <p className={`text-lg font-bold font-mono ${totalPnL >= 0 ? 'text-success' : 'text-destructive'}`}>
-              {totalPnL >= 0 ? '+' : ''}${totalPnL.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </p>
-            <p className={`text-xs ${totalPnL >= 0 ? 'text-success' : 'text-destructive'}`}>
-              {totalPnLPct >= 0 ? '+' : ''}{totalPnLPct.toFixed(2)}%
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Chart + Watchlist row */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-        <div className="lg:col-span-3">
-          <SimChartSection
-            defaultTicker={chartTicker}
-            trades={trades}
-            onTickerChange={setChartTicker}
-          />
-        </div>
-        <div className="lg:col-span-1 space-y-4">
-          <SimWatchlist onSelectTicker={(t) => setChartTicker(t)} />
-          {/* Strategy comparison overlay for linked portfolios */}
-          <BacktestComparisonOverlay
-            backtestResults={portfolio.backtest_results}
-            strategyName={portfolio.strategy_name || null}
-            simStartDate={portfolio.created_at}
-            simInitialCapital={portfolio.initial_capital}
-            simCurrentValue={totalPortfolioValue}
-          />
-        </div>
-      </div>
-
-      {/* Strategy signal badge in header area */}
-      {portfolio.strategy_name && (
-        <div className="flex items-center gap-2 px-1">
-          <StrategySignalBadge
-            strategyName={portfolio.strategy_name}
-            signal="hold"
-          />
-          <span className="text-xs text-muted-foreground">
-            Linked to backtest: {portfolio.strategy_name} on {portfolio.linked_ticker}
-          </span>
-        </div>
-      )}
-
       <Tabs defaultValue="positions">
-        <TabsList>
+        <TabsList className="w-full flex flex-wrap justify-start">
           <TabsTrigger value="positions">Positions ({positions.length})</TabsTrigger>
           <TabsTrigger value="orders">
             Orders {pendingOrders.length > 0 && `(${pendingOrders.length})`}
@@ -594,6 +518,82 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
           <TabsTrigger value="learning">Learning</TabsTrigger>
           <TabsTrigger value="backtest">Backtest</TabsTrigger>
         </TabsList>
+
+        {/* Summary Cards */}
+        <div className="grid gap-3 grid-cols-2 md:grid-cols-5 mt-4">
+          <Card>
+            <CardContent className="pt-4 pb-3">
+              <p className="text-xs text-muted-foreground">Portfolio Value</p>
+              <p className="text-lg font-bold font-mono">${totalPortfolioValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 pb-3">
+              <p className="text-xs text-muted-foreground">Cash</p>
+              <p className="text-lg font-bold font-mono">${portfolio.cash_balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 pb-3">
+              <p className="text-xs text-muted-foreground">Invested</p>
+              <p className="text-lg font-bold font-mono">${investedCapital.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+              <p className="text-xs text-muted-foreground">{investedPct.toFixed(1)}% deployed</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 pb-3">
+              <p className="text-xs text-muted-foreground">Open Positions</p>
+              <p className="text-lg font-bold">{positions.length}</p>
+              <p className="text-xs text-muted-foreground">{trades.length} total trades</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4 pb-3">
+              <p className="text-xs text-muted-foreground">Total P&L</p>
+              <p className={`text-lg font-bold font-mono ${totalPnL >= 0 ? 'text-success' : 'text-destructive'}`}>
+                {totalPnL >= 0 ? '+' : ''}${totalPnL.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </p>
+              <p className={`text-xs ${totalPnL >= 0 ? 'text-success' : 'text-destructive'}`}>
+                {totalPnLPct >= 0 ? '+' : ''}{totalPnLPct.toFixed(2)}%
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Chart + Watchlist row */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mt-4">
+          <div className="lg:col-span-3">
+            <SimChartSection
+              defaultTicker={chartTicker}
+              trades={trades}
+              onTickerChange={setChartTicker}
+            />
+          </div>
+          <div className="lg:col-span-1 space-y-4">
+            <SimWatchlist onSelectTicker={(t) => setChartTicker(t)} />
+            <BacktestComparisonOverlay
+              backtestResults={portfolio.backtest_results}
+              strategyName={portfolio.strategy_name || null}
+              simStartDate={portfolio.created_at}
+              simInitialCapital={portfolio.initial_capital}
+              simCurrentValue={totalPortfolioValue}
+            />
+          </div>
+        </div>
+
+        {/* Strategy signal badge */}
+        {portfolio.strategy_name && (
+          <div className="flex items-center gap-2 px-1 mt-4">
+            <StrategySignalBadge
+              strategyName={portfolio.strategy_name}
+              signal="hold"
+            />
+            <span className="text-xs text-muted-foreground">
+              Linked to backtest: {portfolio.strategy_name} on {portfolio.linked_ticker}
+            </span>
+          </div>
+        )}
+
         <TabsContent value="positions">
           <PositionsTable positions={positions} onClose={handleClosePosition} onRowClick={handlePositionClick} />
         </TabsContent>
