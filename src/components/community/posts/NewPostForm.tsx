@@ -229,8 +229,15 @@ export function NewPostForm() {
     try {
       // 1. Cover image
       // Extract the core subject for a specific cover image
-      const subjectForCover = title.replace(/^(why|how|the|a|an)\s+/i, '').replace(/\$([A-Z]+)/g, '$1').slice(0, 200);
-      const coverPrompt = `Photorealistic editorial photograph directly showing: ${subjectForCover}. Documentary style like Reuters or Bloomberg. Show the actual physical subject — the real company headquarters, product, factory, or trading environment. No metaphors, no abstract art, no text overlays.`;
+      // Extract the KEY subject from the title — find tickers and main nouns
+      const tickers = (title.match(/\$[A-Z]{1,5}/g) || []).map(t => t.replace('$', ''));
+      const titleClean = title.replace(/\$[A-Z]+/g, '').replace(/[:\-—|"']/g, ' ').replace(/\s+/g, ' ').trim();
+      // Use first meaningful content line if title is generic
+      const firstContentLine = content.split('\n').find(l => l.trim().length > 30)?.trim() || '';
+      const subjectHint = tickers.length > 0
+        ? `${tickers.join(', ')} companies — ${titleClean}`
+        : titleClean || firstContentLine.slice(0, 150);
+      const coverPrompt = `Simple, clean photorealistic DSLR photograph of: ${subjectHint}. Show the LITERAL real-world subject — if about shipping show actual container ships at port, if about oil show actual oil tankers or rigs, if about fertilizer show actual fertilizer plant or grain fields, if about gold show actual gold bars or trading floor. Single clear subject, natural lighting, shallow depth of field, no text, no graphics, no overlays, no collage, no illustration. Reuters/AP documentary photography style.`;
       const coverUrl = await generateAndUploadImage(coverPrompt);
       setThumbnailUrl(coverUrl);
 
