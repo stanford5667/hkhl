@@ -35,16 +35,25 @@ serve(async (req) => {
           messages: [
             {
               role: "user",
-         content: `Generate a photorealistic editorial photograph that DIRECTLY depicts the specific subject: "${prompt}". 
+         content: `Generate a photograph of: ${prompt}.
 
-CRITICAL RULES:
-- The image MUST literally show the specific thing described — if it says "semiconductor chips" show actual silicon wafers/chips, if it says "oil rigs" show actual oil rigs, if it says "Federal Reserve" show the actual Fed building
-- Shot with a DSLR camera, natural lighting, shallow depth of field
-- One clear subject that is DIRECTLY related to the topic — no metaphors, no abstract concepts
-- NO text, NO overlays, NO graphics, NO illustrations, NO collages, NO stock photo feel
-- Think Reuters/AP wire photo quality — documentary style, specific, concrete
-- If the subject is a company or product, show their actual product, factory, storefront, or headquarters
-- If the subject is a market sector, show the real-world physical manifestation (actual trading floor, actual factory, actual store)`,
+STYLE MANDATE — follow exactly:
+- Natural light or diffused studio lighting only. No cinematic lighting, no volumetric lighting, no rim lighting.
+- Muted corporate color palette: navy, slate, charcoal, cream, warm grey. No neon, no hyper-saturated colors.
+- Clean minimalist composition using rule of thirds or architectural grid. Generous negative space.
+- Subtle film grain texture. Shallow depth of field with one clear focal subject.
+- Wall Street Journal / Financial Times / Bloomberg editorial photography aesthetic.
+- The subject must be the LITERAL, PHYSICAL thing described — real objects, real places, real products.
+
+ABSOLUTE BANS — do NOT include any of the following:
+- No 3D renders, no CGI, no illustrations, no cartoons, no clip art
+- No glowing effects, no glassmorphism, no floating elements
+- No text, no overlays, no watermarks, no logos, no graphics, no infographics
+- No collages, no split screens, no multiple exposures
+- No hyper-realistic "AI look" — no plastic skin, no impossibly perfect surfaces
+- No stock photo poses, no forced smiles, no generic business handshakes
+
+High-end editorial photography, Wall Street Journal aesthetic, muted corporate color palette (navy, slate, cream), clean composition, deep depth of field, subtle film grain, institutional and authoritative, negative space.`,
             },
           ],
           modalities: ["image", "text"],
