@@ -86,6 +86,29 @@ export function useResearchPosts() {
         );
       }
 
+      // Fetch profiles for posts
+      if (fetchedPosts.length > 0) {
+        const userIds = [...new Set(fetchedPosts.map(p => p.user_id))];
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('user_id, full_name, avatar_url, is_anonymous')
+          .in('user_id', userIds);
+
+        if (profiles) {
+          const profileMap = new Map(profiles.map(p => [p.user_id, p]));
+          fetchedPosts = fetchedPosts.map(post => {
+            const profile = profileMap.get(post.user_id);
+            return {
+              ...post,
+              user_profile: profile ? {
+                full_name: profile.is_anonymous ? 'Anonymous' : (profile.full_name || null),
+                avatar_url: profile.is_anonymous ? null : (profile.avatar_url || null),
+              } : { full_name: null, avatar_url: null },
+            };
+          });
+        }
+      }
+
       // Fetch user votes if authenticated
       if (user && fetchedPosts.length > 0) {
         const { data: votes } = await supabase
