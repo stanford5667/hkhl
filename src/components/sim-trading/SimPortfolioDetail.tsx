@@ -505,8 +505,9 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
         </AlertDialog>
       </div>
 
-      <Tabs defaultValue="positions">
+      <Tabs defaultValue="chart">
         <TabsList className="w-full flex flex-wrap justify-start">
+          <TabsTrigger value="chart">Chart</TabsTrigger>
           <TabsTrigger value="positions">Positions ({positions.length})</TabsTrigger>
           <TabsTrigger value="orders">
             Orders {pendingOrders.length > 0 && `(${pendingOrders.length})`}
@@ -519,7 +520,7 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
           <TabsTrigger value="backtest">Backtest</TabsTrigger>
         </TabsList>
 
-        {/* Summary Cards */}
+        {/* Summary Cards - always visible */}
         <div className="grid gap-3 grid-cols-2 md:grid-cols-5 mt-4">
           <Card>
             <CardContent className="pt-4 pb-3">
@@ -560,27 +561,6 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
           </Card>
         </div>
 
-        {/* Chart + Watchlist row */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mt-4">
-          <div className="lg:col-span-3">
-            <SimChartSection
-              defaultTicker={chartTicker}
-              trades={trades}
-              onTickerChange={setChartTicker}
-            />
-          </div>
-          <div className="lg:col-span-1 space-y-4">
-            <SimWatchlist onSelectTicker={(t) => setChartTicker(t)} />
-            <BacktestComparisonOverlay
-              backtestResults={portfolio.backtest_results}
-              strategyName={portfolio.strategy_name || null}
-              simStartDate={portfolio.created_at}
-              simInitialCapital={portfolio.initial_capital}
-              simCurrentValue={totalPortfolioValue}
-            />
-          </div>
-        </div>
-
         {/* Strategy signal badge */}
         {portfolio.strategy_name && (
           <div className="flex items-center gap-2 px-1 mt-4">
@@ -594,51 +574,73 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
           </div>
         )}
 
-        <TabsContent value="positions">
-          <PositionsTable positions={positions} onClose={handleClosePosition} onRowClick={handlePositionClick} />
-        </TabsContent>
-        <TabsContent value="orders">
-          <PendingOrdersTab orders={pendingOrders} onRefresh={fetchData} />
-        </TabsContent>
-        <TabsContent value="history">
-          <TradeHistory trades={trades} />
-        </TabsContent>
-        <TabsContent value="performance">
-          <SimPortfolioAnalytics portfolioId={portfolioId} initialCapital={portfolio.initial_capital} trades={trades} positions={positions} currentValue={totalPortfolioValue} cashBalance={portfolio.cash_balance} />
-        </TabsContent>
-        <TabsContent value="journal">
-          <PortfolioJournal
-            portfolioId={portfolioId}
-            initialCapital={portfolio.initial_capital}
-            currentValue={totalPortfolioValue}
-            cashBalance={portfolio.cash_balance}
-            trades={trades}
-            positions={positions}
-            backtestResults={portfolio.backtest_results}
-            strategyName={portfolio.strategy_name}
-          />
-        </TabsContent>
-        <TabsContent value="goals">
-          <PortfolioGoalsSetup portfolioId={portfolioId} onSaved={fetchData} />
-        </TabsContent>
-        <TabsContent value="learning">
-          <TradingLearningHub
-            portfolioId={portfolioId}
-            trades={trades}
-            positions={positions}
-            initialCapital={portfolio.initial_capital}
-            currentValue={totalPortfolioValue}
-            cashBalance={portfolio.cash_balance}
-            goals={goals}
-          />
-        </TabsContent>
-        <TabsContent value="backtest">
-          <SimBacktestTab
-            heldTickers={positions.map(p => p.ticker.toUpperCase())}
-            activeTicker={chartTicker}
-            portfolioName={portfolio.name}
-          />
-        </TabsContent>
+        {/* Main content area - each tab replaces the chart area */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mt-4">
+          <div className="lg:col-span-3">
+            <TabsContent value="chart" className="mt-0">
+              <SimChartSection
+                defaultTicker={chartTicker}
+                trades={trades}
+                onTickerChange={setChartTicker}
+              />
+            </TabsContent>
+            <TabsContent value="positions" className="mt-0">
+              <PositionsTable positions={positions} onClose={handleClosePosition} onRowClick={handlePositionClick} />
+            </TabsContent>
+            <TabsContent value="orders" className="mt-0">
+              <PendingOrdersTab orders={pendingOrders} onRefresh={fetchData} />
+            </TabsContent>
+            <TabsContent value="history" className="mt-0">
+              <TradeHistory trades={trades} />
+            </TabsContent>
+            <TabsContent value="performance" className="mt-0">
+              <SimPortfolioAnalytics portfolioId={portfolioId} initialCapital={portfolio.initial_capital} trades={trades} positions={positions} currentValue={totalPortfolioValue} cashBalance={portfolio.cash_balance} />
+            </TabsContent>
+            <TabsContent value="journal" className="mt-0">
+              <PortfolioJournal
+                portfolioId={portfolioId}
+                initialCapital={portfolio.initial_capital}
+                currentValue={totalPortfolioValue}
+                cashBalance={portfolio.cash_balance}
+                trades={trades}
+                positions={positions}
+                backtestResults={portfolio.backtest_results}
+                strategyName={portfolio.strategy_name}
+              />
+            </TabsContent>
+            <TabsContent value="goals" className="mt-0">
+              <PortfolioGoalsSetup portfolioId={portfolioId} onSaved={fetchData} />
+            </TabsContent>
+            <TabsContent value="learning" className="mt-0">
+              <TradingLearningHub
+                portfolioId={portfolioId}
+                trades={trades}
+                positions={positions}
+                initialCapital={portfolio.initial_capital}
+                currentValue={totalPortfolioValue}
+                cashBalance={portfolio.cash_balance}
+                goals={goals}
+              />
+            </TabsContent>
+            <TabsContent value="backtest" className="mt-0">
+              <SimBacktestTab
+                heldTickers={positions.map(p => p.ticker.toUpperCase())}
+                activeTicker={chartTicker}
+                portfolioName={portfolio.name}
+              />
+            </TabsContent>
+          </div>
+          <div className="lg:col-span-1 space-y-4">
+            <SimWatchlist onSelectTicker={(t) => setChartTicker(t)} />
+            <BacktestComparisonOverlay
+              backtestResults={portfolio.backtest_results}
+              strategyName={portfolio.strategy_name || null}
+              simStartDate={portfolio.created_at}
+              simInitialCapital={portfolio.initial_capital}
+              simCurrentValue={totalPortfolioValue}
+            />
+          </div>
+        </div>
       </Tabs>
 
       {/* Position detail dialog */}
