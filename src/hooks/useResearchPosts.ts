@@ -86,6 +86,29 @@ export function useResearchPosts() {
         );
       }
 
+      // Fetch profiles for posts
+      if (fetchedPosts.length > 0) {
+        const userIds = [...new Set(fetchedPosts.map(p => p.user_id))];
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('user_id, full_name, avatar_url, is_anonymous')
+          .in('user_id', userIds);
+
+        if (profiles) {
+          const profileMap = new Map(profiles.map(p => [p.user_id, p]));
+          fetchedPosts = fetchedPosts.map(post => {
+            const profile = profileMap.get(post.user_id);
+            return {
+              ...post,
+              user_profile: profile ? {
+                full_name: profile.is_anonymous ? 'Anonymous' : (profile.full_name || null),
+                avatar_url: profile.is_anonymous ? null : (profile.avatar_url || null),
+              } : { full_name: null, avatar_url: null },
+            };
+          });
+        }
+      }
+
       // Fetch user votes if authenticated
       if (user && fetchedPosts.length > 0) {
         const { data: votes } = await supabase
@@ -299,6 +322,21 @@ export function usePostDetail(postId: string | null) {
 
       if (postError) throw postError;
 
+      // Fetch author profile
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, avatar_url, is_anonymous')
+        .eq('user_id', postData.user_id)
+        .single();
+
+      const postWithProfile = {
+        ...postData,
+        user_profile: profileData ? {
+          full_name: profileData.is_anonymous ? 'Anonymous' : (profileData.full_name || null),
+          avatar_url: profileData.is_anonymous ? null : (profileData.avatar_url || null),
+        } : { full_name: null, avatar_url: null },
+      } as ResearchPost;
+
       // Fetch user vote
       if (user) {
         const { data: voteData } = await supabase
@@ -308,10 +346,10 @@ export function usePostDetail(postId: string | null) {
           .eq('user_id', user.id)
           .single();
 
-        (postData as ResearchPost).user_vote = voteData?.vote_type || null;
+        postWithProfile.user_vote = voteData?.vote_type || null;
       }
 
-      setPost(postData as ResearchPost);
+      setPost(postWithProfile);
 
       // Fetch comments
       const { data: commentsData, error: commentsError } = await supabase
@@ -322,13 +360,35 @@ export function usePostDetail(postId: string | null) {
 
       if (commentsError) throw commentsError;
 
+      // Fetch comment author profiles
+      const commentUserIds = [...new Set((commentsData || []).map((c: any) => c.user_id))];
+      let commentProfileMap = new Map<string, any>();
+      if (commentUserIds.length > 0) {
+        const { data: cProfiles } = await supabase
+          .from('profiles')
+          .select('user_id, full_name, avatar_url, is_anonymous')
+          .in('user_id', commentUserIds);
+        if (cProfiles) {
+          commentProfileMap = new Map(cProfiles.map(p => [p.user_id, p]));
+        }
+      }
+
+
       // Build comment tree
       const commentMap = new Map<string, PostComment>();
       const rootComments: PostComment[] = [];
 
-      (commentsData || []).forEach((comment: PostComment) => {
-        comment.replies = [];
-        commentMap.set(comment.id, comment);
+      (commentsData || []).forEach((comment: any) => {
+        const cp = commentProfileMap.get(comment.user_id);
+        const enriched: PostComment = {
+          ...comment,
+          replies: [],
+          user_profile: cp ? {
+            full_name: cp.is_anonymous ? 'Anonymous' : (cp.full_name || null),
+            avatar_url: cp.is_anonymous ? null : (cp.avatar_url || null),
+          } : { full_name: null, avatar_url: null },
+        };
+        commentMap.set(enriched.id, enriched);
       });
 
       (commentsData || []).forEach((comment: PostComment) => {
