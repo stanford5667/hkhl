@@ -207,7 +207,9 @@ export function NewPostForm() {
     setGeneratingImage(true);
     try {
       // 1. Cover image
-      const coverPrompt = `A professional, eye-catching hero banner for a financial research article about: ${title}. Editorial style, modern, clean.`;
+      // Extract the core subject for a specific cover image
+      const subjectForCover = title.replace(/^(why|how|the|a|an)\s+/i, '').replace(/\$([A-Z]+)/g, '$1').slice(0, 200);
+      const coverPrompt = `Photorealistic editorial photograph directly showing: ${subjectForCover}. Documentary style like Reuters or Bloomberg. Show the actual physical subject — the real company headquarters, product, factory, or trading environment. No metaphors, no abstract art, no text overlays.`;
       const coverUrl = await generateAndUploadImage(coverPrompt);
       setThumbnailUrl(coverUrl);
 
