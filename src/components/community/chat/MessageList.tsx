@@ -182,21 +182,22 @@ const MessageItem = memo(function MessageItem({
         </div>
 
         {/* Message content - gated if premium and user can't view */}
-        <div className="text-sm break-words">
-          {isPremiumMessage && !canViewPremium ? (
-            <PremiumMessageGate content={message.content} />
-          ) : (
-            <>
-              {message.content && renderContent(contentParts)}
-              {message.attachment_url && (
-                <MessageAttachment url={message.attachment_url} type={message.attachment_type || 'file'} />
-              )}
-            </>
-          )}
-        </div>
-
-        {/* Shared article embed */}
-        {sharedArticleId && <ArticleEmbed postId={sharedArticleId} />}
+        {sharedArticleId ? (
+          <ArticleEmbed postId={sharedArticleId} />
+        ) : (
+          <div className="text-sm break-words">
+            {isPremiumMessage && !canViewPremium ? (
+              <PremiumMessageGate content={message.content} />
+            ) : (
+              <>
+                {message.content && renderContent(contentParts)}
+                {message.attachment_url && (
+                  <MessageAttachment url={message.attachment_url} type={message.attachment_type || 'file'} />
+                )}
+              </>
+            )}
+          </div>
+        )}
 
 
         {/* Inline ticker chart previews */}

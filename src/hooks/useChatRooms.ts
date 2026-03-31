@@ -2,12 +2,14 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatRoom, RoomType } from '@/types/community';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAdmin } from '@/hooks/useAdmin';
 
 export function useChatRooms() {
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+  const { isAdmin } = useAdmin();
 
   const fetchRooms = useCallback(async () => {
     try {
@@ -21,14 +23,19 @@ export function useChatRooms() {
 
       if (fetchError) throw fetchError;
 
-      setRooms((data || []) as ChatRoom[]);
+      // Filter out admin-only rooms for non-admin users
+      const filtered = isAdmin
+        ? (data || [])
+        : (data || []).filter((room: any) => !room.is_admin_only);
+
+      setRooms(filtered as ChatRoom[]);
     } catch (err: any) {
       console.error('Error fetching chat rooms:', err);
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAdmin]);
 
   useEffect(() => {
     fetchRooms();
