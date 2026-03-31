@@ -520,8 +520,8 @@ export function NewPostForm() {
                 type="button"
                 variant="outline"
                 className="w-full gap-2 border-primary/30 text-primary hover:bg-primary/10 h-12"
-                disabled={aiLoading || generatingImage || !title.trim()}
-                onClick={() => runAiAction('full_article')}
+                disabled={aiLoading || generatingImage}
+                onClick={handleFullArticleGenerate}
               >
                 {(aiLoading && aiAction === 'full_article') || generatingImage ? (
                   <>
@@ -531,7 +531,7 @@ export function NewPostForm() {
                 ) : (
                   <>
                     <Sparkles className="h-4 w-4" />
-                    Generate Full Article from Title
+                    Generate Full Article
                   </>
                 )}
               </Button>
