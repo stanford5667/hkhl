@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatRoom, RoomType } from '@/types/community';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAdmin } from '@/hooks/useAdmin';
 
 export function useChatRooms() {
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
