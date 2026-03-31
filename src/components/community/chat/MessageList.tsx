@@ -33,6 +33,7 @@ import {
 import { PresenceIndicator } from './PresenceIndicator';
 import { PremiumMessageGate } from './PremiumMessageGate';
 import { MessageAttachment } from './MessageAttachment';
+import { ArticleEmbed, extractArticleId } from './ArticleEmbed';
 
 const COMMON_EMOJIS = ['👍', '❤️', '🚀', '🔥', '📈', '💎', '🐻', '🐂'];
 
