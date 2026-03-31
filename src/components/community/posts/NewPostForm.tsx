@@ -125,13 +125,14 @@ export function NewPostForm() {
   };
 
   // AI writing actions
-  const runAiAction = useCallback(async (action: string) => {
-    if (!title.trim() && !content.trim() && action !== 'outline' && action !== 'full_article') {
-      toast.error('Add a title or some content first');
-      return;
-    }
-    if (action === 'full_article' && !title.trim()) {
-      toast.error('Enter a title / topic first');
+  // Prompt dialog for full article generation
+  const [promptDialogOpen, setPromptDialogOpen] = useState(false);
+  const [articlePrompt, setArticlePrompt] = useState('');
+
+  const runAiAction = useCallback(async (action: string, overridePrompt?: string) => {
+    const effectivePrompt = overridePrompt || title.trim() || content.slice(0, 200);
+    if (!effectivePrompt && action !== 'outline') {
+      toast.error('Add a title, topic, or some content first');
       return;
     }
     setAiLoading(true);
@@ -142,7 +143,7 @@ export function NewPostForm() {
     let accumulated = '';
     try {
       await streamAIText(
-        { action, content, title, prompt: title || content.slice(0, 200) },
+        { action, content, title: title || effectivePrompt, prompt: effectivePrompt },
         (delta) => {
           accumulated += delta;
           if (action === 'continue') {
@@ -154,6 +155,19 @@ export function NewPostForm() {
         () => {},
         controller.signal,
       );
+
+      // Auto-generate title if empty
+      if (!title.trim() && accumulated.length > 0) {
+        // Extract first heading or first sentence as title
+        const headingMatch = accumulated.match(/^##?\s+(.+)$/m);
+        if (headingMatch) {
+          setTitle(headingMatch[1].trim().slice(0, 200));
+        } else {
+          const firstSentence = accumulated.split(/[.\n]/)[0]?.trim();
+          if (firstSentence) setTitle(firstSentence.slice(0, 200));
+        }
+      }
+
       toast.success(`AI ${action} complete`);
 
       // For full_article, also auto-generate cover + inline images
@@ -171,6 +185,22 @@ export function NewPostForm() {
       abortRef.current = null;
     }
   }, [title, content]);
+
+  const handleFullArticleGenerate = () => {
+    if (title.trim()) {
+      runAiAction('full_article');
+    } else {
+      setPromptDialogOpen(true);
+    }
+  };
+
+  const handlePromptSubmit = () => {
+    if (!articlePrompt.trim()) return;
+    setTitle(articlePrompt.trim());
+    setPromptDialogOpen(false);
+    runAiAction('full_article', articlePrompt.trim());
+    setArticlePrompt('');
+  };
 
   // Auto-generate cover image + replace [IMAGE: ...] placeholders with real images
   const autoGenerateAllImages = async (articleText: string) => {
@@ -390,7 +420,7 @@ export function NewPostForm() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel className="text-xs text-muted-foreground">Writing Tools</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => runAiAction('full_article')} className="gap-2 text-primary font-medium">
+                <DropdownMenuItem onClick={handleFullArticleGenerate} className="gap-2 text-primary font-medium">
                   <Sparkles className="h-4 w-4" />
                   Generate Full Article
                   <span className="ml-auto text-xs text-muted-foreground">+ images</span>
@@ -490,8 +520,8 @@ export function NewPostForm() {
                 type="button"
                 variant="outline"
                 className="w-full gap-2 border-primary/30 text-primary hover:bg-primary/10 h-12"
-                disabled={aiLoading || generatingImage || !title.trim()}
-                onClick={() => runAiAction('full_article')}
+                disabled={aiLoading || generatingImage}
+                onClick={handleFullArticleGenerate}
               >
                 {(aiLoading && aiAction === 'full_article') || generatingImage ? (
                   <>
@@ -501,7 +531,7 @@ export function NewPostForm() {
                 ) : (
                   <>
                     <Sparkles className="h-4 w-4" />
-                    Generate Full Article from Title
+                    Generate Full Article
                   </>
                 )}
               </Button>
@@ -595,6 +625,34 @@ export function NewPostForm() {
             <Button onClick={handleGenerateImage} disabled={generatingImage || !imagePrompt.trim()} className="gap-2">
               {generatingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
               {generatingImage ? 'Generating...' : 'Generate'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Topic prompt dialog for full article generation */}
+      <Dialog open={promptDialogOpen} onOpenChange={setPromptDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>What should the article be about?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Input
+              placeholder="e.g. Why NVIDIA will dominate AI infrastructure in 2026"
+              value={articlePrompt}
+              onChange={(e) => setArticlePrompt(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handlePromptSubmit()}
+              autoFocus
+            />
+            <p className="text-xs text-muted-foreground">
+              Enter a topic or prompt — the AI will generate a full article with title, content, and images.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPromptDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handlePromptSubmit} disabled={!articlePrompt.trim()} className="gap-2">
+              <Sparkles className="h-4 w-4" />
+              Generate
             </Button>
           </DialogFooter>
         </DialogContent>
