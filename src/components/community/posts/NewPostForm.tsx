@@ -329,8 +329,9 @@ export function NewPostForm() {
     if (!context.trim()) { toast.error('Add a title or content first so AI knows what to generate'); return; }
     setGeneratingImage(true);
     try {
+      const subjectForCover = context.replace(/^(why|how|the|a|an)\s+/i, '').replace(/\$([A-Z]+)/g, '$1').slice(0, 200);
       const publicUrl = await generateAndUploadImage(
-        `A professional, eye-catching cover image/hero banner for a financial research article about: ${context}. Editorial style, modern, clean composition.`
+        `Photorealistic editorial photograph directly showing: ${subjectForCover}. Documentary style like Reuters or Bloomberg. Show the actual physical subject — real company headquarters, product, factory, or trading environment. No metaphors, no abstract art, no text overlays.`
       );
       setThumbnailUrl(publicUrl);
       toast.success('Cover image generated!');
