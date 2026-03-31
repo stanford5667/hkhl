@@ -35,7 +35,16 @@ serve(async (req) => {
           messages: [
             {
               role: "user",
-              content: `A simple, clean photograph of: ${prompt}. Shot with a DSLR camera, natural lighting, shallow depth of field, photorealistic. Minimal composition with one clear subject. No text, no overlays, no graphics, no illustrations, no collages. Just a single beautiful editorial photograph like you'd see in Bloomberg or The Wall Street Journal.`,
+         content: `Generate a photorealistic editorial photograph that DIRECTLY depicts the specific subject: "${prompt}". 
+
+CRITICAL RULES:
+- The image MUST literally show the specific thing described — if it says "semiconductor chips" show actual silicon wafers/chips, if it says "oil rigs" show actual oil rigs, if it says "Federal Reserve" show the actual Fed building
+- Shot with a DSLR camera, natural lighting, shallow depth of field
+- One clear subject that is DIRECTLY related to the topic — no metaphors, no abstract concepts
+- NO text, NO overlays, NO graphics, NO illustrations, NO collages, NO stock photo feel
+- Think Reuters/AP wire photo quality — documentary style, specific, concrete
+- If the subject is a company or product, show their actual product, factory, storefront, or headquarters
+- If the subject is a market sector, show the real-world physical manifestation (actual trading floor, actual factory, actual store)`,
             },
           ],
           modalities: ["image", "text"],
