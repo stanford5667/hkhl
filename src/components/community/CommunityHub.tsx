@@ -41,6 +41,13 @@ export function CommunityHub({ defaultTab = 'chat', initialRoomId }: CommunityHu
   const [selectedRoom, setSelectedRoom] = useState<ChatRoomType | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Sync activeTab when navigating to a posts route (e.g. from article embed in chat)
+  useEffect(() => {
+    if (isPostsRoute && activeTab !== 'posts') {
+      setActiveTab('posts');
+    }
+  }, [isPostsRoute]);
+
   const { rooms, loading: roomsLoading, createRoom } = useChatRooms();
 
   // Select initial room: URL param > localStorage > first room
