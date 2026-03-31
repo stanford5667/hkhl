@@ -35,23 +35,15 @@ serve(async (req) => {
           messages: [
             {
               role: "user",
-         content: `Generate a split-canvas cover image for a financial research article about: ${prompt}.
+         content: `Generate a cover image for a financial research article about: ${prompt}.
 
-LAYOUT — follow exactly:
-- The canvas is divided vertically in half.
-- LEFT HALF: A high-quality, photorealistic editorial photograph of the literal physical subject described. Natural light or diffused studio lighting. Shallow depth of field, one clear focal subject. Muted corporate color palette (navy, slate, charcoal, cream, warm grey). Subtle film grain. Reuters / Bloomberg / Wall Street Journal documentary photography aesthetic.
-- RIGHT HALF: A solid dark navy (#1B2A4A) or charcoal (#2C3E50) background with clean, minimal, white sans-serif typographic text. The text should be 2-4 words maximum — a short, punchy headline summary of the subject (e.g. "STRAIT OF HORMUZ", "SEMICONDUCTOR CAPEX", "FED PIVOT TRADE", "SHORT SQUEEZE ALERT"). The typography must look like an institutional research report cover — think Goldman Sachs, McKinsey, or Bloomberg whitepapers. Clean Helvetica or similar sans-serif font. Generous whitespace around the text.
+THE IMAGE: A single, full-frame, high-quality photorealistic editorial photograph that DIRECTLY depicts the literal subject matter described above. The subject must be obvious and unmistakable — if the article is about shipping, show actual container ships at a port. If it's about semiconductors, show actual chip fabrication. If it's about oil, show actual oil infrastructure. The photograph must tell the story at a glance.
 
-ABSOLUTE BANS:
-- No 3D renders, no CGI, no illustrations, no cartoons, no clip art
-- No glowing effects, no glassmorphism, no floating elements
-- No watermarks, no logos, no graphics, no infographics, no decorative elements
-- No collages, no multiple exposures, no busy compositions
-- No hyper-realistic "AI look" — no plastic skin, no impossibly perfect surfaces
-- No stock photo poses, no forced smiles, no generic business handshakes
-- No cursive or decorative fonts — only clean sans-serif typography
+TEXT OVERLAY: Superimpose a short, bold, topic-specific headline (2-4 words) directly onto the photograph using large, clean white sans-serif typography with a subtle dark shadow or semi-transparent dark gradient behind the text for legibility. The text MUST reference the specific subject — e.g. "STRAIT OF HORMUZ", "CHIP SHORTAGE", "RATE CUT TRADE", "SHORT SQUEEZE". Position the text in the lower-third or center of the image with generous breathing room.
 
-The overall feel must be: institutional, authoritative, minimal, and sophisticated. Like a cover page from a Bridgewater or BlackRock research report.`,
+PHOTOGRAPHY STYLE: Natural light or golden hour. Shallow depth of field with one clear focal point. Muted but rich tones — navy, warm amber, slate, deep green. Subtle film grain. Documentary photojournalism aesthetic like Reuters, Bloomberg, or Financial Times front page photography. The image should feel like it was shot by a professional photojournalist on location.
+
+ABSOLUTE BANS: No split-screen layouts, no solid color panels, no 3D renders, no CGI, no illustrations, no cartoons, no clip art, no glowing effects, no glassmorphism, no stock photo poses, no generic handshakes, no busy collages, no decorative elements, no logos, no infographics. The image must be a SINGLE cohesive photograph with text overlay — nothing else.`,
             },
           ],
           modalities: ["image", "text"],
