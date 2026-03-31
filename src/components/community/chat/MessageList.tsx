@@ -183,7 +183,7 @@ const MessageItem = memo(function MessageItem({
 
         {/* Message content - gated if premium and user can't view */}
         {sharedArticleId ? (
-          <ArticleEmbed postId={sharedArticleId} />
+          <ArticleEmbed postId={sharedArticleId} fallbackThumbnailUrl={message.attachment_url} />
         ) : (
           <div className="text-sm break-words">
             {isPremiumMessage && !canViewPremium ? (
