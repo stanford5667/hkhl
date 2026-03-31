@@ -35,7 +35,7 @@ serve(async (req) => {
           messages: [
             {
               role: "user",
-              content: `Generate an image with a split-canvas layout divided perfectly in half vertically. The left half is a high-quality, cinematic photograph related to: ${prompt}. The right half is a solid deep navy blue (#0F172A) background. The photo half should be vivid, sharp, and editorial-quality. The solid color half should be completely clean with no text or elements. Make it modern, premium, and suitable for a financial research publication.`,
+              content: `A simple, clean photograph of: ${prompt}. Shot with a DSLR camera, natural lighting, shallow depth of field, photorealistic. Minimal composition with one clear subject. No text, no overlays, no graphics, no illustrations, no collages. Just a single beautiful editorial photograph like you'd see in Bloomberg or The Wall Street Journal.`,
             },
           ],
           modalities: ["image", "text"],
