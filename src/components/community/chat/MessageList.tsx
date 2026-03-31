@@ -78,6 +78,7 @@ const MessageItem = memo(function MessageItem({
     return contentParts.filter(p => p.type === 'ticker').map(p => p.value);
   }, [message.detected_tickers, contentParts]);
   const presenceStatus = getUserPresence?.(message.user_id) || 'offline';
+  const sharedArticleId = useMemo(() => extractArticleId(message.content), [message.content]);
 
   // Check if user can view premium content
   const canViewPremium = isPro || isAdmin || isOwn;
