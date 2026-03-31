@@ -33,6 +33,7 @@ export function ArticleEmbed({ postId }: ArticleEmbedProps) {
   const navigate = useNavigate();
   const [article, setArticle] = useState<ArticleData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
     const fetchArticle = async () => {
