@@ -112,8 +112,16 @@ export function PostDetailView() {
       </div>
 
       {/* Content */}
-      <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">
-        {post.content}
+      <div className="prose prose-sm dark:prose-invert max-w-none">
+        <ReactMarkdown
+          components={{
+            img: ({ node, ...props }) => (
+              <img {...props} className="rounded-lg border border-border/50 my-4 max-w-full" loading="lazy" />
+            ),
+          }}
+        >
+          {post.content}
+        </ReactMarkdown>
       </div>
 
       {/* Vote bar */}
