@@ -146,19 +146,40 @@ export function NewPostForm() {
         { action, content, title: title || effectivePrompt, prompt: effectivePrompt },
         (delta) => {
           accumulated += delta;
+          // Strip TITLE: prefix from displayed content
+          let displayContent = accumulated;
+          const titleLineMatch = displayContent.match(/^TITLE:\s*(.+)\n\n?/);
+          if (titleLineMatch) {
+            displayContent = displayContent.slice(titleLineMatch[0].length);
+          }
           if (action === 'continue') {
-            setContent(content + accumulated);
+            setContent(content + displayContent);
           } else {
-            setContent(accumulated);
+            setContent(displayContent);
           }
         },
         () => {},
         controller.signal,
       );
 
-      // Auto-generate title if empty
-      if (!title.trim() && accumulated.length > 0) {
-        // Extract first heading or first sentence as title
+      // Extract title from TITLE: prefix if present
+      if (action === 'full_article') {
+        const titleLineMatch = accumulated.match(/^TITLE:\s*(.+)\n/);
+        if (titleLineMatch) {
+          setTitle(titleLineMatch[1].trim().slice(0, 200));
+          // Remove TITLE: line from content
+          accumulated = accumulated.slice(titleLineMatch[0].length).replace(/^\n+/, '');
+          setContent(accumulated);
+        } else if (!title.trim() && accumulated.length > 0) {
+          const headingMatch = accumulated.match(/^##?\s+(.+)$/m);
+          if (headingMatch) {
+            setTitle(headingMatch[1].trim().slice(0, 200));
+          } else {
+            const firstSentence = accumulated.split(/[.\n]/)[0]?.trim();
+            if (firstSentence) setTitle(firstSentence.slice(0, 200));
+          }
+        }
+      } else if (!title.trim() && accumulated.length > 0) {
         const headingMatch = accumulated.match(/^##?\s+(.+)$/m);
         if (headingMatch) {
           setTitle(headingMatch[1].trim().slice(0, 200));
