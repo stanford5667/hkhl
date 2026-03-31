@@ -88,32 +88,43 @@ Deno.serve(async (req) => {
         notified++;
       }
 
-      // Email notification via send-transactional-email
+      // Email notification via Loops
       if (pref.email) {
-        const { data: userData } = await supabase.auth.admin.getUserById(pref.user_id);
-        if (userData?.user?.email) {
-          try {
-            const { error: emailError } = await supabase.functions.invoke('send-transactional-email', {
-              body: {
-                templateName: 'chat-notification',
-                recipientEmail: userData.user.email,
-                idempotencyKey: `chat-notif-${messageId}-${pref.user_id}`,
-                templateData: {
-                  roomName: `${room?.icon || '💬'} ${roomName}`,
-                  senderName,
-                  messagePreview: truncatedContent,
+        const LOOPS_API_KEY = Deno.env.get('LOOPS_API_KEY');
+        if (LOOPS_API_KEY) {
+          const { data: userData } = await supabase.auth.admin.getUserById(pref.user_id);
+          if (userData?.user?.email) {
+            try {
+              const loopsRes = await fetch('https://app.loops.so/api/v1/transactional', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${LOOPS_API_KEY}`,
                 },
-              },
-            });
-            if (emailError) {
-              console.error(`Email notification failed:`, emailError);
-            } else {
-              console.log(`Email sent to ${userData.user.email}`);
-              notified++;
+                body: JSON.stringify({
+                  email: userData.user.email,
+                  transactionalId: Deno.env.get('LOOPS_CHAT_NOTIFICATION_TEMPLATE_ID') || '',
+                  dataVariables: {
+                    roomName: `${room?.icon || '💬'} ${roomName}`,
+                    senderName,
+                    messagePreview: truncatedContent,
+                  },
+                }),
+              });
+
+              const loopsData = await loopsRes.json();
+              if (!loopsRes.ok || !loopsData.success) {
+                console.error(`Loops email failed:`, loopsData);
+              } else {
+                console.log(`Email sent to ${userData.user.email} via Loops`);
+                notified++;
+              }
+            } catch (emailErr) {
+              console.error('Error sending email notification:', emailErr);
             }
-          } catch (emailErr) {
-            console.error('Error sending email notification:', emailErr);
           }
+        } else {
+          console.warn('LOOPS_API_KEY not configured, skipping email notification');
         }
       }
 
