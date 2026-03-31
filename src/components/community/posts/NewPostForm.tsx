@@ -125,13 +125,14 @@ export function NewPostForm() {
   };
 
   // AI writing actions
-  const runAiAction = useCallback(async (action: string) => {
-    if (!title.trim() && !content.trim() && action !== 'outline' && action !== 'full_article') {
-      toast.error('Add a title or some content first');
-      return;
-    }
-    if (action === 'full_article' && !title.trim()) {
-      toast.error('Enter a title / topic first');
+  // Prompt dialog for full article generation
+  const [promptDialogOpen, setPromptDialogOpen] = useState(false);
+  const [articlePrompt, setArticlePrompt] = useState('');
+
+  const runAiAction = useCallback(async (action: string, overridePrompt?: string) => {
+    const effectivePrompt = overridePrompt || title.trim() || content.slice(0, 200);
+    if (!effectivePrompt && action !== 'outline') {
+      toast.error('Add a title, topic, or some content first');
       return;
     }
     setAiLoading(true);
@@ -142,7 +143,7 @@ export function NewPostForm() {
     let accumulated = '';
     try {
       await streamAIText(
-        { action, content, title, prompt: title || content.slice(0, 200) },
+        { action, content, title: title || effectivePrompt, prompt: effectivePrompt },
         (delta) => {
           accumulated += delta;
           if (action === 'continue') {
@@ -154,6 +155,19 @@ export function NewPostForm() {
         () => {},
         controller.signal,
       );
+
+      // Auto-generate title if empty
+      if (!title.trim() && accumulated.length > 0) {
+        // Extract first heading or first sentence as title
+        const headingMatch = accumulated.match(/^##?\s+(.+)$/m);
+        if (headingMatch) {
+          setTitle(headingMatch[1].trim().slice(0, 200));
+        } else {
+          const firstSentence = accumulated.split(/[.\n]/)[0]?.trim();
+          if (firstSentence) setTitle(firstSentence.slice(0, 200));
+        }
+      }
+
       toast.success(`AI ${action} complete`);
 
       // For full_article, also auto-generate cover + inline images
@@ -171,6 +185,22 @@ export function NewPostForm() {
       abortRef.current = null;
     }
   }, [title, content]);
+
+  const handleFullArticleGenerate = () => {
+    if (title.trim()) {
+      runAiAction('full_article');
+    } else {
+      setPromptDialogOpen(true);
+    }
+  };
+
+  const handlePromptSubmit = () => {
+    if (!articlePrompt.trim()) return;
+    setTitle(articlePrompt.trim());
+    setPromptDialogOpen(false);
+    runAiAction('full_article', articlePrompt.trim());
+    setArticlePrompt('');
+  };
 
   // Auto-generate cover image + replace [IMAGE: ...] placeholders with real images
   const autoGenerateAllImages = async (articleText: string) => {
