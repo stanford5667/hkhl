@@ -171,53 +171,113 @@ export function NewPostForm() {
     setAiAction(null);
   };
 
-  // Generate inline image
+  // Core image generation helper — returns the public URL
+  const generateAndUploadImage = async (prompt: string): Promise<string> => {
+    const resp = await fetch(FUNC_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      },
+      body: JSON.stringify({ action: 'generate_image', prompt }),
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ error: 'Failed' }));
+      throw new Error(err.error || 'Image generation failed');
+    }
+    const { imageBase64 } = await resp.json();
+    const byteString = atob(imageBase64.split(',')[1]);
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+    const blob = new Blob([ab], { type: 'image/png' });
+    const path = `${user!.id}/inline-${Date.now()}.png`;
+    const { error: upErr } = await supabase.storage.from('research-thumbnails').upload(path, blob);
+    if (upErr) throw upErr;
+    const { data: { publicUrl } } = supabase.storage.from('research-thumbnails').getPublicUrl(path);
+    return publicUrl;
+  };
+
+  // Generate inline image (from dialog)
   const handleGenerateImage = async () => {
     if (!imagePrompt.trim()) { toast.error('Enter an image description'); return; }
     setGeneratingImage(true);
     try {
-      const resp = await fetch(FUNC_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
-        body: JSON.stringify({ action: 'generate_image', prompt: imagePrompt }),
-      });
-
-      if (!resp.ok) {
-        const err = await resp.json().catch(() => ({ error: 'Failed' }));
-        throw new Error(err.error || 'Image generation failed');
-      }
-
-      const { imageBase64 } = await resp.json();
-
-      // Upload base64 to storage
-      const byteString = atob(imageBase64.split(',')[1]);
-      const ab = new ArrayBuffer(byteString.length);
-      const ia = new Uint8Array(ab);
-      for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
-      const blob = new Blob([ab], { type: 'image/png' });
-
-      const path = `${user!.id}/inline-${Date.now()}.png`;
-      const { error: upErr } = await supabase.storage.from('research-thumbnails').upload(path, blob);
-      if (upErr) throw upErr;
-
-      const { data: { publicUrl } } = supabase.storage.from('research-thumbnails').getPublicUrl(path);
-
+      const publicUrl = await generateAndUploadImage(imagePrompt);
       const imgId = `img-${Date.now()}`;
       setInlineImages(prev => [...prev, { id: imgId, url: publicUrl, caption: imagePrompt }]);
-
-      // Insert image markdown into content at cursor position
       const imgMarkdown = `\n\n![${imagePrompt}](${publicUrl})\n\n`;
       setContent(prev => prev + imgMarkdown);
-
       setImageDialogOpen(false);
       setImagePrompt('');
       toast.success('Image generated and inserted!');
     } catch (err: any) {
       console.error('Image gen error:', err);
       toast.error(err.message || 'Failed to generate image');
+    } finally {
+      setGeneratingImage(false);
+    }
+  };
+
+  // Generate cover image from article context
+  const handleGenerateCoverImage = async () => {
+    const context = title || content.slice(0, 300);
+    if (!context.trim()) { toast.error('Add a title or content first so AI knows what to generate'); return; }
+    setGeneratingImage(true);
+    try {
+      const publicUrl = await generateAndUploadImage(
+        `A professional, eye-catching cover image/hero banner for a financial research article about: ${context}. Editorial style, modern, clean composition.`
+      );
+      setThumbnailUrl(publicUrl);
+      toast.success('Cover image generated!');
+    } catch (err: any) {
+      console.error('Cover image error:', err);
+      toast.error(err.message || 'Failed to generate cover image');
+    } finally {
+      setGeneratingImage(false);
+    }
+  };
+
+  // Auto-generate contextual images based on article sections
+  const handleAutoGenerateImages = async () => {
+    const articleText = content.trim();
+    if (!articleText || articleText.length < 50) {
+      toast.error('Write more content first so AI can generate relevant images');
+      return;
+    }
+    setGeneratingImage(true);
+    try {
+      // Extract up to 3 key sections/themes from the content
+      const sections = articleText.split(/\n#{1,3}\s+/).filter(s => s.trim().length > 30);
+      const prompts: string[] = [];
+      if (sections.length >= 3) {
+        prompts.push(sections[0].slice(0, 150), sections[Math.floor(sections.length / 2)].slice(0, 150), sections[sections.length - 1].slice(0, 150));
+      } else if (sections.length >= 1) {
+        prompts.push(articleText.slice(0, 200));
+        if (articleText.length > 400) prompts.push(articleText.slice(articleText.length / 2, articleText.length / 2 + 200));
+      } else {
+        prompts.push(articleText.slice(0, 200));
+      }
+
+      let insertedCount = 0;
+      for (const sectionText of prompts) {
+        try {
+          const publicUrl = await generateAndUploadImage(
+            `A clean, professional illustration for a financial research article section about: ${sectionText}. Infographic style, modern, no text.`
+          );
+          const imgId = `img-${Date.now()}-${insertedCount}`;
+          setInlineImages(prev => [...prev, { id: imgId, url: publicUrl, caption: sectionText.slice(0, 60) }]);
+          const imgMarkdown = `\n\n![${sectionText.slice(0, 60).replace(/[[\]]/g, '')}](${publicUrl})\n\n`;
+          setContent(prev => prev + imgMarkdown);
+          insertedCount++;
+        } catch (err) {
+          console.warn('Skipping image for section:', err);
+        }
+      }
+      toast.success(`Generated ${insertedCount} image${insertedCount !== 1 ? 's' : ''} from article context`);
+    } catch (err: any) {
+      console.error('Auto image gen error:', err);
+      toast.error(err.message || 'Failed to auto-generate images');
     } finally {
       setGeneratingImage(false);
     }
@@ -301,11 +361,21 @@ export function NewPostForm() {
                   Summarize
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-xs text-muted-foreground">Media</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => setImageDialogOpen(true)} className="gap-2">
+                <DropdownMenuLabel className="text-xs text-muted-foreground">Images</DropdownMenuLabel>
+                <DropdownMenuItem onClick={handleGenerateCoverImage} disabled={generatingImage} className="gap-2">
+                  <ImagePlus className="h-4 w-4" />
+                  Generate Cover Image
+                  <span className="ml-auto text-xs text-muted-foreground">from context</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setImageDialogOpen(true)} disabled={generatingImage} className="gap-2">
                   <ImageIcon className="h-4 w-4" />
-                  Generate AI Image
-                  <span className="ml-auto text-xs text-muted-foreground">inline</span>
+                  Generate Custom Image
+                  <span className="ml-auto text-xs text-muted-foreground">describe it</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleAutoGenerateImages} disabled={generatingImage} className="gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  Auto-Generate Images
+                  <span className="ml-auto text-xs text-muted-foreground">from article</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
