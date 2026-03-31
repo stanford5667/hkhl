@@ -33,18 +33,25 @@ export function ArticleEmbed({ postId }: ArticleEmbedProps) {
   const navigate = useNavigate();
   const [article, setArticle] = useState<ArticleData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
-    const fetch = async () => {
-      const { data } = await supabase
-        .from('research_posts')
-        .select('id, title, content, thumbnail_url, detected_tickers, upvotes, downvotes, comment_count, created_at, user_id')
-        .eq('id', postId)
-        .single();
-      setArticle(data);
-      setLoading(false);
+    const fetchArticle = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('research_posts')
+          .select('id, title, content, thumbnail_url, detected_tickers, upvotes, downvotes, comment_count, created_at, user_id')
+          .eq('id', postId)
+          .maybeSingle();
+        if (error) console.error('ArticleEmbed fetch error:', error);
+        setArticle(data);
+      } catch (err) {
+        console.error('ArticleEmbed error:', err);
+      } finally {
+        setLoading(false);
+      }
     };
-    fetch();
+    fetchArticle();
   }, [postId]);
 
   if (loading) {
@@ -59,7 +66,19 @@ export function ArticleEmbed({ postId }: ArticleEmbedProps) {
     );
   }
 
-  if (!article) return null;
+  if (!article) {
+    return (
+      <div className="mt-2 w-full max-w-sm rounded-lg border border-border/50 bg-muted/30 p-3">
+        <p className="text-xs text-muted-foreground">📊 Shared Research Article</p>
+        <p
+          className="text-xs text-primary cursor-pointer hover:underline mt-1"
+          onClick={() => navigate(`/community/posts/${postId}`)}
+        >
+          View Article →
+        </p>
+      </div>
+    );
+  }
 
   const preview = article.content
     .replace(/^TITLE:.*\n\n?/i, '')
@@ -91,12 +110,13 @@ export function ArticleEmbed({ postId }: ArticleEmbedProps) {
     >
       {/* Thumbnail */}
       <div className="relative aspect-[2.5/1] overflow-hidden">
-        {article.thumbnail_url ? (
+        {article.thumbnail_url && !imgError ? (
           <img
             src={article.thumbnail_url}
             alt={article.title}
             className="w-full h-full object-cover"
             loading="lazy"
+            onError={() => setImgError(true)}
           />
         ) : (
           <div className={cn("w-full h-full bg-gradient-to-br flex items-center justify-center", gradient)}>
