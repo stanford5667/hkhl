@@ -92,7 +92,38 @@ Deno.serve(async (req) => {
       if (pref.email) {
         const { data: userData } = await supabase.auth.admin.getUserById(pref.user_id);
         if (userData?.user?.email) {
-          console.log(`Would email ${userData.user.email}: ${senderName} in ${roomName}: ${truncatedContent}`);
+          const LOOPS_API_KEY = Deno.env.get('LOOPS_API_KEY');
+          if (LOOPS_API_KEY) {
+            try {
+              const loopsRes = await fetch('https://app.loops.so/api/v1/transactional', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${LOOPS_API_KEY}`,
+                },
+                body: JSON.stringify({
+                  email: userData.user.email,
+                  transactionalId: 'cm8vxbpo2006fl70pfnkp67ci',
+                  dataVariables: {
+                    roomName: `${room?.icon || '💬'} ${roomName}`,
+                    senderName,
+                    messagePreview: truncatedContent,
+                  },
+                }),
+              });
+              if (loopsRes.ok) {
+                console.log(`Email sent to ${userData.user.email}`);
+                notified++;
+              } else {
+                const errData = await loopsRes.json();
+                console.error(`Loops email failed [${loopsRes.status}]:`, errData);
+              }
+            } catch (emailErr) {
+              console.error('Error sending email notification:', emailErr);
+            }
+          } else {
+            console.warn('LOOPS_API_KEY not configured, skipping email notification');
+          }
         }
       }
 
