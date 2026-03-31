@@ -629,6 +629,34 @@ export function NewPostForm() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Topic prompt dialog for full article generation */}
+      <Dialog open={promptDialogOpen} onOpenChange={setPromptDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>What should the article be about?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Input
+              placeholder="e.g. Why NVIDIA will dominate AI infrastructure in 2026"
+              value={articlePrompt}
+              onChange={(e) => setArticlePrompt(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handlePromptSubmit()}
+              autoFocus
+            />
+            <p className="text-xs text-muted-foreground">
+              Enter a topic or prompt — the AI will generate a full article with title, content, and images.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPromptDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handlePromptSubmit} disabled={!articlePrompt.trim()} className="gap-2">
+              <Sparkles className="h-4 w-4" />
+              Generate
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
