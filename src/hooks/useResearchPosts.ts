@@ -322,6 +322,21 @@ export function usePostDetail(postId: string | null) {
 
       if (postError) throw postError;
 
+      // Fetch author profile
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, avatar_url, is_anonymous')
+        .eq('user_id', postData.user_id)
+        .single();
+
+      const postWithProfile = {
+        ...postData,
+        user_profile: profileData ? {
+          full_name: profileData.is_anonymous ? 'Anonymous' : (profileData.full_name || null),
+          avatar_url: profileData.is_anonymous ? null : (profileData.avatar_url || null),
+        } : { full_name: null, avatar_url: null },
+      } as ResearchPost;
+
       // Fetch user vote
       if (user) {
         const { data: voteData } = await supabase
@@ -331,10 +346,10 @@ export function usePostDetail(postId: string | null) {
           .eq('user_id', user.id)
           .single();
 
-        (postData as ResearchPost).user_vote = voteData?.vote_type || null;
+        postWithProfile.user_vote = voteData?.vote_type || null;
       }
 
-      setPost(postData as ResearchPost);
+      setPost(postWithProfile);
 
       // Fetch comments
       const { data: commentsData, error: commentsError } = await supabase
@@ -342,6 +357,21 @@ export function usePostDetail(postId: string | null) {
         .select('*')
         .eq('post_id', postId)
         .order('created_at', { ascending: true });
+
+      if (commentsError) throw commentsError;
+
+      // Fetch comment author profiles
+      const commentUserIds = [...new Set((commentsData || []).map((c: any) => c.user_id))];
+      let commentProfileMap = new Map<string, any>();
+      if (commentUserIds.length > 0) {
+        const { data: cProfiles } = await supabase
+          .from('profiles')
+          .select('user_id, full_name, avatar_url, is_anonymous')
+          .in('user_id', commentUserIds);
+        if (cProfiles) {
+          commentProfileMap = new Map(cProfiles.map(p => [p.user_id, p]));
+        }
+      }
 
       if (commentsError) throw commentsError;
 
