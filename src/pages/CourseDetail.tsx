@@ -193,7 +193,20 @@ export default function CourseDetail() {
     enabled: !!user,
   });
 
-  // Fetch lesson progress
+  // Auto-enroll Pro/Elite users when they visit a course
+  useEffect(() => {
+    if (user && isPro && !isUsageLoading && course && !enrollment && courseId) {
+      supabase
+        .from('course_enrollments')
+        .insert({ user_id: user.id, course_id: courseId })
+        .then(({ error }) => {
+          if (!error || error.message?.includes('duplicate')) {
+            queryClient.invalidateQueries({ queryKey: ['enrollment', courseId, user.id] });
+          }
+        });
+    }
+  }, [user, isPro, isUsageLoading, course, enrollment, courseId, queryClient]);
+
   const { data: lessonProgress } = useQuery({
     queryKey: ['lesson-progress-all', courseId, user?.id],
     queryFn: async () => {
