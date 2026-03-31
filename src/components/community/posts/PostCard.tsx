@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ResearchPost } from '@/types/community';
 import { formatDistanceToNow } from 'date-fns';
