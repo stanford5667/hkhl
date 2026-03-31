@@ -45,9 +45,23 @@ export function PostCard({ post, onVote, onTickerClick, onDelete, compact = fals
   const score = post.upvotes - post.downvotes;
 
   const previewContent = useMemo(() => {
-    const maxLength = 120;
-    if (post.content.length <= maxLength) return post.content;
-    return post.content.slice(0, maxLength).trim() + '...';
+    const maxLength = 140;
+    // Strip markdown formatting for clean preview
+    const cleaned = post.content
+      .replace(/^TITLE:.*\n\n?/i, '')
+      .replace(/^#{1,6}\s+.*$/gm, '') // remove headings
+      .replace(/!\[.*?\]\(.*?\)/g, '') // remove images
+      .replace(/\[IMAGE:.*?\]/g, '') // remove image placeholders
+      .replace(/\*\*(.+?)\*\*/g, '$1') // bold → plain
+      .replace(/\*(.+?)\*/g, '$1') // italic → plain
+      .replace(/`(.+?)`/g, '$1') // code → plain
+      .replace(/\[(.+?)\]\(.*?\)/g, '$1') // links → text
+      .replace(/^\s*[-*]\s+/gm, '') // bullets
+      .replace(/\n{2,}/g, ' ') // collapse newlines
+      .replace(/\n/g, ' ')
+      .trim();
+    if (cleaned.length <= maxLength) return cleaned;
+    return cleaned.slice(0, maxLength).trim() + '...';
   }, [post.content]);
 
   const handleClick = () => {
