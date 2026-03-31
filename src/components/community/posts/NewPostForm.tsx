@@ -336,9 +336,11 @@ export function NewPostForm() {
     if (!context.trim()) { toast.error('Add a title or content first so AI knows what to generate'); return; }
     setGeneratingImage(true);
     try {
+      const tickers = (context.match(/\$[A-Z]{1,5}/g) || []).map(t => t.replace('$', ''));
       const subjectForCover = context.replace(/^(why|how|the|a|an)\s+/i, '').replace(/\$([A-Z]+)/g, '$1').slice(0, 200);
+      const headlineHint = tickers.length > 0 ? '$' + tickers[0] : subjectForCover.split(' ').slice(0, 3).join(' ').toUpperCase();
       const publicUrl = await generateAndUploadImage(
-        `Photorealistic editorial photograph directly showing: ${subjectForCover}. Documentary style like Reuters or Bloomberg. Show the actual physical subject — real company headquarters, product, factory, or trading environment. No metaphors, no abstract art, no text overlays.`
+        `${subjectForCover}. The photograph side should show the actual physical subject — real company headquarters, product, factory, or trading environment. The text side should display "${headlineHint}" in clean white sans-serif on dark navy.`
       );
       setThumbnailUrl(publicUrl);
       toast.success('Cover image generated!');
