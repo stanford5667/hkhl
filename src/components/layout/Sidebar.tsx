@@ -178,12 +178,12 @@ export function Sidebar() {
       //   href: "/investment-plan", 
       //   icon: ClipboardList 
       // },
-      { 
-        label: "Glossary", 
-        subtitle: "Terms & Definitions",
-        href: "/glossary", 
-        icon: BookOpen 
-      },
+      // { 
+      //   label: "Glossary", 
+      //   subtitle: "Terms & Definitions",
+      //   href: "/glossary", 
+      //   icon: BookOpen 
+      // },
       { 
         label: "Support", 
         subtitle: "Help & Tickets",
