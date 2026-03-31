@@ -78,6 +78,11 @@ serve(async (req) => {
     let userPrompt = "";
 
     switch (action) {
+      case "full_article":
+        systemPrompt =
+          "You are an elite financial research writer. Write a complete, publication-ready research article from the given topic. Structure it with:\n\n1. An engaging opening paragraph (no header needed for intro)\n2. Multiple ## sections with clear headers\n3. Bullet points for key data points\n4. Bold text for emphasis on important figures and conclusions\n5. A ## Key Takeaways section at the end\n\nWrite 800-1200 words. Be specific, data-driven, and insightful. Use a professional but engaging tone. Do NOT wrap in code blocks. Do NOT include the title as a header (it's shown separately). Leave placeholder lines like\n\n[IMAGE: description of a relevant chart or illustration]\n\nafter each major section (2-3 total) — these will be replaced with AI-generated images.";
+        userPrompt = `Write a complete research article about: ${prompt || title}`;
+        break;
       case "expand":
         systemPrompt =
           "You are an expert financial research writer. Expand the given content into a well-structured, detailed research article with multiple sections. Use markdown formatting with ## headers, bullet points, and bold text for emphasis. Write in a professional but accessible tone. Include analysis, context, and actionable insights. Do NOT wrap in code blocks.";

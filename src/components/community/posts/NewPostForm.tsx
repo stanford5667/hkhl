@@ -126,8 +126,12 @@ export function NewPostForm() {
 
   // AI writing actions
   const runAiAction = useCallback(async (action: string) => {
-    if (!title.trim() && !content.trim() && action !== 'outline') {
+    if (!title.trim() && !content.trim() && action !== 'outline' && action !== 'full_article') {
       toast.error('Add a title or some content first');
+      return;
+    }
+    if (action === 'full_article' && !title.trim()) {
+      toast.error('Enter a title / topic first');
       return;
     }
     setAiLoading(true);
@@ -141,18 +145,21 @@ export function NewPostForm() {
         { action, content, title, prompt: title || content.slice(0, 200) },
         (delta) => {
           accumulated += delta;
-          if (action === 'expand' || action === 'outline') {
-            setContent(accumulated);
-          } else if (action === 'improve' || action === 'summarize') {
-            setContent(accumulated);
-          } else if (action === 'continue') {
+          if (action === 'continue') {
             setContent(content + accumulated);
+          } else {
+            setContent(accumulated);
           }
         },
         () => {},
         controller.signal,
       );
       toast.success(`AI ${action} complete`);
+
+      // For full_article, also auto-generate cover + inline images
+      if (action === 'full_article') {
+        await autoGenerateAllImages(accumulated);
+      }
     } catch (err: any) {
       if (err.name !== 'AbortError') {
         console.error('AI error:', err);
@@ -164,6 +171,50 @@ export function NewPostForm() {
       abortRef.current = null;
     }
   }, [title, content]);
+
+  // Auto-generate cover image + replace [IMAGE: ...] placeholders with real images
+  const autoGenerateAllImages = async (articleText: string) => {
+    setGeneratingImage(true);
+    try {
+      // 1. Cover image
+      const coverPrompt = `A professional, eye-catching hero banner for a financial research article about: ${title}. Editorial style, modern, clean.`;
+      const coverUrl = await generateAndUploadImage(coverPrompt);
+      setThumbnailUrl(coverUrl);
+
+      // 2. Replace [IMAGE: ...] placeholders
+      const placeholderRegex = /\[IMAGE:\s*(.+?)\]/g;
+      let match: RegExpExecArray | null;
+      const replacements: { placeholder: string; description: string }[] = [];
+      while ((match = placeholderRegex.exec(articleText)) !== null) {
+        replacements.push({ placeholder: match[0], description: match[1].trim() });
+      }
+
+      let updatedContent = articleText;
+      for (const rep of replacements.slice(0, 3)) {
+        try {
+          const url = await generateAndUploadImage(
+            `Clean, professional illustration for a financial article section about: ${rep.description}. Infographic style, no text overlays.`
+          );
+          const imgId = `img-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+          setInlineImages(prev => [...prev, { id: imgId, url, caption: rep.description }]);
+          updatedContent = updatedContent.replace(
+            rep.placeholder,
+            `![${rep.description}](${url})`
+          );
+        } catch (err) {
+          console.warn('Skipping image placeholder:', err);
+          updatedContent = updatedContent.replace(rep.placeholder, '');
+        }
+      }
+      setContent(updatedContent);
+      toast.success('Article and images generated!');
+    } catch (err: any) {
+      console.error('Image generation error:', err);
+      toast.error('Article written but some images failed to generate');
+    } finally {
+      setGeneratingImage(false);
+    }
+  };
 
   const cancelAi = () => {
     abortRef.current?.abort();
