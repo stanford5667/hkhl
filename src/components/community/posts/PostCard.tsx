@@ -192,6 +192,14 @@ export function PostCard({ post, onVote, onTickerClick, onDelete, compact = fals
           </div>
         </div>
       </div>
+
+      <ShareArticleDialog
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        postId={post.id}
+        postTitle={post.title}
+        postTickers={post.detected_tickers}
+      />
     </div>
   );
 }
