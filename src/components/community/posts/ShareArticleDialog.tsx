@@ -23,7 +23,7 @@ interface ChatRoom {
   member_count: number;
 }
 
-export function ShareArticleDialog({ open, onOpenChange, postId, postTitle, postTickers = [] }: ShareArticleDialogProps) {
+export function ShareArticleDialog({ open, onOpenChange, postId, postTitle }: ShareArticleDialogProps) {
   const { user } = useAuth();
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [loading, setLoading] = useState(false);
