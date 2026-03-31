@@ -23,6 +23,7 @@ export function PostDetailView() {
   const { post, comments, loading, addComment } = usePostDetail(postId ?? null);
   const [commentText, setCommentText] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
 
   const handleSubmitComment = async () => {
     if (!commentText.trim()) return;
