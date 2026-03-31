@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ShareArticleDialog } from './ShareArticleDialog';
 import ReactMarkdown from 'react-markdown';
 import { useNavigate, useParams } from 'react-router-dom';
 import { usePostDetail } from '@/hooks/useResearchPosts';
