@@ -147,7 +147,24 @@ export function PostDetailView() {
           <MessageSquare className="h-4 w-4" />
           <span className="text-sm">{post.comment_count} comments</span>
         </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-1.5 text-muted-foreground hover:text-foreground ml-auto"
+          onClick={() => setShareOpen(true)}
+        >
+          <Share2 className="h-4 w-4" />
+          Share
+        </Button>
       </div>
+
+      <ShareArticleDialog
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        postId={post.id}
+        postTitle={post.title}
+        postTickers={post.detected_tickers}
+      />
 
       {/* Comment input */}
       {isAuthenticated && (
