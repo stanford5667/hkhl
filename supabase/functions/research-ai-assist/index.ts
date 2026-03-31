@@ -35,25 +35,23 @@ serve(async (req) => {
           messages: [
             {
               role: "user",
-         content: `Generate a photograph of: ${prompt}.
+         content: `Generate a split-canvas cover image for a financial research article about: ${prompt}.
 
-STYLE MANDATE — follow exactly:
-- Natural light or diffused studio lighting only. No cinematic lighting, no volumetric lighting, no rim lighting.
-- Muted corporate color palette: navy, slate, charcoal, cream, warm grey. No neon, no hyper-saturated colors.
-- Clean minimalist composition using rule of thirds or architectural grid. Generous negative space.
-- Subtle film grain texture. Shallow depth of field with one clear focal subject.
-- Wall Street Journal / Financial Times / Bloomberg editorial photography aesthetic.
-- The subject must be the LITERAL, PHYSICAL thing described — real objects, real places, real products.
+LAYOUT — follow exactly:
+- The canvas is divided vertically in half.
+- LEFT HALF: A high-quality, photorealistic editorial photograph of the literal physical subject described. Natural light or diffused studio lighting. Shallow depth of field, one clear focal subject. Muted corporate color palette (navy, slate, charcoal, cream, warm grey). Subtle film grain. Reuters / Bloomberg / Wall Street Journal documentary photography aesthetic.
+- RIGHT HALF: A solid dark navy (#1B2A4A) or charcoal (#2C3E50) background with clean, minimal, white sans-serif typographic text. The text should be 2-4 words maximum — a short, punchy headline summary of the subject (e.g. "STRAIT OF HORMUZ", "SEMICONDUCTOR CAPEX", "FED PIVOT TRADE", "SHORT SQUEEZE ALERT"). The typography must look like an institutional research report cover — think Goldman Sachs, McKinsey, or Bloomberg whitepapers. Clean Helvetica or similar sans-serif font. Generous whitespace around the text.
 
-ABSOLUTE BANS — do NOT include any of the following:
+ABSOLUTE BANS:
 - No 3D renders, no CGI, no illustrations, no cartoons, no clip art
 - No glowing effects, no glassmorphism, no floating elements
-- No text, no overlays, no watermarks, no logos, no graphics, no infographics
-- No collages, no split screens, no multiple exposures
+- No watermarks, no logos, no graphics, no infographics, no decorative elements
+- No collages, no multiple exposures, no busy compositions
 - No hyper-realistic "AI look" — no plastic skin, no impossibly perfect surfaces
 - No stock photo poses, no forced smiles, no generic business handshakes
+- No cursive or decorative fonts — only clean sans-serif typography
 
-High-end editorial photography, Wall Street Journal aesthetic, muted corporate color palette (navy, slate, cream), clean composition, deep depth of field, subtle film grain, institutional and authoritative, negative space.`,
+The overall feel must be: institutional, authoritative, minimal, and sophisticated. Like a cover page from a Bridgewater or BlackRock research report.`,
             },
           ],
           modalities: ["image", "text"],

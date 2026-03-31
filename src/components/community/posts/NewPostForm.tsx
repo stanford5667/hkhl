@@ -237,7 +237,7 @@ export function NewPostForm() {
       const subjectHint = tickers.length > 0
         ? `${tickers.join(', ')} companies — ${titleClean}`
         : titleClean || firstContentLine.slice(0, 150);
-      const coverPrompt = `Simple, clean photorealistic DSLR photograph of: ${subjectHint}. Show the LITERAL real-world subject — if about shipping show actual container ships at port, if about oil show actual oil tankers or rigs, if about fertilizer show actual fertilizer plant or grain fields, if about gold show actual gold bars or trading floor. Single clear subject, natural lighting, shallow depth of field, no text, no graphics, no overlays, no collage, no illustration. Reuters/AP documentary photography style.`;
+      const coverPrompt = `${subjectHint}. The photograph side should show the LITERAL real-world subject — if about shipping show actual container ships at port, if about oil show actual oil tankers or rigs, if about fertilizer show actual fertilizer plant or grain fields, if about gold show actual gold bars or trading floor. The text side should display a short 2-4 word headline like "${tickers.length > 0 ? '$' + tickers[0] : titleClean.split(' ').slice(0, 3).join(' ').toUpperCase()}" in clean white sans-serif on dark navy.`;
       const coverUrl = await generateAndUploadImage(coverPrompt);
       setThumbnailUrl(coverUrl);
 
@@ -336,9 +336,11 @@ export function NewPostForm() {
     if (!context.trim()) { toast.error('Add a title or content first so AI knows what to generate'); return; }
     setGeneratingImage(true);
     try {
+      const tickers = (context.match(/\$[A-Z]{1,5}/g) || []).map(t => t.replace('$', ''));
       const subjectForCover = context.replace(/^(why|how|the|a|an)\s+/i, '').replace(/\$([A-Z]+)/g, '$1').slice(0, 200);
+      const headlineHint = tickers.length > 0 ? '$' + tickers[0] : subjectForCover.split(' ').slice(0, 3).join(' ').toUpperCase();
       const publicUrl = await generateAndUploadImage(
-        `Photorealistic editorial photograph directly showing: ${subjectForCover}. Documentary style like Reuters or Bloomberg. Show the actual physical subject — real company headquarters, product, factory, or trading environment. No metaphors, no abstract art, no text overlays.`
+        `${subjectForCover}. The photograph side should show the actual physical subject — real company headquarters, product, factory, or trading environment. The text side should display "${headlineHint}" in clean white sans-serif on dark navy.`
       );
       setThumbnailUrl(publicUrl);
       toast.success('Cover image generated!');
