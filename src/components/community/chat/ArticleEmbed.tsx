@@ -66,7 +66,19 @@ export function ArticleEmbed({ postId }: ArticleEmbedProps) {
     );
   }
 
-  if (!article) return null;
+  if (!article) {
+    return (
+      <div className="mt-2 w-full max-w-sm rounded-lg border border-border/50 bg-muted/30 p-3">
+        <p className="text-xs text-muted-foreground">📊 Shared Research Article</p>
+        <p
+          className="text-xs text-primary cursor-pointer hover:underline mt-1"
+          onClick={() => navigate(`/community/posts/${postId}`)}
+        >
+          View Article →
+        </p>
+      </div>
+    );
+  }
 
   const preview = article.content
     .replace(/^TITLE:.*\n\n?/i, '')
