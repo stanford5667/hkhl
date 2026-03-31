@@ -373,7 +373,6 @@ export function usePostDetail(postId: string | null) {
         }
       }
 
-      if (commentsError) throw commentsError;
 
       // Build comment tree
       const commentMap = new Map<string, PostComment>();
