@@ -176,7 +176,7 @@ const App = () => {
                               <Route path="/terms" element={<Terms />} />
                               <Route path="/disclosures" element={<Disclosures />} />
                               <Route path="/privacy" element={<Privacy />} />
-                              <Route path="/glossary" element={<Glossary />} />
+                              {/* <Route path="/glossary" element={<Glossary />} /> */}
                               <Route path="/theme-analysis" element={<ThemeAnalysis />} />
                               <Route path="/shared/theme/:shareId" element={<SharedThemeAnalysis />} />
                               <Route path="/landing" element={<LandingPage />} />
