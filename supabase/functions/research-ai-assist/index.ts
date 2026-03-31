@@ -109,7 +109,22 @@ NEVER be generic. Every sentence should contain a specific data point, company n
     switch (action) {
       case "full_article":
         systemPrompt = hedgeFundVoice + `\n\nWrite a complete, publication-ready research article. Structure it with:\n\n1. A sharp opening paragraph that states the core thesis and why it matters RIGHT NOW (no header needed)\n2. ## The Setup — what's happening in the market/sector that creates this opportunity\n3. ## The Numbers — specific financial metrics, valuations, comparables\n4. ## The Catalyst — what will unlock value and when\n5. ## Risk Factors — honest bear case with specific risks\n6. ## The Trade — actionable conclusion with bull/bear/base case scenarios\n\nWrite 800-1200 words. Every paragraph must contain specific data. Do NOT wrap in code blocks. Do NOT include the title as a header (it's shown separately). Leave placeholder lines like\n\n[IMAGE: description of a relevant chart or illustration]\n\nafter each major section (2-3 total) — these will be replaced with AI-generated images.`;
-        userPrompt = `Write a hyper-specific hedge fund-style research article about: ${prompt || title}. Generate a compelling, specific title if one isn't provided. Include real ticker symbols, specific metrics, and actionable insights throughout.`;
+        userPrompt = `Write a hyper-specific hedge fund-style research article about: ${prompt || title}. 
+
+TITLE REQUIREMENTS (CRITICAL):
+- The title MUST name the specific company ticker (e.g. $AAPL, $TSLA) or specific asset/sector
+- Include a specific data point, price level, or metric IN the title
+- Format: Start your response with "TITLE: [your title here]" on its own line, then a blank line, then the article body
+- Example good titles: "Why $SOFI at $7.80 Is the Most Asymmetric Fintech Bet in 2024", "$NVDA's 45x P/E Hides a 22% FCF Yield — Here's Why Smart Money Is Still Buying"
+- BAD titles: "Market Analysis Today", "Investment Opportunities in Tech", "The Bull Case"
+
+Also generate specific [IMAGE: ...] placeholders that name CONCRETE physical subjects — not abstract concepts. 
+GOOD: [IMAGE: NVIDIA H100 GPU server rack in a data center]
+BAD: [IMAGE: technology and innovation concept]
+GOOD: [IMAGE: Tesla Gigafactory aerial view in Austin Texas]  
+BAD: [IMAGE: electric vehicle market growth]
+
+Include real ticker symbols, specific metrics, and actionable insights throughout.`;
         break;
       case "expand":
         systemPrompt = hedgeFundVoice + `\n\nExpand the given content into a detailed institutional-quality research article. Add specific financial metrics, comparable analysis, catalyst timelines, and risk/reward frameworks. Use markdown formatting with ## headers, bullet points, and bold text. Do NOT wrap in code blocks.`;

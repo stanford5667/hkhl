@@ -225,7 +225,7 @@ export function NewPostForm() {
       for (const rep of replacements.slice(0, 3)) {
         try {
           const url = await generateAndUploadImage(
-            `Clean, professional illustration for a financial article section about: ${rep.description}. Infographic style, no text overlays.`
+            `Photorealistic editorial photograph directly depicting: ${rep.description}. Documentary DSLR style. Show the ACTUAL physical subject — real objects, real places, real products. No abstract concepts, no metaphors, no illustrations, no text.`
           );
           const imgId = `img-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
           setInlineImages(prev => [...prev, { id: imgId, url, caption: rep.description }]);
