@@ -47,7 +47,7 @@ export function ChatAttachmentButton({ onAttach, disabled }: ChatAttachmentButto
         .from('chat-attachments')
         .getPublicUrl(path);
 
-      const type = file.type.startsWith('image/') ? 'image' : 'file';
+      const type = file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : 'file';
       onAttach(publicUrl, type);
       toast.success('File attached');
     } catch (err: any) {
@@ -64,7 +64,7 @@ export function ChatAttachmentButton({ onAttach, disabled }: ChatAttachmentButto
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*,application/pdf,.doc,.docx,.txt,.csv,.xlsx"
+        accept="image/*,video/*,application/pdf,.doc,.docx,.txt,.csv,.xlsx"
         className="hidden"
         onChange={handleFileSelect}
       />
