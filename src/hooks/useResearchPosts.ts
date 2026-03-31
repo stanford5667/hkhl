@@ -194,14 +194,14 @@ export function useResearchPosts() {
     if (!user) throw new Error('Must be authenticated');
 
     // Try deleting as owner first
-    const { error } = await supabase
+    const { error, count } = await supabase
       .from('research_posts')
-      .delete()
+      .delete({ count: 'exact' })
       .eq('id', postId)
       .eq('user_id', user.id);
 
-    if (error) {
-      // If owner delete fails, try admin delete (RLS policy allows admins)
+    if (error || count === 0) {
+      // If owner delete fails or no rows matched, try admin delete (RLS policy allows admins)
       const { error: adminError } = await supabase
         .from('research_posts')
         .delete()
