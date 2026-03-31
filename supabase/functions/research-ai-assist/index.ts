@@ -125,9 +125,11 @@ Structure:
 5. ## Risk Factors — honest bear case
 6. ## The Trade — actionable conclusion with bull/bear/base case
 
-Write 800-1200 words. Every paragraph must contain specific data. Do NOT wrap in code blocks. Do NOT include the title as a header (it's shown separately). Leave placeholder lines like
+Write 800-1200 words. Every paragraph must contain specific data. Do NOT wrap in code blocks. Do NOT include the title as a header (it's shown separately). Do NOT overuse bold (**) formatting — use it sparingly for key metrics only, not for entire sentences or phrases. Use clean, flowing prose.
 
-[IMAGE: description of a relevant chart or illustration]
+Leave placeholder lines like
+
+[IMAGE: description of a CONCRETE physical subject — e.g. "container ships lined up at a busy port" or "gold bars stacked in a vault" — NO abstract concepts]
 
 after each major section (2-3 total) — these will be replaced with AI-generated images.`;
         userPrompt = `HERE IS MY EXACT INPUT — build the entire article around THIS specific topic/thesis:
