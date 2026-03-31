@@ -379,9 +379,17 @@ export function usePostDetail(postId: string | null) {
       const commentMap = new Map<string, PostComment>();
       const rootComments: PostComment[] = [];
 
-      (commentsData || []).forEach((comment: PostComment) => {
-        comment.replies = [];
-        commentMap.set(comment.id, comment);
+      (commentsData || []).forEach((comment: any) => {
+        const cp = commentProfileMap.get(comment.user_id);
+        const enriched: PostComment = {
+          ...comment,
+          replies: [],
+          user_profile: cp ? {
+            full_name: cp.is_anonymous ? 'Anonymous' : (cp.full_name || null),
+            avatar_url: cp.is_anonymous ? null : (cp.avatar_url || null),
+          } : { full_name: null, avatar_url: null },
+        };
+        commentMap.set(enriched.id, enriched);
       });
 
       (commentsData || []).forEach((comment: PostComment) => {
