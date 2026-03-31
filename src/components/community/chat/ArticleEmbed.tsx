@@ -98,12 +98,13 @@ export function ArticleEmbed({ postId }: ArticleEmbedProps) {
     >
       {/* Thumbnail */}
       <div className="relative aspect-[2.5/1] overflow-hidden">
-        {article.thumbnail_url ? (
+        {article.thumbnail_url && !imgError ? (
           <img
             src={article.thumbnail_url}
             alt={article.title}
             className="w-full h-full object-cover"
             loading="lazy"
+            onError={() => setImgError(true)}
           />
         ) : (
           <div className={cn("w-full h-full bg-gradient-to-br flex items-center justify-center", gradient)}>
