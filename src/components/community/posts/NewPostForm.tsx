@@ -420,7 +420,7 @@ export function NewPostForm() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel className="text-xs text-muted-foreground">Writing Tools</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => runAiAction('full_article')} className="gap-2 text-primary font-medium">
+                <DropdownMenuItem onClick={handleFullArticleGenerate} className="gap-2 text-primary font-medium">
                   <Sparkles className="h-4 w-4" />
                   Generate Full Article
                   <span className="ml-auto text-xs text-muted-foreground">+ images</span>
