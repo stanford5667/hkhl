@@ -5,9 +5,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Copy, Check, Send, MessageSquare, Link2, Twitter } from 'lucide-react';
+import { Check, Send, MessageSquare, Link2, Twitter } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { extractTickers } from '@/utils/tickerParser';
 
 interface ShareArticleDialogProps {
   open: boolean;
@@ -62,9 +61,13 @@ export function ShareArticleDialog({ open, onOpenChange, postId, postTitle, post
 
     setSharing(roomId);
     try {
-      const tickerText = postTickers.length > 0 ? `\n${postTickers.map(t => `$${t}`).join(' ')}` : '';
-      const content = `📊 **Shared Research Article**\n\n**${postTitle}**${tickerText}\n\n🔗 [Read Full Article](${articleUrl})`;
-      const detectedTickers = extractTickers(content);
+      const { data: postData } = await supabase
+        .from('research_posts')
+        .select('thumbnail_url')
+        .eq('id', postId)
+        .maybeSingle();
+
+      const content = `📊 Shared Research Article\n\n${articleUrl}`;
 
       const { error } = await supabase
         .from('chat_messages')
@@ -72,7 +75,9 @@ export function ShareArticleDialog({ open, onOpenChange, postId, postTitle, post
           room_id: roomId,
           user_id: user.id,
           content,
-          detected_tickers: detectedTickers,
+          detected_tickers: [],
+          attachment_type: postData?.thumbnail_url ? 'image' : null,
+          attachment_url: postData?.thumbnail_url || null,
         });
 
       if (error) throw error;

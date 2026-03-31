@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 
 interface ArticleEmbedProps {
   postId: string;
+  fallbackThumbnailUrl?: string | null;
 }
 
 interface ArticleData {
@@ -29,11 +30,15 @@ const gradients = [
   'from-orange-600/80 to-amber-500/80',
 ];
 
-export function ArticleEmbed({ postId }: ArticleEmbedProps) {
+export function ArticleEmbed({ postId, fallbackThumbnailUrl = null }: ArticleEmbedProps) {
   const navigate = useNavigate();
   const [article, setArticle] = useState<ArticleData | null>(null);
   const [loading, setLoading] = useState(true);
   const [imgError, setImgError] = useState(false);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [postId, fallbackThumbnailUrl]);
 
   useEffect(() => {
     const fetchArticle = async () => {
@@ -66,36 +71,28 @@ export function ArticleEmbed({ postId }: ArticleEmbedProps) {
     );
   }
 
-  if (!article) {
-    return (
-      <div className="mt-2 w-full max-w-sm rounded-lg border border-border/50 bg-muted/30 p-3">
-        <p className="text-xs text-muted-foreground">📊 Shared Research Article</p>
-        <p
-          className="text-xs text-primary cursor-pointer hover:underline mt-1"
-          onClick={() => navigate(`/community/posts/${postId}`)}
-        >
-          View Article →
-        </p>
-      </div>
-    );
-  }
+  const articleId = article?.id || postId;
+  const title = article?.title || 'Research Article';
+  const thumbnailUrl = article?.thumbnail_url || fallbackThumbnailUrl;
+  const detectedTickers = article?.detected_tickers || [];
+  const preview = article
+    ? article.content
+        .replace(/^TITLE:.*\n\n?/i, '')
+        .replace(/^#{1,6}\s+.*$/gm, '')
+        .replace(/!\[.*?\]\(.*?\)/g, '')
+        .replace(/\[IMAGE:.*?\]/g, '')
+        .replace(/\*\*(.+?)\*\*/g, '$1')
+        .replace(/\*(.+?)\*/g, '$1')
+        .replace(/`(.+?)`/g, '$1')
+        .replace(/\[(.+?)\]\(.*?\)/g, '$1')
+        .replace(/^\s*[-*]\s+/gm, '')
+        .replace(/\n{2,}/g, ' ')
+        .replace(/\n/g, ' ')
+        .trim()
+        .slice(0, 120)
+    : 'Open this shared research article from the community feed.';
 
-  const preview = article.content
-    .replace(/^TITLE:.*\n\n?/i, '')
-    .replace(/^#{1,6}\s+.*$/gm, '')
-    .replace(/!\[.*?\]\(.*?\)/g, '')
-    .replace(/\[IMAGE:.*?\]/g, '')
-    .replace(/\*\*(.+?)\*\*/g, '$1')
-    .replace(/\*(.+?)\*/g, '$1')
-    .replace(/`(.+?)`/g, '$1')
-    .replace(/\[(.+?)\]\(.*?\)/g, '$1')
-    .replace(/^\s*[-*]\s+/gm, '')
-    .replace(/\n{2,}/g, ' ')
-    .replace(/\n/g, ' ')
-    .trim()
-    .slice(0, 120);
-
-  const gradient = gradients[article.id.charCodeAt(0) % gradients.length];
+  const gradient = gradients[articleId.charCodeAt(0) % gradients.length];
 
   return (
     <div
@@ -105,15 +102,15 @@ export function ArticleEmbed({ postId }: ArticleEmbedProps) {
       )}
       onClick={(e) => {
         e.stopPropagation();
-        navigate(`/community/posts/${article.id}`);
+        navigate(`/community/posts/${articleId}`);
       }}
     >
       {/* Thumbnail */}
       <div className="relative aspect-[2.5/1] overflow-hidden">
-        {article.thumbnail_url && !imgError ? (
+        {thumbnailUrl && !imgError ? (
           <img
-            src={article.thumbnail_url}
-            alt={article.title}
+            src={thumbnailUrl}
+            alt={title}
             className="w-full h-full object-cover"
             loading="lazy"
             onError={() => setImgError(true)}
@@ -125,9 +122,9 @@ export function ArticleEmbed({ postId }: ArticleEmbedProps) {
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
 
-        {article.detected_tickers.length > 0 && (
+        {detectedTickers.length > 0 && (
           <div className="absolute top-1.5 right-1.5 flex gap-1">
-            {article.detected_tickers.slice(0, 3).map((t) => (
+            {detectedTickers.slice(0, 3).map((t) => (
               <Badge
                 key={t}
                 className="bg-black/60 backdrop-blur-sm text-white border-0 text-[9px] px-1 py-0"
@@ -141,7 +138,7 @@ export function ArticleEmbed({ postId }: ArticleEmbedProps) {
 
       {/* Info */}
       <div className="p-2.5 space-y-1">
-        <p className="text-xs font-semibold leading-tight line-clamp-2">{article.title}</p>
+        <p className="text-xs font-semibold leading-tight line-clamp-2">{title}</p>
         <p className="text-[11px] text-muted-foreground line-clamp-2">{preview}...</p>
         <p className="text-[10px] text-primary font-medium pt-0.5">📊 Read Full Research Article →</p>
       </div>
