@@ -478,13 +478,36 @@ export function NewPostForm() {
               />
             </div>
 
+            {/* One-click full article generator */}
+            {!content.trim() && (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full gap-2 border-primary/30 text-primary hover:bg-primary/10 h-12"
+                disabled={aiLoading || generatingImage || !title.trim()}
+                onClick={() => runAiAction('full_article')}
+              >
+                {(aiLoading && aiAction === 'full_article') || generatingImage ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {generatingImage ? 'Generating images...' : 'Writing article...'}
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4" />
+                    Generate Full Article from Title
+                  </>
+                )}
+              </Button>
+            )}
+
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label htmlFor="content" className="text-sm font-medium">Content</label>
                 {aiLoading && (
                   <span className="text-xs text-primary flex items-center gap-1.5">
                     <Loader2 className="h-3 w-3 animate-spin" />
-                    AI is {aiAction === 'outline' ? 'generating outline' : aiAction === 'expand' ? 'expanding' : aiAction === 'continue' ? 'writing' : aiAction === 'improve' ? 'improving' : 'summarizing'}...
+                    AI is {aiAction === 'full_article' ? 'generating full article' : aiAction === 'outline' ? 'generating outline' : aiAction === 'expand' ? 'expanding' : aiAction === 'continue' ? 'writing' : aiAction === 'improve' ? 'improving' : 'summarizing'}...
                   </span>
                 )}
               </div>
