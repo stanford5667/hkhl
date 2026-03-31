@@ -108,23 +108,39 @@ NEVER be generic. Every sentence should contain a specific data point, company n
 
     switch (action) {
       case "full_article":
-        systemPrompt = hedgeFundVoice + `\n\nWrite a complete, publication-ready research article. Structure it with:\n\n1. A sharp opening paragraph that states the core thesis and why it matters RIGHT NOW (no header needed)\n2. ## The Setup — what's happening in the market/sector that creates this opportunity\n3. ## The Numbers — specific financial metrics, valuations, comparables\n4. ## The Catalyst — what will unlock value and when\n5. ## Risk Factors — honest bear case with specific risks\n6. ## The Trade — actionable conclusion with bull/bear/base case scenarios\n\nWrite 800-1200 words. Every paragraph must contain specific data. Do NOT wrap in code blocks. Do NOT include the title as a header (it's shown separately). Leave placeholder lines like\n\n[IMAGE: description of a relevant chart or illustration]\n\nafter each major section (2-3 total) — these will be replaced with AI-generated images.`;
-        userPrompt = `Write a hyper-specific hedge fund-style research article about: ${prompt || title}. 
+        systemPrompt = hedgeFundVoice + `\n\nYou are writing a research article based DIRECTLY on the user's input. Your #1 job is to deeply honor and expand on EXACTLY what the user wrote — their specific thesis, angle, tickers, claims, and perspective.
 
-TITLE REQUIREMENTS (CRITICAL):
-- The title MUST name the specific company ticker (e.g. $AAPL, $TSLA) or specific asset/sector
-- Include a specific data point, price level, or metric IN the title
-- Format: Start your response with "TITLE: [your title here]" on its own line, then a blank line, then the article body
-- Example good titles: "Why $SOFI at $7.80 Is the Most Asymmetric Fintech Bet in 2024", "$NVDA's 45x P/E Hides a 22% FCF Yield — Here's Why Smart Money Is Still Buying"
-- BAD titles: "Market Analysis Today", "Investment Opportunities in Tech", "The Bull Case"
+CRITICAL RULES:
+- The user's input IS the thesis. Do NOT substitute your own topic or angle.
+- If the user mentions specific tickers, companies, or sectors — those MUST be the focus. Do NOT pivot to different tickers.
+- If the user makes a specific claim (e.g. "NVDA is overvalued"), build the article around THAT claim with supporting data.
+- Expand the user's ideas with institutional-grade data, metrics, and analysis — but never replace their core thesis.
+- If the user's input is brief (e.g. just a ticker or topic), then you have creative freedom to build a thesis, but it must be tightly about that exact subject.
 
-Also generate specific [IMAGE: ...] placeholders that name CONCRETE physical subjects — not abstract concepts. 
-GOOD: [IMAGE: NVIDIA H100 GPU server rack in a data center]
-BAD: [IMAGE: technology and innovation concept]
-GOOD: [IMAGE: Tesla Gigafactory aerial view in Austin Texas]  
-BAD: [IMAGE: electric vehicle market growth]
+Structure:
+1. A sharp opening paragraph restating the user's thesis with conviction (no header needed)
+2. ## The Setup — context for the user's specific thesis
+3. ## The Numbers — financial metrics supporting/challenging the user's angle
+4. ## The Catalyst — what will prove the user's thesis right or wrong
+5. ## Risk Factors — honest bear case
+6. ## The Trade — actionable conclusion with bull/bear/base case
 
-Include real ticker symbols, specific metrics, and actionable insights throughout.`;
+Write 800-1200 words. Every paragraph must contain specific data. Do NOT wrap in code blocks. Do NOT include the title as a header (it's shown separately). Leave placeholder lines like
+
+[IMAGE: description of a relevant chart or illustration]
+
+after each major section (2-3 total) — these will be replaced with AI-generated images.`;
+        userPrompt = `HERE IS MY EXACT INPUT — build the entire article around THIS specific topic/thesis:
+
+"${prompt || title}"
+
+CRITICAL: Your article MUST be about exactly what I wrote above. The title must reference the specific tickers/topics I mentioned. Do NOT change the subject. Expand on MY thesis with hedge fund-grade data and analysis.
+
+Format: Start your response with "TITLE: [title that reflects MY specific input]" on its own line, then a blank line, then the article body.
+
+Title must include the specific ticker or subject from my input. Example: if I wrote "NVDA earnings play", the title must be about NVDA, not about AI stocks generally.
+
+Include [IMAGE: ...] placeholders with CONCRETE physical subjects related to my specific topic.`;
         break;
       case "expand":
         systemPrompt = hedgeFundVoice + `\n\nExpand the given content into a detailed institutional-quality research article. Add specific financial metrics, comparable analysis, catalyst timelines, and risk/reward frameworks. Use markdown formatting with ## headers, bullet points, and bold text. Do NOT wrap in code blocks.`;
