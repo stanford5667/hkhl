@@ -35,7 +35,7 @@ export function useChatRooms() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAdmin]);
 
   useEffect(() => {
     fetchRooms();
