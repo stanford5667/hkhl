@@ -48,8 +48,12 @@ export function ArticleEmbed({ postId, fallbackThumbnailUrl = null }: ArticleEmb
           .select('id, title, content, thumbnail_url, detected_tickers, upvotes, downvotes, comment_count, created_at, user_id')
           .eq('id', postId)
           .maybeSingle();
-        if (error) console.error('ArticleEmbed fetch error:', error);
-        setArticle(data);
+        if (error) {
+          console.error('ArticleEmbed fetch error:', error);
+        }
+        if (data) {
+          setArticle(data);
+        }
       } catch (err) {
         console.error('ArticleEmbed error:', err);
       } finally {
