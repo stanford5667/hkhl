@@ -35,7 +35,7 @@ serve(async (req) => {
           messages: [
             {
               role: "user",
-              content: `Generate a professional, editorial-quality image for a financial research article. The image should be: ${prompt}. Make it clean, modern, and suitable for an investment research publication. No text overlays.`,
+              content: `Generate an image with a split-canvas layout divided perfectly in half vertically. The left half is a high-quality, cinematic photograph related to: ${prompt}. The right half is a solid deep navy blue (#0F172A) background. The photo half should be vivid, sharp, and editorial-quality. The solid color half should be completely clean with no text or elements. Make it modern, premium, and suitable for a financial research publication.`,
             },
           ],
           modalities: ["image", "text"],
