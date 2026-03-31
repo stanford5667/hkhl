@@ -64,7 +64,7 @@ export function ChatAttachmentButton({ onAttach, disabled }: ChatAttachmentButto
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*,application/pdf,.doc,.docx,.txt,.csv,.xlsx"
+        accept="image/*,video/*,application/pdf,.doc,.docx,.txt,.csv,.xlsx"
         className="hidden"
         onChange={handleFileSelect}
       />
