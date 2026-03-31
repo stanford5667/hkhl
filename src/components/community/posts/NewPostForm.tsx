@@ -146,19 +146,40 @@ export function NewPostForm() {
         { action, content, title: title || effectivePrompt, prompt: effectivePrompt },
         (delta) => {
           accumulated += delta;
+          // Strip TITLE: prefix from displayed content
+          let displayContent = accumulated;
+          const titleLineMatch = displayContent.match(/^TITLE:\s*(.+)\n\n?/);
+          if (titleLineMatch) {
+            displayContent = displayContent.slice(titleLineMatch[0].length);
+          }
           if (action === 'continue') {
-            setContent(content + accumulated);
+            setContent(content + displayContent);
           } else {
-            setContent(accumulated);
+            setContent(displayContent);
           }
         },
         () => {},
         controller.signal,
       );
 
-      // Auto-generate title if empty
-      if (!title.trim() && accumulated.length > 0) {
-        // Extract first heading or first sentence as title
+      // Extract title from TITLE: prefix if present
+      if (action === 'full_article') {
+        const titleLineMatch = accumulated.match(/^TITLE:\s*(.+)\n/);
+        if (titleLineMatch) {
+          setTitle(titleLineMatch[1].trim().slice(0, 200));
+          // Remove TITLE: line from content
+          accumulated = accumulated.slice(titleLineMatch[0].length).replace(/^\n+/, '');
+          setContent(accumulated);
+        } else if (!title.trim() && accumulated.length > 0) {
+          const headingMatch = accumulated.match(/^##?\s+(.+)$/m);
+          if (headingMatch) {
+            setTitle(headingMatch[1].trim().slice(0, 200));
+          } else {
+            const firstSentence = accumulated.split(/[.\n]/)[0]?.trim();
+            if (firstSentence) setTitle(firstSentence.slice(0, 200));
+          }
+        }
+      } else if (!title.trim() && accumulated.length > 0) {
         const headingMatch = accumulated.match(/^##?\s+(.+)$/m);
         if (headingMatch) {
           setTitle(headingMatch[1].trim().slice(0, 200));
@@ -207,7 +228,9 @@ export function NewPostForm() {
     setGeneratingImage(true);
     try {
       // 1. Cover image
-      const coverPrompt = `A professional, eye-catching hero banner for a financial research article about: ${title}. Editorial style, modern, clean.`;
+      // Extract the core subject for a specific cover image
+      const subjectForCover = title.replace(/^(why|how|the|a|an)\s+/i, '').replace(/\$([A-Z]+)/g, '$1').slice(0, 200);
+      const coverPrompt = `Photorealistic editorial photograph directly showing: ${subjectForCover}. Documentary style like Reuters or Bloomberg. Show the actual physical subject — the real company headquarters, product, factory, or trading environment. No metaphors, no abstract art, no text overlays.`;
       const coverUrl = await generateAndUploadImage(coverPrompt);
       setThumbnailUrl(coverUrl);
 
@@ -223,7 +246,7 @@ export function NewPostForm() {
       for (const rep of replacements.slice(0, 3)) {
         try {
           const url = await generateAndUploadImage(
-            `Clean, professional illustration for a financial article section about: ${rep.description}. Infographic style, no text overlays.`
+            `Photorealistic editorial photograph directly depicting: ${rep.description}. Documentary DSLR style. Show the ACTUAL physical subject — real objects, real places, real products. No abstract concepts, no metaphors, no illustrations, no text.`
           );
           const imgId = `img-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
           setInlineImages(prev => [...prev, { id: imgId, url, caption: rep.description }]);
@@ -306,8 +329,9 @@ export function NewPostForm() {
     if (!context.trim()) { toast.error('Add a title or content first so AI knows what to generate'); return; }
     setGeneratingImage(true);
     try {
+      const subjectForCover = context.replace(/^(why|how|the|a|an)\s+/i, '').replace(/\$([A-Z]+)/g, '$1').slice(0, 200);
       const publicUrl = await generateAndUploadImage(
-        `A professional, eye-catching cover image/hero banner for a financial research article about: ${context}. Editorial style, modern, clean composition.`
+        `Photorealistic editorial photograph directly showing: ${subjectForCover}. Documentary style like Reuters or Bloomberg. Show the actual physical subject — real company headquarters, product, factory, or trading environment. No metaphors, no abstract art, no text overlays.`
       );
       setThumbnailUrl(publicUrl);
       toast.success('Cover image generated!');
