@@ -35,16 +35,22 @@ export function ArticleEmbed({ postId }: ArticleEmbedProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetch = async () => {
-      const { data } = await supabase
-        .from('research_posts')
-        .select('id, title, content, thumbnail_url, detected_tickers, upvotes, downvotes, comment_count, created_at, user_id')
-        .eq('id', postId)
-        .single();
-      setArticle(data);
-      setLoading(false);
+    const fetchArticle = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('research_posts')
+          .select('id, title, content, thumbnail_url, detected_tickers, upvotes, downvotes, comment_count, created_at, user_id')
+          .eq('id', postId)
+          .maybeSingle();
+        if (error) console.error('ArticleEmbed fetch error:', error);
+        setArticle(data);
+      } catch (err) {
+        console.error('ArticleEmbed error:', err);
+      } finally {
+        setLoading(false);
+      }
     };
-    fetch();
+    fetchArticle();
   }, [postId]);
 
   if (loading) {
