@@ -361,11 +361,21 @@ export function NewPostForm() {
                   Summarize
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-xs text-muted-foreground">Media</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => setImageDialogOpen(true)} className="gap-2">
+                <DropdownMenuLabel className="text-xs text-muted-foreground">Images</DropdownMenuLabel>
+                <DropdownMenuItem onClick={handleGenerateCoverImage} disabled={generatingImage} className="gap-2">
+                  <ImagePlus className="h-4 w-4" />
+                  Generate Cover Image
+                  <span className="ml-auto text-xs text-muted-foreground">from context</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setImageDialogOpen(true)} disabled={generatingImage} className="gap-2">
                   <ImageIcon className="h-4 w-4" />
-                  Generate AI Image
-                  <span className="ml-auto text-xs text-muted-foreground">inline</span>
+                  Generate Custom Image
+                  <span className="ml-auto text-xs text-muted-foreground">describe it</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleAutoGenerateImages} disabled={generatingImage} className="gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  Auto-Generate Images
+                  <span className="ml-auto text-xs text-muted-foreground">from article</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
