@@ -9,6 +9,7 @@ export function useChatRooms() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+  const { isAdmin } = useAdmin();
 
   const fetchRooms = useCallback(async () => {
     try {
