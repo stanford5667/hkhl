@@ -38,8 +38,8 @@ serve(async (req) => {
 
     for (const ticker of tickers) {
       try {
-        // Use hourly bars over 5 days for better granularity
-        const url = `https://api.polygon.io/v2/aggs/ticker/${ticker}/range/1/hour/${fromDate}/${toDate}?adjusted=true&sort=desc&limit=120&apiKey=${POLYGON_API_KEY}`;
+        // Use daily bars over 30 days to find volume spikes
+        const url = `https://api.polygon.io/v2/aggs/ticker/${ticker}/range/1/day/${fromDate}/${toDate}?adjusted=true&sort=desc&limit=30&apiKey=${POLYGON_API_KEY}`;
         const res = await fetch(url);
 
         if (!res.ok) {
