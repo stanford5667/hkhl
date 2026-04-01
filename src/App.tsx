@@ -78,6 +78,7 @@ const SmsConsent = lazy(() => import('./pages/SmsConsent'));
 const SimTrading = lazy(() => import('./pages/SimTrading'));
 const MyResearch = lazy(() => import('./pages/MyResearch'));
 const OptionsAnalyzerPage = lazy(() => import('./pages/OptionsAnalyzer'));
+const SmartMoney = lazy(() => import('./pages/SmartMoney'));
 const EliteOnboarding = lazy(() => import('./pages/EliteOnboarding'));
 const EliteDashboard = lazy(() => import('./pages/EliteDashboard'));
 const ElitePortfolio = lazy(() => import('./pages/ElitePortfolio'));
