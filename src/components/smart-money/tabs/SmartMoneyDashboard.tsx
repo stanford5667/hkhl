@@ -30,6 +30,7 @@ function StatCard({ title, value, subtitle, icon: Icon, loading }: {
 
 export function SmartMoneyDashboard() {
   const today = format(new Date(), 'yyyy-MM-dd');
+  console.log('[SmartMoneyDashboard] Rendering, today:', today);
 
   const { data: insiderStats, isLoading: insidersLoading } = useQuery({
     queryKey: ['smart-money-insider-stats'],
