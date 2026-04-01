@@ -107,7 +107,10 @@ export function SmartMoneyLeaderboards() {
                 {topFunds.map((fund: any, i: number) => (
                   <div key={i} className="flex items-center gap-3 py-2 border-b border-border last:border-0">
                     <span className="text-lg font-bold text-muted-foreground w-6">{i + 1}</span>
-                    <p className="text-sm font-medium flex-1 truncate">{fund.fund_name}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{fund.fund_name}</p>
+                      <p className="text-xs text-muted-foreground">{fund.ticker || fund.company_name?.slice(0, 30) || ''}</p>
+                    </div>
                     <span className="text-sm font-medium">
                       ${fund.value ? (fund.value / 1e9).toFixed(2) : '0'}B
                     </span>
