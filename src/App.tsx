@@ -199,6 +199,7 @@ const App = () => {
                               <Route path="/elite-onboarding" element={<EliteGuard><EliteOnboarding /></EliteGuard>} />
                               <Route path="/elite-dashboard" element={<EliteGuard><EliteDashboard /></EliteGuard>} />
                               <Route path="/elite-portfolio" element={<EliteGuard><ElitePortfolio /></EliteGuard>} />
+                              <Route path="/unsubscribe" element={<Unsubscribe />} />
                               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                               <Route path="*" element={<NotFound />} />
                             </Routes>
