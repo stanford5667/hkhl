@@ -22,7 +22,9 @@ const navItems: { id: SmartMoneyTab; label: string; icon: React.ElementType; adm
 
 export function SmartMoneySidebar() {
   const { activeTab, setActiveTab, sidebarCollapsed, setSidebarCollapsed } = useSmartMoneyStore();
-  const { isAdmin } = useAdmin();
+  const { isAdmin, loading: adminLoading } = useAdmin();
+
+  console.log('[SmartMoneySidebar] isAdmin:', isAdmin, 'adminLoading:', adminLoading);
 
   return (
     <div className={cn(
