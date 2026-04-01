@@ -5,8 +5,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-const GATEWAY_URL = 'https://connector-gateway.lovable.dev/twilio';
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -35,7 +33,6 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (!senderRole) {
-      // Sender is not an admin, skip notifications
       return new Response(JSON.stringify({ success: true, notified: 0, reason: 'sender_not_admin' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -44,7 +41,7 @@ Deno.serve(async (req) => {
     // Get room info
     const { data: room } = await supabase
       .from('chat_rooms')
-      .select('name, icon')
+      .select('name, icon, slug')
       .eq('id', roomId)
       .single();
 
@@ -57,7 +54,9 @@ Deno.serve(async (req) => {
 
     const senderName = senderProfile?.full_name || 'Admin';
     const roomName = room?.name || 'a chat room';
-    const truncatedContent = content?.length > 100 ? content.substring(0, 100) + '...' : (content || 'New message');
+    const roomIcon = room?.icon || '💬';
+    const truncatedContent = content?.length > 200 ? content.substring(0, 200) + '...' : (content || 'New message');
+    const roomUrl = room?.slug ? `https://assetlabs.ai/community/chat/${roomId}` : `https://assetlabs.ai/community`;
 
     // Get all users who have notification preferences for this room
     const { data: prefs } = await supabase
@@ -75,56 +74,50 @@ Deno.serve(async (req) => {
     const recipients = prefs.filter(p => p.user_id !== senderId);
     let notified = 0;
 
+    const GATEWAY_URL = 'https://connector-gateway.lovable.dev/twilio';
+
     for (const pref of recipients) {
       // In-app notification
       if (pref.in_app) {
         await supabase.from('user_notifications').insert({
           user_id: pref.user_id,
           type: 'chat_message',
-          title: `${room?.icon || '💬'} Admin update in ${roomName}`,
+          title: `${roomIcon} Admin update in ${roomName}`,
           message: `${senderName}: ${truncatedContent}`,
           metadata: { room_id: roomId, message_id: messageId },
         });
         notified++;
       }
 
-      // Email notification via Loops
+      // Email notification via Lovable transactional email
       if (pref.email) {
-        const LOOPS_API_KEY = Deno.env.get('LOOPS_API_KEY');
-        if (LOOPS_API_KEY) {
-          const { data: userData } = await supabase.auth.admin.getUserById(pref.user_id);
-          if (userData?.user?.email) {
-            try {
-              const loopsRes = await fetch('https://app.loops.so/api/v1/transactional', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${LOOPS_API_KEY}`,
+        const { data: userData } = await supabase.auth.admin.getUserById(pref.user_id);
+        if (userData?.user?.email) {
+          try {
+            const { error: emailError } = await supabase.functions.invoke('send-transactional-email', {
+              body: {
+                templateName: 'chat-notification',
+                recipientEmail: userData.user.email,
+                idempotencyKey: `chat-notify-${messageId}-${pref.user_id}`,
+                templateData: {
+                  roomName,
+                  roomIcon,
+                  senderName,
+                  messagePreview: truncatedContent,
+                  roomUrl,
                 },
-                body: JSON.stringify({
-                  email: userData.user.email,
-                  transactionalId: Deno.env.get('LOOPS_CHAT_NOTIFICATION_TEMPLATE_ID') || '',
-                  dataVariables: {
-                    roomName: `${room?.icon || '💬'} ${roomName}`,
-                    senderName,
-                    messagePreview: truncatedContent,
-                  },
-                }),
-              });
+              },
+            });
 
-              const loopsData = await loopsRes.json();
-              if (!loopsRes.ok || !loopsData.success) {
-                console.error(`Loops email failed:`, loopsData);
-              } else {
-                console.log(`Email sent to ${userData.user.email} via Loops`);
-                notified++;
-              }
-            } catch (emailErr) {
-              console.error('Error sending email notification:', emailErr);
+            if (emailError) {
+              console.error(`Email send failed for ${userData.user.email}:`, emailError);
+            } else {
+              console.log(`Email queued for ${userData.user.email}`);
+              notified++;
             }
+          } catch (emailErr) {
+            console.error('Error sending email notification:', emailErr);
           }
-        } else {
-          console.warn('LOOPS_API_KEY not configured, skipping email notification');
         }
       }
 
@@ -163,7 +156,7 @@ Deno.serve(async (req) => {
                   body: new URLSearchParams({
                     To: profile.phone,
                     From: fromNumber,
-                    Body: `${room?.icon || '💬'} Admin update in ${roomName}: ${senderName}: ${truncatedContent}`,
+                    Body: `${roomIcon} Admin update in ${roomName}: ${senderName}: ${truncatedContent}`,
                   }),
                 });
 
