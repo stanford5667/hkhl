@@ -3,14 +3,16 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Search } from "lucide-react";
 import { format } from "date-fns";
+import { SortableTableHead, useSort, sortData } from "../SortableTableHead";
 
 export function BlockTradesFeed() {
   const [search, setSearch] = useState("");
+  const { sort, onSort } = useSort("trade_time");
 
   const { data, isLoading } = useQuery({
     queryKey: ['smart-money-block-trades-full', search],
@@ -26,8 +28,10 @@ export function BlockTradesFeed() {
       const { data } = await query;
       return data || [];
     },
-    refetchInterval: 30000, // Refresh every 30s
+    refetchInterval: 30000,
   });
+
+  const sorted = sortData(data || [], sort);
 
   return (
     <div className="space-y-4">
@@ -49,21 +53,21 @@ export function BlockTradesFeed() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-4 space-y-2">{[...Array(8)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
-          ) : data && data.length > 0 ? (
+          ) : sorted.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Ticker</TableHead>
-                  <TableHead>Side</TableHead>
-                  <TableHead className="text-right">Shares</TableHead>
-                  <TableHead className="text-right">Price</TableHead>
-                  <TableHead className="text-right">Total Value</TableHead>
-                  <TableHead>Exchange</TableHead>
-                  <TableHead>Time</TableHead>
+                  <SortableTableHead column="ticker" label="Ticker" sort={sort} onSort={onSort} />
+                  <SortableTableHead column="side" label="Side" sort={sort} onSort={onSort} />
+                  <SortableTableHead column="shares" label="Shares" sort={sort} onSort={onSort} className="text-right" />
+                  <SortableTableHead column="price" label="Price" sort={sort} onSort={onSort} className="text-right" />
+                  <SortableTableHead column="total_value" label="Total Value" sort={sort} onSort={onSort} className="text-right" />
+                  <SortableTableHead column="exchange" label="Exchange" sort={sort} onSort={onSort} />
+                  <SortableTableHead column="trade_time" label="Time" sort={sort} onSort={onSort} />
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data.map((t) => (
+                {sorted.map((t) => (
                   <TableRow key={t.id}>
                     <TableCell className="font-medium">{t.ticker}</TableCell>
                     <TableCell>

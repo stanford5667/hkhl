@@ -4,15 +4,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Search } from "lucide-react";
 import { format } from "date-fns";
+import { SortableTableHead, useSort, sortData } from "../SortableTableHead";
 
 export function OptionsFlowDashboard() {
   const [search, setSearch] = useState("");
   const [sentiment, setSentiment] = useState("all");
+  const { sort, onSort } = useSort("created_at");
 
   const { data, isLoading } = useQuery({
     queryKey: ['smart-money-options-flow', search, sentiment],
@@ -30,6 +32,8 @@ export function OptionsFlowDashboard() {
       return data || [];
     },
   });
+
+  const sorted = sortData(data || [], sort);
 
   return (
     <div className="space-y-4">
@@ -60,23 +64,23 @@ export function OptionsFlowDashboard() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-4 space-y-2">{[...Array(8)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
-          ) : data && data.length > 0 ? (
+          ) : sorted.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Ticker</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Strike</TableHead>
-                  <TableHead>Expiry</TableHead>
-                  <TableHead className="text-right">Premium</TableHead>
-                  <TableHead className="text-right">Volume</TableHead>
-                  <TableHead className="text-right">OI</TableHead>
-                  <TableHead>Sentiment</TableHead>
-                  <TableHead>Time</TableHead>
+                  <SortableTableHead column="ticker" label="Ticker" sort={sort} onSort={onSort} />
+                  <SortableTableHead column="contract_type" label="Type" sort={sort} onSort={onSort} />
+                  <SortableTableHead column="strike" label="Strike" sort={sort} onSort={onSort} />
+                  <SortableTableHead column="expiration" label="Expiry" sort={sort} onSort={onSort} />
+                  <SortableTableHead column="premium" label="Premium" sort={sort} onSort={onSort} className="text-right" />
+                  <SortableTableHead column="volume" label="Volume" sort={sort} onSort={onSort} className="text-right" />
+                  <SortableTableHead column="open_interest" label="OI" sort={sort} onSort={onSort} className="text-right" />
+                  <SortableTableHead column="sentiment" label="Sentiment" sort={sort} onSort={onSort} />
+                  <SortableTableHead column="trade_time" label="Time" sort={sort} onSort={onSort} />
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data.map((o) => (
+                {sorted.map((o) => (
                   <TableRow key={o.id}>
                     <TableCell className="font-medium">{o.ticker}</TableCell>
                     <TableCell>
