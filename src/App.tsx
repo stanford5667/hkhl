@@ -81,6 +81,7 @@ const OptionsAnalyzerPage = lazy(() => import('./pages/OptionsAnalyzer'));
 const EliteOnboarding = lazy(() => import('./pages/EliteOnboarding'));
 const EliteDashboard = lazy(() => import('./pages/EliteDashboard'));
 const ElitePortfolio = lazy(() => import('./pages/ElitePortfolio'));
+const Unsubscribe = lazy(() => import('./pages/Unsubscribe'));
 import { EliteGuard } from '@/components/elite-assessment/EliteGuard';
 
 // Optimized QueryClient with aggressive caching and deduplication
@@ -198,6 +199,7 @@ const App = () => {
                               <Route path="/elite-onboarding" element={<EliteGuard><EliteOnboarding /></EliteGuard>} />
                               <Route path="/elite-dashboard" element={<EliteGuard><EliteDashboard /></EliteGuard>} />
                               <Route path="/elite-portfolio" element={<EliteGuard><ElitePortfolio /></EliteGuard>} />
+                              <Route path="/unsubscribe" element={<Unsubscribe />} />
                               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                               <Route path="*" element={<NotFound />} />
                             </Routes>
