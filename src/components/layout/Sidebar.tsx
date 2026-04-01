@@ -62,6 +62,7 @@ import {
   CreditCard,
   Flame,
   Globe,
+  Fish,
 } from "lucide-react";
 
 interface NavItem {
@@ -134,6 +135,12 @@ export function Sidebar() {
         href: "/academy", 
         icon: BookOpen 
       },
+      ...(isAdmin ? [{
+        label: "Smart Money",
+        subtitle: "Insiders & Block Trades",
+        href: "/smart-money",
+        icon: Fish,
+      }] : []),
       // { 
       //   label: "Swipe Stocks", 
       //   subtitle: "Discover & Like",
