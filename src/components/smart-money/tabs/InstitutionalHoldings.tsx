@@ -3,13 +3,15 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Search, TrendingUp, TrendingDown } from "lucide-react";
+import { SortableTableHead, useSort, sortData } from "../SortableTableHead";
 
 export function InstitutionalHoldings() {
   const [search, setSearch] = useState("");
+  const { sort, onSort } = useSort("filing_date");
 
   const { data, isLoading } = useQuery({
     queryKey: ['smart-money-institutional', search],
@@ -28,6 +30,8 @@ export function InstitutionalHoldings() {
       return data || [];
     },
   });
+
+  const sorted = sortData(data || [], sort);
 
   const formatValue = (val?: number | null) => {
     if (!val) return '—';
@@ -56,21 +60,21 @@ export function InstitutionalHoldings() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-4 space-y-2">{[...Array(8)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
-          ) : data && data.length > 0 ? (
+          ) : sorted.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Fund</TableHead>
-                  <TableHead>Ticker</TableHead>
-                  <TableHead className="text-right">Shares</TableHead>
-                  <TableHead className="text-right">Value</TableHead>
-                  <TableHead className="text-right">Change</TableHead>
-                  <TableHead className="text-right">Weight</TableHead>
-                  <TableHead>Filing Date</TableHead>
+                  <SortableTableHead column="fund_name" label="Fund" sort={sort} onSort={onSort} />
+                  <SortableTableHead column="ticker" label="Ticker" sort={sort} onSort={onSort} />
+                  <SortableTableHead column="shares" label="Shares" sort={sort} onSort={onSort} className="text-right" />
+                  <SortableTableHead column="value" label="Value" sort={sort} onSort={onSort} className="text-right" />
+                  <SortableTableHead column="change_pct" label="Change" sort={sort} onSort={onSort} className="text-right" />
+                  <SortableTableHead column="weight_pct" label="Weight" sort={sort} onSort={onSort} className="text-right" />
+                  <SortableTableHead column="filing_date" label="Filing Date" sort={sort} onSort={onSort} />
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data.map((h) => (
+                {sorted.map((h) => (
                   <TableRow key={h.id}>
                     <TableCell className="font-medium max-w-[200px] truncate" title={h.fund_name}>{h.fund_name}</TableCell>
                     <TableCell>

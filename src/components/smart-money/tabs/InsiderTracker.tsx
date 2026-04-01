@@ -1,17 +1,19 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Search, ExternalLink } from "lucide-react";
+import { SortableTableHead, useSort, sortData } from "../SortableTableHead";
 
 export function InsiderTracker() {
   const [search, setSearch] = useState("");
   const [txType, setTxType] = useState<string>("all");
+  const { sort, onSort } = useSort("filing_date");
 
   const { data: trades, isLoading } = useQuery({
     queryKey: ['smart-money-insider-trades', search, txType],
@@ -34,6 +36,8 @@ export function InsiderTracker() {
     },
   });
 
+  const sorted = sortData(trades || [], sort);
+
   const formatValue = (val?: number | null) => {
     if (!val) return '—';
     if (val >= 1e6) return `$${(val / 1e6).toFixed(2)}M`;
@@ -48,23 +52,15 @@ export function InsiderTracker() {
         <p className="text-muted-foreground text-sm">SEC EDGAR insider buys, sells, and exercises</p>
       </div>
 
-      {/* Filters */}
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-wrap gap-3">
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search ticker, insider, or company..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9"
-              />
+              <Input placeholder="Search ticker, insider, or company..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
             </div>
             <Select value={txType} onValueChange={setTxType}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue placeholder="Transaction Type" />
-              </SelectTrigger>
+              <SelectTrigger className="w-[160px]"><SelectValue placeholder="Transaction Type" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="buy">Buys Only</SelectItem>
@@ -76,27 +72,25 @@ export function InsiderTracker() {
         </CardContent>
       </Card>
 
-      {/* Table */}
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-4 space-y-2">{[...Array(10)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
-          ) : trades && trades.length > 0 ? (
+          ) : sorted.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Ticker</TableHead>
-                  <TableHead>Insider</TableHead>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead className="text-right">Shares</TableHead>
-                  <TableHead className="text-right">Value</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead></TableHead>
+                  <SortableTableHead column="ticker" label="Ticker" sort={sort} onSort={onSort} />
+                  <SortableTableHead column="insider_name" label="Insider" sort={sort} onSort={onSort} />
+                  <SortableTableHead column="insider_title" label="Title" sort={sort} onSort={onSort} />
+                  <SortableTableHead column="transaction_type" label="Type" sort={sort} onSort={onSort} />
+                  <SortableTableHead column="shares" label="Shares" sort={sort} onSort={onSort} className="text-right" />
+                  <SortableTableHead column="total_value" label="Value" sort={sort} onSort={onSort} className="text-right" />
+                  <SortableTableHead column="filing_date" label="Date" sort={sort} onSort={onSort} />
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {trades.map((t) => (
+                {sorted.map((t) => (
                   <TableRow key={t.id} className={t.is_significant ? "bg-primary/5" : ""}>
                     <TableCell className="font-medium">{t.ticker}</TableCell>
                     <TableCell>{t.insider_name}</TableCell>
@@ -109,13 +103,6 @@ export function InsiderTracker() {
                     <TableCell className="text-right">{t.shares?.toLocaleString() || '—'}</TableCell>
                     <TableCell className="text-right font-medium">{formatValue(t.total_value)}</TableCell>
                     <TableCell className="text-muted-foreground text-xs">{t.filing_date}</TableCell>
-                    <TableCell>
-                      {t.sec_filing_url && (
-                        <a href={t.sec_filing_url} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                        </a>
-                      )}
-                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
