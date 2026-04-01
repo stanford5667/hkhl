@@ -1,13 +1,14 @@
 import { 
   LayoutDashboard, Users, TrendingUp, ArrowLeftRight, 
-  Building2, Bot, Trophy, Bell, ChevronLeft, ChevronRight, Fish
+  Building2, Bot, Trophy, Bell, ChevronLeft, ChevronRight, Fish, Settings
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSmartMoneyStore, SmartMoneyTab } from "@/stores/smartMoneyStore";
+import { useAdmin } from "@/hooks/useAdmin";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
-const navItems: { id: SmartMoneyTab; label: string; icon: React.ElementType; }[] = [
+const navItems: { id: SmartMoneyTab; label: string; icon: React.ElementType; adminOnly?: boolean }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'insiders', label: 'Insider Tracker', icon: Users },
   { id: 'options-flow', label: 'Options Flow', icon: TrendingUp },
@@ -16,6 +17,7 @@ const navItems: { id: SmartMoneyTab; label: string; icon: React.ElementType; }[]
   { id: 'ai-chat', label: 'AI Chat', icon: Bot },
   { id: 'leaderboards', label: 'Leaderboards', icon: Trophy },
   { id: 'alerts', label: 'Alerts', icon: Bell },
+  { id: 'settings', label: 'Settings', icon: Settings, adminOnly: true },
 ];
 
 export function SmartMoneySidebar() {
