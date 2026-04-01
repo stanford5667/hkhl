@@ -57,7 +57,7 @@ serve(async (req) => {
         if (spikes.length > 0) {
           const inserts = spikes.slice(0, 5).map((b: any) => ({
             ticker,
-            shares: b.v || 0,
+            shares: Math.round(b.v || 0),
             price: b.vw || b.c || 0, // volume-weighted avg price
             total_value: (b.v || 0) * (b.vw || b.c || 0),
             trade_time: new Date(b.t).toISOString(),
