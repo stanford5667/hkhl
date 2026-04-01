@@ -94,8 +94,14 @@ Deno.serve(async (req) => {
         const { data: userData } = await supabase.auth.admin.getUserById(pref.user_id);
         if (userData?.user?.email) {
           try {
-            const { error: emailError } = await supabase.functions.invoke('send-transactional-email', {
-              body: {
+            const emailRes = await fetch(`${supabaseUrl}/functions/v1/send-transactional-email`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${supabaseKey}`,
+                'apikey': supabaseKey,
+              },
+              body: JSON.stringify({
                 templateName: 'chat-notification',
                 recipientEmail: userData.user.email,
                 idempotencyKey: `chat-notify-${messageId}-${pref.user_id}`,
@@ -106,11 +112,12 @@ Deno.serve(async (req) => {
                   messagePreview: truncatedContent,
                   roomUrl,
                 },
-              },
+              }),
             });
 
-            if (emailError) {
-              console.error(`Email send failed for ${userData.user.email}:`, emailError);
+            if (!emailRes.ok) {
+              const errBody = await emailRes.text();
+              console.error(`Email send failed for ${userData.user.email} [${emailRes.status}]:`, errBody);
             } else {
               console.log(`Email queued for ${userData.user.email}`);
               notified++;
