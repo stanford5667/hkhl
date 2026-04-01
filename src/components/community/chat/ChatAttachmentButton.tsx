@@ -10,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 
 interface ChatAttachmentButtonProps {
   onAttach: (url: string, type: string) => void;
@@ -28,7 +28,7 @@ export function ChatAttachmentButton({ onAttach, disabled }: ChatAttachmentButto
     if (!file || !user) return;
 
     if (file.size > MAX_FILE_SIZE) {
-      toast.error('File too large', { description: 'Maximum file size is 10MB' });
+      toast.error('File too large', { description: 'Maximum file size is 100MB' });
       return;
     }
 
