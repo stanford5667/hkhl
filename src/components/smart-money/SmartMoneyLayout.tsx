@@ -7,6 +7,7 @@ import { InstitutionalHoldings } from "./tabs/InstitutionalHoldings";
 import { SmartMoneyAIChat } from "./tabs/SmartMoneyAIChat";
 import { SmartMoneyLeaderboards } from "./tabs/SmartMoneyLeaderboards";
 import { SmartMoneyAlerts } from "./tabs/SmartMoneyAlerts";
+import { SmartMoneySettings } from "./tabs/SmartMoneySettings";
 import { useSmartMoneyStore } from "@/stores/smartMoneyStore";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +24,7 @@ export function SmartMoneyLayout() {
       case 'ai-chat': return <SmartMoneyAIChat />;
       case 'leaderboards': return <SmartMoneyLeaderboards />;
       case 'alerts': return <SmartMoneyAlerts />;
+      case 'settings': return <SmartMoneySettings />;
       default: return <SmartMoneyDashboard />;
     }
   };
