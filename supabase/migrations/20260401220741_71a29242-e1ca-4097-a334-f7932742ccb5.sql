@@ -1,0 +1,1 @@
+ALTER TABLE public.smart_money_institutional_holdings ALTER COLUMN ticker DROP NOT NULL;

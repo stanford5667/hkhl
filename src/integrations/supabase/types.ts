@@ -5713,7 +5713,7 @@ export type Database = {
           report_date: string | null
           sec_filing_url: string | null
           shares: number | null
-          ticker: string
+          ticker: string | null
           updated_at: string
           value: number | null
           weight_pct: number | null
@@ -5732,7 +5732,7 @@ export type Database = {
           report_date?: string | null
           sec_filing_url?: string | null
           shares?: number | null
-          ticker: string
+          ticker?: string | null
           updated_at?: string
           value?: number | null
           weight_pct?: number | null
@@ -5751,7 +5751,7 @@ export type Database = {
           report_date?: string | null
           sec_filing_url?: string | null
           shares?: number | null
-          ticker?: string
+          ticker?: string | null
           updated_at?: string
           value?: number | null
           weight_pct?: number | null
