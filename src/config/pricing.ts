@@ -1,8 +1,8 @@
 // Single source of truth for all pricing across the app
 export const PRICING = {
   monthly: 200,
-  annualPerMonth: 100,
-  annualTotal: 1200,
+  annualPerMonth: 83,
+  annualTotal: 1000,
   get annualSavings() {
     return (this.monthly * 12) - this.annualTotal;
   },
