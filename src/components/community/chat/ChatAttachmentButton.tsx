@@ -12,6 +12,19 @@ import { toast } from 'sonner';
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024; // 2GB
 
+function sanitizeFileName(filename: string): string {
+  const extension = filename.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || '';
+  const base = filename.replace(/\.[^/.]+$/, '');
+  const safeBase = base
+    .normalize('NFKD')
+    .replace(/[^a-zA-Z0-9._-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 80) || 'file';
+
+  return extension ? `${safeBase}.${extension}` : safeBase;
+}
+
 interface ChatAttachmentButtonProps {
   onAttach: (url: string, type: string) => void;
   disabled?: boolean;
@@ -34,12 +47,15 @@ export function ChatAttachmentButton({ onAttach, disabled }: ChatAttachmentButto
 
     try {
       setUploading(true);
-      const ext = file.name.split('.').pop();
-      const path = `${user.id}/${Date.now()}-${file.name}`;
+      const safeName = sanitizeFileName(file.name);
+      const path = `${user.id}/${Date.now()}-${safeName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('chat-attachments')
-        .upload(path, file);
+        .upload(path, file, {
+          contentType: file.type || 'application/octet-stream',
+          upsert: false,
+        });
 
       if (uploadError) throw uploadError;
 
