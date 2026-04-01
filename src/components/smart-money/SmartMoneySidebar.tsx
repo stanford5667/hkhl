@@ -47,7 +47,7 @@ export function SmartMoneySidebar() {
 
       {/* Nav */}
       <nav className="flex-1 py-2 space-y-0.5 px-2">
-        {navItems.map((item) => {
+        {navItems.filter(item => !item.adminOnly || isAdmin).map((item) => {
           const isActive = activeTab === item.id;
           const btn = (
             <button

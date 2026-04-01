@@ -24,6 +24,7 @@ export function SmartMoneyLayout() {
       case 'ai-chat': return <SmartMoneyAIChat />;
       case 'leaderboards': return <SmartMoneyLeaderboards />;
       case 'alerts': return <SmartMoneyAlerts />;
+      case 'settings': return <SmartMoneySettings />;
       default: return <SmartMoneyDashboard />;
     }
   };
