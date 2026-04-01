@@ -21,7 +21,7 @@ export function InstitutionalHoldings() {
         .limit(100);
 
       if (search) {
-        query = query.or(`ticker.ilike.%${search}%,fund_name.ilike.%${search}%`);
+        query = query.or(`ticker.ilike.%${search}%,fund_name.ilike.%${search}%,company_name.ilike.%${search}%`);
       }
 
       const { data } = await query;
