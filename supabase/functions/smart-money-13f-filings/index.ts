@@ -135,12 +135,16 @@ serve(async (req) => {
           const nameMatch = entry.match(/<(?:ns1:|n1:)?nameOfIssuer>([^<]+)<\//i);
           const titleMatch = entry.match(/<(?:ns1:|n1:)?titleOfClass>([^<]+)<\//i);
           const cusipMatch = entry.match(/<(?:ns1:|n1:)?cusip>([^<]+)<\//i);
-          const valueMatch = entry.match(/<(?:ns1:|n1:)?value>([^<]+)<\//i);
-          const sharesMatch = entry.match(/<(?:ns1:|n1:)?sshPrnamt>([^<]+)<\//i);
+          // Match <value> that's NOT inside <shrsOrPrnAmt> — the top-level <value> is the dollar value in thousands
+          // We need to find the value that appears before shrsOrPrnAmt section
+          const valueMatch = entry.match(/<(?:ns1:|n1:)?value>\s*(\d+)\s*<\/(?:ns1:|n1:)?value>/i);
+          // Match shares inside the shrsOrPrnAmt section
+          const sharesMatch = entry.match(/<(?:ns1:|n1:)?sshPrnamt>\s*(\d+)\s*<\/(?:ns1:|n1:)?sshPrnamt>/i);
           
           if (nameMatch && valueMatch) {
             const companyName = nameMatch[1].trim();
-            const value = parseInt(valueMatch[1]) * 1000; // 13F values are in thousands
+            const rawValue = parseInt(valueMatch[1]);
+            const value = rawValue * 1000; // 13F values are in thousands of dollars
             const shares = sharesMatch ? parseInt(sharesMatch[1]) : null;
             
             // Only include significant holdings (>$10M)
