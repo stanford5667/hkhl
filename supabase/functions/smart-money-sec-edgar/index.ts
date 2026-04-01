@@ -88,60 +88,105 @@ serve(async (req) => {
       }
     }
 
-    // Parse XML for detailed transaction data (first 30 filings)
-    for (let i = 0; i < Math.min(filings.length, 30); i++) {
+    // Parse XML for detailed transaction data (all filings)
+    let xmlParsed = 0;
+    for (let i = 0; i < filings.length; i++) {
       try {
         const filing = filings[i];
-        const indexUrl = `${filing.sec_filing_url}/index.json`;
-        const indexRes = await fetch(indexUrl, {
-          headers: { "User-Agent": "AssetLabsAI contact@assetlabs.ai" },
-        });
+        // Try multiple approaches to find the XML document
+        let xmlText: string | null = null;
 
-        if (indexRes.ok) {
-          const indexData = await indexRes.json();
-          const xmlDoc = indexData.directory?.item?.find((item: any) =>
-            item.name?.endsWith('.xml') && !item.name?.includes('R')
-          );
+        // Approach 1: Try index.json to find XML doc
+        try {
+          const indexUrl = `${filing.sec_filing_url}/index.json`;
+          const indexRes = await fetch(indexUrl, {
+            headers: { "User-Agent": "AssetLabsAI contact@assetlabs.ai" },
+          });
+          if (indexRes.ok) {
+            const indexData = await indexRes.json();
+            const items = indexData.directory?.item || [];
+            // Find the primary XML doc (not R-files, not index files)
+            const xmlDoc = items.find((item: any) =>
+              item.name?.endsWith('.xml') &&
+              !item.name?.startsWith('R') &&
+              !item.name?.includes('index') &&
+              !item.name?.includes('primary_doc')
+            ) || items.find((item: any) =>
+              item.name?.endsWith('.xml') && !item.name?.includes('R')
+            );
+            if (xmlDoc) {
+              const xmlUrl = `${filing.sec_filing_url}/${xmlDoc.name}`;
+              const xmlRes = await fetch(xmlUrl, {
+                headers: { "User-Agent": "AssetLabsAI contact@assetlabs.ai" },
+              });
+              if (xmlRes.ok) xmlText = await xmlRes.text();
+              else await xmlRes.text(); // consume body
+            }
+          } else {
+            await indexRes.text(); // consume body
+          }
+        } catch {
+          // index.json approach failed
+        }
 
-          if (xmlDoc) {
-            const xmlUrl = `${filing.sec_filing_url}/${xmlDoc.name}`;
-            const xmlRes = await fetch(xmlUrl, {
-              headers: { "User-Agent": "AssetLabsAI contact@assetlabs.ai" },
-            });
-
-            if (xmlRes.ok) {
-              const xmlText = await xmlRes.text();
-
-              const nameMatch = xmlText.match(/<rptOwnerName>([^<]+)<\/rptOwnerName>/);
-              const titleMatch = xmlText.match(/<officerTitle>([^<]+)<\/officerTitle>/);
-              const sharesMatch = xmlText.match(/<transactionShares>.*?<value>([^<]+)<\/value>/s);
-              const priceMatch = xmlText.match(/<transactionPricePerShare>.*?<value>([^<]+)<\/value>/s);
-              const codeMatch = xmlText.match(/<transactionCode>([^<]+)<\/transactionCode>/);
-              const adMatch = xmlText.match(/<transactionAcquiredDisposedCode>.*?<value>([^<]+)<\/value>/s);
-
-              if (nameMatch) filing.insider_name = nameMatch[1].trim();
-              if (titleMatch) filing.insider_title = titleMatch[1].trim();
-              if (sharesMatch) filing.shares = parseInt(sharesMatch[1]);
-              if (priceMatch) filing.price_per_share = parseFloat(priceMatch[1]);
-              if (filing.shares && filing.price_per_share) {
-                filing.total_value = filing.shares * filing.price_per_share;
-              }
-
-              const code = codeMatch?.[1]?.toUpperCase();
-              const ad = adMatch?.[1]?.toUpperCase();
-              if (code === 'P' || (code === 'A' && ad === 'A')) filing.transaction_type = 'buy';
-              else if (code === 'S' || (code === 'D' && ad === 'D')) filing.transaction_type = 'sell';
-              else if (code === 'M' || code === 'C') filing.transaction_type = 'exercise';
-              else if (code === 'G' || code === 'J') filing.transaction_type = 'gift';
-
-              if (filing.transaction_type === 'buy' && filing.total_value && filing.total_value > 500000) {
-                const title = (filing.insider_title || '').toLowerCase();
-                if (title.includes('ceo') || title.includes('cfo') || title.includes('president') || title.includes('director')) {
-                  filing.is_significant = true;
+        // Approach 2: Try common XML filename patterns directly
+        if (!xmlText) {
+          const accession = filing._accession || '';
+          // SEC typically names the XML: <accession-without-dashes>.xml or doc4.xml
+          const possibleNames = [
+            `${accession.replace(/-/g, '')}.xml`,
+            'doc4.xml',
+            'primary_doc.xml',
+          ];
+          for (const name of possibleNames) {
+            try {
+              const xmlUrl = `${filing.sec_filing_url}/${name}`;
+              const xmlRes = await fetch(xmlUrl, {
+                headers: { "User-Agent": "AssetLabsAI contact@assetlabs.ai" },
+              });
+              if (xmlRes.ok) {
+                const text = await xmlRes.text();
+                if (text.includes('ownershipDocument') || text.includes('rptOwnerName')) {
+                  xmlText = text;
+                  break;
                 }
+              } else {
+                await xmlRes.text(); // consume body
               }
+            } catch { /* skip */ }
+          }
+        }
+
+        if (xmlText) {
+          const nameMatch = xmlText.match(/<rptOwnerName>([^<]+)<\/rptOwnerName>/);
+          const titleMatch = xmlText.match(/<officerTitle>([^<]+)<\/officerTitle>/);
+          const sharesMatch = xmlText.match(/<transactionShares>.*?<value>([^<]+)<\/value>/s);
+          const priceMatch = xmlText.match(/<transactionPricePerShare>.*?<value>([^<]+)<\/value>/s);
+          const codeMatch = xmlText.match(/<transactionCode>([^<]+)<\/transactionCode>/);
+          const adMatch = xmlText.match(/<transactionAcquiredDisposedCode>.*?<value>([^<]+)<\/value>/s);
+
+          if (nameMatch) filing.insider_name = nameMatch[1].trim();
+          if (titleMatch) filing.insider_title = titleMatch[1].trim();
+          if (sharesMatch) filing.shares = parseInt(sharesMatch[1]);
+          if (priceMatch) filing.price_per_share = parseFloat(priceMatch[1]);
+          if (filing.shares && filing.price_per_share) {
+            filing.total_value = filing.shares * filing.price_per_share;
+          }
+
+          const code = codeMatch?.[1]?.toUpperCase();
+          const ad = adMatch?.[1]?.toUpperCase();
+          if (code === 'P' || (code === 'A' && ad === 'A')) filing.transaction_type = 'buy';
+          else if (code === 'S' || (code === 'D' && ad === 'D')) filing.transaction_type = 'sell';
+          else if (code === 'M' || code === 'C') filing.transaction_type = 'exercise';
+          else if (code === 'G' || code === 'J') filing.transaction_type = 'gift';
+
+          if (filing.transaction_type === 'buy' && filing.total_value && filing.total_value > 500000) {
+            const title = (filing.insider_title || '').toLowerCase();
+            if (title.includes('ceo') || title.includes('cfo') || title.includes('president') || title.includes('director')) {
+              filing.is_significant = true;
             }
           }
+          xmlParsed++;
         }
 
         await new Promise(r => setTimeout(r, 120));
@@ -150,28 +195,30 @@ serve(async (req) => {
       }
     }
 
-    console.log(`[SEC EDGAR] Parsed ${filings.length} Form 4 filings`);
+    console.log(`[SEC EDGAR] Parsed ${filings.length} Form 4 filings, XML extracted for ${xmlParsed}`);
 
     if (filings.length > 0) {
-      // Delete old data
+      // Delete ALL old data and re-insert fresh (ensures clean state)
       await supabase
         .from("smart_money_insider_trades")
-        .delete()
-        .lt('filing_date', new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0]);
+        .delete()  
+        .gte('id', '00000000-0000-0000-0000-000000000000'); // delete all
 
-      // Deduplicate by sec_filing_url + insider_name
-      const { data: existing } = await supabase
-        .from("smart_money_insider_trades")
-        .select("sec_filing_url, insider_name");
+      // Deduplicate by sec_filing_url + insider_name before inserting
+      const seen = new Set<string>();
+      const uniqueFilings = filings.filter(f => {
+        const key = `${f.sec_filing_url}|${f.insider_name}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
 
-      const existingSet = new Set((existing || []).map(e => `${e.sec_filing_url}|${e.insider_name}`));
-
-      const newFilings = filings.filter(f => !existingSet.has(`${f.sec_filing_url}|${f.insider_name}`));
-
-      if (newFilings.length > 0) {
+      // Insert in batches of 50
+      for (let b = 0; b < uniqueFilings.length; b += 50) {
+        const batch = uniqueFilings.slice(b, b + 50);
         const { error } = await supabase
           .from("smart_money_insider_trades")
-          .insert(newFilings.map(f => ({
+          .insert(batch.map(f => ({
             ticker: f.ticker,
             company_name: f.company_name,
             insider_name: f.insider_name,
@@ -185,12 +232,9 @@ serve(async (req) => {
             sec_filing_url: f.sec_filing_url,
             is_significant: f.is_significant,
           })));
-
-        if (error) console.error("[SEC EDGAR] Insert error:", error);
-        else console.log(`[SEC EDGAR] Inserted ${newFilings.length} new insider trades (${filings.length - newFilings.length} duplicates skipped)`);
-      } else {
-        console.log(`[SEC EDGAR] All ${filings.length} filings already exist, no new inserts`);
+        if (error) console.error(`[SEC EDGAR] Insert error batch ${b}:`, error);
       }
+      console.log(`[SEC EDGAR] Inserted ${uniqueFilings.length} insider trades`);
     }
 
     return new Response(
