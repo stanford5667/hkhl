@@ -55,8 +55,8 @@ serve(async (req) => {
         // Calculate average volume
         const avgVolume = bars.reduce((sum: number, b: any) => sum + (b.v || 0), 0) / bars.length;
 
-        // Find bars with volume > 2x average (lowered threshold for more results)
-        const spikes = bars.filter((b: any) => (b.v || 0) > avgVolume * 2 && (b.v || 0) > 10000);
+        // Find bars with volume > 1.3x average (daily bars have less variance)
+        const spikes = bars.filter((b: any) => (b.v || 0) > avgVolume * 1.3);
 
         if (spikes.length > 0) {
           // Check for existing entries to avoid duplicates
