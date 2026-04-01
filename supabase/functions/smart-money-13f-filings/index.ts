@@ -144,7 +144,8 @@ serve(async (req) => {
           if (nameMatch && valueMatch) {
             const companyName = nameMatch[1].trim();
             const rawValue = parseInt(valueMatch[1]);
-            const value = rawValue * 1000; // 13F values are in thousands of dollars
+            // 13F XML <value> is in whole dollars (not thousands like SGML format)
+            const value = rawValue;
             const shares = sharesMatch ? parseInt(sharesMatch[1]) : null;
             
             // Only include significant holdings (>$10M)
