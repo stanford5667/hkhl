@@ -5525,6 +5525,358 @@ export type Database = {
           },
         ]
       }
+      smart_money_alert_history: {
+        Row: {
+          alert_id: string
+          id: string
+          notification_sent: boolean | null
+          notification_sent_at: string | null
+          trigger_data: Json | null
+          triggered_at: string
+          user_id: string
+        }
+        Insert: {
+          alert_id: string
+          id?: string
+          notification_sent?: boolean | null
+          notification_sent_at?: string | null
+          trigger_data?: Json | null
+          triggered_at?: string
+          user_id: string
+        }
+        Update: {
+          alert_id?: string
+          id?: string
+          notification_sent?: boolean | null
+          notification_sent_at?: string | null
+          trigger_data?: Json | null
+          triggered_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "smart_money_alert_history_alert_id_fkey"
+            columns: ["alert_id"]
+            isOneToOne: false
+            referencedRelation: "smart_money_alerts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      smart_money_alerts: {
+        Row: {
+          alert_type: string
+          conditions: Json
+          created_at: string
+          id: string
+          is_active: boolean | null
+          name: string | null
+          notification_method: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          alert_type: string
+          conditions?: Json
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string | null
+          notification_method?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          alert_type?: string
+          conditions?: Json
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string | null
+          notification_method?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      smart_money_block_trades: {
+        Row: {
+          created_at: string
+          exchange: string | null
+          id: string
+          metadata: Json | null
+          price: number
+          shares: number
+          side: string | null
+          ticker: string
+          total_value: number
+          trade_time: string
+        }
+        Insert: {
+          created_at?: string
+          exchange?: string | null
+          id?: string
+          metadata?: Json | null
+          price: number
+          shares: number
+          side?: string | null
+          ticker: string
+          total_value: number
+          trade_time: string
+        }
+        Update: {
+          created_at?: string
+          exchange?: string | null
+          id?: string
+          metadata?: Json | null
+          price?: number
+          shares?: number
+          side?: string | null
+          ticker?: string
+          total_value?: number
+          trade_time?: string
+        }
+        Relationships: []
+      }
+      smart_money_insider_trades: {
+        Row: {
+          company_name: string | null
+          created_at: string
+          filing_date: string
+          id: string
+          insider_name: string
+          insider_title: string | null
+          is_significant: boolean | null
+          metadata: Json | null
+          price_per_share: number | null
+          sec_filing_url: string | null
+          shares: number | null
+          shares_owned_after: number | null
+          ticker: string
+          total_value: number | null
+          transaction_date: string | null
+          transaction_type: string
+          updated_at: string
+        }
+        Insert: {
+          company_name?: string | null
+          created_at?: string
+          filing_date: string
+          id?: string
+          insider_name: string
+          insider_title?: string | null
+          is_significant?: boolean | null
+          metadata?: Json | null
+          price_per_share?: number | null
+          sec_filing_url?: string | null
+          shares?: number | null
+          shares_owned_after?: number | null
+          ticker: string
+          total_value?: number | null
+          transaction_date?: string | null
+          transaction_type: string
+          updated_at?: string
+        }
+        Update: {
+          company_name?: string | null
+          created_at?: string
+          filing_date?: string
+          id?: string
+          insider_name?: string
+          insider_title?: string | null
+          is_significant?: boolean | null
+          metadata?: Json | null
+          price_per_share?: number | null
+          sec_filing_url?: string | null
+          shares?: number | null
+          shares_owned_after?: number | null
+          ticker?: string
+          total_value?: number | null
+          transaction_date?: string | null
+          transaction_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      smart_money_institutional_holdings: {
+        Row: {
+          change_pct: number | null
+          change_shares: number | null
+          company_name: string | null
+          created_at: string
+          filing_date: string
+          filing_type: string | null
+          fund_cik: string | null
+          fund_name: string
+          id: string
+          metadata: Json | null
+          report_date: string | null
+          sec_filing_url: string | null
+          shares: number | null
+          ticker: string
+          updated_at: string
+          value: number | null
+          weight_pct: number | null
+        }
+        Insert: {
+          change_pct?: number | null
+          change_shares?: number | null
+          company_name?: string | null
+          created_at?: string
+          filing_date: string
+          filing_type?: string | null
+          fund_cik?: string | null
+          fund_name: string
+          id?: string
+          metadata?: Json | null
+          report_date?: string | null
+          sec_filing_url?: string | null
+          shares?: number | null
+          ticker: string
+          updated_at?: string
+          value?: number | null
+          weight_pct?: number | null
+        }
+        Update: {
+          change_pct?: number | null
+          change_shares?: number | null
+          company_name?: string | null
+          created_at?: string
+          filing_date?: string
+          filing_type?: string | null
+          fund_cik?: string | null
+          fund_name?: string
+          id?: string
+          metadata?: Json | null
+          report_date?: string | null
+          sec_filing_url?: string | null
+          shares?: number | null
+          ticker?: string
+          updated_at?: string
+          value?: number | null
+          weight_pct?: number | null
+        }
+        Relationships: []
+      }
+      smart_money_options_flow: {
+        Row: {
+          contract_type: string
+          created_at: string
+          expiration: string
+          id: string
+          implied_volatility: number | null
+          metadata: Json | null
+          open_interest: number | null
+          premium: number | null
+          sentiment: string | null
+          strike: number
+          ticker: string
+          trade_time: string | null
+          underlying_price: number | null
+          unusual_score: number | null
+          volume: number | null
+          volume_oi_ratio: number | null
+        }
+        Insert: {
+          contract_type: string
+          created_at?: string
+          expiration: string
+          id?: string
+          implied_volatility?: number | null
+          metadata?: Json | null
+          open_interest?: number | null
+          premium?: number | null
+          sentiment?: string | null
+          strike: number
+          ticker: string
+          trade_time?: string | null
+          underlying_price?: number | null
+          unusual_score?: number | null
+          volume?: number | null
+          volume_oi_ratio?: number | null
+        }
+        Update: {
+          contract_type?: string
+          created_at?: string
+          expiration?: string
+          id?: string
+          implied_volatility?: number | null
+          metadata?: Json | null
+          open_interest?: number | null
+          premium?: number | null
+          sentiment?: string | null
+          strike?: number
+          ticker?: string
+          trade_time?: string | null
+          underlying_price?: number | null
+          unusual_score?: number | null
+          volume?: number | null
+          volume_oi_ratio?: number | null
+        }
+        Relationships: []
+      }
+      smart_money_watchlist_items: {
+        Row: {
+          created_at: string
+          id: string
+          item_type: string
+          item_value: string
+          notes: string | null
+          watchlist_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_type: string
+          item_value: string
+          notes?: string | null
+          watchlist_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_type?: string
+          item_value?: string
+          notes?: string | null
+          watchlist_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "smart_money_watchlist_items_watchlist_id_fkey"
+            columns: ["watchlist_id"]
+            isOneToOne: false
+            referencedRelation: "smart_money_watchlists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      smart_money_watchlists: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       stock_price_cache: {
         Row: {
           adjusted_close: number | null

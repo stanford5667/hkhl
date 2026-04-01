@@ -78,6 +78,7 @@ const SmsConsent = lazy(() => import('./pages/SmsConsent'));
 const SimTrading = lazy(() => import('./pages/SimTrading'));
 const MyResearch = lazy(() => import('./pages/MyResearch'));
 const OptionsAnalyzerPage = lazy(() => import('./pages/OptionsAnalyzer'));
+const SmartMoney = lazy(() => import('./pages/SmartMoney'));
 const EliteOnboarding = lazy(() => import('./pages/EliteOnboarding'));
 const EliteDashboard = lazy(() => import('./pages/EliteDashboard'));
 const ElitePortfolio = lazy(() => import('./pages/ElitePortfolio'));
@@ -200,6 +201,7 @@ const App = () => {
                               <Route path="/elite-dashboard" element={<EliteGuard><EliteDashboard /></EliteGuard>} />
                               <Route path="/elite-portfolio" element={<EliteGuard><ElitePortfolio /></EliteGuard>} />
                               <Route path="/unsubscribe" element={<Unsubscribe />} />
+                              <Route path="/smart-money" element={<SmartMoney />} />
                               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                               <Route path="*" element={<NotFound />} />
                             </Routes>
