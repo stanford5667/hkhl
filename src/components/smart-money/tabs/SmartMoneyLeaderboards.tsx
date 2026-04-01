@@ -8,30 +8,46 @@ export function SmartMoneyLeaderboards() {
   const { data: topInsiders, isLoading: insidersLoading } = useQuery({
     queryKey: ['smart-money-top-insiders'],
     queryFn: async () => {
-      const { data } = await supabase.rpc('smart_money_top_insiders' as any).limit(10);
-      // Fallback: manual query if RPC doesn't exist
-      if (!data) {
-        const { data: raw } = await supabase
-          .from('smart_money_insider_trades')
-          .select('insider_name, ticker, total_value')
-          .eq('transaction_type', 'buy')
-          .order('total_value', { ascending: false })
-          .limit(10);
-        return raw || [];
+      const { data: raw } = await supabase
+        .from('smart_money_insider_trades')
+        .select('insider_name, ticker, total_value')
+        .eq('transaction_type', 'buy')
+        .not('total_value', 'is', null)
+        .gt('total_value', 0)
+        .order('total_value', { ascending: false })
+        .limit(20);
+      if (!raw) return [];
+      // Aggregate by insider_name — take highest trade per person
+      const seen = new Map<string, typeof raw[0]>();
+      for (const row of raw) {
+        const key = row.insider_name;
+        if (!seen.has(key) || (row.total_value ?? 0) > (seen.get(key)!.total_value ?? 0)) {
+          seen.set(key, row);
+        }
       }
-      return data;
+      return Array.from(seen.values()).slice(0, 10);
     },
   });
 
   const { data: topFunds, isLoading: fundsLoading } = useQuery({
     queryKey: ['smart-money-top-funds'],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data: raw } = await supabase
         .from('smart_money_institutional_holdings')
-        .select('fund_name, value')
+        .select('fund_name, value, ticker, company_name')
+        .not('value', 'is', null)
         .order('value', { ascending: false })
-        .limit(10);
-      return data || [];
+        .limit(50);
+      if (!raw) return [];
+      // Aggregate: show top holdings per unique fund
+      const seen = new Map<string, typeof raw[0]>();
+      for (const row of raw) {
+        const key = row.fund_name;
+        if (!seen.has(key)) {
+          seen.set(key, row);
+        }
+      }
+      return Array.from(seen.values()).slice(0, 10);
     },
   });
 
