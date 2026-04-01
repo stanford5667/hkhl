@@ -28,7 +28,7 @@ export function ChatAttachmentButton({ onAttach, disabled }: ChatAttachmentButto
     if (!file || !user) return;
 
     if (file.size > MAX_FILE_SIZE) {
-      toast.error('File too large', { description: 'Maximum file size is 10MB' });
+      toast.error('File too large', { description: 'Maximum file size is 100MB' });
       return;
     }
 
