@@ -6,9 +6,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Uses Polygon v2/aggs to detect high-volume bars as proxy for block trade activity
-// The /v3/trades endpoint requires a higher Polygon plan tier
-
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -21,21 +18,28 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body = await req.json().catch(() => ({}));
-    const tickers = body.tickers || ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "TSLA", "META", "AMZN", "GOOGL"];
+    const tickers = body.tickers || ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "TSLA", "META", "AMZN", "GOOGL", "JPM", "GS", "BAC"];
 
     console.log(`[BlockTrades] Scanning ${tickers.length} tickers for high-volume activity...`);
 
+    // Use daily bars to find volume spikes — more reliable on Starter plan
     const today = new Date();
-    const fiveDaysAgo = new Date(today.getTime() - 5 * 86400000);
-    const fromDate = fiveDaysAgo.toISOString().split('T')[0];
+    const thirtyDaysAgo = new Date(today.getTime() - 30 * 86400000);
+    const fromDate = thirtyDaysAgo.toISOString().split('T')[0];
     const toDate = today.toISOString().split('T')[0];
 
     let totalInserted = 0;
 
+    // Delete old block trades first
+    await supabase
+      .from("smart_money_block_trades")
+      .delete()
+      .lt('trade_time', new Date(Date.now() - 14 * 86400000).toISOString());
+
     for (const ticker of tickers) {
       try {
-        // Use 5-min bars to detect volume spikes (available on Starter plan)
-        const url = `https://api.polygon.io/v2/aggs/ticker/${ticker}/range/5/minute/${fromDate}/${toDate}?adjusted=true&sort=desc&limit=50&apiKey=${POLYGON_API_KEY}`;
+        // Use hourly bars over 5 days for better granularity
+        const url = `https://api.polygon.io/v2/aggs/ticker/${ticker}/range/1/hour/${fromDate}/${toDate}?adjusted=true&sort=desc&limit=120&apiKey=${POLYGON_API_KEY}`;
         const res = await fetch(url);
 
         if (!res.ok) {
@@ -46,31 +50,40 @@ serve(async (req) => {
         const data = await res.json();
         const bars = data.results || [];
 
-        if (bars.length === 0) continue;
+        if (bars.length < 10) continue;
 
-        // Calculate average volume per bar
+        // Calculate average volume
         const avgVolume = bars.reduce((sum: number, b: any) => sum + (b.v || 0), 0) / bars.length;
 
-        // Find bars with volume > 3x average (proxy for block-like activity)
-        const spikes = bars.filter((b: any) => (b.v || 0) > avgVolume * 3 && (b.v || 0) > 50000);
+        // Find bars with volume > 2x average (lowered threshold for more results)
+        const spikes = bars.filter((b: any) => (b.v || 0) > avgVolume * 2 && (b.v || 0) > 10000);
 
         if (spikes.length > 0) {
-          const inserts = spikes.slice(0, 5).map((b: any) => ({
-            ticker,
-            shares: Math.round(b.v || 0),
-            price: b.vw || b.c || 0, // volume-weighted avg price
-            total_value: (b.v || 0) * (b.vw || b.c || 0),
-            trade_time: new Date(b.t).toISOString(),
-            exchange: null,
-            side: b.c > b.o ? 'buy' : b.c < b.o ? 'sell' : 'unknown',
-            metadata: { source: 'polygon_agg_5min', avg_volume: avgVolume, volume_ratio: Math.round((b.v / avgVolume) * 100) / 100 },
-          }));
+          // Check for existing entries to avoid duplicates
+          const { data: existing } = await supabase
+            .from("smart_money_block_trades")
+            .select("trade_time")
+            .eq("ticker", ticker);
+          const existingTimes = new Set((existing || []).map(e => e.trade_time));
 
-          const { error } = await supabase.from("smart_money_block_trades").insert(inserts);
-          if (error) {
-            console.error(`[BlockTrades] Insert error for ${ticker}:`, error);
-          } else {
-            totalInserted += inserts.length;
+          const inserts = spikes
+            .slice(0, 8)
+            .map((b: any) => ({
+              ticker,
+              shares: Math.round(b.v || 0),
+              price: b.vw || b.c || 0,
+              total_value: (b.v || 0) * (b.vw || b.c || 0),
+              trade_time: new Date(b.t).toISOString(),
+              exchange: null,
+              side: b.c > b.o ? 'buy' : b.c < b.o ? 'sell' : 'unknown',
+              metadata: { source: 'polygon_agg_1h', avg_volume: avgVolume, volume_ratio: Math.round((b.v / avgVolume) * 100) / 100 },
+            }))
+            .filter(i => !existingTimes.has(i.trade_time));
+
+          if (inserts.length > 0) {
+            const { error } = await supabase.from("smart_money_block_trades").insert(inserts);
+            if (error) console.error(`[BlockTrades] Insert error for ${ticker}:`, error);
+            else totalInserted += inserts.length;
           }
         }
 
