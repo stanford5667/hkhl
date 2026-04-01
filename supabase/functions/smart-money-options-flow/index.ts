@@ -6,7 +6,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const POLYGON_BASE = "https://api.polygon.io";
+// Uses Polygon v3/reference/options/contracts + v2/aggs for options volume detection
+// The /v3/snapshot/options endpoint requires a higher Polygon plan
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -20,69 +21,92 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const body = await req.json().catch(() => ({}));
-    const tickers = body.tickers || ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "TSLA", "META", "AMZN", "GOOGL", "AMD"];
+    const tickers = body.tickers || ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "TSLA", "META", "AMZN"];
 
-    console.log(`[OptionsFlow] Scanning ${tickers.length} tickers for unusual options...`);
+    console.log(`[OptionsFlow] Scanning ${tickers.length} tickers...`);
 
     let totalInserted = 0;
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
 
     for (const ticker of tickers) {
       try {
-        // Get options snapshot for this ticker
-        const today = new Date().toISOString().split('T')[0];
-        const url = `${POLYGON_BASE}/v3/snapshot/options/${ticker}?limit=50&apiKey=${POLYGON_API_KEY}`;
-        const res = await fetch(url);
+        // Get options contracts for this ticker
+        const contractsUrl = `https://api.polygon.io/v3/reference/options/contracts?underlying_ticker=${ticker}&expired=false&limit=50&order=desc&sort=open_interest&apiKey=${POLYGON_API_KEY}`;
+        const res = await fetch(contractsUrl);
 
         if (!res.ok) {
-          console.warn(`[OptionsFlow] ${ticker} returned ${res.status}`);
+          console.warn(`[OptionsFlow] ${ticker} contracts returned ${res.status}`);
           continue;
         }
 
         const data = await res.json();
         const contracts = data.results || [];
 
-        // Identify unusual options (volume > 2x open interest, or volume > 1000)
-        const unusualContracts = contracts.filter((c: any) => {
-          const volume = c.day?.volume || 0;
-          const oi = c.open_interest || 1;
-          const volumeOiRatio = volume / oi;
-          return volume > 1000 || volumeOiRatio > 2;
-        });
+        if (contracts.length === 0) continue;
 
-        if (unusualContracts.length > 0) {
-          const inserts = unusualContracts.slice(0, 10).map((c: any) => {
-            const details = c.details || {};
-            const volume = c.day?.volume || 0;
-            const oi = c.open_interest || 0;
-            const lastPrice = c.day?.last_price || c.last_quote?.midpoint || 0;
-            const contractType = details.contract_type?.toLowerCase() || 'call';
-            
-            return {
-              ticker,
-              contract_type: contractType,
-              strike: details.strike_price || 0,
-              expiration: details.expiration_date || today,
-              premium: lastPrice * volume * 100, // approximate total premium
-              volume,
-              open_interest: oi,
-              implied_volatility: c.implied_volatility || null,
-              volume_oi_ratio: oi > 0 ? Math.round((volume / oi) * 100) / 100 : null,
-              sentiment: contractType === 'call' ? 'bullish' : 'bearish',
-              unusual_score: Math.min(100, Math.round((volume / Math.max(oi, 1)) * 10)),
-              trade_time: new Date().toISOString(),
-              underlying_price: c.underlying_asset?.price || null,
-            };
-          });
+        // Get the underlying stock's last price
+        const priceUrl = `https://api.polygon.io/v2/aggs/ticker/${ticker}/prev?adjusted=true&apiKey=${POLYGON_API_KEY}`;
+        const priceRes = await fetch(priceUrl);
+        let underlyingPrice = 0;
+        if (priceRes.ok) {
+          const priceData = await priceRes.json();
+          underlyingPrice = priceData.results?.[0]?.c || 0;
+        }
 
-          const { error } = await supabase.from("smart_money_options_flow").insert(inserts);
-          if (error) {
-            console.error(`[OptionsFlow] Insert error for ${ticker}:`, error);
-          } else {
-            totalInserted += inserts.length;
+        // For each contract, get its recent trading volume from aggregates
+        const unusualContracts: any[] = [];
+
+        for (const contract of contracts.slice(0, 10)) {
+          try {
+            const optTicker = contract.ticker;
+            const aggUrl = `https://api.polygon.io/v2/aggs/ticker/${optTicker}/prev?adjusted=true&apiKey=${POLYGON_API_KEY}`;
+            const aggRes = await fetch(aggUrl);
+
+            if (!aggRes.ok) continue;
+            const aggData = await aggRes.json();
+            const bar = aggData.results?.[0];
+            if (!bar) continue;
+
+            const volume = bar.v || 0;
+            const oi = contract.open_interest || 1;
+            const ratio = volume / oi;
+
+            // Flag as unusual if volume > OI or volume > 500
+            if (volume > 500 || ratio > 1) {
+              unusualContracts.push({
+                ticker,
+                contract_type: contract.contract_type?.toLowerCase() || 'call',
+                strike: contract.strike_price || 0,
+                expiration: contract.expiration_date || todayStr,
+                premium: (bar.c || 0) * volume * 100,
+                volume,
+                open_interest: contract.open_interest || 0,
+                implied_volatility: null,
+                volume_oi_ratio: Math.round(ratio * 100) / 100,
+                sentiment: contract.contract_type?.toLowerCase() === 'call' ? 'bullish' : 'bearish',
+                unusual_score: Math.min(100, Math.round(ratio * 20)),
+                trade_time: new Date(bar.t).toISOString(),
+                underlying_price: underlyingPrice,
+              });
+            }
+
+            await new Promise(r => setTimeout(r, 150));
+          } catch {
+            // Skip individual contract errors
           }
         }
 
-        await new Promise(r => setTimeout(r, 250));
+        if (unusualContracts.length > 0) {
+          const { error } = await supabase.from("smart_money_options_flow").insert(unusualContracts);
+          if (error) {
+            console.error(`[OptionsFlow] Insert error for ${ticker}:`, error);
+          } else {
+            totalInserted += unusualContracts.length;
+          }
+        }
+
+        await new Promise(r => setTimeout(r, 200));
       } catch (err) {
         console.error(`[OptionsFlow] Error for ${ticker}:`, err);
       }

@@ -6,7 +6,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const POLYGON_BASE = "https://api.polygon.io";
+// Uses Polygon v2/aggs to detect high-volume bars as proxy for block trade activity
+// The /v3/trades endpoint requires a higher Polygon plan tier
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -22,41 +23,47 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const tickers = body.tickers || ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "TSLA", "META", "AMZN", "GOOGL"];
 
-    console.log(`[BlockTrades] Checking ${tickers.length} tickers for large trades...`);
+    console.log(`[BlockTrades] Scanning ${tickers.length} tickers for high-volume activity...`);
+
+    const today = new Date();
+    const fiveDaysAgo = new Date(today.getTime() - 5 * 86400000);
+    const fromDate = fiveDaysAgo.toISOString().split('T')[0];
+    const toDate = today.toISOString().split('T')[0];
 
     let totalInserted = 0;
 
     for (const ticker of tickers) {
       try {
-        // Get recent trades and filter for large ones
-        const url = `${POLYGON_BASE}/v3/trades/${ticker}?limit=50&order=desc&apiKey=${POLYGON_API_KEY}`;
+        // Use 5-min bars to detect volume spikes (available on Starter plan)
+        const url = `https://api.polygon.io/v2/aggs/ticker/${ticker}/range/5/minute/${fromDate}/${toDate}?adjusted=true&sort=desc&limit=50&apiKey=${POLYGON_API_KEY}`;
         const res = await fetch(url);
-        
+
         if (!res.ok) {
           console.warn(`[BlockTrades] ${ticker} returned ${res.status}`);
           continue;
         }
 
         const data = await res.json();
-        const trades = data.results || [];
+        const bars = data.results || [];
 
-        // Filter for block trades (>10,000 shares or >$1M value)
-        const blockTrades = trades.filter((t: any) => {
-          const shares = t.size || 0;
-          const price = t.price || 0;
-          const value = shares * price;
-          return shares >= 10000 || value >= 1000000;
-        });
+        if (bars.length === 0) continue;
 
-        if (blockTrades.length > 0) {
-          const inserts = blockTrades.map((t: any) => ({
+        // Calculate average volume per bar
+        const avgVolume = bars.reduce((sum: number, b: any) => sum + (b.v || 0), 0) / bars.length;
+
+        // Find bars with volume > 3x average (proxy for block-like activity)
+        const spikes = bars.filter((b: any) => (b.v || 0) > avgVolume * 3 && (b.v || 0) > 50000);
+
+        if (spikes.length > 0) {
+          const inserts = spikes.slice(0, 5).map((b: any) => ({
             ticker,
-            shares: t.size || 0,
-            price: t.price || 0,
-            total_value: (t.size || 0) * (t.price || 0),
-            trade_time: new Date(t.sip_timestamp / 1000000).toISOString(), // nanoseconds to ms
-            exchange: t.exchange ? String(t.exchange) : null,
-            side: t.conditions?.includes(37) ? 'sell' : t.conditions?.includes(38) ? 'buy' : 'unknown',
+            shares: b.v || 0,
+            price: b.vw || b.c || 0, // volume-weighted avg price
+            total_value: (b.v || 0) * (b.vw || b.c || 0),
+            trade_time: new Date(b.t).toISOString(),
+            exchange: null,
+            side: b.c > b.o ? 'buy' : b.c < b.o ? 'sell' : 'unknown',
+            metadata: { source: 'polygon_agg_5min', avg_volume: avgVolume, volume_ratio: Math.round((b.v / avgVolume) * 100) / 100 },
           }));
 
           const { error } = await supabase.from("smart_money_block_trades").insert(inserts);
@@ -67,14 +74,13 @@ serve(async (req) => {
           }
         }
 
-        // Rate limiting for Polygon
         await new Promise(r => setTimeout(r, 200));
       } catch (err) {
         console.error(`[BlockTrades] Error for ${ticker}:`, err);
       }
     }
 
-    console.log(`[BlockTrades] Inserted ${totalInserted} block trades`);
+    console.log(`[BlockTrades] Inserted ${totalInserted} high-volume events`);
 
     return new Response(
       JSON.stringify({ success: true, inserted: totalInserted }),

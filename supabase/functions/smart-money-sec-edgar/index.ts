@@ -6,34 +6,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SEC_EDGAR_BASE = "https://efts.sec.gov/LATEST/search-index?q=%22form+4%22&dateRange=custom";
-const SEC_RSS_URL = "https://efts.sec.gov/LATEST/search-index?q=%224%22&forms=4&dateRange=custom";
-
-// SEC EDGAR owner.xml RSS feed for recent Form 4 filings
-const EDGAR_FULL_TEXT = "https://efts.sec.gov/LATEST/search-index";
-const EDGAR_FILINGS_URL = "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&type=4&dateb=&owner=include&count=40&search_text=&action=getcompany&output=atom";
-
-// Use the SEC EDGAR full-text search API (free, no key needed)
-const EDGAR_SEARCH_API = "https://efts.sec.gov/LATEST/search-index";
-
-// Modern SEC EDGAR XBRL API
-const EDGAR_SUBMISSIONS_URL = "https://data.sec.gov/submissions";
-
-interface InsiderFiling {
-  ticker: string;
-  company_name: string;
-  insider_name: string;
-  insider_title: string;
-  transaction_type: string;
-  shares: number;
-  price_per_share: number;
-  total_value: number;
-  filing_date: string;
-  transaction_date: string;
-  sec_filing_url: string;
-  is_significant: boolean;
-}
-
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -44,171 +16,196 @@ serve(async (req) => {
 
     console.log("[SEC EDGAR] Starting insider transactions fetch...");
 
-    // Use SEC EDGAR full-text search for recent Form 4 filings
+    // Fetch recent Form 4 filings from SEC EDGAR full-text search API
     const today = new Date();
     const weekAgo = new Date(today.getTime() - 7 * 86400000);
     const fromDate = weekAgo.toISOString().split('T')[0];
     const toDate = today.toISOString().split('T')[0];
 
-    const searchUrl = `https://efts.sec.gov/LATEST/search-index?q=%224%22&forms=4&dateRange=custom&startdt=${fromDate}&enddt=${toDate}&hits.hits.total.value=true&hits.hits._source=file_date,display_names,file_num,file_type,form_type,period_of_report&from=0&size=40`;
-
-    // Try the EDGAR full-text search API
-    const edgarRes = await fetch(`https://efts.sec.gov/LATEST/search-index?q=%224%22&forms=4&dateRange=custom&startdt=${fromDate}&enddt=${toDate}`, {
-      headers: {
-        "User-Agent": "AssetLabsAI contact@assetlabs.ai",
-        "Accept": "application/json",
-      },
-    });
-
-    // Alternative: Use the EDGAR XBRL companion API for recent filings
-    const recentFilingsUrl = `https://efts.sec.gov/LATEST/search-index?q=%224%22&forms=4&startdt=${fromDate}&enddt=${toDate}`;
+    // Use the EDGAR EFTS API for Form 4 filings
+    const eftsUrl = `https://efts.sec.gov/LATEST/search-index?q=%224%22&forms=4&dateRange=custom&startdt=${fromDate}&enddt=${toDate}`;
     
-    // Try fetching recent Form 4 filings via the more reliable EDGAR full-text search
-    const ftSearchUrl = `https://efts.sec.gov/LATEST/search-index?q=%22form+type%22+%224%22&forms=4&startdt=${fromDate}&enddt=${toDate}`;
+    let filings: any[] = [];
 
-    // For MVP, use the SEC EDGAR REST API for recent filings
-    // The EDGAR full-text search API returns filing metadata
-    const apiUrl = `https://efts.sec.gov/LATEST/search-index?q=%224%22&forms=4&dateRange=custom&startdt=${fromDate}&enddt=${toDate}`;
+    // Strategy: Use EDGAR submissions API for known companies to get detailed Form 4 data
+    const majorCompanies = [
+      { cik: "320193", ticker: "AAPL", name: "Apple Inc." },
+      { cik: "789019", ticker: "MSFT", name: "Microsoft Corp." },
+      { cik: "1652044", ticker: "GOOGL", name: "Alphabet Inc." },
+      { cik: "1018724", ticker: "AMZN", name: "Amazon.com Inc." },
+      { cik: "1045810", ticker: "NVDA", name: "NVIDIA Corp." },
+      { cik: "1326801", ticker: "META", name: "Meta Platforms" },
+      { cik: "1318605", ticker: "TSLA", name: "Tesla Inc." },
+      { cik: "1067983", ticker: "BRK.B", name: "Berkshire Hathaway" },
+      { cik: "1341439", ticker: "ORCL", name: "Oracle Corp." },
+      { cik: "1559720", ticker: "ABNB", name: "Airbnb Inc." },
+      { cik: "1559720", ticker: "COIN", name: "Coinbase Global" },
+      { cik: "1318605", ticker: "TSLA", name: "Tesla Inc." },
+      { cik: "1868275", ticker: "RIVN", name: "Rivian Automotive" },
+      { cik: "1534701", ticker: "UBER", name: "Uber Technologies" },
+      { cik: "1512673", ticker: "CRM", name: "Salesforce Inc." },
+    ];
 
-    let filings: InsiderFiling[] = [];
-
-    try {
-      // Use EDGAR full-text search API (EFTS)
-      const response = await fetch(
-        `https://efts.sec.gov/LATEST/search-index?q=%224%22&forms=4&dateRange=custom&startdt=${fromDate}&enddt=${toDate}`,
-        {
-          headers: {
-            "User-Agent": "AssetLabsAI contact@assetlabs.ai",
-            "Accept": "application/json",
-          },
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log("[SEC EDGAR] Got response:", JSON.stringify(data).slice(0, 500));
-        
-        // Parse the filings from the EFTS response
-        if (data.hits?.hits) {
-          for (const hit of data.hits.hits.slice(0, 40)) {
-            const source = hit._source || {};
-            // Extract filing details
-            const filing: InsiderFiling = {
-              ticker: source.tickers?.[0] || source.display_names?.[0]?.split(' ')?.[0] || 'UNKNOWN',
-              company_name: source.display_names?.[0] || source.entity_name || '',
-              insider_name: source.display_names?.[1] || 'Unknown Insider',
-              insider_title: '',
-              transaction_type: 'buy', // Will need deeper parsing
-              shares: 0,
-              price_per_share: 0,
-              total_value: 0,
-              filing_date: source.file_date || fromDate,
-              transaction_date: source.period_of_report || source.file_date || fromDate,
-              sec_filing_url: `https://www.sec.gov/Archives/edgar/data/${source.file_num || ''}`,
-              is_significant: false,
-            };
-            filings.push(filing);
+    for (const company of majorCompanies) {
+      try {
+        const paddedCik = company.cik.padStart(10, '0');
+        const res = await fetch(
+          `https://data.sec.gov/submissions/CIK${paddedCik}.json`,
+          {
+            headers: {
+              "User-Agent": "AssetLabsAI contact@assetlabs.ai",
+              "Accept": "application/json",
+            },
           }
-        }
-      } else {
-        console.log("[SEC EDGAR] EFTS returned:", response.status);
-      }
-    } catch (err) {
-      console.error("[SEC EDGAR] EFTS error:", err);
-    }
-
-    // If EFTS didn't return data, try the EDGAR submissions API for well-known tickers
-    if (filings.length === 0) {
-      console.log("[SEC EDGAR] Falling back to submissions API...");
-      
-      // Fetch Form 4 filings for major companies
-      const majorCIKs = [
-        { cik: "0000320193", ticker: "AAPL", name: "Apple Inc." },
-        { cik: "0000789019", ticker: "MSFT", name: "Microsoft Corp." },
-        { cik: "0001652044", ticker: "GOOGL", name: "Alphabet Inc." },
-        { cik: "0001018724", ticker: "AMZN", name: "Amazon.com Inc." },
-        { cik: "0001045810", ticker: "NVDA", name: "NVIDIA Corp." },
-        { cik: "0001326801", ticker: "META", name: "Meta Platforms" },
-        { cik: "0001318605", ticker: "TSLA", name: "Tesla Inc." },
-      ];
-
-      for (const company of majorCIKs) {
-        try {
-          const res = await fetch(
-            `https://data.sec.gov/submissions/CIK${company.cik}.json`,
-            {
-              headers: {
-                "User-Agent": "AssetLabsAI contact@assetlabs.ai",
-                "Accept": "application/json",
-              },
-            }
-          );
-
-          if (!res.ok) continue;
-          const data = await res.json();
-          
-          // Look for recent Form 4 filings
-          const recentFilings = data.filings?.recent;
-          if (!recentFilings) continue;
-
-          for (let i = 0; i < Math.min(recentFilings.form?.length || 0, 10); i++) {
-            if (recentFilings.form[i] === "4") {
-              const filingDate = recentFilings.filingDate?.[i];
-              if (!filingDate || filingDate < fromDate) continue;
-
-              filings.push({
-                ticker: company.ticker,
-                company_name: company.name,
-                insider_name: recentFilings.primaryDocument?.[i]?.split('/')?.[0] || 'Insider',
-                insider_title: '',
-                transaction_type: 'buy',
-                shares: 0,
-                price_per_share: 0,
-                total_value: 0,
-                filing_date: filingDate,
-                transaction_date: filingDate,
-                sec_filing_url: `https://www.sec.gov/Archives/edgar/data/${company.cik}/${recentFilings.accessionNumber?.[i]?.replace(/-/g, '')}`,
-                is_significant: false,
-              });
-            }
-          }
-
-          // Rate limit: SEC requires max 10 requests/second
-          await new Promise(r => setTimeout(r, 150));
-        } catch (err) {
-          console.error(`[SEC EDGAR] Error for ${company.ticker}:`, err);
-        }
-      }
-    }
-
-    console.log(`[SEC EDGAR] Parsed ${filings.length} filings`);
-
-    // Upsert into database
-    if (filings.length > 0) {
-      const { error } = await supabase
-        .from("smart_money_insider_trades")
-        .upsert(
-          filings.map(f => ({
-            ticker: f.ticker,
-            company_name: f.company_name,
-            insider_name: f.insider_name,
-            insider_title: f.insider_title,
-            transaction_type: f.transaction_type,
-            shares: f.shares || null,
-            price_per_share: f.price_per_share || null,
-            total_value: f.total_value || null,
-            filing_date: f.filing_date,
-            transaction_date: f.transaction_date || null,
-            sec_filing_url: f.sec_filing_url,
-            is_significant: f.is_significant,
-          })),
-          { onConflict: 'id' }
         );
 
+        if (!res.ok) {
+          console.warn(`[SEC EDGAR] ${company.ticker} returned ${res.status}`);
+          continue;
+        }
+
+        const data = await res.json();
+        const recent = data.filings?.recent;
+        if (!recent?.form) continue;
+
+        // Find Form 4 filings
+        for (let i = 0; i < Math.min(recent.form.length, 50); i++) {
+          if (recent.form[i] !== "4" && recent.form[i] !== "4/A") continue;
+          
+          const filingDate = recent.filingDate?.[i];
+          if (!filingDate || filingDate < fromDate) continue;
+
+          // The primaryDocDescription often contains the insider name
+          const accession = recent.accessionNumber?.[i] || '';
+          const cleanAccession = accession.replace(/-/g, '');
+          
+          filings.push({
+            ticker: company.ticker,
+            company_name: company.name,
+            insider_name: recent.primaryDocDescription?.[i] || 'Insider',
+            insider_title: '',
+            transaction_type: 'buy', // Default — would need XML parsing for exact type
+            shares: null,
+            price_per_share: null,
+            total_value: null,
+            filing_date: filingDate,
+            transaction_date: recent.reportDate?.[i] || filingDate,
+            sec_filing_url: `https://www.sec.gov/Archives/edgar/data/${paddedCik}/${cleanAccession}`,
+            is_significant: false,
+          });
+        }
+
+        // SEC rate limit: 10 req/s
+        await new Promise(r => setTimeout(r, 120));
+      } catch (err) {
+        console.error(`[SEC EDGAR] Error for ${company.ticker}:`, err);
+      }
+    }
+
+    // Now try to parse individual Form 4 XML for detailed transaction data
+    // For each filing, attempt to get the XML to extract actual shares/prices
+    for (let i = 0; i < Math.min(filings.length, 20); i++) {
+      try {
+        const filing = filings[i];
+        // Try to get the filing index page to find the XML doc
+        const indexUrl = `${filing.sec_filing_url}/index.json`;
+        const indexRes = await fetch(indexUrl, {
+          headers: { "User-Agent": "AssetLabsAI contact@assetlabs.ai" },
+        });
+
+        if (indexRes.ok) {
+          const indexData = await indexRes.json();
+          const xmlDoc = indexData.directory?.item?.find((item: any) => 
+            item.name?.endsWith('.xml') && !item.name?.includes('R')
+          );
+
+          if (xmlDoc) {
+            const xmlUrl = `${filing.sec_filing_url}/${xmlDoc.name}`;
+            const xmlRes = await fetch(xmlUrl, {
+              headers: { "User-Agent": "AssetLabsAI contact@assetlabs.ai" },
+            });
+
+            if (xmlRes.ok) {
+              const xmlText = await xmlRes.text();
+              
+              // Basic XML parsing for transaction details
+              const nameMatch = xmlText.match(/<rptOwnerName>([^<]+)<\/rptOwnerName>/);
+              const titleMatch = xmlText.match(/<officerTitle>([^<]+)<\/officerTitle>/);
+              const sharesMatch = xmlText.match(/<transactionShares>.*?<value>([^<]+)<\/value>/s);
+              const priceMatch = xmlText.match(/<transactionPricePerShare>.*?<value>([^<]+)<\/value>/s);
+              const codeMatch = xmlText.match(/<transactionCode>([^<]+)<\/transactionCode>/);
+              const adMatch = xmlText.match(/<transactionAcquiredDisposedCode>.*?<value>([^<]+)<\/value>/s);
+
+              if (nameMatch) filing.insider_name = nameMatch[1].trim();
+              if (titleMatch) filing.insider_title = titleMatch[1].trim();
+              if (sharesMatch) filing.shares = parseInt(sharesMatch[1]);
+              if (priceMatch) filing.price_per_share = parseFloat(priceMatch[1]);
+              if (filing.shares && filing.price_per_share) {
+                filing.total_value = filing.shares * filing.price_per_share;
+              }
+
+              // Determine transaction type
+              const code = codeMatch?.[1]?.toUpperCase();
+              const ad = adMatch?.[1]?.toUpperCase();
+              if (code === 'P' || (code === 'A' && ad === 'A')) {
+                filing.transaction_type = 'buy';
+              } else if (code === 'S' || (code === 'D' && ad === 'D')) {
+                filing.transaction_type = 'sell';
+              } else if (code === 'M' || code === 'C') {
+                filing.transaction_type = 'exercise';
+              } else if (code === 'G' || code === 'J') {
+                filing.transaction_type = 'gift';
+              }
+
+              // Mark significant trades (>$500K buys by C-suite)
+              if (filing.transaction_type === 'buy' && filing.total_value && filing.total_value > 500000) {
+                const title = (filing.insider_title || '').toLowerCase();
+                if (title.includes('ceo') || title.includes('cfo') || title.includes('president') || title.includes('director')) {
+                  filing.is_significant = true;
+                }
+              }
+            }
+          }
+        }
+
+        await new Promise(r => setTimeout(r, 120));
+      } catch (err) {
+        // Non-critical — we still have the basic filing data
+        console.warn(`[SEC EDGAR] XML parse error for filing ${i}:`, err);
+      }
+    }
+
+    console.log(`[SEC EDGAR] Parsed ${filings.length} Form 4 filings`);
+
+    // Clear old data and insert fresh
+    if (filings.length > 0) {
+      // Delete filings older than 30 days
+      await supabase
+        .from("smart_money_insider_trades")
+        .delete()
+        .lt('filing_date', new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0]);
+
+      const { error } = await supabase
+        .from("smart_money_insider_trades")
+        .insert(filings.map(f => ({
+          ticker: f.ticker,
+          company_name: f.company_name,
+          insider_name: f.insider_name,
+          insider_title: f.insider_title || null,
+          transaction_type: f.transaction_type,
+          shares: f.shares,
+          price_per_share: f.price_per_share,
+          total_value: f.total_value,
+          filing_date: f.filing_date,
+          transaction_date: f.transaction_date,
+          sec_filing_url: f.sec_filing_url,
+          is_significant: f.is_significant,
+        })));
+
       if (error) {
-        console.error("[SEC EDGAR] Upsert error:", error);
+        console.error("[SEC EDGAR] Insert error:", error);
       } else {
-        console.log(`[SEC EDGAR] Upserted ${filings.length} insider trades`);
+        console.log(`[SEC EDGAR] Inserted ${filings.length} insider trades`);
       }
     }
 
