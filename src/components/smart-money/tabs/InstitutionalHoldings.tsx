@@ -21,7 +21,7 @@ export function InstitutionalHoldings() {
         .limit(100);
 
       if (search) {
-        query = query.or(`ticker.ilike.%${search}%,fund_name.ilike.%${search}%`);
+        query = query.or(`ticker.ilike.%${search}%,fund_name.ilike.%${search}%,company_name.ilike.%${search}%`);
       }
 
       const { data } = await query;
@@ -72,8 +72,14 @@ export function InstitutionalHoldings() {
               <TableBody>
                 {data.map((h) => (
                   <TableRow key={h.id}>
-                    <TableCell className="font-medium max-w-[200px] truncate">{h.fund_name}</TableCell>
-                    <TableCell className="font-medium">{h.ticker}</TableCell>
+                    <TableCell className="font-medium max-w-[200px] truncate" title={h.fund_name}>{h.fund_name}</TableCell>
+                    <TableCell>
+                      {h.ticker ? (
+                        <Badge variant="outline" className="font-mono">{h.ticker}</Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground" title={h.company_name}>{h.company_name?.slice(0, 20) || '—'}</span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-right">{h.shares?.toLocaleString() || '—'}</TableCell>
                     <TableCell className="text-right">{formatValue(h.value)}</TableCell>
                     <TableCell className="text-right">
