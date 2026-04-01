@@ -76,7 +76,7 @@ serve(async (req) => {
               trade_time: new Date(b.t).toISOString(),
               exchange: null,
               side: b.c > b.o ? 'buy' : b.c < b.o ? 'sell' : 'unknown',
-              metadata: { source: 'polygon_agg_1h', avg_volume: avgVolume, volume_ratio: Math.round((b.v / avgVolume) * 100) / 100 },
+              metadata: { source: 'polygon_agg_daily', avg_volume: avgVolume, volume_ratio: Math.round((b.v / avgVolume) * 100) / 100 },
             }))
             .filter(i => !existingTimes.has(i.trade_time));
 
