@@ -112,7 +112,15 @@ export function PostCard({ post, onVote, onTickerClick, onDelete, compact = fals
         {/* Overlay gradient */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
-        {/* Ticker badges on thumbnail */}
+        {/* Premium badge */}
+        {post.is_premium && (
+          <div className="absolute top-2 left-2">
+            <Badge className="bg-amber-500/90 text-white border-0 text-[10px] px-1.5 py-0.5 gap-1">
+              <Crown className="h-3 w-3" />
+              Premium
+            </Badge>
+          </div>
+        )}
         {post.detected_tickers.length > 0 && (
           <div className="absolute top-2 right-2 flex flex-wrap gap-1 justify-end max-w-[70%]">
             {post.detected_tickers.slice(0, 3).map((ticker) => (
