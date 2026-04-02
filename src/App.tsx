@@ -83,6 +83,7 @@ const EliteOnboarding = lazy(() => import('./pages/EliteOnboarding'));
 const EliteDashboard = lazy(() => import('./pages/EliteDashboard'));
 const ElitePortfolio = lazy(() => import('./pages/ElitePortfolio'));
 const Unsubscribe = lazy(() => import('./pages/Unsubscribe'));
+const SharedPost = lazy(() => import('./pages/SharedPost'));
 import { EliteGuard } from '@/components/elite-assessment/EliteGuard';
 
 // Optimized QueryClient with aggressive caching and deduplication
