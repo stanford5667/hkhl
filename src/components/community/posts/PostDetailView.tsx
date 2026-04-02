@@ -95,7 +95,15 @@ export function PostDetailView() {
 
       {/* Title & Meta */}
       <div className="space-y-3">
-        <h1 className="text-2xl font-bold leading-tight">{post.title}</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold leading-tight">{post.title}</h1>
+          {post.is_premium && (
+            <Badge className="bg-amber-500/90 text-white border-0 gap-1 shrink-0">
+              <Crown className="h-3 w-3" />
+              Premium
+            </Badge>
+          )}
+        </div>
 
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2">
@@ -119,25 +127,49 @@ export function PostDetailView() {
         )}
       </div>
 
-      {/* Content */}
-      <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:mt-8 prose-headings:mb-3 prose-headings:font-bold prose-p:mb-4 prose-p:leading-relaxed">
-        <ReactMarkdown
-          components={{
-            h2: ({ node, children, ...props }) => (
-              <h2 {...props} className="text-xl font-bold mt-8 mb-3 text-foreground">{children}</h2>
-            ),
-            h3: ({ node, children, ...props }) => (
-              <h3 {...props} className="text-lg font-bold mt-6 mb-2 text-foreground">{children}</h3>
-            ),
-            p: ({ node, children, ...props }) => (
-              <p {...props} className="mb-5 leading-relaxed text-foreground/90">{children}</p>
-            ),
-            img: ({ node, ...props }) => (
-              <img {...props} className="rounded-lg border border-border/50 my-6 max-w-full" loading="lazy" />
-            ),
-          }}
-        >
-          {post.content}
+      {/* Content - gated for premium posts */}
+      {post.is_premium && !canViewPremium ? (
+        <div className="relative">
+          <div className="prose prose-sm dark:prose-invert max-w-none max-h-[200px] overflow-hidden">
+            <ReactMarkdown>{post.content.slice(0, 300) + '...'}</ReactMarkdown>
+          </div>
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/80 to-background flex items-end justify-center pb-8">
+            <div className="text-center space-y-3 p-6 rounded-xl border border-amber-500/30 bg-card/95 backdrop-blur-sm max-w-md">
+              <Lock className="h-8 w-8 text-amber-500 mx-auto" />
+              <h3 className="text-lg font-bold">Premium Research</h3>
+              <p className="text-sm text-muted-foreground">This article is available exclusively for premium subscribers.</p>
+              <Button 
+                className="gap-2 bg-amber-500 hover:bg-amber-600 text-white" 
+                onClick={() => showUpgradeModal('premiumResearch')}
+              >
+                <Crown className="h-4 w-4" />
+                Upgrade to Read
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:mt-8 prose-headings:mb-3 prose-headings:font-bold prose-p:mb-4 prose-p:leading-relaxed">
+          <ReactMarkdown
+            components={{
+              h2: ({ node, children, ...props }) => (
+                <h2 {...props} className="text-xl font-bold mt-8 mb-3 text-foreground">{children}</h2>
+              ),
+              h3: ({ node, children, ...props }) => (
+                <h3 {...props} className="text-lg font-bold mt-6 mb-2 text-foreground">{children}</h3>
+              ),
+              p: ({ node, children, ...props }) => (
+                <p {...props} className="mb-5 leading-relaxed text-foreground/90">{children}</p>
+              ),
+              img: ({ node, ...props }) => (
+                <img {...props} className="rounded-lg border border-border/50 my-6 max-w-full" loading="lazy" />
+              ),
+            }}
+          >
+            {post.content}
+          </ReactMarkdown>
+        </div>
+      )}
         </ReactMarkdown>
       </div>
 
