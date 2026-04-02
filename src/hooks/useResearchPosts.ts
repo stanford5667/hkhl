@@ -145,7 +145,7 @@ export function useResearchPosts() {
     fetchPosts(0);
   }, [fetchPosts]);
 
-  const createPost = async (title: string, content: string, thumbnailUrl?: string | null) => {
+  const createPost = async (title: string, content: string, thumbnailUrl?: string | null, isPremium?: boolean) => {
     if (!user) throw new Error('Must be authenticated');
 
     const detectedTickers = extractTickers(title + ' ' + content);
@@ -158,6 +158,7 @@ export function useResearchPosts() {
         content,
         detected_tickers: detectedTickers,
         thumbnail_url: thumbnailUrl || null,
+        is_premium: isPremium || false,
       })
       .select()
       .single();
