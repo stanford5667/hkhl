@@ -190,6 +190,7 @@ export function PostFeed() {
                 onVote={handleVote}
                 onTickerClick={setTickerFilter}
                 onDelete={handleDelete}
+                onTogglePremium={handleTogglePremium}
               />
             ))}
           </div>

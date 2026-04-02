@@ -205,6 +205,17 @@ export function PostCard({ post, onVote, onTickerClick, onDelete, onTogglePremiu
                 <Trash2 className="h-3 w-3" />
               </Button>
             )}
+            {canDelete && onTogglePremium && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn("h-6 w-6", post.is_premium ? "text-amber-500 hover:text-muted-foreground" : "text-muted-foreground hover:text-amber-500")}
+                onClick={(e) => { e.stopPropagation(); onTogglePremium(post.id, !post.is_premium); }}
+                title={post.is_premium ? "Remove premium gate" : "Make premium"}
+              >
+                <Crown className="h-3 w-3" />
+              </Button>
+            )}
           </div>
         </div>
       </div>
