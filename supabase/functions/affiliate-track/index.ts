@@ -67,17 +67,34 @@ serve(async (req) => {
     if (action === "attribute_signup") {
       const { visitor_id, user_id } = params;
 
+      // Check if this user is already attributed to any affiliate (prevent duplicates)
+      const { data: existingAttribution } = await supabase
+        .from("affiliate_referrals")
+        .select("id, affiliate_id")
+        .eq("referred_user_id", user_id)
+        .limit(1)
+        .maybeSingle();
+
+      if (existingAttribution) {
+        logStep("User already attributed, skipping", { user_id, existing_affiliate: existingAttribution.affiliate_id });
+        return new Response(JSON.stringify({ success: true, already_attributed: true, affiliate_id: existingAttribution.affiliate_id }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        });
+      }
+
       // Find the most recent click from this visitor within attribution window
       const { data: referral } = await supabase
         .from("affiliate_referrals")
-        .select("id, affiliate_id, affiliates!inner(attribution_days, status)")
+        .select("id, affiliate_id, click_at, affiliates!inner(attribution_days, status)")
         .eq("visitor_id", visitor_id)
         .is("referred_user_id", null)
         .order("click_at", { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (!referral) {
+        logStep("No unattributed referral found for visitor", { visitor_id });
         return new Response(JSON.stringify({ success: false, error: "No referral found" }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
           status: 200,
@@ -93,11 +110,30 @@ serve(async (req) => {
         });
       }
 
+      // Check if click is within attribution window
+      const clickDate = new Date(referral.click_at);
+      const daysSinceClick = (Date.now() - clickDate.getTime()) / (1000 * 60 * 60 * 24);
+      if (daysSinceClick > affiliate.attribution_days) {
+        logStep("Click outside attribution window", { daysSinceClick, attribution_days: affiliate.attribution_days });
+        return new Response(JSON.stringify({ success: false, error: "Attribution window expired" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        });
+      }
+
       // Update referral with user info
-      await supabase
+      const { error: updateError } = await supabase
         .from("affiliate_referrals")
         .update({ referred_user_id: user_id, signed_up_at: new Date().toISOString() })
         .eq("id", referral.id);
+
+      if (updateError) {
+        logStep("Error updating referral", updateError);
+        return new Response(JSON.stringify({ success: false, error: "Failed to attribute signup" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 500,
+        });
+      }
 
       // Increment referral count
       const { error: incError } = await supabase.rpc("increment_affiliate_referrals", { aff_id: referral.affiliate_id });
