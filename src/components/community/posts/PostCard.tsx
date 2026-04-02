@@ -37,7 +37,7 @@ function getGradient(id: string) {
   return gradients[idx];
 }
 
-export function PostCard({ post, onVote, onTickerClick, onDelete, compact = false }: PostCardProps) {
+export function PostCard({ post, onVote, onTickerClick, onDelete, onTogglePremium, compact = false }: PostCardProps) {
   const navigate = useNavigate();
   const { isAdmin } = useAdmin();
   const { user } = useAuth();
