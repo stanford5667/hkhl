@@ -30,8 +30,18 @@ export function PostFeed() {
     setTickerFilter,
     vote,
     deletePost,
+    togglePremium,
     loadMore,
   } = useResearchPosts();
+
+  const handleTogglePremium = async (postId: string, isPremium: boolean) => {
+    try {
+      await togglePremium(postId, isPremium);
+      toast.success(isPremium ? 'Post marked as premium' : 'Post set to free');
+    } catch {
+      toast.error('Failed to update post');
+    }
+  };
 
   const handleDelete = async (postId: string) => {
     if (!confirm('Are you sure you want to delete this post?')) return;
