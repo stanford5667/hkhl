@@ -24,7 +24,7 @@ export function PostDetailView() {
   const { isAuthenticated, user } = useAuth();
   const { isPro, showUpgradeModal } = useUsage();
   const { isAdmin } = useAdmin();
-  const { post, comments, loading, addComment } = usePostDetail(postId ?? null);
+  const { post, comments, loading, addComment, togglePremium } = usePostDetail(postId ?? null);
   const [commentText, setCommentText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
