@@ -70,6 +70,10 @@ export function PostCard({ post, onVote, onTickerClick, onDelete, compact = fals
   }, [post.content]);
 
   const handleClick = () => {
+    if (post.is_premium && !canViewPremium) {
+      showUpgradeModal('premiumResearch');
+      return;
+    }
     navigate(`/community/posts/${post.id}`);
   };
 
