@@ -118,25 +118,12 @@ serve(async (req) => {
           // Track whether attribution already happened
           let attributed = false;
 
-          // Method 4: Fallback to cookie-based referral lookup
+          // Method 4: Fallback to cookie-based referral lookup via subscriptions table
           if (!affiliateId) {
-            // Use getUsersByEmail for reliable lookup (listUsers has 1000 user limit)
-            const { data: userList } = await supabaseClient.auth.admin.listUsers({ 
-              page: 1, perPage: 1 
-            });
+            let matchedUserId: string | null = null;
             
-            // Search for user by email using a more targeted approach
-            const { data: profileData } = await supabaseClient
-              .from("profiles")
-              .select("user_id")
-              .eq("email", customerEmail)
-              .maybeSingle();
-
-            // Also try direct auth lookup
-            let matchedUserId: string | null = profileData?.user_id || null;
-            
-            if (!matchedUserId) {
-              // Fallback: search subscriptions table for the customer email
+            // Find user via stripe customer ID in subscriptions table
+            if (session.customer) {
               const { data: subData } = await supabaseClient
                 .from("subscriptions")
                 .select("user_id")
@@ -144,6 +131,19 @@ serve(async (req) => {
                 .maybeSingle();
               
               matchedUserId = subData?.user_id || null;
+            }
+            
+            // Fallback: try finding user by email via auth admin API
+            if (!matchedUserId && customerEmail) {
+              try {
+                const { data: userData } = await supabaseClient.auth.admin.listUsers({
+                  page: 1, perPage: 50
+                });
+                const matchedUser = userData?.users?.find(u => u.email === customerEmail);
+                matchedUserId = matchedUser?.id || null;
+              } catch (e) {
+                logStep("Auth user lookup failed", { error: String(e) });
+              }
             }
             
             if (matchedUserId) {
