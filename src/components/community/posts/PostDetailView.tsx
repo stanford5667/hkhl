@@ -24,7 +24,7 @@ export function PostDetailView() {
   const { isAuthenticated, user } = useAuth();
   const { isPro, showUpgradeModal } = useUsage();
   const { isAdmin } = useAdmin();
-  const { post, comments, loading, addComment } = usePostDetail(postId ?? null);
+  const { post, comments, loading, addComment, togglePremium } = usePostDetail(postId ?? null);
   const [commentText, setCommentText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
@@ -192,6 +192,24 @@ export function PostDetailView() {
           <Share2 className="h-4 w-4" />
           Share
         </Button>
+        {(isAdmin || user?.id === post.user_id) && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn("gap-1.5", post.is_premium ? "text-amber-500" : "text-muted-foreground hover:text-amber-500")}
+            onClick={async () => {
+              try {
+                await togglePremium(!post.is_premium);
+                toast.success(post.is_premium ? 'Post set to free' : 'Post marked as premium');
+              } catch {
+                toast.error('Failed to update');
+              }
+            }}
+          >
+            <Crown className="h-4 w-4" />
+            {post.is_premium ? 'Premium' : 'Set Premium'}
+          </Button>
+        )}
       </div>
 
       <ShareArticleDialog

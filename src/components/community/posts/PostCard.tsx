@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { VoteButtons } from './VoteButtons';
-import { MessageSquare, Share2, Bookmark, ImageIcon, Trash2, Lock, Crown } from 'lucide-react';
+import { MessageSquare, Share2, Bookmark, ImageIcon, Trash2, Lock, Crown, ShieldCheck } from 'lucide-react';
 import { ShareArticleDialog } from './ShareArticleDialog';
 import { cn } from '@/lib/utils';
 import { useAdmin } from '@/hooks/useAdmin';
@@ -18,6 +18,7 @@ interface PostCardProps {
   onVote: (postId: string, voteType: 1 | -1) => void;
   onTickerClick?: (ticker: string) => void;
   onDelete?: (postId: string) => void;
+  onTogglePremium?: (postId: string, isPremium: boolean) => void;
   compact?: boolean;
 }
 
@@ -36,7 +37,7 @@ function getGradient(id: string) {
   return gradients[idx];
 }
 
-export function PostCard({ post, onVote, onTickerClick, onDelete, compact = false }: PostCardProps) {
+export function PostCard({ post, onVote, onTickerClick, onDelete, onTogglePremium, compact = false }: PostCardProps) {
   const navigate = useNavigate();
   const { isAdmin } = useAdmin();
   const { user } = useAuth();
@@ -202,6 +203,17 @@ export function PostCard({ post, onVote, onTickerClick, onDelete, compact = fals
                 onClick={(e) => { e.stopPropagation(); onDelete(post.id); }}
               >
                 <Trash2 className="h-3 w-3" />
+              </Button>
+            )}
+            {canDelete && onTogglePremium && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn("h-6 w-6", post.is_premium ? "text-amber-500 hover:text-muted-foreground" : "text-muted-foreground hover:text-amber-500")}
+                onClick={(e) => { e.stopPropagation(); onTogglePremium(post.id, !post.is_premium); }}
+                title={post.is_premium ? "Remove premium gate" : "Make premium"}
+              >
+                <Crown className="h-3 w-3" />
               </Button>
             )}
           </div>
