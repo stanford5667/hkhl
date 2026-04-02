@@ -73,7 +73,7 @@ export function MobileNav() {
                     <button
                       className={cn(
                         "flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-colors min-w-[60px]",
-                        "text-muted-foreground hover:text-foreground active:bg-accent/50"
+                        item.color, "hover:text-foreground active:bg-accent/50"
                       )}
                     >
                       <Icon className="h-5 w-5" />
