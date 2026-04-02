@@ -203,12 +203,31 @@ serve(async (req) => {
               const amountDollars = session.amount_total / 100;
               const commission = (amountDollars * affiliateData.commission_rate) / 100;
 
-              // Find user by email for referral record
-              const { data: userData } = await supabaseClient.auth.admin.listUsers();
-              const matchedUser = userData?.users?.find(u => u.email === customerEmail);
+              // Find user by subscription's customer or profile email
+              let matchedUserId: string | null = null;
+              
+              // Try subscriptions table first (most reliable since we just created it)
+              const { data: subData } = await supabaseClient
+                .from("subscriptions")
+                .select("user_id")
+                .eq("stripe_customer_id", session.customer as string)
+                .maybeSingle();
+              
+              matchedUserId = subData?.user_id || null;
+
+              if (!matchedUserId) {
+                // Fallback: search profiles by email
+                const { data: profileData } = await supabaseClient
+                  .from("profiles")
+                  .select("user_id")
+                  .eq("email", customerEmail)
+                  .maybeSingle();
+                matchedUserId = profileData?.user_id || null;
+              }
 
               // Create or update referral record
-              if (matchedUser) {
+              if (matchedUserId) {
+                const matchedUser = { id: matchedUserId };
                 // Check if a referral already exists for this user
                 const { data: existingRef } = await supabaseClient
                   .from("affiliate_referrals")
