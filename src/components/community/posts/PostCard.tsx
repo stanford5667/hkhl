@@ -18,6 +18,7 @@ interface PostCardProps {
   onVote: (postId: string, voteType: 1 | -1) => void;
   onTickerClick?: (ticker: string) => void;
   onDelete?: (postId: string) => void;
+  onTogglePremium?: (postId: string, isPremium: boolean) => void;
   compact?: boolean;
 }
 
