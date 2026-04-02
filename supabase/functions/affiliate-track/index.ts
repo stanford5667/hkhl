@@ -30,11 +30,14 @@ serve(async (req) => {
     if (action === "track_click") {
       const { affiliate_code, visitor_id, landing_page, user_agent } = params;
       
+      // Normalize code to uppercase for case-insensitive matching
+      const normalizedCode = (affiliate_code || "").trim().toUpperCase();
+      
       // Find the affiliate
       const { data: affiliate, error: affError } = await supabase
         .from("affiliates")
         .select("id, status")
-        .eq("affiliate_code", affiliate_code)
+        .eq("affiliate_code", normalizedCode)
         .single();
 
       if (affError || !affiliate || affiliate.status !== "approved") {
