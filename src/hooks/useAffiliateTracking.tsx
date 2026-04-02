@@ -36,7 +36,7 @@ export function useAffiliateTracking() {
       supabase.functions.invoke("affiliate-track", {
         body: {
           action: "track_click",
-          affiliate_code: refCode,
+          affiliate_code: refCode.toUpperCase(),
           visitor_id: visitorId,
           landing_page: window.location.href,
           user_agent: navigator.userAgent,
