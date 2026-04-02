@@ -5,7 +5,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Check, Send, MessageSquare, Link2, Twitter } from 'lucide-react';
+import { Check, Send, MessageSquare, Link2, Twitter, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ShareArticleDialogProps {
@@ -28,12 +28,15 @@ export function ShareArticleDialog({ open, onOpenChange, postId, postTitle }: Sh
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [loading, setLoading] = useState(false);
   const [sharing, setSharing] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [copiedPublic, setCopiedPublic] = useState(false);
+  const [copiedPrivate, setCopiedPrivate] = useState(false);
+  const [privateLink, setPrivateLink] = useState<string | null>(null);
 
   const articleUrl = `${window.location.origin}/community/posts/${postId}`;
 
   useEffect(() => {
     if (!open) return;
+
     const fetchRooms = async () => {
       setLoading(true);
       const { data } = await supabase
@@ -43,14 +46,36 @@ export function ShareArticleDialog({ open, onOpenChange, postId, postTitle }: Sh
       setRooms(data || []);
       setLoading(false);
     };
-    fetchRooms();
-  }, [open]);
 
-  const handleCopyLink = async () => {
+    const fetchShareToken = async () => {
+      const { data } = await supabase
+        .from('research_posts')
+        .select('share_token')
+        .eq('id', postId)
+        .maybeSingle();
+
+      if (data?.share_token) {
+        setPrivateLink(`${window.location.origin}/shared/post/${data.share_token}`);
+      }
+    };
+
+    fetchRooms();
+    fetchShareToken();
+  }, [open, postId]);
+
+  const handleCopyPublicLink = async () => {
     await navigator.clipboard.writeText(articleUrl);
-    setCopied(true);
-    toast.success('Link copied to clipboard');
-    setTimeout(() => setCopied(false), 2000);
+    setCopiedPublic(true);
+    toast.success('Public link copied');
+    setTimeout(() => setCopiedPublic(false), 2000);
+  };
+
+  const handleCopyPrivateLink = async () => {
+    if (!privateLink) return;
+    await navigator.clipboard.writeText(privateLink);
+    setCopiedPrivate(true);
+    toast.success('Private share link copied — anyone with this link can view the article');
+    setTimeout(() => setCopiedPrivate(false), 2000);
   };
 
   const handleShareToChat = async (roomId: string) => {
@@ -91,10 +116,11 @@ export function ShareArticleDialog({ open, onOpenChange, postId, postTitle }: Sh
   };
 
   const handleShareExternal = () => {
+    const shareUrl = privateLink || articleUrl;
     if (navigator.share) {
-      navigator.share({ title: postTitle, url: articleUrl }).catch(() => {});
+      navigator.share({ title: postTitle, url: shareUrl }).catch(() => {});
     } else {
-      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(postTitle)}&url=${encodeURIComponent(articleUrl)}`, '_blank');
+      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(postTitle)}&url=${encodeURIComponent(shareUrl)}`, '_blank');
     }
   };
 
@@ -106,15 +132,33 @@ export function ShareArticleDialog({ open, onOpenChange, postId, postTitle }: Sh
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Private share link */}
+          {privateLink && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1.5">
+                <Lock className="h-3 w-3" />
+                Private Link — accessible to anyone, no sign-in needed
+              </p>
+              <Button
+                variant="outline"
+                className="w-full gap-2 h-10 border-primary/30 hover:border-primary/60"
+                onClick={handleCopyPrivateLink}
+              >
+                {copiedPrivate ? <Check className="h-4 w-4 text-green-500" /> : <Lock className="h-4 w-4 text-primary" />}
+                {copiedPrivate ? 'Copied!' : 'Copy Private Link'}
+              </Button>
+            </div>
+          )}
+
           {/* Quick actions */}
           <div className="flex gap-2">
             <Button
               variant="outline"
               className="flex-1 gap-2 h-10"
-              onClick={handleCopyLink}
+              onClick={handleCopyPublicLink}
             >
-              {copied ? <Check className="h-4 w-4 text-green-500" /> : <Link2 className="h-4 w-4" />}
-              {copied ? 'Copied!' : 'Copy Link'}
+              {copiedPublic ? <Check className="h-4 w-4 text-green-500" /> : <Link2 className="h-4 w-4" />}
+              {copiedPublic ? 'Copied!' : 'Copy Link'}
             </Button>
             <Button
               variant="outline"
