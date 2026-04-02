@@ -21,11 +21,15 @@ import { toast } from 'sonner';
 export function PostDetailView() {
   const { postId } = useParams<{ postId: string }>();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const { isPro, showUpgradeModal } = useUsage();
+  const { isAdmin } = useAdmin();
   const { post, comments, loading, addComment } = usePostDetail(postId ?? null);
   const [commentText, setCommentText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+
+  const canViewPremium = isPro || isAdmin || user?.id === post?.user_id;
 
   const handleSubmitComment = async () => {
     if (!commentText.trim()) return;
