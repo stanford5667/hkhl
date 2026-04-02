@@ -6,11 +6,12 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { VoteButtons } from './VoteButtons';
-import { MessageSquare, Share2, Bookmark, ImageIcon, Trash2 } from 'lucide-react';
+import { MessageSquare, Share2, Bookmark, ImageIcon, Trash2, Lock, Crown } from 'lucide-react';
 import { ShareArticleDialog } from './ShareArticleDialog';
 import { cn } from '@/lib/utils';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUsage } from '@/contexts/UsageContext';
 
 interface PostCardProps {
   post: ResearchPost;
@@ -39,8 +40,10 @@ export function PostCard({ post, onVote, onTickerClick, onDelete, compact = fals
   const navigate = useNavigate();
   const { isAdmin } = useAdmin();
   const { user } = useAuth();
+  const { isPro, showUpgradeModal } = useUsage();
   const canDelete = isAdmin || user?.id === post.user_id;
   const [shareOpen, setShareOpen] = useState(false);
+  const canViewPremium = isPro || isAdmin || user?.id === post.user_id;
 
   const displayName = post.user_profile?.full_name || 'Anonymous';
   const initials = displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
@@ -67,6 +70,10 @@ export function PostCard({ post, onVote, onTickerClick, onDelete, compact = fals
   }, [post.content]);
 
   const handleClick = () => {
+    if (post.is_premium && !canViewPremium) {
+      showUpgradeModal('premiumResearch');
+      return;
+    }
     navigate(`/community/posts/${post.id}`);
   };
 
@@ -105,7 +112,15 @@ export function PostCard({ post, onVote, onTickerClick, onDelete, compact = fals
         {/* Overlay gradient */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 
-        {/* Ticker badges on thumbnail */}
+        {/* Premium badge */}
+        {post.is_premium && (
+          <div className="absolute top-2 left-2">
+            <Badge className="bg-amber-500/90 text-white border-0 text-[10px] px-1.5 py-0.5 gap-1">
+              <Crown className="h-3 w-3" />
+              Premium
+            </Badge>
+          </div>
+        )}
         {post.detected_tickers.length > 0 && (
           <div className="absolute top-2 right-2 flex flex-wrap gap-1 justify-end max-w-[70%]">
             {post.detected_tickers.slice(0, 3).map((ticker) => (

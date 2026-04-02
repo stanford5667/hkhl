@@ -4667,6 +4667,7 @@ export type Database = {
           downvotes: number
           id: string
           is_pinned: boolean
+          is_premium: boolean
           share_token: string
           thumbnail_url: string | null
           title: string
@@ -4682,6 +4683,7 @@ export type Database = {
           downvotes?: number
           id?: string
           is_pinned?: boolean
+          is_premium?: boolean
           share_token?: string
           thumbnail_url?: string | null
           title: string
@@ -4697,6 +4699,7 @@ export type Database = {
           downvotes?: number
           id?: string
           is_pinned?: boolean
+          is_premium?: boolean
           share_token?: string
           thumbnail_url?: string | null
           title?: string

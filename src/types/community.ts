@@ -106,6 +106,7 @@ export interface ResearchPost {
   downvotes: number;
   comment_count: number;
   is_pinned: boolean;
+  is_premium: boolean;
   created_at: string;
   updated_at: string;
   // Joined data
