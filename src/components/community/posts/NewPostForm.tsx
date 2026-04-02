@@ -620,12 +620,26 @@ export function NewPostForm() {
               </div>
             )}
 
-            <div className="flex justify-end gap-3 pt-2">
-              <Button type="button" variant="outline" onClick={() => navigate('/community/posts')}>Cancel</Button>
-              <Button type="submit" disabled={submitting || uploading || aiLoading} className="gap-2">
-                <Send className="h-4 w-4" />
-                {submitting ? 'Publishing...' : 'Publish'}
-              </Button>
+            <div className="flex items-center justify-between gap-3 pt-2">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={isPremium}
+                  onChange={(e) => setIsPremium(e.target.checked)}
+                  className="rounded border-border"
+                />
+                <span className="text-sm font-medium flex items-center gap-1.5">
+                  🔒 Premium Only
+                </span>
+                <span className="text-xs text-muted-foreground">(subscribers only, unless shared via private link)</span>
+              </label>
+              <div className="flex gap-3">
+                <Button type="button" variant="outline" onClick={() => navigate('/community/posts')}>Cancel</Button>
+                <Button type="submit" disabled={submitting || uploading || aiLoading} className="gap-2">
+                  <Send className="h-4 w-4" />
+                  {submitting ? 'Publishing...' : 'Publish'}
+                </Button>
+              </div>
             </div>
           </form>
         </CardContent>
