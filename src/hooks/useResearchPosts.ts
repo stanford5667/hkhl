@@ -170,6 +170,18 @@ export function useResearchPosts() {
     return data as ResearchPost;
   };
 
+  const togglePremium = async (postId: string, isPremium: boolean) => {
+    if (!user) throw new Error('Must be authenticated');
+
+    const { error } = await supabase
+      .from('research_posts')
+      .update({ is_premium: isPremium })
+      .eq('id', postId);
+
+    if (error) throw error;
+    setPosts(prev => prev.map(p => p.id === postId ? { ...p, is_premium: isPremium } : p));
+  };
+
   const updatePost = async (postId: string, title: string, content: string) => {
     if (!user) throw new Error('Must be authenticated');
 
