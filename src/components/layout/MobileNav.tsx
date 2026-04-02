@@ -20,7 +20,8 @@ import {
   Flame,
   Activity,
   SlidersHorizontal,
-  Fish
+  Fish,
+  MessageCircle
 } from "lucide-react";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -31,16 +32,18 @@ import { useEliteAccess } from "@/hooks/useEliteAccess";
 import { supabase } from "@/integrations/supabase/client";
 
 const baseMobileNavItems = [
-  { label: "Research", href: "/research", icon: Search },
-  { label: "Academy", href: "/academy", icon: BookOpen },
-  { label: "More", href: "#menu", icon: Menu, isMenu: true },
+  { label: "Research", href: "/research", icon: Search, color: "text-blue-400", activeBg: "bg-blue-500/15" },
+  { label: "Chat", href: "/community", icon: MessageCircle, color: "text-emerald-400", activeBg: "bg-emerald-500/15" },
+  { label: "Academy", href: "/academy", icon: BookOpen, color: "text-amber-400", activeBg: "bg-amber-500/15" },
+  { label: "More", href: "#menu", icon: Menu, isMenu: true, color: "text-violet-400", activeBg: "bg-violet-500/15" },
 ];
 
 const adminMobileNavItems = [
-  { label: "Research", href: "/research", icon: Search },
-  { label: "My Work", href: "/my-research", icon: ClipboardList },
-  { label: "Academy", href: "/academy", icon: BookOpen },
-  { label: "More", href: "#menu", icon: Menu, isMenu: true },
+  { label: "Research", href: "/research", icon: Search, color: "text-blue-400", activeBg: "bg-blue-500/15" },
+  { label: "Chat", href: "/community", icon: MessageCircle, color: "text-emerald-400", activeBg: "bg-emerald-500/15" },
+  { label: "My Work", href: "/my-research", icon: ClipboardList, color: "text-rose-400", activeBg: "bg-rose-500/15" },
+  { label: "Academy", href: "/academy", icon: BookOpen, color: "text-amber-400", activeBg: "bg-amber-500/15" },
+  { label: "More", href: "#menu", icon: Menu, isMenu: true, color: "text-violet-400", activeBg: "bg-violet-500/15" },
 ];
 
 export function MobileNav() {
@@ -70,7 +73,7 @@ export function MobileNav() {
                     <button
                       className={cn(
                         "flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-colors min-w-[60px]",
-                        "text-muted-foreground hover:text-foreground active:bg-accent/50"
+                        item.color, "hover:text-foreground active:bg-accent/50"
                       )}
                     >
                       <Icon className="h-5 w-5" />
@@ -93,22 +96,22 @@ export function MobileNav() {
                 className={cn(
                   "flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 min-w-[60px]",
                   isActive
-                    ? "text-primary"
+                    ? item.color
                     : "text-muted-foreground hover:text-foreground active:bg-accent/50"
                 )}
               >
                 <div className={cn(
                   "p-1.5 rounded-lg transition-all duration-200",
-                  isActive && "bg-primary/15"
+                  isActive ? item.activeBg : ""
                 )}>
                   <Icon className={cn(
                     "h-5 w-5",
-                    isActive && "text-primary"
+                    item.color
                   )} />
                 </div>
                 <span className={cn(
                   "text-[10px] font-medium",
-                  isActive && "text-primary font-semibold"
+                  isActive && cn(item.color, "font-semibold")
                 )}>
                   {item.label}
                 </span>
