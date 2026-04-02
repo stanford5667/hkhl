@@ -40,8 +40,10 @@ export function PostCard({ post, onVote, onTickerClick, onDelete, compact = fals
   const navigate = useNavigate();
   const { isAdmin } = useAdmin();
   const { user } = useAuth();
+  const { isPro, showUpgradeModal } = useUsage();
   const canDelete = isAdmin || user?.id === post.user_id;
   const [shareOpen, setShareOpen] = useState(false);
+  const canViewPremium = isPro || isAdmin || user?.id === post.user_id;
 
   const displayName = post.user_profile?.full_name || 'Anonymous';
   const initials = displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
