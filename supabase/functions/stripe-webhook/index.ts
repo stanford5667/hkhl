@@ -120,21 +120,45 @@ serve(async (req) => {
 
           // Method 4: Fallback to cookie-based referral lookup
           if (!affiliateId) {
-            const { data: userData } = await supabaseClient.auth.admin.listUsers();
-            const matchedUser = userData?.users?.find(u => u.email === customerEmail);
+            // Use getUsersByEmail for reliable lookup (listUsers has 1000 user limit)
+            const { data: userList } = await supabaseClient.auth.admin.listUsers({ 
+              page: 1, perPage: 1 
+            });
             
-            if (matchedUser) {
+            // Search for user by email using a more targeted approach
+            const { data: profileData } = await supabaseClient
+              .from("profiles")
+              .select("user_id")
+              .eq("email", customerEmail)
+              .maybeSingle();
+
+            // Also try direct auth lookup
+            let matchedUserId: string | null = profileData?.user_id || null;
+            
+            if (!matchedUserId) {
+              // Fallback: search subscriptions table for the customer email
+              const { data: subData } = await supabaseClient
+                .from("subscriptions")
+                .select("user_id")
+                .eq("stripe_customer_id", session.customer as string)
+                .maybeSingle();
+              
+              matchedUserId = subData?.user_id || null;
+            }
+            
+            if (matchedUserId) {
               const { data: referral } = await supabaseClient
                 .from("affiliate_referrals")
                 .select("id, affiliate_id, affiliates!inner(commission_rate)")
-                .eq("referred_user_id", matchedUser.id)
+                .eq("referred_user_id", matchedUserId)
+                .is("converted_at", null)
                 .order("click_at", { ascending: false })
                 .limit(1)
                 .maybeSingle();
 
               if (referral) {
                 affiliateId = referral.affiliate_id;
-                logStep("Affiliate found via cookie-based referral", { affiliateId });
+                logStep("Affiliate found via cookie-based referral", { affiliateId, userId: matchedUserId });
                 
                 const amountDollars = session.amount_total / 100;
                 const affiliate = (referral as any).affiliates;
@@ -159,7 +183,11 @@ serve(async (req) => {
                   amount: amountDollars, 
                   commission 
                 });
+              } else {
+                logStep("No unconverted referral found for user", { userId: matchedUserId });
               }
+            } else {
+              logStep("Could not find user for affiliate attribution", { customerEmail });
             }
           }
 
