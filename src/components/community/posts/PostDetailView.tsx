@@ -170,8 +170,6 @@ export function PostDetailView() {
           </ReactMarkdown>
         </div>
       )}
-        </ReactMarkdown>
-      </div>
 
       {/* Vote bar */}
       <div className="flex items-center gap-4 py-3 border-y border-border/50">
