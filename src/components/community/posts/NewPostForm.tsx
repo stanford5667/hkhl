@@ -412,7 +412,7 @@ export function NewPostForm() {
     }
     try {
       setSubmitting(true);
-      await createPost(title.trim(), content.trim(), thumbnailUrl);
+      await createPost(title.trim(), content.trim(), thumbnailUrl, isPremium);
       toast.success('Post published!');
       navigate('/community/posts', { replace: true });
     } catch (err: any) {
