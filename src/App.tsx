@@ -83,6 +83,7 @@ const EliteOnboarding = lazy(() => import('./pages/EliteOnboarding'));
 const EliteDashboard = lazy(() => import('./pages/EliteDashboard'));
 const ElitePortfolio = lazy(() => import('./pages/ElitePortfolio'));
 const Unsubscribe = lazy(() => import('./pages/Unsubscribe'));
+const SharedPost = lazy(() => import('./pages/SharedPost'));
 import { EliteGuard } from '@/components/elite-assessment/EliteGuard';
 
 // Optimized QueryClient with aggressive caching and deduplication
@@ -181,6 +182,7 @@ const App = () => {
                               {/* <Route path="/glossary" element={<Glossary />} /> */}
                               <Route path="/theme-analysis" element={<ThemeAnalysis />} />
                               <Route path="/shared/theme/:shareId" element={<SharedThemeAnalysis />} />
+                              <Route path="/shared/post/:shareToken" element={<SharedPost />} />
                               <Route path="/landing" element={<LandingPage />} />
                               <Route path="/affiliate" element={<Affiliate />} />
                               <Route path="/investment-heatmap" element={<InvestmentHeatmap />} />
