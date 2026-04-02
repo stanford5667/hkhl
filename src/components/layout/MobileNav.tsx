@@ -96,22 +96,22 @@ export function MobileNav() {
                 className={cn(
                   "flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 min-w-[60px]",
                   isActive
-                    ? "text-primary"
+                    ? item.color
                     : "text-muted-foreground hover:text-foreground active:bg-accent/50"
                 )}
               >
                 <div className={cn(
                   "p-1.5 rounded-lg transition-all duration-200",
-                  isActive && "bg-primary/15"
+                  isActive ? item.activeBg : ""
                 )}>
                   <Icon className={cn(
                     "h-5 w-5",
-                    isActive && "text-primary"
+                    item.color
                   )} />
                 </div>
                 <span className={cn(
                   "text-[10px] font-medium",
-                  isActive && "text-primary font-semibold"
+                  isActive && cn(item.color, "font-semibold")
                 )}>
                   {item.label}
                 </span>
