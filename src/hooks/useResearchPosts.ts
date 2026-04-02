@@ -468,6 +468,16 @@ export function usePostDetail(postId: string | null) {
     await fetchPost();
   };
 
+  const togglePremium = async (isPremium: boolean) => {
+    if (!user || !postId) throw new Error('Must be authenticated');
+    const { error } = await supabase
+      .from('research_posts')
+      .update({ is_premium: isPremium })
+      .eq('id', postId);
+    if (error) throw error;
+    setPost(prev => prev ? { ...prev, is_premium: isPremium } : prev);
+  };
+
   return {
     post,
     comments,
@@ -475,6 +485,7 @@ export function usePostDetail(postId: string | null) {
     error,
     addComment,
     deleteComment,
+    togglePremium,
     refresh: fetchPost,
   };
 }
