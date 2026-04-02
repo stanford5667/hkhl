@@ -182,6 +182,7 @@ const App = () => {
                               {/* <Route path="/glossary" element={<Glossary />} /> */}
                               <Route path="/theme-analysis" element={<ThemeAnalysis />} />
                               <Route path="/shared/theme/:shareId" element={<SharedThemeAnalysis />} />
+                              <Route path="/shared/post/:shareToken" element={<SharedPost />} />
                               <Route path="/landing" element={<LandingPage />} />
                               <Route path="/affiliate" element={<Affiliate />} />
                               <Route path="/investment-heatmap" element={<InvestmentHeatmap />} />
