@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { VoteButtons } from './VoteButtons';
-import { MessageSquare, Share2, Bookmark, ImageIcon, Trash2, Lock, Crown } from 'lucide-react';
+import { MessageSquare, Share2, Bookmark, ImageIcon, Trash2, Lock, Crown, ShieldCheck } from 'lucide-react';
 import { ShareArticleDialog } from './ShareArticleDialog';
 import { cn } from '@/lib/utils';
 import { useAdmin } from '@/hooks/useAdmin';
