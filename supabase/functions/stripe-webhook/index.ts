@@ -118,23 +118,47 @@ serve(async (req) => {
           // Track whether attribution already happened
           let attributed = false;
 
-          // Method 4: Fallback to cookie-based referral lookup
+          // Method 4: Fallback to cookie-based referral lookup via subscriptions table
           if (!affiliateId) {
-            const { data: userData } = await supabaseClient.auth.admin.listUsers();
-            const matchedUser = userData?.users?.find(u => u.email === customerEmail);
+            let matchedUserId: string | null = null;
             
-            if (matchedUser) {
+            // Find user via stripe customer ID in subscriptions table
+            if (session.customer) {
+              const { data: subData } = await supabaseClient
+                .from("subscriptions")
+                .select("user_id")
+                .eq("stripe_customer_id", session.customer as string)
+                .maybeSingle();
+              
+              matchedUserId = subData?.user_id || null;
+            }
+            
+            // Fallback: try finding user by email via auth admin API
+            if (!matchedUserId && customerEmail) {
+              try {
+                const { data: userData } = await supabaseClient.auth.admin.listUsers({
+                  page: 1, perPage: 50
+                });
+                const matchedUser = userData?.users?.find(u => u.email === customerEmail);
+                matchedUserId = matchedUser?.id || null;
+              } catch (e) {
+                logStep("Auth user lookup failed", { error: String(e) });
+              }
+            }
+            
+            if (matchedUserId) {
               const { data: referral } = await supabaseClient
                 .from("affiliate_referrals")
                 .select("id, affiliate_id, affiliates!inner(commission_rate)")
-                .eq("referred_user_id", matchedUser.id)
+                .eq("referred_user_id", matchedUserId)
+                .is("converted_at", null)
                 .order("click_at", { ascending: false })
                 .limit(1)
                 .maybeSingle();
 
               if (referral) {
                 affiliateId = referral.affiliate_id;
-                logStep("Affiliate found via cookie-based referral", { affiliateId });
+                logStep("Affiliate found via cookie-based referral", { affiliateId, userId: matchedUserId });
                 
                 const amountDollars = session.amount_total / 100;
                 const affiliate = (referral as any).affiliates;
@@ -159,7 +183,11 @@ serve(async (req) => {
                   amount: amountDollars, 
                   commission 
                 });
+              } else {
+                logStep("No unconverted referral found for user", { userId: matchedUserId });
               }
+            } else {
+              logStep("Could not find user for affiliate attribution", { customerEmail });
             }
           }
 
@@ -175,12 +203,31 @@ serve(async (req) => {
               const amountDollars = session.amount_total / 100;
               const commission = (amountDollars * affiliateData.commission_rate) / 100;
 
-              // Find user by email for referral record
-              const { data: userData } = await supabaseClient.auth.admin.listUsers();
-              const matchedUser = userData?.users?.find(u => u.email === customerEmail);
+              // Find user by subscription's customer or profile email
+              let matchedUserId: string | null = null;
+              
+              // Try subscriptions table first (most reliable since we just created it)
+              const { data: subData } = await supabaseClient
+                .from("subscriptions")
+                .select("user_id")
+                .eq("stripe_customer_id", session.customer as string)
+                .maybeSingle();
+              
+              matchedUserId = subData?.user_id || null;
+
+              if (!matchedUserId) {
+                // Fallback: search profiles by email
+                const { data: profileData } = await supabaseClient
+                  .from("profiles")
+                  .select("user_id")
+                  .eq("email", customerEmail)
+                  .maybeSingle();
+                matchedUserId = profileData?.user_id || null;
+              }
 
               // Create or update referral record
-              if (matchedUser) {
+              if (matchedUserId) {
+                const matchedUser = { id: matchedUserId };
                 // Check if a referral already exists for this user
                 const { data: existingRef } = await supabaseClient
                   .from("affiliate_referrals")
