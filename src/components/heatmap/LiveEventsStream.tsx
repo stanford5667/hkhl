@@ -69,8 +69,8 @@ function EventItem({ event, isNew, onSelect }: { event: LiveEvent; isNew: boolea
       transition={{ duration: 0.4, ease: 'easeOut' }}
       className="group"
     >
-      <div className={cn(
-        'flex gap-3 px-3 py-2.5 rounded-lg transition-colors cursor-default',
+      <button onClick={() => onSelect(event.id)} className={cn(
+        'w-full text-left flex gap-3 px-3 py-2.5 rounded-lg transition-colors cursor-pointer',
         'hover:bg-muted/40',
         isNew && 'bg-primary/5 border border-primary/10',
       )}>
