@@ -7,7 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import {
   Globe, TrendingUp, BarChart3, Building2,
   DollarSign, Activity, Users, Factory, Landmark, ArrowRight,
-  ChevronDown, ChevronUp, Info,
+  ChevronDown, ChevronUp, Info, Radio,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { THEME_TICKERS } from '@/hooks/useInvestmentHeatmap';
