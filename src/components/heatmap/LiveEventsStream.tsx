@@ -10,6 +10,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
+import { NewsArticleSheet } from './NewsArticleSheet';
 
 interface LiveEvent {
   id: string;
@@ -57,7 +58,7 @@ function SentimentIcon({ sentiment }: { sentiment: 'positive' | 'negative' | 'ne
   return <Minus className="h-3.5 w-3.5 text-amber-400" />;
 }
 
-function EventItem({ event, isNew }: { event: LiveEvent; isNew: boolean }) {
+function EventItem({ event, isNew, onSelect }: { event: LiveEvent; isNew: boolean; onSelect: (id: string) => void }) {
   const sentiment = getSentimentFromTitle(event.title);
   const tickers = (event.related_markets || event.entities?.filter(e => /^[A-Z]{1,5}$/.test(e)) || []).slice(0, 4);
 
@@ -69,8 +70,8 @@ function EventItem({ event, isNew }: { event: LiveEvent; isNew: boolean }) {
       transition={{ duration: 0.4, ease: 'easeOut' }}
       className="group"
     >
-      <div className={cn(
-        'flex gap-3 px-3 py-2.5 rounded-lg transition-colors cursor-default',
+      <button onClick={() => onSelect(event.id)} className={cn(
+        'w-full text-left flex gap-3 px-3 py-2.5 rounded-lg transition-colors cursor-pointer',
         'hover:bg-muted/40',
         isNew && 'bg-primary/5 border border-primary/10',
       )}>
@@ -82,7 +83,7 @@ function EventItem({ event, isNew }: { event: LiveEvent; isNew: boolean }) {
         <div className="flex-1 min-w-0 space-y-1">
           <div className="flex items-start justify-between gap-2">
             <p className={cn(
-              'text-sm font-medium leading-snug line-clamp-2',
+              'text-sm font-medium leading-snug line-clamp-2 group-hover:text-primary transition-colors',
               isNew && 'text-foreground',
               !isNew && 'text-foreground/80',
             )}>
@@ -126,13 +127,14 @@ function EventItem({ event, isNew }: { event: LiveEvent; isNew: boolean }) {
             )}
           </div>
         </div>
-      </div>
+      </button>
     </motion.div>
   );
 }
 
 export function LiveEventsStream() {
   const [expanded, setExpanded] = useState(true);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
   const prevDataRef = useRef<LiveEvent[]>([]);
 
@@ -233,6 +235,7 @@ export function LiveEventsStream() {
                         key={event.id}
                         event={event}
                         isNew={seenIds.size > 0 && !seenIds.has(event.id)}
+                        onSelect={setSelectedEventId}
                       />
                     ))}
                   </div>
@@ -242,6 +245,12 @@ export function LiveEventsStream() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <NewsArticleSheet
+        eventId={selectedEventId}
+        open={!!selectedEventId}
+        onOpenChange={(open) => { if (!open) setSelectedEventId(null); }}
+      />
     </div>
   );
 }
