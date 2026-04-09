@@ -318,6 +318,22 @@ export function CountryDetailSheet({ country, themes = [], open, onOpenChange, o
               </div>
             </div>
 
+            {/* Regional News Stream */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Radio className="h-4 w-4 text-primary" />
+                <h3 className="text-sm font-semibold text-foreground">Live News &amp; Events</h3>
+              </div>
+              <div className="rounded-lg border border-border/30 bg-card/50 p-3">
+                <RegionNewsStream
+                  countryCode={country.countryCode}
+                  countryName={country.countryName}
+                />
+              </div>
+            </div>
+
+            <Separator className="opacity-50" />
+
             {/* Key Stats */}
             {country.keyStats.length > 0 && (
               <div>
