@@ -134,6 +134,7 @@ function EventItem({ event, isNew, onSelect }: { event: LiveEvent; isNew: boolea
 
 export function LiveEventsStream() {
   const [expanded, setExpanded] = useState(true);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
   const prevDataRef = useRef<LiveEvent[]>([]);
 
