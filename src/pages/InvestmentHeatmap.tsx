@@ -300,6 +300,9 @@ function HeatmapContent() {
           </div>
         )}
 
+        {/* Live Events Stream */}
+        <LiveEventsStream />
+
         {/* Sector Rotation */}
         <SectorPerformancePanel
           sectors={sectorStats || []}
