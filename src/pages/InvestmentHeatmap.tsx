@@ -8,6 +8,7 @@ import { ThemeDetailSheet } from '@/components/heatmap/ThemeDetailSheet';
 import { CountryDetailSheet } from '@/components/heatmap/CountryDetailSheet';
 import { SectorPerformancePanel } from '@/components/heatmap/SectorPerformancePanel';
 import { ThemeCallouts } from '@/components/heatmap/ThemeCallouts';
+import { LiveEventsStream } from '@/components/heatmap/LiveEventsStream';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { AuthGateDialog } from '@/components/auth/AuthGateDialog';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
