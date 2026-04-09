@@ -83,7 +83,7 @@ function EventItem({ event, isNew, onSelect }: { event: LiveEvent; isNew: boolea
         <div className="flex-1 min-w-0 space-y-1">
           <div className="flex items-start justify-between gap-2">
             <p className={cn(
-              'text-sm font-medium leading-snug line-clamp-2',
+              'text-sm font-medium leading-snug line-clamp-2 group-hover:text-primary transition-colors',
               isNew && 'text-foreground',
               !isNew && 'text-foreground/80',
             )}>
