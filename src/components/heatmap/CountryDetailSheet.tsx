@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { RegionNewsStream } from './RegionNewsStream';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -6,7 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import {
   Globe, TrendingUp, BarChart3, Building2,
   DollarSign, Activity, Users, Factory, Landmark, ArrowRight,
-  ChevronDown, ChevronUp, Info,
+  ChevronDown, ChevronUp, Info, Radio,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { THEME_TICKERS } from '@/hooks/useInvestmentHeatmap';
@@ -316,6 +317,22 @@ export function CountryDetailSheet({ country, themes = [], open, onOpenChange, o
                 })}
               </div>
             </div>
+
+            {/* Regional News Stream */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Radio className="h-4 w-4 text-primary" />
+                <h3 className="text-sm font-semibold text-foreground">Live News &amp; Events</h3>
+              </div>
+              <div className="rounded-lg border border-border/30 bg-card/50 p-3">
+                <RegionNewsStream
+                  countryCode={country.countryCode}
+                  countryName={country.countryName}
+                />
+              </div>
+            </div>
+
+            <Separator className="opacity-50" />
 
             {/* Key Stats */}
             {country.keyStats.length > 0 && (
