@@ -57,7 +57,7 @@ function SentimentIcon({ sentiment }: { sentiment: 'positive' | 'negative' | 'ne
   return <Minus className="h-3.5 w-3.5 text-amber-400" />;
 }
 
-function EventItem({ event, isNew }: { event: LiveEvent; isNew: boolean }) {
+function EventItem({ event, isNew, onSelect }: { event: LiveEvent; isNew: boolean; onSelect: (id: string) => void }) {
   const sentiment = getSentimentFromTitle(event.title);
   const tickers = (event.related_markets || event.entities?.filter(e => /^[A-Z]{1,5}$/.test(e)) || []).slice(0, 4);
 
