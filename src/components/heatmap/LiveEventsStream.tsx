@@ -235,6 +235,7 @@ export function LiveEventsStream() {
                         key={event.id}
                         event={event}
                         isNew={seenIds.size > 0 && !seenIds.has(event.id)}
+                        onSelect={setSelectedEventId}
                       />
                     ))}
                   </div>
@@ -244,6 +245,12 @@ export function LiveEventsStream() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <NewsArticleSheet
+        eventId={selectedEventId}
+        open={!!selectedEventId}
+        onOpenChange={(open) => { if (!open) setSelectedEventId(null); }}
+      />
     </div>
   );
 }
