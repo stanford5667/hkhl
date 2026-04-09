@@ -126,7 +126,7 @@ function EventItem({ event, isNew, onSelect }: { event: LiveEvent; isNew: boolea
             )}
           </div>
         </div>
-      </div>
+      </button>
     </motion.div>
   );
 }
