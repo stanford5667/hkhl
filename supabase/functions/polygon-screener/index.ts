@@ -812,13 +812,11 @@ async function screenFromPolygonAPI(
     if (filters.minPrice !== undefined && price < filters.minPrice) return false;
     if (filters.maxPrice !== undefined && price > filters.maxPrice) return false;
 
-    // When market closed, change% is 0 (same day), so skip change filters
-    if (!marketClosed) {
-      const accurateChangePercent = ((price - t.prevDay.c) / t.prevDay.c) * 100;
-      if (!hasFundamentalFilters) {
-        if (filters.minChange1D !== undefined && accurateChangePercent < filters.minChange1D) return false;
-        if (filters.maxChange1D !== undefined && accurateChangePercent > filters.maxChange1D) return false;
-      }
+    // Use todaysChangePerc from snapshot (works even when market is closed)
+    const accurateChangePercent = marketClosed ? (t.todaysChangePerc || 0) : ((price - t.prevDay.c) / t.prevDay.c) * 100;
+    if (!hasFundamentalFilters) {
+      if (filters.minChange1D !== undefined && accurateChangePercent < filters.minChange1D) return false;
+      if (filters.maxChange1D !== undefined && accurateChangePercent > filters.maxChange1D) return false;
     }
 
     if (filters.minVolume !== undefined && volume < filters.minVolume) return false;
@@ -843,8 +841,8 @@ async function screenFromPolygonAPI(
     let aVal: number, bVal: number;
     const aPrice = marketClosed ? (a.prevDay?.c || 0) : (a.day?.c || 0);
     const bPrice = marketClosed ? (b.prevDay?.c || 0) : (b.day?.c || 0);
-    const aChangePercent = a.prevDay?.c > 0 && !marketClosed ? ((a.day.c - a.prevDay.c) / a.prevDay.c) * 100 : 0;
-    const bChangePercent = b.prevDay?.c > 0 && !marketClosed ? ((b.day.c - b.prevDay.c) / b.prevDay.c) * 100 : 0;
+    const aChangePercent = marketClosed ? (a.todaysChangePerc || 0) : (a.prevDay?.c > 0 ? ((a.day.c - a.prevDay.c) / a.prevDay.c) * 100 : 0);
+    const bChangePercent = marketClosed ? (b.todaysChangePerc || 0) : (b.prevDay?.c > 0 ? ((b.day.c - b.prevDay.c) / b.prevDay.c) * 100 : 0);
 
     switch (candidateSortBy) {
       case "change":
@@ -923,8 +921,8 @@ async function screenFromPolygonAPI(
       if (!filters.sectors.includes(sector)) return false;
     }
 
-    if (hasFundamentalFilters && !marketClosed) {
-      const accurateChangePercent = t.prevDay?.c > 0 ? ((t.day.c - t.prevDay.c) / t.prevDay.c) * 100 : 0;
+    if (hasFundamentalFilters) {
+      const accurateChangePercent = marketClosed ? (t.todaysChangePerc || 0) : (t.prevDay?.c > 0 ? ((t.day.c - t.prevDay.c) / t.prevDay.c) * 100 : 0);
       if (filters.minChange1D !== undefined && accurateChangePercent < filters.minChange1D) return false;
       if (filters.maxChange1D !== undefined && accurateChangePercent > filters.maxChange1D) return false;
 
@@ -944,8 +942,8 @@ async function screenFromPolygonAPI(
     let aVal: number, bVal: number;
     const aPrice = marketClosed ? (a.prevDay?.c || 0) : (a.day?.c || 0);
     const bPrice = marketClosed ? (b.prevDay?.c || 0) : (b.day?.c || 0);
-    const aChangePercent = a.prevDay?.c > 0 && !marketClosed ? ((a.day.c - a.prevDay.c) / a.prevDay.c) * 100 : 0;
-    const bChangePercent = b.prevDay?.c > 0 && !marketClosed ? ((b.day.c - b.prevDay.c) / b.prevDay.c) * 100 : 0;
+    const aChangePercent = marketClosed ? (a.todaysChangePerc || 0) : (a.prevDay?.c > 0 ? ((a.day.c - a.prevDay.c) / a.prevDay.c) * 100 : 0);
+    const bChangePercent = marketClosed ? (b.todaysChangePerc || 0) : (b.prevDay?.c > 0 ? ((b.day.c - b.prevDay.c) / b.prevDay.c) * 100 : 0);
 
     switch (sortBy) {
       case "change":
@@ -982,8 +980,8 @@ async function screenFromPolygonAPI(
     const dayData = marketClosed ? t.prevDay : t.day;
     const prevClose = t.prevDay?.c || 0;
     const currentPrice = dayData?.c || 0;
-    const accurateChange = marketClosed ? 0 : (prevClose > 0 ? currentPrice - prevClose : 0);
-    const accurateChangePercent = marketClosed ? 0 : (prevClose > 0 ? ((currentPrice - prevClose) / prevClose) * 100 : 0);
+    const accurateChange = marketClosed ? (t.todaysChange || 0) : (prevClose > 0 ? currentPrice - prevClose : 0);
+    const accurateChangePercent = marketClosed ? (t.todaysChangePerc || 0) : (prevClose > 0 ? ((currentPrice - prevClose) / prevClose) * 100 : 0);
 
     return {
       symbol: t.ticker,
