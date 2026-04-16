@@ -53,21 +53,28 @@ type TabId = typeof SCREENER_TABS[number]['id'];
 // Filter Configurations - All 19 Metrics
 // =====================
 
+const MARKET_CAP_DIRECTION_OPTIONS = [
+  { value: 'any', label: 'Any' },
+  { value: 'above', label: 'Above' },
+  { value: 'below', label: 'Below' },
+  { value: 'between', label: 'Between' },
+];
+
+const MARKET_CAP_PRESETS = [
+  { label: '$100M', value: 100_000_000 },
+  { label: '$300M', value: 300_000_000 },
+  { label: '$500M', value: 500_000_000 },
+  { label: '$1B', value: 1_000_000_000 },
+  { label: '$2B', value: 2_000_000_000 },
+  { label: '$10B', value: 10_000_000_000 },
+  { label: '$50B', value: 50_000_000_000 },
+  { label: '$100B', value: 100_000_000_000 },
+  { label: '$200B', value: 200_000_000_000 },
+];
+
+// Keep a dummy options array for FILTER_CONFIG compatibility
 const MARKET_CAP_OPTIONS = [
   { value: 'all', label: 'Any' },
-  { value: 'mega', label: 'Mega ($200B+)', min: 200_000_000_000, max: undefined },
-  { value: 'large', label: 'Large ($10B-$200B)', min: 10_000_000_000, max: 200_000_000_000 },
-  { value: 'mid', label: 'Mid ($2B-$10B)', min: 2_000_000_000, max: 10_000_000_000 },
-  { value: 'small', label: 'Small ($300M-$2B)', min: 300_000_000, max: 2_000_000_000 },
-  { value: 'micro', label: 'Micro (<$300M)', min: 0, max: 300_000_000 },
-  { value: 'above_1b', label: 'Above $1B', min: 1_000_000_000, max: undefined },
-  { value: 'above_10b', label: 'Above $10B', min: 10_000_000_000, max: undefined },
-  { value: 'above_50b', label: 'Above $50B', min: 50_000_000_000, max: undefined },
-  { value: 'above_100b', label: 'Above $100B', min: 100_000_000_000, max: undefined },
-  { value: 'below_1b', label: 'Below $1B', min: 0, max: 1_000_000_000 },
-  { value: 'below_10b', label: 'Below $10B', min: 0, max: 10_000_000_000 },
-  { value: 'below_50b', label: 'Below $50B', min: 0, max: 50_000_000_000 },
-  { value: 'below_500m', label: 'Below $500M', min: 0, max: 500_000_000 },
 ];
 
 const PE_RATIO_OPTIONS = [
@@ -885,19 +892,124 @@ function FilterDropdown({
   );
 }
 
+// Market Cap custom filter component
+function MarketCapFilter({
+  direction,
+  value1,
+  value2,
+  onDirectionChange,
+  onValue1Change,
+  onValue2Change,
+}: {
+  direction: string;
+  value1: string;
+  value2: string;
+  onDirectionChange: (d: string) => void;
+  onValue1Change: (v: string) => void;
+  onValue2Change: (v: string) => void;
+}) {
+  const isActive = direction !== 'any';
+
+  const parseDisplayValue = (raw: string): string => {
+    const num = parseFloat(raw);
+    if (!raw || isNaN(num)) return '';
+    return raw;
+  };
+
+  return (
+    <div className="flex flex-col gap-1 col-span-2">
+      <Label className="text-[10px] text-muted-foreground flex items-center gap-1">
+        <Building2 className="h-3 w-3" />
+        Market Cap
+      </Label>
+      <div className="flex items-center gap-1.5">
+        <Select value={direction} onValueChange={onDirectionChange}>
+          <SelectTrigger className={cn(
+            "h-7 text-[11px] w-[90px] shrink-0",
+            isActive && "border-primary bg-primary/5"
+          )}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {MARKET_CAP_DIRECTION_OPTIONS.map(opt => (
+              <SelectItem key={opt.value} value={opt.value} className="text-xs">{opt.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        
+        {direction !== 'any' && (
+          <>
+            <div className="relative">
+              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">$</span>
+              <Input
+                type="number"
+                placeholder="e.g. 1000000000"
+                value={parseDisplayValue(value1)}
+                onChange={(e) => onValue1Change(e.target.value)}
+                className="h-7 text-[11px] pl-5 w-[130px]"
+              />
+            </div>
+            {direction === 'between' && (
+              <>
+                <span className="text-[10px] text-muted-foreground">and</span>
+                <div className="relative">
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">$</span>
+                  <Input
+                    type="number"
+                    placeholder="e.g. 10000000000"
+                    value={parseDisplayValue(value2)}
+                    onChange={(e) => onValue2Change(e.target.value)}
+                    className="h-7 text-[11px] pl-5 w-[130px]"
+                  />
+                </div>
+              </>
+            )}
+            {/* Quick preset buttons */}
+            <div className="flex gap-0.5 flex-wrap">
+              {MARKET_CAP_PRESETS.slice(direction === 'below' ? 0 : 3, direction === 'above' ? undefined : 7).map(preset => (
+                <Button
+                  key={preset.value}
+                  variant="outline"
+                  size="sm"
+                  className="h-6 text-[10px] px-1.5"
+                  onClick={() => {
+                    if (direction === 'between' && value1) {
+                      onValue2Change(String(preset.value));
+                    } else {
+                      onValue1Change(String(preset.value));
+                    }
+                  }}
+                >
+                  {preset.label}
+                </Button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 function ActiveFilterBadges({ 
   filters, 
   onClearFilter,
-  onClearAll 
+  onClearAll,
+  marketCapLabel
 }: { 
   filters: FilterState;
-  onClearFilter: (key: keyof FilterState) => void;
+  onClearFilter: (key: keyof FilterState | 'marketCapCustom') => void;
   onClearAll: () => void;
+  marketCapLabel?: string;
 }) {
-  const activeFilters: { key: keyof FilterState; label: string }[] = [];
+  const activeFilters: { key: keyof FilterState | 'marketCapCustom'; label: string }[] = [];
   
+  // Add market cap custom filter if active
+  if (marketCapLabel) {
+    activeFilters.push({ key: 'marketCapCustom', label: `Mkt Cap: ${marketCapLabel}` });
+  }
+
   Object.entries(filters).forEach(([key, value]) => {
-    if (value !== 'all') {
+    if (value !== 'all' && key !== 'marketCap') {
       const config = FILTER_CONFIG[key as keyof FilterState];
       const opt = config.options.find(o => o.value === value);
       if (opt) {
@@ -946,18 +1058,23 @@ function FilterCategory({
   name, 
   filterKeys, 
   filters, 
-  onFilterChange 
+  onFilterChange,
+  marketCapFilter
 }: { 
   name: string;
   filterKeys: (keyof FilterState)[];
   filters: FilterState;
   onFilterChange: (key: keyof FilterState) => (value: string) => void;
+  marketCapFilter?: React.ReactNode;
 }) {
   return (
     <div className="space-y-2">
       <h4 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{name}</h4>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2">
         {filterKeys.map(key => {
+          if (key === 'marketCap' && marketCapFilter) {
+            return <span key={key}>{marketCapFilter}</span>;
+          }
           const config = FILTER_CONFIG[key];
           return (
             <FilterDropdown
@@ -990,6 +1107,11 @@ export function UnifiedDiscoveryScreener() {
   const [customFilters, setCustomFilters] = useState<CustomFiltersPayload>({});
   const [userVisibleColumnKeys, setUserVisibleColumnKeys] = useState<Set<string>>(loadSavedColumns);
   
+  // Custom market cap state
+  const [mcDirection, setMcDirection] = useState<string>('any');
+  const [mcValue1, setMcValue1] = useState<string>('');
+  const [mcValue2, setMcValue2] = useState<string>('');
+
   // AI Insights state
   const [showInsights, setShowInsights] = useState(false);
   const [insights, setInsights] = useState<Map<string, StockInsight>>(new Map());
@@ -1021,7 +1143,7 @@ export function UnifiedDiscoveryScreener() {
 
   // Check if fundamental filters are active - this affects how we apply tab filters
   const hasFundamentalFilters = useMemo(() => {
-    return filters.marketCap !== 'all' || 
+    return mcDirection !== 'any' || 
            filters.peRatio !== 'all' || 
            filters.forwardPE !== 'all' ||
            filters.peg !== 'all' ||
@@ -1029,7 +1151,7 @@ export function UnifiedDiscoveryScreener() {
            filters.evEbitda !== 'all' ||
            filters.beta !== 'all' ||
            filters.avgVolume !== 'all';
-  }, [filters]);
+  }, [filters, mcDirection]);
 
   // Build query filters based on active tab + fundamental filters
   // Must be stable with useCallback to avoid stale closures in useQuery
@@ -1046,11 +1168,18 @@ export function UnifiedDiscoveryScreener() {
         delete combined.minRelativeVolume;
       }
       
-      // Market Cap filter
-      const mcOption = MARKET_CAP_OPTIONS.find(o => o.value === filters.marketCap);
-      if (mcOption && filters.marketCap !== 'all') {
-        if (mcOption.min !== undefined) combined.minMarketCap = mcOption.min;
-        if (mcOption.max !== undefined) combined.maxMarketCap = mcOption.max;
+      // Market Cap filter (custom numeric)
+      if (mcDirection !== 'any') {
+        const v1 = parseFloat(mcValue1);
+        const v2 = parseFloat(mcValue2);
+        if (mcDirection === 'above' && !isNaN(v1)) {
+          combined.minMarketCap = v1;
+        } else if (mcDirection === 'below' && !isNaN(v1)) {
+          combined.maxMarketCap = v1;
+        } else if (mcDirection === 'between' && !isNaN(v1) && !isNaN(v2)) {
+          combined.minMarketCap = Math.min(v1, v2);
+          combined.maxMarketCap = Math.max(v1, v2);
+        }
       }
 
       // Volume filter
@@ -1154,11 +1283,11 @@ export function UnifiedDiscoveryScreener() {
       
       return combined;
     };
-  }, [filters, hasFundamentalFilters, customFilters]);
+  }, [filters, hasFundamentalFilters, customFilters, mcDirection, mcValue1, mcValue2]);
 
   // Top Gainers query
   const { data: gainersData, isLoading: loadingGainers } = useQuery({
-    queryKey: ['screener', 'topGainers-full', filters, currentPage],
+    queryKey: ['screener', 'topGainers-full', filters, currentPage, mcDirection, mcValue1, mcValue2],
     queryFn: async () => {
       const baseFilters: ScreenerFilters = {
         minChange1D: 2,
@@ -1175,7 +1304,7 @@ export function UnifiedDiscoveryScreener() {
 
   // Most Active query
   const { data: mostActiveData, isLoading: loadingActive } = useQuery({
-    queryKey: ['screener', 'mostActive-full', filters, currentPage],
+    queryKey: ['screener', 'mostActive-full', filters, currentPage, mcDirection, mcValue1, mcValue2],
     queryFn: async () => {
       const baseFilters: ScreenerFilters = {
         minPrice: 2,
@@ -1191,7 +1320,7 @@ export function UnifiedDiscoveryScreener() {
 
   // Momentum query
   const { data: momentumData, isLoading: loadingMomentum } = useQuery({
-    queryKey: ['screener', 'smallCapMomentum-full', filters, currentPage],
+    queryKey: ['screener', 'smallCapMomentum-full', filters, currentPage, mcDirection, mcValue1, mcValue2],
     queryFn: async () => {
       const screenConfig = QUICK_SCREENS['smallCapMomentum'];
       if (!screenConfig) return { results: [], count: 0, pagination: { hasMore: false, total: 0 } };
@@ -1203,7 +1332,7 @@ export function UnifiedDiscoveryScreener() {
 
   // Unusual Volume query
   const { data: unusualVolData, isLoading: loadingUnusual } = useQuery({
-    queryKey: ['screener', 'unusualVolume-full', filters, currentPage],
+    queryKey: ['screener', 'unusualVolume-full', filters, currentPage, mcDirection, mcValue1, mcValue2],
     queryFn: async () => {
       const screenConfig = QUICK_SCREENS['unusualVolume'];
       if (!screenConfig) return { results: [], count: 0, pagination: { hasMore: false, total: 0 } };
@@ -1235,6 +1364,9 @@ export function UnifiedDiscoveryScreener() {
 
   const handleClearAllFilters = () => {
     setFilters(DEFAULT_FILTERS);
+    setMcDirection('any');
+    setMcValue1('');
+    setMcValue2('');
     setCurrentPage(0);
     queryClient.invalidateQueries({ queryKey: ['screener'] });
   };
@@ -1333,6 +1465,29 @@ export function UnifiedDiscoveryScreener() {
               filterKeys={category.filters}
               filters={filters}
               onFilterChange={handleFilterChange}
+              marketCapFilter={
+                <MarketCapFilter
+                  direction={mcDirection}
+                  value1={mcValue1}
+                  value2={mcValue2}
+                  onDirectionChange={(d) => {
+                    setMcDirection(d);
+                    if (d === 'any') { setMcValue1(''); setMcValue2(''); }
+                    setCurrentPage(0);
+                    queryClient.invalidateQueries({ queryKey: ['screener'] });
+                  }}
+                  onValue1Change={(v) => {
+                    setMcValue1(v);
+                    setCurrentPage(0);
+                    queryClient.invalidateQueries({ queryKey: ['screener'] });
+                  }}
+                  onValue2Change={(v) => {
+                    setMcValue2(v);
+                    setCurrentPage(0);
+                    queryClient.invalidateQueries({ queryKey: ['screener'] });
+                  }}
+                />
+              }
             />
           ))}
         </div>
@@ -1457,8 +1612,23 @@ export function UnifiedDiscoveryScreener() {
         
         <ActiveFilterBadges 
           filters={filters}
-          onClearFilter={handleClearFilter}
+          onClearFilter={(key) => {
+            if (key === 'marketCapCustom') {
+              setMcDirection('any');
+              setMcValue1('');
+              setMcValue2('');
+              setCurrentPage(0);
+              queryClient.invalidateQueries({ queryKey: ['screener'] });
+            } else {
+              handleClearFilter(key as keyof FilterState);
+            }
+          }}
           onClearAll={handleClearAllFilters}
+          marketCapLabel={
+            mcDirection !== 'any' 
+              ? `${mcDirection === 'above' ? '>' : mcDirection === 'below' ? '<' : ''} ${mcValue1 ? formatMarketCap(parseFloat(mcValue1)) : '...'}${mcDirection === 'between' && mcValue2 ? ` - ${formatMarketCap(parseFloat(mcValue2))}` : ''}`
+              : undefined
+          }
         />
         <StockList 
           stocks={stocks} 
