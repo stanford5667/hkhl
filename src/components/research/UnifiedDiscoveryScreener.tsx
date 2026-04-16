@@ -1540,6 +1540,24 @@ export function UnifiedDiscoveryScreener() {
               }
             />
           ))}
+          
+          {/* Sector Filter */}
+          <div className="mt-2">
+            <FilterDropdown
+              label="Sector"
+              value={sectorFilter}
+              options={[
+                { value: 'all', label: 'Any Sector' },
+                ...SECTORS.map(s => ({ value: s, label: s }))
+              ]}
+              onChange={(v) => {
+                setSectorFilter(v);
+                setCurrentPage(0);
+                queryClient.invalidateQueries({ queryKey: ['screener'] });
+              }}
+              icon={Building2}
+            />
+          </div>
         </div>
 
         {/* Tab Navigation — horizontal scroll on mobile */}
