@@ -1124,10 +1124,15 @@ export function UnifiedDiscoveryScreener() {
       // Pagination
       combined.limit = ITEMS_PER_PAGE;
       combined.offset = offset;
+
+      // Custom filters
+      if (Object.keys(customFilters).length > 0) {
+        combined.customFilters = customFilters;
+      }
       
       return combined;
     };
-  }, [filters, hasFundamentalFilters]);
+  }, [filters, hasFundamentalFilters, customFilters]);
 
   // Top Gainers query
   const { data: gainersData, isLoading: loadingGainers } = useQuery({
