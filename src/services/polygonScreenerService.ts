@@ -64,6 +64,9 @@ export interface ScreenerResult {
   price: number;
   change: number;
   changePercent: number;
+  changePercent1W: number | null;
+  changePercent1M: number | null;
+  changePercentYTD: number | null;
   volume: number;
   prevVolume: number;
   relativeVolume: number | null;
@@ -75,6 +78,7 @@ export interface ScreenerResult {
   exchange: string | null;
   type: string | null;
   matchScore?: number;
+  shortDescription: string | null;
   
   // Valuation metrics
   pe: number | null;
