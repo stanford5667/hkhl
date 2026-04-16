@@ -80,10 +80,10 @@ serve(async (req) => {
     console.log(`[sync-ticker-universe] Got ${tickers.length} tickers from snapshot`);
 
     // Step 2: Fetch details for top tickers by volume (limit to avoid rate limits)
+    // Include ALL tickers with valid price data — no cap
     const sortedByVolume = tickers
-      .filter((t: any) => t.day?.v > 0 && t.day?.c > 0)
-      .sort((a: any, b: any) => (b.day?.v || 0) - (a.day?.v || 0))
-      .slice(0, 2000); // Top 2000 by volume
+      .filter((t: any) => (t.day?.v > 0 && t.day?.c > 0) || (t.prevDay?.v > 0 && t.prevDay?.c > 0))
+      .sort((a: any, b: any) => (b.day?.v || b.prevDay?.v || 0) - (a.day?.v || a.prevDay?.v || 0));
 
     console.log(`[sync-ticker-universe] Fetching details for ${sortedByVolume.length} tickers...`);
 

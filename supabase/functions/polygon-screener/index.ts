@@ -581,101 +581,75 @@ async function screenFromDatabase(
   const scanFromStart = metricFiltersActive || needsLiveChangeData;
   // When metric filters are active, scan a larger slice of the universe, then filter AFTER we enrich
   // with fundamentals. Keep bounded to avoid timeouts.
-  const SCAN_LIMIT = scanFromStart ? Math.min(1000, Math.max(offset + limit, 600)) : limit;
+  // When scanning, pull the full universe — paginate through Supabase's 1000-row default limit
+  const SCAN_LIMIT = scanFromStart ? 5000 : limit;
 
-  // Build query - include fields needed for result mapping
-  let query = supabase
-    .from("asset_universe")
-    .select(
-      "ticker, name, sector, market_cap_tier, last_close, change_percent_1d, avg_daily_volume, avg_daily_dollar_volume, volatility_30d, beta_spy, primary_exchange, asset_type, metadata",
-      { count: "exact" }
-    )
-    // is_active is nullable in schema; treat NULL as active
-    .or("is_active.is.null,is_active.eq.true")
-    .range(scanFromStart ? 0 : offset, (scanFromStart ? SCAN_LIMIT : limit) + (scanFromStart ? 0 : offset) - 1);
+  // Helper to build a base query with all filters applied
+  function buildFilteredQuery(selectFields: string, opts?: { count?: "exact" }) {
+    let q = supabase
+      .from("asset_universe")
+      .select(selectFields, opts ? { count: opts.count } : undefined)
+      .or("is_active.is.null,is_active.eq.true");
 
-  // Apply market cap filter using tier
-  if (filters.minMarketCap !== undefined) {
-    const minCap = filters.minMarketCap;
-    if (minCap >= 200_000_000_000) {
-      query = query.eq("market_cap_tier", "Mega");
-    } else if (minCap >= 10_000_000_000) {
-      query = query.in("market_cap_tier", ["Mega", "Large"]);
-    } else if (minCap >= 2_000_000_000) {
-      query = query.in("market_cap_tier", ["Mega", "Large", "Mid"]);
-    } else if (minCap >= 300_000_000) {
-      query = query.in("market_cap_tier", ["Mega", "Large", "Mid", "Small"]);
+    // Apply market cap filter using tier
+    if (filters.minMarketCap !== undefined) {
+      const minCap = filters.minMarketCap;
+      if (minCap >= 200_000_000_000) q = q.eq("market_cap_tier", "Mega");
+      else if (minCap >= 10_000_000_000) q = q.in("market_cap_tier", ["Mega", "Large"]);
+      else if (minCap >= 2_000_000_000) q = q.in("market_cap_tier", ["Mega", "Large", "Mid"]);
+      else if (minCap >= 300_000_000) q = q.in("market_cap_tier", ["Mega", "Large", "Mid", "Small"]);
     }
-  }
-
-  if (filters.maxMarketCap !== undefined) {
-    const maxCap = filters.maxMarketCap;
-    if (maxCap < 300_000_000) {
-      query = query.eq("market_cap_tier", "Micro");
-    } else if (maxCap < 2_000_000_000) {
-      query = query.in("market_cap_tier", ["Micro", "Small"]);
-    } else if (maxCap < 10_000_000_000) {
-      query = query.in("market_cap_tier", ["Micro", "Small", "Mid"]);
-    } else if (maxCap < 200_000_000_000) {
-      query = query.in("market_cap_tier", ["Micro", "Small", "Mid", "Large"]);
+    if (filters.maxMarketCap !== undefined) {
+      const maxCap = filters.maxMarketCap;
+      if (maxCap < 300_000_000) q = q.eq("market_cap_tier", "Micro");
+      else if (maxCap < 2_000_000_000) q = q.in("market_cap_tier", ["Micro", "Small"]);
+      else if (maxCap < 10_000_000_000) q = q.in("market_cap_tier", ["Micro", "Small", "Mid"]);
+      else if (maxCap < 200_000_000_000) q = q.in("market_cap_tier", ["Micro", "Small", "Mid", "Large"]);
     }
+    if (filters.sectors && filters.sectors.length > 0) q = q.in("sector", filters.sectors);
+    if (filters.minPrice !== undefined) q = q.gte("last_close", filters.minPrice);
+    if (filters.maxPrice !== undefined) q = q.lte("last_close", filters.maxPrice);
+    if (filters.minVolume !== undefined) q = q.gte("avg_daily_volume", filters.minVolume);
+    if (!needsLiveChangeData && filters.minChange1D !== undefined) q = q.gte("change_percent_1d", filters.minChange1D);
+    if (!needsLiveChangeData && filters.maxChange1D !== undefined) q = q.lte("change_percent_1d", filters.maxChange1D);
+    return q;
   }
 
-  // Apply sector filter
-  if (filters.sectors && filters.sectors.length > 0) {
-    query = query.in("sector", filters.sectors);
-  }
-
-  // Apply price filter
-  if (filters.minPrice !== undefined) {
-    query = query.gte("last_close", filters.minPrice);
-  }
-  if (filters.maxPrice !== undefined) {
-    query = query.lte("last_close", filters.maxPrice);
-  }
-
-  // Apply volume filter
-  if (filters.minVolume !== undefined) {
-    query = query.gte("avg_daily_volume", filters.minVolume);
-  }
-
-  // Apply change filters
-  if (!needsLiveChangeData && filters.minChange1D !== undefined) {
-    query = query.gte("change_percent_1d", filters.minChange1D);
-  }
-  if (!needsLiveChangeData && filters.maxChange1D !== undefined) {
-    query = query.lte("change_percent_1d", filters.maxChange1D);
-  }
-
-  // Apply sorting
+  // Determine sort column
+  let sortColumn = "avg_daily_volume";
   switch (sortBy) {
-    case "change":
-      query = query.order(needsLiveChangeData ? "avg_daily_volume" : "change_percent_1d", {
-        ascending: sortDir === "asc",
-        nullsFirst: false,
-      });
-      break;
-    case "price":
-      query = query.order("last_close", { ascending: sortDir === "asc", nullsFirst: false });
-      break;
-    case "marketCap":
-      // Sort by tier priority (Mega first)
-      query = query.order("avg_daily_dollar_volume", { ascending: sortDir === "asc", nullsFirst: false });
-      break;
-    case "volume":
-    default:
-      query = query.order("avg_daily_volume", { ascending: sortDir === "asc", nullsFirst: false });
-      break;
+    case "change": sortColumn = needsLiveChangeData ? "avg_daily_volume" : "change_percent_1d"; break;
+    case "price": sortColumn = "last_close"; break;
+    case "marketCap": sortColumn = "avg_daily_dollar_volume"; break;
   }
 
-  const { data: rows, error: queryError, count: baseCount } = await query;
+  // Get total count first
+  const { count: baseCount } = await buildFilteredQuery("ticker", { count: "exact" });
 
-  if (queryError) {
-    console.error("[polygon-screener] Database query error:", queryError);
-    return json({ ok: false, error: queryError.message }, 500);
+  // Paginate through Supabase's 1000-row limit to fetch full universe when scanning
+  const PAGE_SIZE = 1000;
+  const totalToFetch = scanFromStart ? Math.min(SCAN_LIMIT, baseCount ?? SCAN_LIMIT) : limit;
+  const fetchStart = scanFromStart ? 0 : offset;
+  const allRows: any[] = [];
+
+  for (let cursor = fetchStart; cursor < fetchStart + totalToFetch; cursor += PAGE_SIZE) {
+    const end = Math.min(cursor + PAGE_SIZE - 1, fetchStart + totalToFetch - 1);
+    const q = buildFilteredQuery(
+      "ticker, name, sector, market_cap_tier, last_close, change_percent_1d, avg_daily_volume, avg_daily_dollar_volume, volatility_30d, beta_spy, primary_exchange, asset_type, metadata"
+    )
+      .order(sortColumn, { ascending: sortDir === "asc", nullsFirst: false })
+      .range(cursor, end);
+
+    const { data: pageRows, error: pageError } = await q;
+    if (pageError) {
+      console.error("[polygon-screener] Database page error:", pageError);
+      return json({ ok: false, error: pageError.message }, 500);
+    }
+    if (pageRows) allRows.push(...pageRows);
+    if (!pageRows || pageRows.length < PAGE_SIZE) break; // no more rows
   }
 
-  const dataToProcess = rows || [];
+  const dataToProcess = allRows;
   console.log(
     `[polygon-screener] Base matches: ${baseCount ?? dataToProcess.length}. Processing ${dataToProcess.length} (metric filters: ${metricFiltersActive})`
   );
