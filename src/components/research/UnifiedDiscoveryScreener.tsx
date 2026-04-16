@@ -1612,8 +1612,23 @@ export function UnifiedDiscoveryScreener() {
         
         <ActiveFilterBadges 
           filters={filters}
-          onClearFilter={handleClearFilter}
+          onClearFilter={(key) => {
+            if (key === 'marketCapCustom') {
+              setMcDirection('any');
+              setMcValue1('');
+              setMcValue2('');
+              setCurrentPage(0);
+              queryClient.invalidateQueries({ queryKey: ['screener'] });
+            } else {
+              handleClearFilter(key as keyof FilterState);
+            }
+          }}
           onClearAll={handleClearAllFilters}
+          marketCapLabel={
+            mcDirection !== 'any' 
+              ? `${mcDirection === 'above' ? '>' : mcDirection === 'below' ? '<' : ''} ${mcValue1 ? formatMarketCap(parseFloat(mcValue1)) : '...'}${mcDirection === 'between' && mcValue2 ? ` - ${formatMarketCap(parseFloat(mcValue2))}` : ''}`
+              : undefined
+          }
         />
         <StockList 
           stocks={stocks} 
