@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { forwardRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -94,3 +94,9 @@ export function DailyDigestCell({ ticker }: DailyDigestCellProps) {
     </>
   );
 }
+
+export const DailyDigestCellTrigger = forwardRef<HTMLButtonElement, React.ButtonHTMLAttributes<HTMLButtonElement>>(
+  function DailyDigestCellTrigger(props, ref) {
+    return <button ref={ref} {...props} />;
+  }
+);
