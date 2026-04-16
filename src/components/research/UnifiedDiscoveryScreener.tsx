@@ -1312,6 +1312,14 @@ export function UnifiedDiscoveryScreener() {
         combined.sectors = [sectorFilter];
       }
 
+      // Has Options filter — optionable stocks generally have market cap >$100M and volume >1M
+      if (hasOptionsFilter === 'yes') {
+        combined.minMarketCap = Math.max(combined.minMarketCap || 0, 100_000_000);
+        combined.minVolume = Math.max(combined.minVolume || 0, 1_000_000);
+      } else if (hasOptionsFilter === 'no') {
+        combined.maxMarketCap = Math.min(combined.maxMarketCap || 100_000_000, 100_000_000);
+      }
+
       // Pagination
       combined.limit = ITEMS_PER_PAGE;
       combined.offset = offset;
