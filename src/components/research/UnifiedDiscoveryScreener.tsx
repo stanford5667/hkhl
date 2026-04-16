@@ -990,13 +990,16 @@ function MarketCapFilter({
     </div>
   );
 }
+function ActiveFilterBadges({ 
   filters, 
   onClearFilter,
-  onClearAll 
+  onClearAll,
+  marketCapLabel
 }: { 
   filters: FilterState;
-  onClearFilter: (key: keyof FilterState) => void;
+  onClearFilter: (key: keyof FilterState | 'marketCapCustom') => void;
   onClearAll: () => void;
+  marketCapLabel?: string;
 }) {
   const activeFilters: { key: keyof FilterState; label: string }[] = [];
   
