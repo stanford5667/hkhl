@@ -1053,18 +1053,23 @@ function FilterCategory({
   name, 
   filterKeys, 
   filters, 
-  onFilterChange 
+  onFilterChange,
+  marketCapFilter
 }: { 
   name: string;
   filterKeys: (keyof FilterState)[];
   filters: FilterState;
   onFilterChange: (key: keyof FilterState) => (value: string) => void;
+  marketCapFilter?: React.ReactNode;
 }) {
   return (
     <div className="space-y-2">
       <h4 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{name}</h4>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2">
         {filterKeys.map(key => {
+          if (key === 'marketCap' && marketCapFilter) {
+            return <React.Fragment key={key}>{marketCapFilter}</React.Fragment>;
+          }
           const config = FILTER_CONFIG[key];
           return (
             <FilterDropdown
