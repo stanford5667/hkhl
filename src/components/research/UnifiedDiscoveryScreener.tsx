@@ -1158,11 +1158,18 @@ export function UnifiedDiscoveryScreener() {
         delete combined.minRelativeVolume;
       }
       
-      // Market Cap filter
-      const mcOption = MARKET_CAP_OPTIONS.find(o => o.value === filters.marketCap);
-      if (mcOption && filters.marketCap !== 'all') {
-        if (mcOption.min !== undefined) combined.minMarketCap = mcOption.min;
-        if (mcOption.max !== undefined) combined.maxMarketCap = mcOption.max;
+      // Market Cap filter (custom numeric)
+      if (mcDirection !== 'any') {
+        const v1 = parseFloat(mcValue1);
+        const v2 = parseFloat(mcValue2);
+        if (mcDirection === 'above' && !isNaN(v1)) {
+          combined.minMarketCap = v1;
+        } else if (mcDirection === 'below' && !isNaN(v1)) {
+          combined.maxMarketCap = v1;
+        } else if (mcDirection === 'between' && !isNaN(v1) && !isNaN(v2)) {
+          combined.minMarketCap = Math.min(v1, v2);
+          combined.maxMarketCap = Math.max(v1, v2);
+        }
       }
 
       // Volume filter
