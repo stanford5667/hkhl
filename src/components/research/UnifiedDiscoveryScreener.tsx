@@ -1492,7 +1492,11 @@ export function UnifiedDiscoveryScreener() {
                   value2={mcValue2}
                   onDirectionChange={(d) => {
                     setMcDirection(d);
-                    if (d === 'any') { setMcValue1(''); setMcValue2(''); }
+                    if (d === 'any') {
+                      setMcValue1(''); setMcValue2('');
+                      setDebouncedMcValue1(''); setDebouncedMcValue2('');
+                      if (mcDebounceRef.current) clearTimeout(mcDebounceRef.current);
+                    }
                     setCurrentPage(0);
                     queryClient.invalidateQueries({ queryKey: ['screener'] });
                   }}
@@ -1635,6 +1639,9 @@ export function UnifiedDiscoveryScreener() {
               setMcDirection('any');
               setMcValue1('');
               setMcValue2('');
+              setDebouncedMcValue1('');
+              setDebouncedMcValue2('');
+              if (mcDebounceRef.current) clearTimeout(mcDebounceRef.current);
               setCurrentPage(0);
               queryClient.invalidateQueries({ queryKey: ['screener'] });
             } else {
