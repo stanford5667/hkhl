@@ -45,6 +45,15 @@ export interface ScreenerFilters {
   maxEpsGrowth?: number;
   minRevenueGrowth?: number;
   maxRevenueGrowth?: number;
+
+  // Custom advanced filters
+  customFilters?: {
+    [key: string]: {
+      operator: string;
+      value: number;
+      value2?: number;
+    };
+  };
 }
 
 export interface ScreenerResult {
