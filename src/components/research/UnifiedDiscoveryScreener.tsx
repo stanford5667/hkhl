@@ -1471,6 +1471,7 @@ export function UnifiedDiscoveryScreener() {
           showInsights={showInsights}
           insights={insights}
           insightsLoading={insightsLoading}
+          userVisibleColumnKeys={userVisibleColumnKeys}
         />
       </CardContent>
     </Card>
