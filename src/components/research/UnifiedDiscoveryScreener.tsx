@@ -1133,7 +1133,7 @@ export function UnifiedDiscoveryScreener() {
 
   // Check if fundamental filters are active - this affects how we apply tab filters
   const hasFundamentalFilters = useMemo(() => {
-    return filters.marketCap !== 'all' || 
+    return mcDirection !== 'any' || 
            filters.peRatio !== 'all' || 
            filters.forwardPE !== 'all' ||
            filters.peg !== 'all' ||
@@ -1141,7 +1141,7 @@ export function UnifiedDiscoveryScreener() {
            filters.evEbitda !== 'all' ||
            filters.beta !== 'all' ||
            filters.avgVolume !== 'all';
-  }, [filters]);
+  }, [filters, mcDirection]);
 
   // Build query filters based on active tab + fundamental filters
   // Must be stable with useCallback to avoid stale closures in useQuery
