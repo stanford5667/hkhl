@@ -1068,7 +1068,7 @@ function FilterCategory({
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2">
         {filterKeys.map(key => {
           if (key === 'marketCap' && marketCapFilter) {
-            return <React.Fragment key={key}>{marketCapFilter}</React.Fragment>;
+            return <span key={key}>{marketCapFilter}</span>;
           }
           const config = FILTER_CONFIG[key];
           return (
