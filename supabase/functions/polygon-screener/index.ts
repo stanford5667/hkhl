@@ -874,13 +874,25 @@ async function screenFromDatabase(
       chunkResults.length
     );
 
+    // Compute advanced metrics for each ticker in the chunk
+    const advancedMetricsResults = new Map<string, { peg: number | null; maxDrawdown: number | null; stdDev: number | null }>();
+    const advChunks = chunk(chunkResults, 5);
+    for (const advChunk of advChunks) {
+      await Promise.allSettled(advChunk.map(async (r: any) => {
+        const f = fundamentalsMap.get(r.symbol);
+        const adv = await computeAdvancedMetrics(r.symbol, apiKey, f?.pe ?? null, f?.epsGrowth ?? null);
+        advancedMetricsResults.set(r.symbol, adv);
+      }));
+    }
+
     const enrichedChunk = chunkResults.map((r: any) => {
       const f = fundamentalsMap.get(r.symbol);
+      const adv = advancedMetricsResults.get(r.symbol);
       return {
         ...r,
         pe: f?.pe ?? null,
         forwardPE: f?.forwardPE ?? null,
-        peg: null,
+        peg: adv?.peg ?? null,
         pb: f?.pb ?? null,
         pCash: null,
         evEbitda: f?.evEbitda ?? null,
@@ -890,11 +902,25 @@ async function screenFromDatabase(
         debtEquity: f?.debtEquity ?? null,
         quickRatio: f?.quickRatio ?? null,
         sharpe: null,
-        maxDrawdown: null,
+        maxDrawdown: adv?.maxDrawdown ?? null,
+        stdDev: adv?.stdDev ?? null,
       };
     });
 
-    const matching = applyFundamentalFilters(enrichedChunk, filters);
+    // Apply fundamental filters
+    let matching = applyFundamentalFilters(enrichedChunk, filters);
+    
+    // Apply custom filters
+    if (hasCustomFilters(filters)) {
+      const cf = filters.customFilters!;
+      matching = matching.filter((r: any) => {
+        if (cf.peg && !applyCustomFilter(r.peg, cf.peg)) return false;
+        if (cf.drawdown && !applyCustomFilter(r.maxDrawdown, cf.drawdown)) return false;
+        if (cf.stdDev && !applyCustomFilter(r.stdDev, cf.stdDev)) return false;
+        return true;
+      });
+    }
+    
     enrichedMatches.push(...matching);
 
     // Stop early once we have enough to satisfy the requested page
