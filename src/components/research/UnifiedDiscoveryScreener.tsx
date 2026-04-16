@@ -7,6 +7,7 @@ import {
   Clock, Volume2, Gauge, TrendingDown, Calculator, Ratio, ChevronLeft, ChevronRight, SlidersHorizontal,
   Sparkles, Lightbulb, Newspaper
 } from 'lucide-react';
+import { ColumnSettings, loadSavedColumns } from '@/components/screener/ColumnSettings';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -588,6 +589,7 @@ function StockList({
   showInsights,
   insights,
   insightsLoading,
+  userVisibleColumnKeys,
 }: { 
   stocks: ScreenerResult[] | undefined; 
   isLoading: boolean;
@@ -602,27 +604,27 @@ function StockList({
   showInsights: boolean;
   insights: Map<string, StockInsight>;
   insightsLoading: boolean;
+  userVisibleColumnKeys: Set<string>;
 }) {
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
   const startItem = currentPage * ITEMS_PER_PAGE + 1;
   const endItem = Math.min((currentPage + 1) * ITEMS_PER_PAGE, totalCount);
 
-  // Determine which columns to show based on active filters
+  // Determine which columns to show: user settings + filter-activated columns
   const visibleColumns = useMemo(() => {
     const columns: SortableColumn[] = [];
     
-    // Always show columns marked as alwaysShow, plus any with active filters
     SORTABLE_COLUMNS.forEach(col => {
-      if (col.alwaysShow) {
-        columns.push(col);
-      } else if (col.filterKey && activeFilters.has(col.filterKey)) {
-        // Show column if its filter is active
+      // Show if user explicitly enabled it, OR if its filter is active
+      const userEnabled = userVisibleColumnKeys.has(col.key);
+      const filterActive = col.filterKey && activeFilters.has(col.filterKey);
+      if (userEnabled || filterActive) {
         columns.push(col);
       }
     });
     
     return columns;
-  }, [activeFilters]);
+  }, [activeFilters, userVisibleColumnKeys]);
 
   // Sort stocks locally
   const sortedStocks = useMemo(() => {
@@ -978,6 +980,7 @@ export function UnifiedDiscoveryScreener() {
   const [currentPage, setCurrentPage] = useState(0);
   const [sortConfig, setSortConfig] = useState<SortConfig>({ column: 'change', direction: 'desc' });
   const [customFilters, setCustomFilters] = useState<CustomFiltersPayload>({});
+  const [userVisibleColumnKeys, setUserVisibleColumnKeys] = useState<Set<string>>(loadSavedColumns);
   
   // AI Insights state
   const [showInsights, setShowInsights] = useState(false);
@@ -1434,11 +1437,14 @@ export function UnifiedDiscoveryScreener() {
               <span className="sm:hidden">AI Insights</span>
             </Label>
           </div>
-          {showInsights && (
-            <span className="text-[10px] text-muted-foreground hidden sm:inline">
-              Explains why each stock matches your criteria
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {showInsights && (
+              <span className="text-[10px] text-muted-foreground hidden sm:inline">
+                Explains why each stock matches your criteria
+              </span>
+            )}
+            <ColumnSettings onChange={setUserVisibleColumnKeys} />
+          </div>
         </div>
         
         <ActiveFilterBadges 
@@ -1465,6 +1471,7 @@ export function UnifiedDiscoveryScreener() {
           showInsights={showInsights}
           insights={insights}
           insightsLoading={insightsLoading}
+          userVisibleColumnKeys={userVisibleColumnKeys}
         />
       </CardContent>
     </Card>
