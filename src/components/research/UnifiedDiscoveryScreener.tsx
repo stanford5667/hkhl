@@ -28,7 +28,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { screenStocksFromPolygon, QUICK_SCREENS, type ScreenerResult, type ScreenerFilters } from '@/services/polygonScreenerService';
+import { screenStocksFromPolygon, QUICK_SCREENS, SECTORS, type ScreenerResult, type ScreenerFilters } from '@/services/polygonScreenerService';
 import { generateBatchInsights, getInsightSummary, type StockInsight } from '@/services/stockInsightGenerator';
 import { CustomFilterBuilder, type CustomFiltersPayload } from '@/components/screener/CustomFilterBuilder';
 import { TickerHoverPreview } from '@/components/screener/TickerHoverPreview';
