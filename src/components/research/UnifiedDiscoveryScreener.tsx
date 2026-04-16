@@ -1099,18 +1099,30 @@ function FilterCategory({
 export function UnifiedDiscoveryScreener() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<TabId>('topGainers');
-  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
-  const [showFilters, setShowFilters] = useState(false);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [sortConfig, setSortConfig] = useState<SortConfig>({ column: 'change', direction: 'desc' });
-  const [customFilters, setCustomFilters] = useState<CustomFiltersPayload>({});
+  
+  // Restore persisted state from sessionStorage
+  const stored = useMemo(() => {
+    try {
+      const raw = sessionStorage.getItem('screener-state');
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  }, []);
+
+  const [activeTab, setActiveTab] = useState<TabId>(stored?.activeTab || 'topGainers');
+  const [filters, setFilters] = useState<FilterState>(stored?.filters || DEFAULT_FILTERS);
+  const [showFilters, setShowFilters] = useState(stored?.showFilters || false);
+  const [currentPage, setCurrentPage] = useState(stored?.currentPage || 0);
+  const [sortConfig, setSortConfig] = useState<SortConfig>(stored?.sortConfig || { column: 'change', direction: 'desc' });
+  const [customFilters, setCustomFilters] = useState<CustomFiltersPayload>(stored?.customFilters || {});
   const [userVisibleColumnKeys, setUserVisibleColumnKeys] = useState<Set<string>>(loadSavedColumns);
   
+  // Sector filter state
+  const [sectorFilter, setSectorFilter] = useState<string>(stored?.sectorFilter || 'all');
+
   // Custom market cap state
-  const [mcDirection, setMcDirection] = useState<string>('any');
-  const [mcValue1, setMcValue1] = useState<string>('');
-  const [mcValue2, setMcValue2] = useState<string>('');
+  const [mcDirection, setMcDirection] = useState<string>(stored?.mcDirection || 'any');
+  const [mcValue1, setMcValue1] = useState<string>(stored?.mcValue1 || '');
+  const [mcValue2, setMcValue2] = useState<string>(stored?.mcValue2 || '');
 
   // Debounced versions of market cap values for queries
   const [debouncedMcValue1, setDebouncedMcValue1] = useState('');
@@ -1360,7 +1372,7 @@ export function UnifiedDiscoveryScreener() {
   });
 
   const handleStockClick = (symbol: string) => {
-    navigate(`/stock/${symbol}`);
+    window.open(`/stock/${symbol}`, '_blank');
   };
 
   const handleFilterChange = (key: keyof FilterState) => (value: string) => {
