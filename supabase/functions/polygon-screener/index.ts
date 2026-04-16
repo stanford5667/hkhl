@@ -315,50 +315,68 @@ async function fetchTickerFundamentals(ticker: string, apiKey: string, price: nu
   };
 
   try {
-    // (A) Daily ratios endpoint
-    try {
-      const ratiosUrl = `${BASE_URL}/stocks/financials/v1/ratios?ticker=${encodeURIComponent(ticker)}&limit=1&apiKey=${apiKey}`;
-      const ratiosRes = await fetchWithTimeout(ratiosUrl, {}, 6000);
-      if (ratiosRes.ok) {
-        const ratiosJson = await ratiosRes.json();
-        const r0 = (ratiosJson?.results || [])[0] || null;
-        if (r0) {
-          fundamentals.pe = typeof r0.price_to_earnings === "number" ? r0.price_to_earnings : null;
-          fundamentals.pb = typeof r0.price_to_book === "number" ? r0.price_to_book : null;
-          fundamentals.debtEquity = typeof r0.debt_to_equity === "number" ? r0.debt_to_equity : null;
-          fundamentals.quickRatio = typeof r0.quick === "number" ? r0.quick : null;
-          fundamentals.evEbitda = typeof r0.ev_to_ebitda === "number" ? r0.ev_to_ebitda : null;
+    // Use Polygon's vX financials endpoint (correct URL)
+    const financialsUrl = `${BASE_URL}/vX/reference/financials?ticker=${encodeURIComponent(ticker)}&timeframe=annual&order=desc&limit=2&sort=period_of_report_date&apiKey=${apiKey}`;
+    const financialsRes = await fetchWithTimeout(financialsUrl, {}, 8000);
+    if (financialsRes.ok) {
+      const financialsJson = await financialsRes.json();
+      const results = financialsJson?.results || [];
+      const latest = results[0]?.financials || null;
+      const previous = results.length > 1 ? results[1]?.financials : null;
+
+      if (latest) {
+        // Extract EPS and compute PE
+        const dilutedEps = latest.income_statement?.diluted_earnings_per_share?.value;
+        if (typeof dilutedEps === "number" && dilutedEps > 0 && price > 0) {
+          fundamentals.pe = Math.round((price / dilutedEps) * 100) / 100;
         }
-      }
-    } catch {}
 
-    // (B) Income statements
-    const incomeUrl = `${BASE_URL}/stocks/financials/v1/income-statements?tickers=${encodeURIComponent(ticker)}&timeframe=annual&limit=2&sort=period_end&order=desc&apiKey=${apiKey}`;
-    const incomeRes = await fetchWithTimeout(incomeUrl, {}, 6000);
-    if (incomeRes.ok) {
-      const incomeJson = await incomeRes.json();
-      const results = incomeJson?.results || [];
-      const latest = results[0] || null;
-      const previous = results.length > 1 ? results[1] : null;
-
-      const revenue = typeof latest?.revenue === "number" ? latest.revenue : null;
-      const opIncome = typeof latest?.operating_income === "number" ? latest.operating_income : null;
-      const dilutedEps = typeof latest?.diluted_earnings_per_share === "number" ? latest.diluted_earnings_per_share : null;
-
-      if (revenue && revenue > 0 && opIncome !== null) {
-        fundamentals.opMargin = Math.round((opIncome / revenue) * 10000) / 100;
-      }
-      if (fundamentals.pe == null && price > 0 && dilutedEps && dilutedEps > 0) {
-        fundamentals.pe = Math.round((price / dilutedEps) * 100) / 100;
-      }
-      if (previous) {
-        const prevRevenue = typeof previous?.revenue === "number" ? previous.revenue : null;
-        const prevEps = typeof previous?.diluted_earnings_per_share === "number" ? previous.diluted_earnings_per_share : null;
-        if (prevRevenue && prevRevenue > 0 && revenue && revenue > 0) {
-          fundamentals.revenueGrowth = Math.round(((revenue - prevRevenue) / prevRevenue) * 10000) / 100;
+        // Revenue and operating income for margins
+        const revenue = latest.income_statement?.revenues?.value;
+        const opIncome = latest.income_statement?.operating_income_loss?.value;
+        if (typeof revenue === "number" && revenue > 0 && typeof opIncome === "number") {
+          fundamentals.opMargin = Math.round((opIncome / revenue) * 10000) / 100;
         }
-        if (prevEps && prevEps > 0 && dilutedEps && dilutedEps > 0) {
-          fundamentals.epsGrowth = Math.round(((dilutedEps - prevEps) / Math.abs(prevEps)) * 10000) / 100;
+
+        // Balance sheet ratios
+        const totalDebt = latest.balance_sheet?.long_term_debt?.value ?? latest.balance_sheet?.noncurrent_liabilities?.value;
+        const equity = latest.balance_sheet?.equity?.value ?? latest.balance_sheet?.equity_attributable_to_parent?.value;
+        if (typeof totalDebt === "number" && typeof equity === "number" && equity > 0) {
+          fundamentals.debtEquity = Math.round((totalDebt / equity) * 100) / 100;
+        }
+
+        const currentAssets = latest.balance_sheet?.current_assets?.value;
+        const inventory = latest.balance_sheet?.inventory?.value ?? 0;
+        const currentLiabilities = latest.balance_sheet?.current_liabilities?.value;
+        if (typeof currentAssets === "number" && typeof currentLiabilities === "number" && currentLiabilities > 0) {
+          fundamentals.quickRatio = Math.round(((currentAssets - (typeof inventory === "number" ? inventory : 0)) / currentLiabilities) * 100) / 100;
+        }
+
+        // Book value per share for P/B
+        const bookValue = latest.balance_sheet?.equity_attributable_to_parent?.value ?? equity;
+        const shares = latest.income_statement?.basic_average_shares?.value ?? latest.income_statement?.diluted_average_shares?.value;
+        if (typeof bookValue === "number" && typeof shares === "number" && shares > 0 && price > 0) {
+          const bvps = bookValue / shares;
+          if (bvps > 0) fundamentals.pb = Math.round((price / bvps) * 100) / 100;
+        }
+
+        // EV/EBITDA
+        const ebitda = latest.income_statement?.operating_income_loss?.value;
+        if (typeof ebitda === "number" && ebitda > 0 && marketCap && marketCap > 0) {
+          const ev = marketCap + (typeof totalDebt === "number" ? totalDebt : 0);
+          fundamentals.evEbitda = Math.round((ev / ebitda) * 100) / 100;
+        }
+
+        // Growth metrics (compare to previous period)
+        if (previous) {
+          const prevRevenue = previous.income_statement?.revenues?.value;
+          const prevEps = previous.income_statement?.diluted_earnings_per_share?.value;
+          if (typeof prevRevenue === "number" && prevRevenue > 0 && typeof revenue === "number" && revenue > 0) {
+            fundamentals.revenueGrowth = Math.round(((revenue - prevRevenue) / prevRevenue) * 10000) / 100;
+          }
+          if (typeof prevEps === "number" && prevEps > 0 && typeof dilutedEps === "number" && dilutedEps > 0) {
+            fundamentals.epsGrowth = Math.round(((dilutedEps - prevEps) / Math.abs(prevEps)) * 10000) / 100;
+          }
         }
       }
     }
