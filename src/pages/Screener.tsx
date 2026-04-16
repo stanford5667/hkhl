@@ -902,9 +902,9 @@ export default function Screener() {
 
   const { addToWatchlist, isInWatchlist } = useWatchlist('stock');
 
-  // Handle row click - navigate to ticker detail page
+  // Handle row click - open in new tab
   const handleRowClick = (stock: ScreenerResult) => {
-    navigate(`/stock/${stock.ticker}`);
+    window.open(`/stock/${stock.ticker}`, '_blank');
   };
 
   // Fetch AI insights for results

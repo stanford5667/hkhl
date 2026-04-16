@@ -1033,7 +1033,7 @@ function ScreenerTab() {
   const { addToWatchlist, isInWatchlist } = useWatchlist('stock');
 
   const handleRowClick = (stock: ScreenerResult) => {
-    navigate(`/stock/${stock.ticker}`);
+    window.open(`/stock/${stock.ticker}`, '_blank');
   };
 
   // Load saved screens from localStorage

@@ -603,9 +603,11 @@ async function screenFromDatabase(
 
     if (snapshot) {
       const prevClose = snapshot.prevDay?.c || 0;
-      const currentPrice = snapshot.day?.c || row.last_close || 0;
-      const change = prevClose > 0 ? currentPrice - prevClose : 0;
-      const changePercent = prevClose > 0 ? ((currentPrice - prevClose) / prevClose) * 100 : 0;
+      const hasLiveDay = snapshot.day?.c && snapshot.day.c > 0;
+      const currentPrice = hasLiveDay ? snapshot.day.c : (snapshot.prevDay?.c || row.last_close || 0);
+      // Use todaysChange/todaysChangePerc from Polygon – these always reflect the last session's change
+      const change = snapshot.todaysChange != null ? snapshot.todaysChange : (prevClose > 0 ? currentPrice - prevClose : 0);
+      const changePercent = snapshot.todaysChangePerc != null ? snapshot.todaysChangePerc : (prevClose > 0 ? ((currentPrice - prevClose) / prevClose) * 100 : 0);
 
       return {
         symbol: row.ticker,
@@ -615,9 +617,9 @@ async function screenFromDatabase(
         price: currentPrice,
         change,
         changePercent,
-        volume: snapshot.day?.v || row.avg_daily_volume || 0,
+        volume: (hasLiveDay ? snapshot.day.v : snapshot.prevDay?.v) || row.avg_daily_volume || 0,
         prevVolume: snapshot.prevDay?.v || 0,
-        relativeVolume: snapshot.prevDay?.v > 0 ? snapshot.day?.v / snapshot.prevDay?.v : null,
+        relativeVolume: snapshot.prevDay?.v > 0 && hasLiveDay ? snapshot.day.v / snapshot.prevDay.v : null,
         marketCap,
         high: snapshot.day?.h || 0,
         low: snapshot.day?.l || 0,
