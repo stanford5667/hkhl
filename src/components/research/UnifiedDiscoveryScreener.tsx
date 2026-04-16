@@ -1393,6 +1393,12 @@ export function UnifiedDiscoveryScreener() {
               />
             ))}
             
+            {/* Custom Filter Builder */}
+            <div className="space-y-2 pt-2 border-t border-border/50">
+              <h4 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Custom Metric Filters</h4>
+              <CustomFilterBuilder onChange={(cf) => { setCustomFilters(cf); setCurrentPage(0); queryClient.invalidateQueries({ queryKey: ['screener'] }); }} />
+            </div>
+            
             {hasActiveFilters && (
               <div className="flex justify-end pt-2 border-t border-border/50">
                 <Button 
