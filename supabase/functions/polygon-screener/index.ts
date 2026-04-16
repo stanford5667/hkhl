@@ -581,7 +581,8 @@ async function screenFromDatabase(
   const scanFromStart = metricFiltersActive || needsLiveChangeData;
   // When metric filters are active, scan a larger slice of the universe, then filter AFTER we enrich
   // with fundamentals. Keep bounded to avoid timeouts.
-  const SCAN_LIMIT = scanFromStart ? Math.min(1000, Math.max(offset + limit, 600)) : limit;
+  // When scanning, pull the full universe — paginate through Supabase's 1000-row default limit
+  const SCAN_LIMIT = scanFromStart ? 5000 : limit;
 
   // Build query - include fields needed for result mapping
   let query = supabase
