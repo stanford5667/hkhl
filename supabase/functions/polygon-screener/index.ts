@@ -77,6 +77,37 @@ function json(data: unknown, status = 200) {
   });
 }
 
+function isPositiveNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value > 0;
+}
+
+function getPreferredSnapshotBar(snapshot: TickerSnapshot) {
+  if (isPositiveNumber(snapshot.day?.c)) return snapshot.day;
+  if (isPositiveNumber(snapshot.min?.c)) return snapshot.min;
+  return snapshot.prevDay;
+}
+
+function hasLiveSnapshotData(snapshot: TickerSnapshot): boolean {
+  return isPositiveNumber(snapshot.day?.c) || isPositiveNumber(snapshot.min?.c);
+}
+
+function getSnapshotMetrics(snapshot: TickerSnapshot) {
+  const preferredBar = getPreferredSnapshotBar(snapshot);
+  const prevClose = isPositiveNumber(snapshot.prevDay?.c) ? snapshot.prevDay.c : 0;
+  const currentPrice = isPositiveNumber(preferredBar?.c) ? preferredBar.c : prevClose;
+  const change = prevClose > 0 ? currentPrice - prevClose : 0;
+  const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
+
+  return {
+    preferredBar,
+    prevClose,
+    currentPrice,
+    change,
+    changePercent,
+    hasLiveData: hasLiveSnapshotData(snapshot),
+  };
+}
+
 // ---- Calculation Helpers ----
 
 function calculatePEG(pe: number | null, epsGrowth: number | null): number | null {
