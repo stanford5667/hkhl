@@ -1437,11 +1437,14 @@ export function UnifiedDiscoveryScreener() {
               <span className="sm:hidden">AI Insights</span>
             </Label>
           </div>
-          {showInsights && (
-            <span className="text-[10px] text-muted-foreground hidden sm:inline">
-              Explains why each stock matches your criteria
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {showInsights && (
+              <span className="text-[10px] text-muted-foreground hidden sm:inline">
+                Explains why each stock matches your criteria
+              </span>
+            )}
+            <ColumnSettings onChange={setUserVisibleColumnKeys} />
+          </div>
         </div>
         
         <ActiveFilterBadges 
