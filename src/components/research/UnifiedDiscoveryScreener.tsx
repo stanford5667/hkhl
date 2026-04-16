@@ -1116,6 +1116,7 @@ export function UnifiedDiscoveryScreener() {
   
   // Sector filter state
   const [sectorFilter, setSectorFilter] = useState<string>(stored?.sectorFilter || 'all');
+  const [hasOptionsFilter, setHasOptionsFilter] = useState<string>(stored?.hasOptionsFilter || 'all');
 
   // Custom market cap state
   const [mcDirection, setMcDirection] = useState<string>(stored?.mcDirection || 'any');
