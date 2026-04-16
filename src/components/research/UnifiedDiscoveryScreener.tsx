@@ -1335,7 +1335,7 @@ export function UnifiedDiscoveryScreener() {
 
   // Top Gainers query
   const { data: gainersData, isLoading: loadingGainers } = useQuery({
-    queryKey: ['screener', 'topGainers-full', filters, currentPage, mcDirection, debouncedMcValue1, debouncedMcValue2, sectorFilter],
+    queryKey: ['screener', 'topGainers-full', filters, currentPage, mcDirection, debouncedMcValue1, debouncedMcValue2, sectorFilter, hasOptionsFilter],
     queryFn: async () => {
       const baseFilters: ScreenerFilters = {
         minChange1D: 2,
@@ -1353,7 +1353,7 @@ export function UnifiedDiscoveryScreener() {
 
   // Most Active query
   const { data: mostActiveData, isLoading: loadingActive } = useQuery({
-    queryKey: ['screener', 'mostActive-full', filters, currentPage, mcDirection, debouncedMcValue1, debouncedMcValue2, sectorFilter],
+    queryKey: ['screener', 'mostActive-full', filters, currentPage, mcDirection, debouncedMcValue1, debouncedMcValue2, sectorFilter, hasOptionsFilter],
     queryFn: async () => {
       const baseFilters: ScreenerFilters = {
         minPrice: 2,
@@ -1370,7 +1370,7 @@ export function UnifiedDiscoveryScreener() {
 
   // Momentum query
   const { data: momentumData, isLoading: loadingMomentum } = useQuery({
-    queryKey: ['screener', 'smallCapMomentum-full', filters, currentPage, mcDirection, debouncedMcValue1, debouncedMcValue2, sectorFilter],
+    queryKey: ['screener', 'smallCapMomentum-full', filters, currentPage, mcDirection, debouncedMcValue1, debouncedMcValue2, sectorFilter, hasOptionsFilter],
     queryFn: async () => {
       const screenConfig = QUICK_SCREENS['smallCapMomentum'];
       if (!screenConfig) return { results: [], count: 0, pagination: { hasMore: false, total: 0 } };
@@ -1383,7 +1383,7 @@ export function UnifiedDiscoveryScreener() {
 
   // Unusual Volume query
   const { data: unusualVolData, isLoading: loadingUnusual } = useQuery({
-    queryKey: ['screener', 'unusualVolume-full', filters, currentPage, mcDirection, debouncedMcValue1, debouncedMcValue2, sectorFilter],
+    queryKey: ['screener', 'unusualVolume-full', filters, currentPage, mcDirection, debouncedMcValue1, debouncedMcValue2, sectorFilter, hasOptionsFilter],
     queryFn: async () => {
       const screenConfig = QUICK_SCREENS['unusualVolume'];
       if (!screenConfig) return { results: [], count: 0, pagination: { hasMore: false, total: 0 } };
