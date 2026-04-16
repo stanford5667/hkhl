@@ -53,21 +53,28 @@ type TabId = typeof SCREENER_TABS[number]['id'];
 // Filter Configurations - All 19 Metrics
 // =====================
 
+const MARKET_CAP_DIRECTION_OPTIONS = [
+  { value: 'any', label: 'Any' },
+  { value: 'above', label: 'Above' },
+  { value: 'below', label: 'Below' },
+  { value: 'between', label: 'Between' },
+];
+
+const MARKET_CAP_PRESETS = [
+  { label: '$100M', value: 100_000_000 },
+  { label: '$300M', value: 300_000_000 },
+  { label: '$500M', value: 500_000_000 },
+  { label: '$1B', value: 1_000_000_000 },
+  { label: '$2B', value: 2_000_000_000 },
+  { label: '$10B', value: 10_000_000_000 },
+  { label: '$50B', value: 50_000_000_000 },
+  { label: '$100B', value: 100_000_000_000 },
+  { label: '$200B', value: 200_000_000_000 },
+];
+
+// Keep a dummy options array for FILTER_CONFIG compatibility
 const MARKET_CAP_OPTIONS = [
   { value: 'all', label: 'Any' },
-  { value: 'mega', label: 'Mega ($200B+)', min: 200_000_000_000, max: undefined },
-  { value: 'large', label: 'Large ($10B-$200B)', min: 10_000_000_000, max: 200_000_000_000 },
-  { value: 'mid', label: 'Mid ($2B-$10B)', min: 2_000_000_000, max: 10_000_000_000 },
-  { value: 'small', label: 'Small ($300M-$2B)', min: 300_000_000, max: 2_000_000_000 },
-  { value: 'micro', label: 'Micro (<$300M)', min: 0, max: 300_000_000 },
-  { value: 'above_1b', label: 'Above $1B', min: 1_000_000_000, max: undefined },
-  { value: 'above_10b', label: 'Above $10B', min: 10_000_000_000, max: undefined },
-  { value: 'above_50b', label: 'Above $50B', min: 50_000_000_000, max: undefined },
-  { value: 'above_100b', label: 'Above $100B', min: 100_000_000_000, max: undefined },
-  { value: 'below_1b', label: 'Below $1B', min: 0, max: 1_000_000_000 },
-  { value: 'below_10b', label: 'Below $10B', min: 0, max: 10_000_000_000 },
-  { value: 'below_50b', label: 'Below $50B', min: 0, max: 50_000_000_000 },
-  { value: 'below_500m', label: 'Below $500M', min: 0, max: 500_000_000 },
 ];
 
 const PE_RATIO_OPTIONS = [
