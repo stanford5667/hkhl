@@ -1095,8 +1095,12 @@ export function UnifiedDiscoveryScreener() {
   const [currentPage, setCurrentPage] = useState(0);
   const [sortConfig, setSortConfig] = useState<SortConfig>({ column: 'change', direction: 'desc' });
   const [customFilters, setCustomFilters] = useState<CustomFiltersPayload>({});
-  const [userVisibleColumnKeys, setUserVisibleColumnKeys] = useState<Set<string>>(loadSavedColumns);
   
+  // Custom market cap state
+  const [mcDirection, setMcDirection] = useState<string>('any');
+  const [mcValue1, setMcValue1] = useState<string>('');
+  const [mcValue2, setMcValue2] = useState<string>('');
+
   // AI Insights state
   const [showInsights, setShowInsights] = useState(false);
   const [insights, setInsights] = useState<Map<string, StockInsight>>(new Map());
