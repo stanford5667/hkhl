@@ -560,6 +560,11 @@ function StockRow({
           </Tooltip>
         </TooltipProvider>
       )}
+      
+      {/* Daily Digest column */}
+      <div className="w-36 flex-shrink-0">
+        <DailyDigestCell ticker={stock.symbol} />
+      </div>
     </button>
   );
 }
