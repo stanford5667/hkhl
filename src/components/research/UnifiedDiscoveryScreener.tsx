@@ -589,6 +589,7 @@ function StockList({
   showInsights,
   insights,
   insightsLoading,
+  userVisibleColumnKeys,
 }: { 
   stocks: ScreenerResult[] | undefined; 
   isLoading: boolean;
@@ -603,6 +604,7 @@ function StockList({
   showInsights: boolean;
   insights: Map<string, StockInsight>;
   insightsLoading: boolean;
+  userVisibleColumnKeys: Set<string>;
 }) {
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
   const startItem = currentPage * ITEMS_PER_PAGE + 1;
