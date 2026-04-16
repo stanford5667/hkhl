@@ -1422,6 +1422,7 @@ export function UnifiedDiscoveryScreener() {
     setDebouncedMcValue1('');
     setDebouncedMcValue2('');
     setSectorFilter('all');
+    setHasOptionsFilter('all');
     if (mcDebounceRef.current) clearTimeout(mcDebounceRef.current);
     setCurrentPage(0);
     queryClient.invalidateQueries({ queryKey: ['screener'] });
