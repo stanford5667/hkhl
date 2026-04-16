@@ -1331,7 +1331,7 @@ export function UnifiedDiscoveryScreener() {
       
       return combined;
     };
-  }, [filters, hasFundamentalFilters, customFilters, mcDirection, debouncedMcValue1, debouncedMcValue2, sectorFilter]);
+  }, [filters, hasFundamentalFilters, customFilters, mcDirection, debouncedMcValue1, debouncedMcValue2, sectorFilter, hasOptionsFilter]);
 
   // Top Gainers query
   const { data: gainersData, isLoading: loadingGainers } = useQuery({
