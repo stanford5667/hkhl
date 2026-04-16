@@ -1,4 +1,4 @@
-import { ReactNode, memo, useCallback } from 'react';
+import { ReactNode, memo, useCallback, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/hover-card';
 import { AreaChart, Area, ResponsiveContainer, YAxis } from 'recharts';
@@ -125,15 +125,18 @@ function formatPerfChange(val: number | null): string {
 export const TickerHoverPreview = memo(function TickerHoverPreview({ ticker, stock, children }: TickerHoverPreviewProps) {
   const queryClient = useQueryClient();
   const normalizedTicker = ticker.toUpperCase();
+  const [isOpen, setIsOpen] = useState(false);
 
-  const { data: sparkline, isFetching: sparklineFetching } = useQuery({
+  // Enable queries when the hover card is open — this way the component
+  // properly tracks loading/fetching state and re-renders when data arrives.
+  const { data: sparkline, isLoading: sparklineLoading } = useQuery({
     ...getSparklineQueryOptions(normalizedTicker),
-    enabled: false,
+    enabled: isOpen,
   });
 
-  const { data: catalyst, isFetching: catalystFetching } = useQuery({
+  const { data: catalyst, isLoading: catalystLoading } = useQuery({
     ...getCatalystQueryOptions(normalizedTicker, stock.sector || ''),
-    enabled: false,
+    enabled: isOpen,
   });
 
   const prefetchPreviewData = useCallback(() => {
@@ -142,6 +145,7 @@ export const TickerHoverPreview = memo(function TickerHoverPreview({ ticker, sto
   }, [normalizedTicker, queryClient, stock.sector]);
 
   const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
     if (open) {
       prefetchPreviewData();
     }
@@ -150,8 +154,6 @@ export const TickerHoverPreview = memo(function TickerHoverPreview({ ticker, sto
   const isPositive = stock.changePercent >= 0;
   const sparkColor = isPositive ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))';
   const hasSparkline = (sparkline?.length ?? 0) > 2;
-  const sparklineLoading = sparklineFetching && !sparkline;
-  const catalystLoading = catalystFetching && catalyst === undefined;
 
   return (
     <HoverCard openDelay={300} closeDelay={150} onOpenChange={handleOpenChange}>
