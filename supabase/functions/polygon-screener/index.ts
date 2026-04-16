@@ -467,9 +467,16 @@ async function screenFromDatabase(
   console.log("[polygon-screener] Screening from database...");
 
   const metricFiltersActive = hasMetricFilters(filters);
+  const sortBy = filters.sortBy || "volume";
+  const sortDir = filters.sortDirection || "desc";
+  const needsLiveChangeData =
+    filters.minChange1D !== undefined ||
+    filters.maxChange1D !== undefined ||
+    sortBy === "change";
+  const scanFromStart = metricFiltersActive || needsLiveChangeData;
   // When metric filters are active, scan a larger slice of the universe, then filter AFTER we enrich
   // with fundamentals. Keep bounded to avoid timeouts.
-  const SCAN_LIMIT = metricFiltersActive ? 600 : limit;
+  const SCAN_LIMIT = scanFromStart ? Math.min(1000, Math.max(offset + limit, 600)) : limit;
 
   // Build query - include fields needed for result mapping
   let query = supabase
@@ -480,7 +487,7 @@ async function screenFromDatabase(
     )
     // is_active is nullable in schema; treat NULL as active
     .or("is_active.is.null,is_active.eq.true")
-    .range(metricFiltersActive ? 0 : offset, (metricFiltersActive ? SCAN_LIMIT : limit) + (metricFiltersActive ? 0 : offset) - 1);
+    .range(scanFromStart ? 0 : offset, (scanFromStart ? SCAN_LIMIT : limit) + (scanFromStart ? 0 : offset) - 1);
 
   // Apply market cap filter using tier
   if (filters.minMarketCap !== undefined) {
@@ -528,20 +535,20 @@ async function screenFromDatabase(
   }
 
   // Apply change filters
-  if (filters.minChange1D !== undefined) {
+  if (!needsLiveChangeData && filters.minChange1D !== undefined) {
     query = query.gte("change_percent_1d", filters.minChange1D);
   }
-  if (filters.maxChange1D !== undefined) {
+  if (!needsLiveChangeData && filters.maxChange1D !== undefined) {
     query = query.lte("change_percent_1d", filters.maxChange1D);
   }
 
   // Apply sorting
-  const sortBy = filters.sortBy || "volume";
-  const sortDir = filters.sortDirection || "desc";
-
   switch (sortBy) {
     case "change":
-      query = query.order("change_percent_1d", { ascending: sortDir === "asc", nullsFirst: false });
+      query = query.order(needsLiveChangeData ? "avg_daily_volume" : "change_percent_1d", {
+        ascending: sortDir === "asc",
+        nullsFirst: false,
+      });
       break;
     case "price":
       query = query.order("last_close", { ascending: sortDir === "asc", nullsFirst: false });
@@ -659,15 +666,59 @@ async function screenFromDatabase(
   const enrichedMatches: any[] = [];
   const baseResults = dataToProcess.map(buildBaseResult);
 
+  const liveFilteredBaseResults = needsLiveChangeData
+    ? baseResults.filter((result) => {
+        if (filters.minChange1D !== undefined && result.changePercent < filters.minChange1D) return false;
+        if (filters.maxChange1D !== undefined && result.changePercent > filters.maxChange1D) return false;
+        return true;
+      })
+    : baseResults;
+
+  const sortedBaseResults = needsLiveChangeData
+    ? [...liveFilteredBaseResults].sort((a, b) => {
+        let aVal: number;
+        let bVal: number;
+
+        switch (sortBy) {
+          case "change":
+            aVal = a.changePercent ?? 0;
+            bVal = b.changePercent ?? 0;
+            break;
+          case "price":
+            aVal = a.price ?? 0;
+            bVal = b.price ?? 0;
+            break;
+          case "marketCap":
+            aVal = a.marketCap ?? 0;
+            bVal = b.marketCap ?? 0;
+            break;
+          case "volume":
+          default:
+            aVal = a.volume ?? 0;
+            bVal = b.volume ?? 0;
+            break;
+        }
+
+        return sortDir === "desc" ? bVal - aVal : aVal - bVal;
+      })
+    : liveFilteredBaseResults;
+
+  const paginatedBaseResults = scanFromStart
+    ? sortedBaseResults.slice(offset, offset + limit)
+    : sortedBaseResults;
+  const totalBaseResults = scanFromStart
+    ? sortedBaseResults.length
+    : (baseCount ?? sortedBaseResults.length);
+
   if (!metricFiltersActive) {
     // No metric filters: enrich only what's needed for the page
     const fundamentalsMap = await fetchBatchFundamentals(
-      baseResults.map((r: any) => ({ symbol: r.symbol, price: r.price, marketCap: r.marketCap })),
+      paginatedBaseResults.map((r: any) => ({ symbol: r.symbol, price: r.price, marketCap: r.marketCap })),
       apiKey,
-      Math.min(baseResults.length, 20)
+      Math.min(paginatedBaseResults.length, 20)
     );
 
-    const results = baseResults.map((r: any) => {
+    const results = paginatedBaseResults.map((r: any) => {
       const f = fundamentalsMap.get(r.symbol);
       return {
         ...r,
@@ -689,13 +740,13 @@ async function screenFromDatabase(
 
     return json({
       ok: true,
-      count: baseCount ?? results.length,
+      count: totalBaseResults,
       results,
       pagination: {
         offset,
         limit,
-        hasMore: (baseCount ?? results.length) > offset + limit,
-        total: baseCount ?? results.length,
+        hasMore: totalBaseResults > offset + limit,
+        total: totalBaseResults,
       },
       source: "database",
     });
@@ -704,8 +755,8 @@ async function screenFromDatabase(
   // Metric filters active: scan through a bounded set and fetch fundamentals in chunks,
   // accumulating matches so filters don't return empty just because the first chunk lacked fundamentals.
   const CHUNK_SIZE = 25;
-  for (let i = 0; i < baseResults.length; i += CHUNK_SIZE) {
-    const chunkResults = baseResults.slice(i, i + CHUNK_SIZE);
+  for (let i = 0; i < sortedBaseResults.length; i += CHUNK_SIZE) {
+    const chunkResults = sortedBaseResults.slice(i, i + CHUNK_SIZE);
 
     const fundamentalsMap = await fetchBatchFundamentals(
       chunkResults.map((r: any) => ({ symbol: r.symbol, price: r.price, marketCap: r.marketCap })),
