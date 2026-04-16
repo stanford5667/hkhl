@@ -95,8 +95,21 @@ function getSnapshotMetrics(snapshot: TickerSnapshot) {
   const preferredBar = getPreferredSnapshotBar(snapshot);
   const prevClose = isPositiveNumber(snapshot.prevDay?.c) ? snapshot.prevDay.c : 0;
   const currentPrice = isPositiveNumber(preferredBar?.c) ? preferredBar.c : prevClose;
-  const change = prevClose > 0 ? currentPrice - prevClose : 0;
-  const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
+  const hasLiveData = hasLiveSnapshotData(snapshot);
+
+  // Prefer Polygon's official todaysChangePerc when available and valid
+  // It uses the adjusted previous close which is more accurate
+  let changePercent: number;
+  let change: number;
+  if (hasLiveData && typeof snapshot.todaysChangePerc === "number" && Number.isFinite(snapshot.todaysChangePerc)) {
+    changePercent = snapshot.todaysChangePerc;
+    change = typeof snapshot.todaysChange === "number" && Number.isFinite(snapshot.todaysChange)
+      ? snapshot.todaysChange
+      : (prevClose > 0 ? currentPrice - prevClose : 0);
+  } else {
+    change = prevClose > 0 ? currentPrice - prevClose : 0;
+    changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
+  }
 
   return {
     preferredBar,
@@ -104,7 +117,7 @@ function getSnapshotMetrics(snapshot: TickerSnapshot) {
     currentPrice,
     change,
     changePercent,
-    hasLiveData: hasLiveSnapshotData(snapshot),
+    hasLiveData,
   };
 }
 
