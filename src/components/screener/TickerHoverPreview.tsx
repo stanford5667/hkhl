@@ -4,7 +4,7 @@ import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/h
 import { AreaChart, Area, ResponsiveContainer, YAxis } from 'recharts';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
-import { Zap } from 'lucide-react';
+import { Zap, Sparkles, Building2 } from 'lucide-react';
 import type { ScreenerResult } from '@/services/polygonScreenerService';
 
 interface TickerHoverPreviewProps {
@@ -24,6 +24,7 @@ interface NewsItem {
   source: string;
   publishedAt: string;
   url: string;
+  type?: 'news' | 'ai';
 }
 
 const SPARKLINE_LOOKBACK_DAYS = 45;
@@ -38,10 +39,19 @@ function getSparklineQueryOptions(ticker: string) {
   };
 }
 
-function getCatalystQueryOptions(ticker: string) {
+interface CatalystInput {
+  ticker: string;
+  name?: string;
+  sector?: string;
+  changePercent?: number;
+  price?: number;
+  marketCap?: number | null;
+}
+
+function getCatalystQueryOptions(input: CatalystInput) {
   return {
-    queryKey: ['catalyst', ticker],
-    queryFn: () => fetchCatalyst(ticker),
+    queryKey: ['catalyst', input.ticker],
+    queryFn: () => fetchCatalyst(input),
     staleTime: 30 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
   };
@@ -83,13 +93,20 @@ async function fetchSparklineData(ticker: string): Promise<SparklinePoint[]> {
   }
 }
 
-async function fetchCatalyst(ticker: string): Promise<NewsItem | null> {
+async function fetchCatalyst(input: CatalystInput): Promise<NewsItem | null> {
   try {
-    const { data, error } = await supabase.functions.invoke('polygon-news', {
-      body: { ticker },
+    const { data, error } = await supabase.functions.invoke('generate-catalyst', {
+      body: {
+        ticker: input.ticker,
+        name: input.name,
+        sector: input.sector,
+        changePercent: input.changePercent,
+        price: input.price,
+        marketCap: input.marketCap,
+      },
     });
-    if (error || !data?.article) return null;
-    return data.article as NewsItem;
+    if (error || !data?.catalyst) return null;
+    return data.catalyst as NewsItem;
   } catch {
     return null;
   }
@@ -106,6 +123,14 @@ function formatLargeNumber(n: number | null): string {
 export const TickerHoverPreview = memo(function TickerHoverPreview({ ticker, stock, children }: TickerHoverPreviewProps) {
   const queryClient = useQueryClient();
   const normalizedTicker = ticker.toUpperCase();
+  const catalystInput: CatalystInput = {
+    ticker: normalizedTicker,
+    name: stock.name,
+    sector: stock.sector,
+    changePercent: stock.changePercent,
+    price: stock.price,
+    marketCap: stock.marketCap,
+  };
 
   const { data: sparkline, isFetching: sparklineFetching } = useQuery({
     ...getSparklineQueryOptions(normalizedTicker),
@@ -113,14 +138,14 @@ export const TickerHoverPreview = memo(function TickerHoverPreview({ ticker, sto
   });
 
   const { data: catalyst, isFetching: catalystFetching } = useQuery({
-    ...getCatalystQueryOptions(normalizedTicker),
+    ...getCatalystQueryOptions(catalystInput),
     enabled: false,
   });
 
   const prefetchPreviewData = useCallback(() => {
     void queryClient.prefetchQuery(getSparklineQueryOptions(normalizedTicker));
-    void queryClient.prefetchQuery(getCatalystQueryOptions(normalizedTicker));
-  }, [normalizedTicker, queryClient]);
+    void queryClient.prefetchQuery(getCatalystQueryOptions(catalystInput));
+  }, [normalizedTicker, queryClient, catalystInput]);
 
   const handleOpenChange = (open: boolean) => {
     if (open) {
@@ -158,6 +183,16 @@ export const TickerHoverPreview = memo(function TickerHoverPreview({ ticker, sto
             </span>
           </div>
         </div>
+
+        {/* Company Description */}
+        {(stock.sicDescription || stock.sector) && (
+          <div className="px-3 pb-1.5">
+            <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+              <Building2 className="h-2.5 w-2.5 shrink-0" />
+              <span className="truncate">{stock.sicDescription || stock.sector}</span>
+            </div>
+          </div>
+        )}
 
         {/* Sparkline area chart */}
         <div className="h-20 w-full px-1">
@@ -228,22 +263,37 @@ export const TickerHoverPreview = memo(function TickerHoverPreview({ ticker, sto
         {/* Key Catalyst */}
         <div className="px-3 py-2 border-t border-border/50 bg-muted/30">
           <div className="flex items-center gap-1 mb-1">
-            <Zap className="h-3 w-3 text-amber-500" />
-            <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Key Catalyst</span>
+            {catalyst?.type === 'ai' ? (
+              <Sparkles className="h-3 w-3 text-purple-500" />
+            ) : (
+              <Zap className="h-3 w-3 text-amber-500" />
+            )}
+            <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">
+              {catalyst?.type === 'ai' ? 'AI Catalyst' : 'Key Catalyst'}
+            </span>
           </div>
           {catalyst ? (
-            <a
-              href={catalyst.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[11px] text-foreground hover:text-primary transition-colors line-clamp-2 leading-snug"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {catalyst.title}
-              <span className="text-muted-foreground ml-1 text-[9px]">
-                — {catalyst.source}
-              </span>
-            </a>
+            catalyst.url ? (
+              <a
+                href={catalyst.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[11px] text-foreground hover:text-primary transition-colors line-clamp-2 leading-snug"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {catalyst.title}
+                <span className="text-muted-foreground ml-1 text-[9px]">
+                  — {catalyst.source}
+                </span>
+              </a>
+            ) : (
+              <p className="text-[11px] text-foreground line-clamp-2 leading-snug">
+                {catalyst.title}
+                <span className="text-muted-foreground ml-1 text-[9px]">
+                  — {catalyst.source}
+                </span>
+              </p>
+            )
           ) : (
             <span className="text-[10px] text-muted-foreground italic">
               {catalystLoading ? 'Loading...' : 'No recent catalysts'}
