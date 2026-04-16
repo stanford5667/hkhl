@@ -980,6 +980,7 @@ export function UnifiedDiscoveryScreener() {
   const [currentPage, setCurrentPage] = useState(0);
   const [sortConfig, setSortConfig] = useState<SortConfig>({ column: 'change', direction: 'desc' });
   const [customFilters, setCustomFilters] = useState<CustomFiltersPayload>({});
+  const [userVisibleColumnKeys, setUserVisibleColumnKeys] = useState<Set<string>>(loadSavedColumns);
   
   // AI Insights state
   const [showInsights, setShowInsights] = useState(false);
