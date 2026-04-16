@@ -1125,8 +1125,8 @@ export function UnifiedDiscoveryScreener() {
   const [mcValue2, setMcValue2] = useState<string>(stored?.mcValue2 || '');
 
   // Debounced versions of market cap values for queries
-  const [debouncedMcValue1, setDebouncedMcValue1] = useState('');
-  const [debouncedMcValue2, setDebouncedMcValue2] = useState('');
+  const [debouncedMcValue1, setDebouncedMcValue1] = useState(stored?.debouncedMcValue1 || '');
+  const [debouncedMcValue2, setDebouncedMcValue2] = useState(stored?.debouncedMcValue2 || '');
   const mcDebounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   const debounceMcUpdate = useCallback((v1: string, v2: string) => {
@@ -1137,6 +1137,17 @@ export function UnifiedDiscoveryScreener() {
       setCurrentPage(0);
     }, 500);
   }, []);
+
+  // Persist screener state to sessionStorage
+  useEffect(() => {
+    const state = {
+      activeTab, filters, showFilters, currentPage, sortConfig, customFilters,
+      mcDirection, mcValue1, mcValue2, debouncedMcValue1, debouncedMcValue2,
+      sectorFilter,
+    };
+    sessionStorage.setItem('screener-state', JSON.stringify(state));
+  }, [activeTab, filters, showFilters, currentPage, sortConfig, customFilters, mcDirection, mcValue1, mcValue2, debouncedMcValue1, debouncedMcValue2, sectorFilter]);
+
   // AI Insights state
   const [showInsights, setShowInsights] = useState(false);
   const [insights, setInsights] = useState<Map<string, StockInsight>>(new Map());
