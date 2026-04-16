@@ -483,7 +483,9 @@ function StockRow({
         if (col.key === 'symbol') {
           return (
             <div key={col.key} className={col.width}>
-              <span className="text-sm font-semibold text-primary">{stock.symbol}</span>
+              <TickerHoverPreview ticker={stock.symbol} stock={stock}>
+                <span className="text-sm font-semibold text-primary cursor-pointer hover:underline">{stock.symbol}</span>
+              </TickerHoverPreview>
             </div>
           );
         }
