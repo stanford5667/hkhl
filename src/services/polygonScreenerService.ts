@@ -98,6 +98,7 @@ export interface ScreenerResult {
   beta: number | null;
   sharpe: number | null;
   maxDrawdown: number | null;
+  stdDev: number | null;
 }
 
 export interface ScreenerResponse {
