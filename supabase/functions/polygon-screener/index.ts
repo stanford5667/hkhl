@@ -824,25 +824,29 @@ async function screenFromDatabase(
       Math.min(paginatedBaseResults.length, 20)
     );
 
-    const results = paginatedBaseResults.map((r: any) => {
+    const results = await Promise.all(paginatedBaseResults.map(async (r: any) => {
       const f = fundamentalsMap.get(r.symbol);
+      const pe = f?.pe ?? null;
+      const epsGrowth = f?.epsGrowth ?? null;
+      const peg = calculatePEG(pe, epsGrowth);
       return {
         ...r,
-        pe: f?.pe ?? null,
+        pe,
         forwardPE: f?.forwardPE ?? null,
-        peg: null,
+        peg,
         pb: f?.pb ?? null,
         pCash: null,
         evEbitda: f?.evEbitda ?? null,
         opMargin: f?.opMargin ?? null,
-        epsGrowth: f?.epsGrowth ?? null,
+        epsGrowth,
         revenueGrowth: f?.revenueGrowth ?? null,
         debtEquity: f?.debtEquity ?? null,
         quickRatio: f?.quickRatio ?? null,
         sharpe: null,
         maxDrawdown: null,
+        stdDev: null,
       };
-    });
+    }));
 
     return json({
       ok: true,
