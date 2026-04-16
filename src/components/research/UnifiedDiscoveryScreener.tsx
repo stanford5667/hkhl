@@ -1540,8 +1540,8 @@ export function UnifiedDiscoveryScreener() {
             />
           ))}
           
-          {/* Sector Filter */}
-          <div className="mt-2">
+        {/* Additional Quick Filters: Sector + Has Options */}
+          <div className="mt-2 flex flex-wrap gap-2">
             <FilterDropdown
               label="Sector"
               value={sectorFilter}
@@ -1555,6 +1555,21 @@ export function UnifiedDiscoveryScreener() {
                 queryClient.invalidateQueries({ queryKey: ['screener'] });
               }}
               icon={Building2}
+            />
+            <FilterDropdown
+              label="Has Options"
+              value={hasOptionsFilter}
+              options={[
+                { value: 'all', label: 'Any' },
+                { value: 'yes', label: 'Yes' },
+                { value: 'no', label: 'No' },
+              ]}
+              onChange={(v) => {
+                setHasOptionsFilter(v);
+                setCurrentPage(0);
+                queryClient.invalidateQueries({ queryKey: ['screener'] });
+              }}
+              icon={Target}
             />
           </div>
         </div>
