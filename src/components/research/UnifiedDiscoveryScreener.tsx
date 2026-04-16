@@ -1001,10 +1001,15 @@ function ActiveFilterBadges({
   onClearAll: () => void;
   marketCapLabel?: string;
 }) {
-  const activeFilters: { key: keyof FilterState; label: string }[] = [];
+  const activeFilters: { key: keyof FilterState | 'marketCapCustom'; label: string }[] = [];
   
+  // Add market cap custom filter if active
+  if (marketCapLabel) {
+    activeFilters.push({ key: 'marketCapCustom', label: `Mkt Cap: ${marketCapLabel}` });
+  }
+
   Object.entries(filters).forEach(([key, value]) => {
-    if (value !== 'all') {
+    if (value !== 'all' && key !== 'marketCap') {
       const config = FILTER_CONFIG[key as keyof FilterState];
       const opt = config.options.find(o => o.value === value);
       if (opt) {
@@ -1282,7 +1287,7 @@ export function UnifiedDiscoveryScreener() {
 
   // Top Gainers query
   const { data: gainersData, isLoading: loadingGainers } = useQuery({
-    queryKey: ['screener', 'topGainers-full', filters, currentPage],
+    queryKey: ['screener', 'topGainers-full', filters, currentPage, mcDirection, mcValue1, mcValue2],
     queryFn: async () => {
       const baseFilters: ScreenerFilters = {
         minChange1D: 2,
