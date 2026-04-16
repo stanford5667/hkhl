@@ -77,6 +77,37 @@ function json(data: unknown, status = 200) {
   });
 }
 
+function isPositiveNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value > 0;
+}
+
+function getPreferredSnapshotBar(snapshot: TickerSnapshot) {
+  if (isPositiveNumber(snapshot.day?.c)) return snapshot.day;
+  if (isPositiveNumber(snapshot.min?.c)) return snapshot.min;
+  return snapshot.prevDay;
+}
+
+function hasLiveSnapshotData(snapshot: TickerSnapshot): boolean {
+  return isPositiveNumber(snapshot.day?.c) || isPositiveNumber(snapshot.min?.c);
+}
+
+function getSnapshotMetrics(snapshot: TickerSnapshot) {
+  const preferredBar = getPreferredSnapshotBar(snapshot);
+  const prevClose = isPositiveNumber(snapshot.prevDay?.c) ? snapshot.prevDay.c : 0;
+  const currentPrice = isPositiveNumber(preferredBar?.c) ? preferredBar.c : prevClose;
+  const change = prevClose > 0 ? currentPrice - prevClose : 0;
+  const changePercent = prevClose > 0 ? (change / prevClose) * 100 : 0;
+
+  return {
+    preferredBar,
+    prevClose,
+    currentPrice,
+    change,
+    changePercent,
+    hasLiveData: hasLiveSnapshotData(snapshot),
+  };
+}
+
 // ---- Calculation Helpers ----
 
 function calculatePEG(pe: number | null, epsGrowth: number | null): number | null {
@@ -745,11 +776,7 @@ async function screenFromDatabase(
     const marketCap = row.metadata?.market_cap || null;
 
     if (snapshot) {
-      const prevClose = snapshot.prevDay?.c || 0;
-      const hasLiveDay = snapshot.day?.c && snapshot.day.c > 0;
-      const currentPrice = hasLiveDay ? snapshot.day.c : (snapshot.prevDay?.c || row.last_close || 0);
-      const change = snapshot.todaysChange != null ? snapshot.todaysChange : (prevClose > 0 ? currentPrice - prevClose : 0);
-      const changePercent = snapshot.todaysChangePerc != null ? snapshot.todaysChangePerc : (prevClose > 0 ? ((currentPrice - prevClose) / prevClose) * 100 : 0);
+      const { preferredBar, currentPrice, change, changePercent, hasLiveData } = getSnapshotMetrics(snapshot);
 
       return {
         symbol: row.ticker,
@@ -762,14 +789,14 @@ async function screenFromDatabase(
         changePercent1W: null,
         changePercent1M: null,
         changePercentYTD: null,
-        volume: (hasLiveDay ? snapshot.day.v : snapshot.prevDay?.v) || row.avg_daily_volume || 0,
+        volume: preferredBar?.v || row.avg_daily_volume || 0,
         prevVolume: snapshot.prevDay?.v || 0,
-        relativeVolume: snapshot.prevDay?.v > 0 && hasLiveDay ? snapshot.day.v / snapshot.prevDay.v : null,
+        relativeVolume: snapshot.prevDay?.v > 0 && hasLiveData ? (preferredBar?.v || 0) / snapshot.prevDay.v : null,
         marketCap,
-        high: snapshot.day?.h || 0,
-        low: snapshot.day?.l || 0,
-        open: snapshot.day?.o || 0,
-        vwap: snapshot.day?.vw || null,
+        high: preferredBar?.h || 0,
+        low: preferredBar?.l || 0,
+        open: preferredBar?.o || 0,
+        vwap: preferredBar?.vw || null,
         exchange: row.primary_exchange || null,
         type: row.asset_type || null,
         volatility: null,
@@ -964,23 +991,23 @@ async function screenFromPolygonAPI(
     filters.maxMarketCap !== undefined ||
     (filters.sectors && filters.sectors.length > 0);
 
-  const tickersWithDayData = tickers.filter(t => t.day && t.day.c && t.day.c > 0).length;
-  const marketClosed = tickersWithDayData < tickers.length * 0.1;
+  const tickersWithLiveData = tickers.filter((t) => hasLiveSnapshotData(t)).length;
+  const marketClosed = tickersWithLiveData < tickers.length * 0.1;
 
   let filteredTickers = tickers.filter((t) => {
-    const price = marketClosed ? (t.prevDay?.c || 0) : (t.day?.c || 0);
-    const volume = marketClosed ? (t.prevDay?.v || 0) : (t.day?.v || 0);
+    const { preferredBar, currentPrice, changePercent, hasLiveData } = getSnapshotMetrics(t);
+    const price = currentPrice;
+    const volume = preferredBar?.v || t.prevDay?.v || 0;
     if (price <= 0 || !t.prevDay || !t.prevDay.c || t.prevDay.c <= 0) return false;
     if (filters.minPrice !== undefined && price < filters.minPrice) return false;
     if (filters.maxPrice !== undefined && price > filters.maxPrice) return false;
-    const accurateChangePercent = marketClosed ? (t.todaysChangePerc || 0) : ((price - t.prevDay.c) / t.prevDay.c) * 100;
     if (!hasFundamentalFilters) {
-      if (filters.minChange1D !== undefined && accurateChangePercent < filters.minChange1D) return false;
-      if (filters.maxChange1D !== undefined && accurateChangePercent > filters.maxChange1D) return false;
+      if (filters.minChange1D !== undefined && changePercent < filters.minChange1D) return false;
+      if (filters.maxChange1D !== undefined && changePercent > filters.maxChange1D) return false;
     }
     if (filters.minVolume !== undefined && volume < filters.minVolume) return false;
-    if (!hasFundamentalFilters && filters.minRelativeVolume !== undefined && t.prevDay?.v > 0 && !marketClosed) {
-      if ((t.day?.v || 0) / t.prevDay.v < filters.minRelativeVolume) return false;
+    if (!hasFundamentalFilters && filters.minRelativeVolume !== undefined && t.prevDay?.v > 0 && hasLiveData) {
+      if ((preferredBar?.v || 0) / t.prevDay.v < filters.minRelativeVolume) return false;
     }
     return true;
   });
@@ -990,17 +1017,19 @@ async function screenFromPolygonAPI(
 
   filteredTickers.sort((a, b) => {
     let aVal: number, bVal: number;
-    const aPrice = marketClosed ? (a.prevDay?.c || 0) : (a.day?.c || 0);
-    const bPrice = marketClosed ? (b.prevDay?.c || 0) : (b.day?.c || 0);
+    const aMetrics = getSnapshotMetrics(a);
+    const bMetrics = getSnapshotMetrics(b);
+    const aPrice = aMetrics.currentPrice;
+    const bPrice = bMetrics.currentPrice;
     switch (sortBy) {
       case "change":
-        aVal = marketClosed ? (a.todaysChangePerc || 0) : (a.prevDay?.c > 0 ? ((a.day.c - a.prevDay.c) / a.prevDay.c) * 100 : 0);
-        bVal = marketClosed ? (b.todaysChangePerc || 0) : (b.prevDay?.c > 0 ? ((b.day.c - b.prevDay.c) / b.prevDay.c) * 100 : 0);
+        aVal = aMetrics.changePercent;
+        bVal = bMetrics.changePercent;
         break;
       case "price": aVal = aPrice; bVal = bPrice; break;
       default:
-        aVal = marketClosed ? (a.prevDay?.v || 0) : (a.day?.v || 0);
-        bVal = marketClosed ? (b.prevDay?.v || 0) : (b.day?.v || 0);
+        aVal = aMetrics.preferredBar?.v || a.prevDay?.v || 0;
+        bVal = bMetrics.preferredBar?.v || b.prevDay?.v || 0;
     }
     return sortDir === "desc" ? bVal - aVal : aVal - bVal;
   });
@@ -1038,11 +1067,12 @@ async function screenFromPolygonAPI(
       if (!filters.sectors.includes(sector)) return false;
     }
     if (hasFundamentalFilters) {
-      const cp = marketClosed ? (t.todaysChangePerc || 0) : (t.prevDay?.c > 0 ? ((t.day.c - t.prevDay.c) / t.prevDay.c) * 100 : 0);
+      const cp = getSnapshotMetrics(t).changePercent;
       if (filters.minChange1D !== undefined && cp < filters.minChange1D) return false;
       if (filters.maxChange1D !== undefined && cp > filters.maxChange1D) return false;
       if (filters.minRelativeVolume !== undefined && t.prevDay?.v > 0) {
-        if (t.day.v / t.prevDay.v < filters.minRelativeVolume) return false;
+        const preferredBar = getPreferredSnapshotBar(t);
+        if (((preferredBar?.v || 0) / t.prevDay.v) < filters.minRelativeVolume) return false;
       }
     }
     return true;
@@ -1050,22 +1080,24 @@ async function screenFromPolygonAPI(
 
   finalResults.sort((a, b) => {
     let aVal: number, bVal: number;
+    const aMetrics = getSnapshotMetrics(a);
+    const bMetrics = getSnapshotMetrics(b);
     switch (sortBy) {
       case "change":
-        aVal = marketClosed ? (a.todaysChangePerc || 0) : (a.prevDay?.c > 0 ? ((a.day.c - a.prevDay.c) / a.prevDay.c) * 100 : 0);
-        bVal = marketClosed ? (b.todaysChangePerc || 0) : (b.prevDay?.c > 0 ? ((b.day.c - b.prevDay.c) / b.prevDay.c) * 100 : 0);
+        aVal = aMetrics.changePercent;
+        bVal = bMetrics.changePercent;
         break;
       case "price":
-        aVal = marketClosed ? (a.prevDay?.c || 0) : (a.day?.c || 0);
-        bVal = marketClosed ? (b.prevDay?.c || 0) : (b.day?.c || 0);
+        aVal = aMetrics.currentPrice;
+        bVal = bMetrics.currentPrice;
         break;
       case "marketCap":
         aVal = tickerDetails.get(a.ticker)?.market_cap || 0;
         bVal = tickerDetails.get(b.ticker)?.market_cap || 0;
         break;
       default:
-        aVal = marketClosed ? (a.prevDay?.v || 0) : (a.day?.v || 0);
-        bVal = marketClosed ? (b.prevDay?.v || 0) : (b.day?.v || 0);
+        aVal = aMetrics.preferredBar?.v || a.prevDay?.v || 0;
+        bVal = bMetrics.preferredBar?.v || b.prevDay?.v || 0;
     }
     return sortDir === "desc" ? bVal - aVal : aVal - bVal;
   });
@@ -1075,11 +1107,7 @@ async function screenFromPolygonAPI(
   const initialResults = paginatedResults.map((t) => {
     const details = tickerDetails.get(t.ticker);
     const sector = getSectorFromSIC(details?.sic_code || null);
-    const dayData = marketClosed ? t.prevDay : t.day;
-    const prevClose = t.prevDay?.c || 0;
-    const currentPrice = dayData?.c || 0;
-    const change = marketClosed ? (t.todaysChange || 0) : (prevClose > 0 ? currentPrice - prevClose : 0);
-    const changePercent = marketClosed ? (t.todaysChangePerc || 0) : (prevClose > 0 ? ((currentPrice - prevClose) / prevClose) * 100 : 0);
+    const { preferredBar, currentPrice, change, changePercent, hasLiveData } = getSnapshotMetrics(t);
     
     // Truncate description for preview
     let shortDesc: string | null = null;
@@ -1103,14 +1131,14 @@ async function screenFromPolygonAPI(
       changePercent1W: null,
       changePercent1M: null,
       changePercentYTD: null,
-      volume: dayData?.v || 0,
+      volume: preferredBar?.v || 0,
       prevVolume: t.prevDay?.v || 0,
-      relativeVolume: t.prevDay?.v > 0 && !marketClosed ? (t.day?.v || 0) / t.prevDay.v : null,
+      relativeVolume: t.prevDay?.v > 0 && hasLiveData ? (preferredBar?.v || 0) / t.prevDay.v : null,
       marketCap: details?.market_cap || null,
-      high: dayData?.h || 0,
-      low: dayData?.l || 0,
-      open: dayData?.o || 0,
-      vwap: dayData?.vw || null,
+      high: preferredBar?.h || 0,
+      low: preferredBar?.l || 0,
+      open: preferredBar?.o || 0,
+      vwap: preferredBar?.vw || null,
       exchange: details?.primary_exchange || null,
       type: details?.type || null,
       volatility: null,
