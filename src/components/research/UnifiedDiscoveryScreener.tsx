@@ -1142,10 +1142,10 @@ export function UnifiedDiscoveryScreener() {
     const state = {
       activeTab, filters, showFilters, currentPage, sortConfig, customFilters,
       mcDirection, mcValue1, mcValue2, debouncedMcValue1, debouncedMcValue2,
-      sectorFilter,
+      sectorFilter, hasOptionsFilter,
     };
     sessionStorage.setItem('screener-state', JSON.stringify(state));
-  }, [activeTab, filters, showFilters, currentPage, sortConfig, customFilters, mcDirection, mcValue1, mcValue2, debouncedMcValue1, debouncedMcValue2, sectorFilter]);
+  }, [activeTab, filters, showFilters, currentPage, sortConfig, customFilters, mcDirection, mcValue1, mcValue2, debouncedMcValue1, debouncedMcValue2, sectorFilter, hasOptionsFilter]);
 
   // AI Insights state
   const [showInsights, setShowInsights] = useState(false);
