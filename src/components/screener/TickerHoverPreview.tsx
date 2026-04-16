@@ -1,4 +1,4 @@
-import { ReactNode, memo } from 'react';
+import { ReactNode, memo, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/hover-card';
 import { AreaChart, Area, ResponsiveContainer, YAxis } from 'recharts';
@@ -26,23 +26,58 @@ interface NewsItem {
   url: string;
 }
 
+const SPARKLINE_LOOKBACK_DAYS = 45;
+const SPARKLINE_POINT_LIMIT = 30;
+
+function getSparklineQueryOptions(ticker: string) {
+  return {
+    queryKey: ['sparkline', ticker],
+    queryFn: () => fetchSparklineData(ticker),
+    staleTime: 30 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
+  };
+}
+
+function getCatalystQueryOptions(ticker: string) {
+  return {
+    queryKey: ['catalyst', ticker],
+    queryFn: () => fetchCatalyst(ticker),
+    staleTime: 30 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
+  };
+}
+
 // Fetch sparkline from DB (fast) instead of edge function
 async function fetchSparklineData(ticker: string): Promise<SparklinePoint[]> {
   try {
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 35);
-    const startDate = thirtyDaysAgo.toISOString().split('T')[0];
+    const normalizedTicker = ticker.toUpperCase();
+    const lookbackDate = new Date();
+    lookbackDate.setDate(lookbackDate.getDate() - SPARKLINE_LOOKBACK_DAYS);
+    const startDate = lookbackDate.toISOString().split('T')[0];
     
     const { data, error } = await supabase
       .from('market_daily_bars')
       .select('bar_date, close')
-      .eq('ticker', ticker)
+      .eq('ticker', normalizedTicker)
       .gte('bar_date', startDate)
-      .order('bar_date', { ascending: true })
-      .limit(30);
+      .order('bar_date', { ascending: false })
+      .limit(SPARKLINE_POINT_LIMIT);
     
-    if (error || !data || data.length === 0) return [];
-    return data.map((b: any) => ({ date: b.bar_date, close: b.close }));
+    if (!error && data && data.length > 0) {
+      return [...data]
+        .reverse()
+        .map((bar: { bar_date: string; close: number }) => ({ date: bar.bar_date, close: bar.close }));
+    }
+
+    const { data: polygonData, error: polygonError } = await supabase.functions.invoke('polygon-daily-bars', {
+      body: { ticker: normalizedTicker, days: SPARKLINE_LOOKBACK_DAYS }
+    });
+
+    if (polygonError || !polygonData?.ok || !polygonData?.bars?.length) return [];
+
+    return polygonData.bars
+      .slice(-SPARKLINE_POINT_LIMIT)
+      .map((bar: { date: string; close: number }) => ({ date: bar.date, close: bar.close }));
   } catch {
     return [];
   }
@@ -70,39 +105,41 @@ function formatLargeNumber(n: number | null): string {
 
 export const TickerHoverPreview = memo(function TickerHoverPreview({ ticker, stock, children }: TickerHoverPreviewProps) {
   const queryClient = useQueryClient();
+  const normalizedTicker = ticker.toUpperCase();
 
-  const { data: sparkline, refetch: refetchSparkline } = useQuery({
-    queryKey: ['sparkline', ticker],
-    queryFn: () => fetchSparklineData(ticker),
-    staleTime: 30 * 60 * 1000, // 30 min — chart data doesn't change frequently
-    gcTime: 60 * 60 * 1000, // keep in cache 1 hour
+  const { data: sparkline, isFetching: sparklineFetching } = useQuery({
+    ...getSparklineQueryOptions(normalizedTicker),
     enabled: false,
   });
 
-  const { data: catalyst, refetch: refetchCatalyst } = useQuery({
-    queryKey: ['catalyst', ticker],
-    queryFn: () => fetchCatalyst(ticker),
-    staleTime: 30 * 60 * 1000,
-    gcTime: 60 * 60 * 1000,
+  const { data: catalyst, isFetching: catalystFetching } = useQuery({
+    ...getCatalystQueryOptions(normalizedTicker),
     enabled: false,
   });
+
+  const prefetchPreviewData = useCallback(() => {
+    void queryClient.prefetchQuery(getSparklineQueryOptions(normalizedTicker));
+    void queryClient.prefetchQuery(getCatalystQueryOptions(normalizedTicker));
+  }, [normalizedTicker, queryClient]);
 
   const handleOpenChange = (open: boolean) => {
     if (open) {
-      const sparklineCache = queryClient.getQueryData(['sparkline', ticker]);
-      const catalystCache = queryClient.getQueryData(['catalyst', ticker]);
-      if (!sparklineCache) refetchSparkline();
-      if (!catalystCache) refetchCatalyst();
+      prefetchPreviewData();
     }
   };
 
   const isPositive = stock.changePercent >= 0;
   const sparkColor = isPositive ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))';
+  const hasSparkline = (sparkline?.length ?? 0) > 2;
+  const sparklineLoading = sparklineFetching && !sparkline;
+  const catalystLoading = catalystFetching && catalyst === undefined;
 
   return (
     <HoverCard openDelay={300} closeDelay={150} onOpenChange={handleOpenChange}>
       <HoverCardTrigger asChild>
-        {children}
+        <span className="inline-flex" onMouseEnter={prefetchPreviewData} onFocus={prefetchPreviewData}>
+          {children}
+        </span>
       </HoverCardTrigger>
       <HoverCardContent side="right" className="w-80 p-0 overflow-hidden">
         {/* Chart header */}
@@ -124,7 +161,7 @@ export const TickerHoverPreview = memo(function TickerHoverPreview({ ticker, sto
 
         {/* Sparkline area chart */}
         <div className="h-20 w-full px-1">
-          {sparkline && sparkline.length > 2 ? (
+          {hasSparkline ? (
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={sparkline} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
                 <defs>
@@ -145,9 +182,13 @@ export const TickerHoverPreview = memo(function TickerHoverPreview({ ticker, sto
                 />
               </AreaChart>
             </ResponsiveContainer>
-          ) : (
+          ) : sparklineLoading ? (
             <div className="flex items-center justify-center h-full">
               <span className="text-[10px] text-muted-foreground animate-pulse">Loading chart...</span>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <span className="text-[10px] text-muted-foreground">No chart data</span>
             </div>
           )}
         </div>
@@ -205,7 +246,7 @@ export const TickerHoverPreview = memo(function TickerHoverPreview({ ticker, sto
             </a>
           ) : (
             <span className="text-[10px] text-muted-foreground italic">
-              {catalyst === null ? 'No recent catalysts' : 'Loading...'}
+              {catalystLoading ? 'Loading...' : 'No recent catalysts'}
             </span>
           )}
         </div>
