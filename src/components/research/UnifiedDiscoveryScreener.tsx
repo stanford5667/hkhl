@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { 
   TrendingUp, Activity, Zap, Flame, BarChart3, Filter, X, ChevronDown, ChevronUp,
   Building2, DollarSign, Percent, Scale, Target, LineChart, AlertTriangle,
