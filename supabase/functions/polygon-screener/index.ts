@@ -10,8 +10,9 @@ const BASE_URL = "https://api.polygon.io";
 
 const EXTERNAL_TIMEOUT_MS = 15000;
 
-// Simple in-memory cache for fundamentals (1 hour TTL)
+// Simple in-memory cache (1 hour TTL)
 const fundamentalsCache = new Map<string, { data: TickerFundamentals; timestamp: number }>();
+const performanceCache = new Map<string, { data: PerformanceMetrics; timestamp: number }>();
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 interface TickerFundamentals {
@@ -26,18 +27,27 @@ interface TickerFundamentals {
   revenueGrowth: number | null;
 }
 
+interface PerformanceMetrics {
+  changePercent1W: number | null;
+  changePercent1M: number | null;
+  changePercentYTD: number | null;
+  beta: number | null;
+  volatility: number | null;
+  maxDrawdown: number | null;
+  stdDev: number | null;
+  peg: number | null;
+  shortDescription: string | null;
+}
+
 function getCachedFundamentals(ticker: string): TickerFundamentals | null {
   const entry = fundamentalsCache.get(ticker);
-  if (entry && Date.now() - entry.timestamp < CACHE_TTL_MS) {
-    return entry.data;
-  }
+  if (entry && Date.now() - entry.timestamp < CACHE_TTL_MS) return entry.data;
   fundamentalsCache.delete(ticker);
   return null;
 }
 
 function setCachedFundamentals(ticker: string, data: TickerFundamentals): void {
   fundamentalsCache.set(ticker, { data, timestamp: Date.now() });
-  // Limit cache size
   if (fundamentalsCache.size > 500) {
     const oldest = [...fundamentalsCache.entries()].sort((a, b) => a[1].timestamp - b[1].timestamp)[0];
     if (oldest) fundamentalsCache.delete(oldest[0]);
@@ -67,28 +77,245 @@ function json(data: unknown, status = 200) {
   });
 }
 
-// Fetch fundamentals from Polygon for a single ticker
-// NOTE: Prefer the newer "financials v1" + "ratios" endpoints for consistency with the rest of the app.
+// ---- Calculation Helpers ----
+
+function calculatePEG(pe: number | null, epsGrowth: number | null): number | null {
+  if (pe == null || epsGrowth == null || epsGrowth <= 0 || pe <= 0) return null;
+  return Math.round((pe / epsGrowth) * 100) / 100;
+}
+
+function calculateMaxDrawdown(prices: number[]): number | null {
+  if (prices.length < 2) return null;
+  let peak = prices[0];
+  let maxDD = 0;
+  for (let i = 1; i < prices.length; i++) {
+    if (prices[i] > peak) peak = prices[i];
+    const dd = (prices[i] - peak) / peak;
+    if (dd < maxDD) maxDD = dd;
+  }
+  return Math.round(maxDD * 10000) / 100;
+}
+
+function calculateStdDev(returns: number[]): number | null {
+  if (returns.length < 2) return null;
+  const mean = returns.reduce((s, r) => s + r, 0) / returns.length;
+  const variance = returns.reduce((s, r) => s + (r - mean) ** 2, 0) / (returns.length - 1);
+  return Math.round(Math.sqrt(variance) * 10000) / 10000;
+}
+
+function calculateBeta(stockReturns: number[], benchReturns: number[]): number | null {
+  if (stockReturns.length < 10 || stockReturns.length !== benchReturns.length) return null;
+  const n = stockReturns.length;
+  const meanS = stockReturns.reduce((a, b) => a + b, 0) / n;
+  const meanB = benchReturns.reduce((a, b) => a + b, 0) / n;
+  let cov = 0, varB = 0;
+  for (let i = 0; i < n; i++) {
+    cov += (stockReturns[i] - meanS) * (benchReturns[i] - meanB);
+    varB += (benchReturns[i] - meanB) ** 2;
+  }
+  if (varB === 0) return null;
+  return Math.round((cov / varB) * 100) / 100;
+}
+
+// ---- Compute multi-period performance, beta, volatility from historical bars ----
+// SPY bars cache (shared across tickers in a single request)
+let spyBarsCache: { bars: any[]; timestamp: number } | null = null;
+
+async function fetchSPYBars(apiKey: string): Promise<any[]> {
+  if (spyBarsCache && Date.now() - spyBarsCache.timestamp < CACHE_TTL_MS) return spyBarsCache.bars;
+  const toDate = new Date().toISOString().split("T")[0];
+  const fromDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+  try {
+    const url = `${BASE_URL}/v2/aggs/ticker/SPY/range/1/day/${fromDate}/${toDate}?adjusted=true&sort=asc&limit=300&apiKey=${apiKey}`;
+    const res = await fetchWithTimeout(url, {}, 8000);
+    if (res.ok) {
+      const data = await res.json();
+      const bars = data.results || [];
+      spyBarsCache = { bars, timestamp: Date.now() };
+      return bars;
+    }
+  } catch {}
+  return [];
+}
+
+async function computePerformanceMetrics(
+  ticker: string,
+  apiKey: string,
+  pe: number | null,
+  epsGrowth: number | null,
+  spyBars: any[]
+): Promise<PerformanceMetrics> {
+  const cached = performanceCache.get(ticker);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) return cached.data;
+
+  const result: PerformanceMetrics = {
+    changePercent1W: null, changePercent1M: null, changePercentYTD: null,
+    beta: null, volatility: null, maxDrawdown: null, stdDev: null,
+    peg: calculatePEG(pe, epsGrowth),
+    shortDescription: null,
+  };
+
+  try {
+    const toDate = new Date().toISOString().split("T")[0];
+    const fromDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+    const aggUrl = `${BASE_URL}/v2/aggs/ticker/${encodeURIComponent(ticker)}/range/1/day/${fromDate}/${toDate}?adjusted=true&sort=asc&limit=300&apiKey=${apiKey}`;
+    const aggRes = await fetchWithTimeout(aggUrl, {}, 8000);
+    if (!aggRes.ok) { performanceCache.set(ticker, { data: result, timestamp: Date.now() }); return result; }
+
+    const aggData = await aggRes.json();
+    const bars: any[] = aggData.results || [];
+    if (bars.length < 2) { performanceCache.set(ticker, { data: result, timestamp: Date.now() }); return result; }
+
+    const closes: number[] = bars.map((b: any) => b.c);
+    const dates: number[] = bars.map((b: any) => b.t); // ms timestamps
+    const latestClose = closes[closes.length - 1];
+
+    // 1W: ~5 trading days ago
+    if (closes.length > 5) {
+      const ref = closes[closes.length - 6];
+      if (ref > 0) result.changePercent1W = Math.round(((latestClose - ref) / ref) * 10000) / 100;
+    }
+    // 1M: ~21 trading days ago
+    if (closes.length > 21) {
+      const ref = closes[closes.length - 22];
+      if (ref > 0) result.changePercent1M = Math.round(((latestClose - ref) / ref) * 10000) / 100;
+    }
+    // YTD: find first bar of current year
+    const currentYear = new Date().getFullYear();
+    const ytdStartMs = new Date(`${currentYear}-01-01`).getTime();
+    const ytdBar = bars.find((b: any) => b.t >= ytdStartMs);
+    if (ytdBar && ytdBar.c > 0) {
+      result.changePercentYTD = Math.round(((latestClose - ytdBar.c) / ytdBar.c) * 10000) / 100;
+    }
+
+    // Max drawdown
+    result.maxDrawdown = calculateMaxDrawdown(closes);
+
+    // Daily returns for volatility + beta
+    const dailyReturns: number[] = [];
+    for (let i = 1; i < closes.length; i++) {
+      if (closes[i - 1] > 0) dailyReturns.push((closes[i] - closes[i - 1]) / closes[i - 1]);
+    }
+
+    // Volatility (annualized from last 30 daily returns)
+    const recentReturns = dailyReturns.slice(-30);
+    const sd = calculateStdDev(recentReturns);
+    if (sd != null) {
+      result.volatility = Math.round(sd * Math.sqrt(252) * 10000) / 100; // annualized %
+      result.stdDev = sd;
+    }
+
+    // Beta vs SPY
+    if (spyBars.length > 0 && bars.length > 20) {
+      // Align by date (ms timestamp)
+      const spyMap = new Map<string, number>();
+      for (let i = 1; i < spyBars.length; i++) {
+        if (spyBars[i - 1].c > 0) {
+          const dateKey = new Date(spyBars[i].t).toISOString().split("T")[0];
+          spyMap.set(dateKey, (spyBars[i].c - spyBars[i - 1].c) / spyBars[i - 1].c);
+        }
+      }
+      const alignedStock: number[] = [];
+      const alignedSpy: number[] = [];
+      for (let i = 1; i < bars.length; i++) {
+        if (closes[i - 1] > 0) {
+          const dateKey = new Date(bars[i].t).toISOString().split("T")[0];
+          const spyRet = spyMap.get(dateKey);
+          if (spyRet !== undefined) {
+            alignedStock.push((closes[i] - closes[i - 1]) / closes[i - 1]);
+            alignedSpy.push(spyRet);
+          }
+        }
+      }
+      result.beta = calculateBeta(alignedStock, alignedSpy);
+    }
+  } catch (err) {
+    console.warn(`[polygon-screener] Error computing performance for ${ticker}:`, err);
+  }
+
+  performanceCache.set(ticker, { data: result, timestamp: Date.now() });
+  if (performanceCache.size > 500) {
+    const oldest = [...performanceCache.entries()].sort((a, b) => a[1].timestamp - b[1].timestamp)[0];
+    if (oldest) performanceCache.delete(oldest[0]);
+  }
+  return result;
+}
+
+// Fetch performance for a batch of tickers (parallel, limited)
+async function fetchBatchPerformance(
+  tickers: { symbol: string; pe: number | null; epsGrowth: number | null }[],
+  apiKey: string,
+  maxTickers = 15
+): Promise<Map<string, PerformanceMetrics>> {
+  const results = new Map<string, PerformanceMetrics>();
+  const spyBars = await fetchSPYBars(apiKey);
+  const toFetch = tickers.slice(0, maxTickers);
+  
+  for (const batch of chunk(toFetch, 5)) {
+    await Promise.allSettled(batch.map(async (t) => {
+      const perf = await computePerformanceMetrics(t.symbol, apiKey, t.pe, t.epsGrowth, spyBars);
+      results.set(t.symbol, perf);
+    }));
+  }
+  return results;
+}
+
+// Fetch ticker descriptions from Polygon
+const descriptionCache = new Map<string, { desc: string | null; timestamp: number }>();
+
+async function fetchTickerDescription(ticker: string, apiKey: string): Promise<string | null> {
+  const cached = descriptionCache.get(ticker);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) return cached.desc;
+  try {
+    const url = `${BASE_URL}/v3/reference/tickers/${encodeURIComponent(ticker)}?apiKey=${apiKey}`;
+    const res = await fetchWithTimeout(url, {}, 5000);
+    if (res.ok) {
+      const data = await res.json();
+      const desc = data.results?.description || null;
+      // Truncate to first 2 sentences for preview
+      let short = desc;
+      if (desc && desc.length > 200) {
+        const sentences = desc.match(/[^.!?]+[.!?]+/g);
+        short = sentences ? sentences.slice(0, 2).join(' ').trim() : desc.slice(0, 200) + '…';
+      }
+      descriptionCache.set(ticker, { desc: short, timestamp: Date.now() });
+      if (descriptionCache.size > 300) {
+        const oldest = [...descriptionCache.entries()].sort((a, b) => a[1].timestamp - b[1].timestamp)[0];
+        if (oldest) descriptionCache.delete(oldest[0]);
+      }
+      return short;
+    }
+  } catch {}
+  descriptionCache.set(ticker, { desc: null, timestamp: Date.now() });
+  return null;
+}
+
+async function fetchBatchDescriptions(tickers: string[], apiKey: string, max = 15): Promise<Map<string, string | null>> {
+  const results = new Map<string, string | null>();
+  const toFetch = tickers.slice(0, max);
+  for (const batch of chunk(toFetch, 5)) {
+    await Promise.allSettled(batch.map(async (t) => {
+      const desc = await fetchTickerDescription(t, apiKey);
+      results.set(t, desc);
+    }));
+  }
+  return results;
+}
+
+// ---- Fundamentals ----
+
 async function fetchTickerFundamentals(ticker: string, apiKey: string, price: number, marketCap: number | null): Promise<TickerFundamentals> {
   const cached = getCachedFundamentals(ticker);
   if (cached) return cached;
 
   const fundamentals: TickerFundamentals = {
-    pe: null,
-    forwardPE: null,
-    pb: null,
-    evEbitda: null,
-    debtEquity: null,
-    quickRatio: null,
-    opMargin: null,
-    epsGrowth: null,
-    revenueGrowth: null,
+    pe: null, forwardPE: null, pb: null, evEbitda: null,
+    debtEquity: null, quickRatio: null, opMargin: null,
+    epsGrowth: null, revenueGrowth: null,
   };
 
   try {
-    // (A) Daily ratios endpoint (fast + precomputed)
-    // Docs refer to this as "financials ratios" (daily-refreshed snapshot)
-    // Example fields: price_to_earnings, price_to_book, debt_to_equity, quick, ev_to_ebitda
+    // (A) Daily ratios endpoint
     try {
       const ratiosUrl = `${BASE_URL}/stocks/financials/v1/ratios?ticker=${encodeURIComponent(ticker)}&limit=1&apiKey=${apiKey}`;
       const ratiosRes = await fetchWithTimeout(ratiosUrl, {}, 6000);
@@ -96,18 +323,16 @@ async function fetchTickerFundamentals(ticker: string, apiKey: string, price: nu
         const ratiosJson = await ratiosRes.json();
         const r0 = (ratiosJson?.results || [])[0] || null;
         if (r0) {
-          fundamentals.pe = typeof r0.price_to_earnings === "number" ? r0.price_to_earnings : fundamentals.pe;
-          fundamentals.pb = typeof r0.price_to_book === "number" ? r0.price_to_book : fundamentals.pb;
-          fundamentals.debtEquity = typeof r0.debt_to_equity === "number" ? r0.debt_to_equity : fundamentals.debtEquity;
-          fundamentals.quickRatio = typeof r0.quick === "number" ? r0.quick : fundamentals.quickRatio;
-          fundamentals.evEbitda = typeof r0.ev_to_ebitda === "number" ? r0.ev_to_ebitda : fundamentals.evEbitda;
+          fundamentals.pe = typeof r0.price_to_earnings === "number" ? r0.price_to_earnings : null;
+          fundamentals.pb = typeof r0.price_to_book === "number" ? r0.price_to_book : null;
+          fundamentals.debtEquity = typeof r0.debt_to_equity === "number" ? r0.debt_to_equity : null;
+          fundamentals.quickRatio = typeof r0.quick === "number" ? r0.quick : null;
+          fundamentals.evEbitda = typeof r0.ev_to_ebitda === "number" ? r0.ev_to_ebitda : null;
         }
       }
-    } catch (_err) {
-      // ignore, we'll fall back to statements
-    }
+    } catch {}
 
-    // (B) Income statements (for Operating Margin + YoY growth)
+    // (B) Income statements
     const incomeUrl = `${BASE_URL}/stocks/financials/v1/income-statements?tickers=${encodeURIComponent(ticker)}&timeframe=annual&limit=2&sort=period_end&order=desc&apiKey=${apiKey}`;
     const incomeRes = await fetchWithTimeout(incomeUrl, {}, 6000);
     if (incomeRes.ok) {
@@ -123,20 +348,15 @@ async function fetchTickerFundamentals(ticker: string, apiKey: string, price: nu
       if (revenue && revenue > 0 && opIncome !== null) {
         fundamentals.opMargin = Math.round((opIncome / revenue) * 10000) / 100;
       }
-
-      // If ratios endpoint isn't available, compute a simple P/E from EPS + price
       if (fundamentals.pe == null && price > 0 && dilutedEps && dilutedEps > 0) {
         fundamentals.pe = Math.round((price / dilutedEps) * 100) / 100;
       }
-
       if (previous) {
         const prevRevenue = typeof previous?.revenue === "number" ? previous.revenue : null;
         const prevEps = typeof previous?.diluted_earnings_per_share === "number" ? previous.diluted_earnings_per_share : null;
-
         if (prevRevenue && prevRevenue > 0 && revenue && revenue > 0) {
           fundamentals.revenueGrowth = Math.round(((revenue - prevRevenue) / prevRevenue) * 10000) / 100;
         }
-
         if (prevEps && prevEps > 0 && dilutedEps && dilutedEps > 0) {
           fundamentals.epsGrowth = Math.round(((dilutedEps - prevEps) / Math.abs(prevEps)) * 10000) / 100;
         }
@@ -152,74 +372,41 @@ async function fetchTickerFundamentals(ticker: string, apiKey: string, price: nu
   }
 }
 
-// Fetch fundamentals for multiple tickers in parallel (limited batch)
 async function fetchBatchFundamentals(
   tickers: { symbol: string; price: number; marketCap: number | null }[],
   apiKey: string,
-  maxTickers: number = 20
+  maxTickers = 20
 ): Promise<Map<string, TickerFundamentals>> {
   const results = new Map<string, TickerFundamentals>();
-  
-  // Process in batches to avoid rate limits
   const tickersToFetch = tickers.slice(0, maxTickers);
-  
-  // Process in smaller chunks to avoid overwhelming the API
-  const chunkSize = 10;
-  for (let i = 0; i < tickersToFetch.length; i += chunkSize) {
-    const chunk = tickersToFetch.slice(i, i + chunkSize);
-    const promises = chunk.map(async (t) => {
+  for (const ch of chunk(tickersToFetch, 10)) {
+    await Promise.allSettled(ch.map(async (t) => {
       const fundamentals = await fetchTickerFundamentals(t.symbol, apiKey, t.price, t.marketCap);
       results.set(t.symbol, fundamentals);
-    });
-    await Promise.allSettled(promises);
+    }));
   }
-  
   return results;
 }
 
-// SIC code to sector mapping
+// ---- Sector mapping ----
+
 const SIC_TO_SECTOR: Record<string, string> = {
-  "1": "Agriculture",
-  "10": "Mining",
-  "15": "Construction",
-  "20": "Manufacturing",
-  "35": "Technology",
-  "36": "Technology",
-  "37": "Industrials",
-  "38": "Technology",
-  "39": "Consumer Discretionary",
-  "40": "Transportation",
-  "45": "Transportation",
-  "48": "Communication Services",
-  "49": "Utilities",
-  "50": "Consumer Discretionary",
-  "51": "Consumer Discretionary",
-  "52": "Consumer Discretionary",
-  "53": "Consumer Discretionary",
-  "54": "Consumer Staples",
-  "55": "Consumer Discretionary",
-  "56": "Consumer Discretionary",
-  "57": "Consumer Discretionary",
-  "58": "Consumer Discretionary",
-  "59": "Consumer Discretionary",
-  "60": "Financials",
-  "61": "Financials",
-  "62": "Financials",
-  "63": "Financials",
-  "64": "Financials",
-  "65": "Real Estate",
-  "67": "Financials",
-  "70": "Consumer Discretionary",
-  "72": "Consumer Discretionary",
-  "73": "Technology",
-  "78": "Communication Services",
-  "79": "Communication Services",
-  "80": "Healthcare",
-  "81": "Technology",
-  "82": "Consumer Discretionary",
-  "83": "Consumer Discretionary",
-  "87": "Technology",
-  "99": "Other",
+  "1": "Agriculture", "10": "Mining", "15": "Construction",
+  "20": "Manufacturing", "35": "Technology", "36": "Technology",
+  "37": "Industrials", "38": "Technology", "39": "Consumer Discretionary",
+  "40": "Transportation", "45": "Transportation", "48": "Communication Services",
+  "49": "Utilities", "50": "Consumer Discretionary", "51": "Consumer Discretionary",
+  "52": "Consumer Discretionary", "53": "Consumer Discretionary",
+  "54": "Consumer Staples", "55": "Consumer Discretionary",
+  "56": "Consumer Discretionary", "57": "Consumer Discretionary",
+  "58": "Consumer Discretionary", "59": "Consumer Discretionary",
+  "60": "Financials", "61": "Financials", "62": "Financials",
+  "63": "Financials", "64": "Financials", "65": "Real Estate",
+  "67": "Financials", "70": "Consumer Discretionary",
+  "72": "Consumer Discretionary", "73": "Technology",
+  "78": "Communication Services", "79": "Communication Services",
+  "80": "Healthcare", "81": "Technology", "82": "Consumer Discretionary",
+  "83": "Consumer Discretionary", "87": "Technology", "99": "Other",
 };
 
 function getSectorFromSIC(sicCode: string | null): string {
@@ -227,6 +414,8 @@ function getSectorFromSIC(sicCode: string | null): string {
   const prefix = sicCode.substring(0, 2);
   return SIC_TO_SECTOR[prefix] || "Other";
 }
+
+// ---- Filter types ----
 
 interface CustomFilter {
   operator: string;
@@ -249,120 +438,23 @@ interface ScreenerFilters {
   sortDirection?: 'asc' | 'desc';
   limit?: number;
   offset?: number;
-  
-  // Fundamental filters
-  minPE?: number;
-  maxPE?: number;
-  minForwardPE?: number;
-  maxForwardPE?: number;
-  minPEG?: number;
-  maxPEG?: number;
-  minPB?: number;
-  maxPB?: number;
-  minEvEbitda?: number;
-  maxEvEbitda?: number;
-  minOpMargin?: number;
-  maxOpMargin?: number;
-  minDebtEquity?: number;
-  maxDebtEquity?: number;
-  minQuickRatio?: number;
-  maxQuickRatio?: number;
-  minVolatility?: number;
-  maxVolatility?: number;
-  minBeta?: number;
-  maxBeta?: number;
-  minEpsGrowth?: number;
-  maxEpsGrowth?: number;
-  minRevenueGrowth?: number;
-  maxRevenueGrowth?: number;
-
-  // Custom advanced filters with operator support
+  minPE?: number; maxPE?: number;
+  minForwardPE?: number; maxForwardPE?: number;
+  minPEG?: number; maxPEG?: number;
+  minPB?: number; maxPB?: number;
+  minEvEbitda?: number; maxEvEbitda?: number;
+  minOpMargin?: number; maxOpMargin?: number;
+  minDebtEquity?: number; maxDebtEquity?: number;
+  minQuickRatio?: number; maxQuickRatio?: number;
+  minVolatility?: number; maxVolatility?: number;
+  minBeta?: number; maxBeta?: number;
+  minEpsGrowth?: number; maxEpsGrowth?: number;
+  minRevenueGrowth?: number; maxRevenueGrowth?: number;
   customFilters?: {
     peg?: CustomFilter;
     drawdown?: CustomFilter;
     stdDev?: CustomFilter;
   };
-}
-
-// ---- Advanced Metrics Computation ----
-
-function calculatePEG(pe: number | null, epsGrowth: number | null): number | null {
-  if (pe == null || epsGrowth == null || epsGrowth <= 0 || pe <= 0) return null;
-  return Math.round((pe / epsGrowth) * 100) / 100;
-}
-
-function calculateMaxDrawdown(prices: number[]): number | null {
-  if (prices.length < 2) return null;
-  let peak = prices[0];
-  let maxDD = 0;
-  for (let i = 1; i < prices.length; i++) {
-    if (prices[i] > peak) peak = prices[i];
-    const dd = (prices[i] - peak) / peak;
-    if (dd < maxDD) maxDD = dd;
-  }
-  return Math.round(maxDD * 10000) / 100; // return as percentage e.g. -15.23
-}
-
-function calculateStdDev(returns: number[]): number | null {
-  if (returns.length < 2) return null;
-  const mean = returns.reduce((s, r) => s + r, 0) / returns.length;
-  const variance = returns.reduce((s, r) => s + (r - mean) ** 2, 0) / (returns.length - 1);
-  return Math.round(Math.sqrt(variance) * 10000) / 10000;
-}
-
-// Cache for advanced metrics
-const advancedMetricsCache = new Map<string, { data: { peg: number | null; maxDrawdown: number | null; stdDev: number | null }; timestamp: number }>();
-
-async function computeAdvancedMetrics(
-  ticker: string,
-  apiKey: string,
-  pe: number | null,
-  epsGrowth: number | null
-): Promise<{ peg: number | null; maxDrawdown: number | null; stdDev: number | null }> {
-  const cached = advancedMetricsCache.get(ticker);
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) return cached.data;
-
-  const peg = calculatePEG(pe, epsGrowth);
-  let maxDrawdown: number | null = null;
-  let stdDev: number | null = null;
-
-  try {
-    // Fetch 252 daily bars for drawdown + last 25 for stddev
-    const toDate = new Date().toISOString().split("T")[0];
-    const fromDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-    const aggUrl = `https://api.polygon.io/v2/aggs/ticker/${encodeURIComponent(ticker)}/range/1/day/${fromDate}/${toDate}?adjusted=true&sort=asc&limit=300&apiKey=${apiKey}`;
-    const aggRes = await fetchWithTimeout(aggUrl, {}, 8000);
-    if (aggRes.ok) {
-      const aggData = await aggRes.json();
-      const bars = aggData.results || [];
-      if (bars.length > 2) {
-        const closes: number[] = bars.map((b: any) => b.c);
-        maxDrawdown = calculateMaxDrawdown(closes);
-
-        // Std dev of last 20 daily returns
-        const recentCloses = closes.slice(-21);
-        if (recentCloses.length >= 2) {
-          const dailyReturns: number[] = [];
-          for (let i = 1; i < recentCloses.length; i++) {
-            if (recentCloses[i - 1] > 0) {
-              dailyReturns.push((recentCloses[i] - recentCloses[i - 1]) / recentCloses[i - 1]);
-            }
-          }
-          stdDev = calculateStdDev(dailyReturns);
-        }
-      }
-    }
-  } catch (err) {
-    console.warn(`[polygon-screener] Error computing advanced metrics for ${ticker}:`, err);
-  }
-
-  const result = { peg, maxDrawdown, stdDev };
-  advancedMetricsCache.set(ticker, { data: result, timestamp: Date.now() });
-  if (advancedMetricsCache.size > 500) {
-    const oldest = [...advancedMetricsCache.entries()].sort((a, b) => a[1].timestamp - b[1].timestamp)[0];
-    if (oldest) advancedMetricsCache.delete(oldest[0]);
-  }
-  return result;
 }
 
 function applyCustomFilter(actual: number | null, filter: CustomFilter): boolean {
@@ -384,114 +476,36 @@ function hasCustomFilters(filters: ScreenerFilters): boolean {
   return !!(cf && (cf.peg || cf.drawdown || cf.stdDev));
 }
 
-interface TickerSnapshot {
-  ticker: string;
-  todaysChange: number;
-  todaysChangePerc: number;
-  updated: number;
-  day: {
-    o: number;
-    h: number;
-    l: number;
-    c: number;
-    v: number;
-    vw: number;
-  };
-  prevDay: {
-    o: number;
-    h: number;
-    l: number;
-    c: number;
-    v: number;
-    vw: number;
-  };
-  min?: {
-    o: number;
-    h: number;
-    l: number;
-    c: number;
-    v: number;
-    vw: number;
-  };
-}
-
-interface TickerDetails {
-  ticker: string;
-  name: string;
-  market_cap?: number;
-  sic_code?: string;
-  sic_description?: string;
-  primary_exchange?: string;
-  type?: string;
-  description?: string;
-}
-
-type RefTicker = {
-  ticker: string;
-  name?: string;
-  market_cap?: number;
-  sic_code?: string;
-  sic_description?: string;
-  primary_exchange?: string;
-  type?: string;
-};
-
-// Helper to apply fundamental filters to results
 function applyFundamentalFilters(results: any[], filters: ScreenerFilters): any[] {
   return results.filter(r => {
-    // P/E filter
     if (filters.minPE !== undefined && (r.pe === null || r.pe < filters.minPE)) return false;
     if (filters.maxPE !== undefined && r.pe !== null && r.pe > filters.maxPE) return false;
-    
-    // Forward P/E filter
     if (filters.minForwardPE !== undefined && (r.forwardPE === null || r.forwardPE < filters.minForwardPE)) return false;
     if (filters.maxForwardPE !== undefined && r.forwardPE !== null && r.forwardPE > filters.maxForwardPE) return false;
-    
-    // PEG filter
     if (filters.minPEG !== undefined && (r.peg === null || r.peg < filters.minPEG)) return false;
     if (filters.maxPEG !== undefined && r.peg !== null && r.peg > filters.maxPEG) return false;
-    
-    // P/B filter
     if (filters.minPB !== undefined && (r.pb === null || r.pb < filters.minPB)) return false;
     if (filters.maxPB !== undefined && r.pb !== null && r.pb > filters.maxPB) return false;
-    
-    // EV/EBITDA filter
     if (filters.minEvEbitda !== undefined && (r.evEbitda === null || r.evEbitda < filters.minEvEbitda)) return false;
     if (filters.maxEvEbitda !== undefined && r.evEbitda !== null && r.evEbitda > filters.maxEvEbitda) return false;
-    
-    // Operating Margin filter
     if (filters.minOpMargin !== undefined && (r.opMargin === null || r.opMargin < filters.minOpMargin)) return false;
     if (filters.maxOpMargin !== undefined && r.opMargin !== null && r.opMargin > filters.maxOpMargin) return false;
-    
-    // Debt/Equity filter
     if (filters.minDebtEquity !== undefined && (r.debtEquity === null || r.debtEquity < filters.minDebtEquity)) return false;
     if (filters.maxDebtEquity !== undefined && r.debtEquity !== null && r.debtEquity > filters.maxDebtEquity) return false;
-    
-    // Quick Ratio filter
     if (filters.minQuickRatio !== undefined && (r.quickRatio === null || r.quickRatio < filters.minQuickRatio)) return false;
     if (filters.maxQuickRatio !== undefined && r.quickRatio !== null && r.quickRatio > filters.maxQuickRatio) return false;
-    
-    // Volatility filter
     if (filters.minVolatility !== undefined && (r.volatility === null || r.volatility < filters.minVolatility)) return false;
     if (filters.maxVolatility !== undefined && r.volatility !== null && r.volatility > filters.maxVolatility) return false;
-    
-    // Beta filter
     if (filters.minBeta !== undefined && (r.beta === null || r.beta < filters.minBeta)) return false;
     if (filters.maxBeta !== undefined && r.beta !== null && r.beta > filters.maxBeta) return false;
-    
-    // EPS Growth filter
     if (filters.minEpsGrowth !== undefined && (r.epsGrowth === null || r.epsGrowth < filters.minEpsGrowth)) return false;
     if (filters.maxEpsGrowth !== undefined && r.epsGrowth !== null && r.epsGrowth > filters.maxEpsGrowth) return false;
-    
-    // Revenue Growth filter
     if (filters.minRevenueGrowth !== undefined && (r.revenueGrowth === null || r.revenueGrowth < filters.minRevenueGrowth)) return false;
     if (filters.maxRevenueGrowth !== undefined && r.revenueGrowth !== null && r.revenueGrowth > filters.maxRevenueGrowth) return false;
-    
     return true;
   });
 }
 
-// Check if any metric-level filters are active
 function hasMetricFilters(filters: ScreenerFilters): boolean {
   return filters.minPE !== undefined || filters.maxPE !== undefined ||
     filters.minForwardPE !== undefined || filters.maxForwardPE !== undefined ||
@@ -506,6 +520,62 @@ function hasMetricFilters(filters: ScreenerFilters): boolean {
     filters.minEpsGrowth !== undefined || filters.maxEpsGrowth !== undefined ||
     filters.minRevenueGrowth !== undefined || filters.maxRevenueGrowth !== undefined;
 }
+
+// ---- Enrichment: merge fundamentals + performance into a result ----
+
+function enrichResult(base: any, f: TickerFundamentals | undefined, perf: PerformanceMetrics | undefined, desc: string | null | undefined): any {
+  return {
+    ...base,
+    pe: f?.pe ?? null,
+    forwardPE: f?.forwardPE ?? null,
+    peg: perf?.peg ?? calculatePEG(f?.pe ?? null, f?.epsGrowth ?? null),
+    pb: f?.pb ?? null,
+    pCash: null,
+    evEbitda: f?.evEbitda ?? null,
+    opMargin: f?.opMargin ?? null,
+    epsGrowth: f?.epsGrowth ?? null,
+    revenueGrowth: f?.revenueGrowth ?? null,
+    debtEquity: f?.debtEquity ?? null,
+    quickRatio: f?.quickRatio ?? null,
+    // Performance
+    changePercent1W: perf?.changePercent1W ?? base.changePercent1W ?? null,
+    changePercent1M: perf?.changePercent1M ?? base.changePercent1M ?? null,
+    changePercentYTD: perf?.changePercentYTD ?? base.changePercentYTD ?? null,
+    beta: perf?.beta ?? base.beta ?? null,
+    volatility: perf?.volatility ?? base.volatility ?? null,
+    // Risk
+    sharpe: null,
+    maxDrawdown: perf?.maxDrawdown ?? null,
+    stdDev: perf?.stdDev ?? null,
+    // Description
+    shortDescription: desc ?? base.shortDescription ?? null,
+  };
+}
+
+// ---- Snapshot types ----
+
+interface TickerSnapshot {
+  ticker: string;
+  todaysChange: number;
+  todaysChangePerc: number;
+  updated: number;
+  day: { o: number; h: number; l: number; c: number; v: number; vw: number };
+  prevDay: { o: number; h: number; l: number; c: number; v: number; vw: number };
+  min?: { o: number; h: number; l: number; c: number; v: number; vw: number };
+}
+
+interface TickerDetails {
+  ticker: string;
+  name: string;
+  market_cap?: number;
+  sic_code?: string;
+  sic_description?: string;
+  primary_exchange?: string;
+  type?: string;
+  description?: string;
+}
+
+// ---- Main handler ----
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -526,23 +596,11 @@ serve(async (req) => {
     const limit = Math.min(filters.limit || 100, 500);
     const offset = filters.offset || 0;
 
-    console.log(`[polygon-screener] Running screen with filters:`, filters);
+    console.log(`[polygon-screener] Running screen with filters:`, JSON.stringify(filters).slice(0, 500));
 
-    // Check if we have fundamental filters that require ticker details
-    const hasFundFilters =
-      filters.minMarketCap !== undefined ||
-      filters.maxMarketCap !== undefined ||
-      (filters.sectors && filters.sectors.length > 0) ||
-      hasMetricFilters(filters) ||
-      hasCustomFilters(filters);
-
-    const metricFiltersActive = hasMetricFilters(filters) || hasCustomFilters(filters);
-
-    // Always try database-first approach (Snapshot API requires higher Polygon plan)
     const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Check if we have data in asset_universe
     const { count } = await supabase
       .from("asset_universe")
       .select("*", { count: "exact", head: true })
@@ -553,7 +611,6 @@ serve(async (req) => {
       return await screenFromDatabase(supabase, filters, limit, offset, POLYGON_API_KEY);
     }
 
-    // Fallback to API approach only if database has no data
     return await screenFromPolygonAPI(filters, limit, offset, POLYGON_API_KEY);
 
   } catch (error) {
@@ -561,6 +618,8 @@ serve(async (req) => {
     return json({ ok: false, error: error instanceof Error ? error.message : "Unknown error" }, 500);
   }
 });
+
+// ---- Database-first screening ----
 
 async function screenFromDatabase(
   supabase: any,
@@ -579,19 +638,14 @@ async function screenFromDatabase(
     filters.maxChange1D !== undefined ||
     sortBy === "change";
   const scanFromStart = metricFiltersActive || needsLiveChangeData;
-  // When metric filters are active, scan a larger slice of the universe, then filter AFTER we enrich
-  // with fundamentals. Keep bounded to avoid timeouts.
-  // When scanning, pull the full universe — paginate through Supabase's 1000-row default limit
   const SCAN_LIMIT = scanFromStart ? 5000 : limit;
 
-  // Helper to build a base query with all filters applied
   function buildFilteredQuery(selectFields: string, opts?: { count?: "exact" }) {
     let q = supabase
       .from("asset_universe")
       .select(selectFields, opts ? { count: opts.count } : undefined)
       .or("is_active.is.null,is_active.eq.true");
 
-    // Apply market cap filter using tier
     if (filters.minMarketCap !== undefined) {
       const minCap = filters.minMarketCap;
       if (minCap >= 200_000_000_000) q = q.eq("market_cap_tier", "Mega");
@@ -615,7 +669,6 @@ async function screenFromDatabase(
     return q;
   }
 
-  // Determine sort column
   let sortColumn = "avg_daily_volume";
   switch (sortBy) {
     case "change": sortColumn = needsLiveChangeData ? "avg_daily_volume" : "change_percent_1d"; break;
@@ -623,10 +676,8 @@ async function screenFromDatabase(
     case "marketCap": sortColumn = "avg_daily_dollar_volume"; break;
   }
 
-  // Get total count first
   const { count: baseCount } = await buildFilteredQuery("ticker", { count: "exact" });
 
-  // Paginate through Supabase's 1000-row limit to fetch full universe when scanning
   const PAGE_SIZE = 1000;
   const totalToFetch = scanFromStart ? Math.min(SCAN_LIMIT, baseCount ?? SCAN_LIMIT) : limit;
   const fetchStart = scanFromStart ? 0 : offset;
@@ -635,7 +686,7 @@ async function screenFromDatabase(
   for (let cursor = fetchStart; cursor < fetchStart + totalToFetch; cursor += PAGE_SIZE) {
     const end = Math.min(cursor + PAGE_SIZE - 1, fetchStart + totalToFetch - 1);
     const q = buildFilteredQuery(
-      "ticker, name, sector, market_cap_tier, last_close, change_percent_1d, change_percent_1w, change_percent_1m, change_percent_ytd, avg_daily_volume, avg_daily_dollar_volume, volatility_30d, beta_spy, primary_exchange, asset_type, metadata, short_description, industry"
+      "ticker, name, sector, market_cap_tier, last_close, change_percent_1d, avg_daily_volume, avg_daily_dollar_volume, primary_exchange, asset_type, metadata, industry"
     )
       .order(sortColumn, { ascending: sortDir === "asc", nullsFirst: false })
       .range(cursor, end);
@@ -646,34 +697,24 @@ async function screenFromDatabase(
       return json({ ok: false, error: pageError.message }, 500);
     }
     if (pageRows) allRows.push(...pageRows);
-    if (!pageRows || pageRows.length < PAGE_SIZE) break; // no more rows
+    if (!pageRows || pageRows.length < PAGE_SIZE) break;
   }
 
-  const dataToProcess = allRows;
-  console.log(
-    `[polygon-screener] Base matches: ${baseCount ?? dataToProcess.length}. Processing ${dataToProcess.length} (metric filters: ${metricFiltersActive})`
-  );
+  console.log(`[polygon-screener] Base matches: ${baseCount ?? allRows.length}. Processing ${allRows.length}`);
 
-  // Fetch fresh price data from Polygon for the rows we're processing
-  const tickersToFetch = dataToProcess.map((r: any) => r.ticker);
-
-  // Fetch live snapshots for these tickers
+  // Fetch live snapshots
   const snapshotMap = new Map<string, any>();
+  const tickersToFetch = allRows.map((r: any) => r.ticker);
 
   if (tickersToFetch.length > 0) {
-    // Fetch in batches of 50
     for (let i = 0; i < tickersToFetch.length; i += 50) {
       const batch = tickersToFetch.slice(i, i + 50);
-      const tickerList = batch.join(",");
-
       try {
-        const snapshotUrl = `${BASE_URL}/v2/snapshot/locale/us/markets/stocks/tickers?tickers=${tickerList}&apiKey=${apiKey}`;
+        const snapshotUrl = `${BASE_URL}/v2/snapshot/locale/us/markets/stocks/tickers?tickers=${batch.join(",")}&apiKey=${apiKey}`;
         const res = await fetchWithTimeout(snapshotUrl);
         if (res.ok) {
           const data = await res.json();
-          for (const t of data.tickers || []) {
-            snapshotMap.set(t.ticker, t);
-          }
+          for (const t of data.tickers || []) snapshotMap.set(t.ticker, t);
         }
       } catch (err) {
         console.warn("[polygon-screener] Snapshot batch error:", err);
@@ -684,14 +725,11 @@ async function screenFromDatabase(
   const buildBaseResult = (row: any) => {
     const snapshot = snapshotMap.get(row.ticker);
     const marketCap = row.metadata?.market_cap || null;
-    const volatility = row.volatility_30d != null ? Number(row.volatility_30d) : null;
-    const beta = row.beta_spy != null ? Number(row.beta_spy) : null;
 
     if (snapshot) {
       const prevClose = snapshot.prevDay?.c || 0;
       const hasLiveDay = snapshot.day?.c && snapshot.day.c > 0;
       const currentPrice = hasLiveDay ? snapshot.day.c : (snapshot.prevDay?.c || row.last_close || 0);
-      // Use todaysChange/todaysChangePerc from Polygon – these always reflect the last session's change
       const change = snapshot.todaysChange != null ? snapshot.todaysChange : (prevClose > 0 ? currentPrice - prevClose : 0);
       const changePercent = snapshot.todaysChangePerc != null ? snapshot.todaysChangePerc : (prevClose > 0 ? ((currentPrice - prevClose) / prevClose) * 100 : 0);
 
@@ -699,27 +737,27 @@ async function screenFromDatabase(
         symbol: row.ticker,
         name: row.name,
         sector: row.sector,
-      sicDescription: row.industry || null,
-      price: currentPrice,
-      change,
-      changePercent,
-      changePercent1W: row.change_percent_1w || null,
-      changePercent1M: row.change_percent_1m || null,
-      changePercentYTD: row.change_percent_ytd || null,
-      volume: (hasLiveDay ? snapshot.day.v : snapshot.prevDay?.v) || row.avg_daily_volume || 0,
-      prevVolume: snapshot.prevDay?.v || 0,
-      relativeVolume: snapshot.prevDay?.v > 0 && hasLiveDay ? snapshot.day.v / snapshot.prevDay.v : null,
-      marketCap,
-      high: snapshot.day?.h || 0,
-      low: snapshot.day?.l || 0,
-      open: snapshot.day?.o || 0,
-      vwap: snapshot.day?.vw || null,
-      exchange: row.primary_exchange || null,
-      type: row.asset_type || null,
-      volatility,
-      beta,
-      shortDescription: row.short_description || null,
-    };
+        sicDescription: row.industry || null,
+        price: currentPrice,
+        change,
+        changePercent,
+        changePercent1W: null,
+        changePercent1M: null,
+        changePercentYTD: null,
+        volume: (hasLiveDay ? snapshot.day.v : snapshot.prevDay?.v) || row.avg_daily_volume || 0,
+        prevVolume: snapshot.prevDay?.v || 0,
+        relativeVolume: snapshot.prevDay?.v > 0 && hasLiveDay ? snapshot.day.v / snapshot.prevDay.v : null,
+        marketCap,
+        high: snapshot.day?.h || 0,
+        low: snapshot.day?.l || 0,
+        open: snapshot.day?.o || 0,
+        vwap: snapshot.day?.vw || null,
+        exchange: row.primary_exchange || null,
+        type: row.asset_type || null,
+        volatility: null,
+        beta: null,
+        shortDescription: null,
+      };
     }
 
     return {
@@ -730,9 +768,9 @@ async function screenFromDatabase(
       price: row.last_close || 0,
       change: 0,
       changePercent: row.change_percent_1d || 0,
-      changePercent1W: row.change_percent_1w || null,
-      changePercent1M: row.change_percent_1m || null,
-      changePercentYTD: row.change_percent_ytd || null,
+      changePercent1W: null,
+      changePercent1M: null,
+      changePercentYTD: null,
       volume: row.avg_daily_volume || 0,
       prevVolume: 0,
       relativeVolume: null,
@@ -743,15 +781,13 @@ async function screenFromDatabase(
       vwap: null,
       exchange: row.primary_exchange || null,
       type: row.asset_type || null,
-      volatility,
-      beta,
-      shortDescription: row.short_description || null,
+      volatility: null,
+      beta: null,
+      shortDescription: null,
     };
   };
 
-  // Enrich + filter
-  const enrichedMatches: any[] = [];
-  const baseResults = dataToProcess.map(buildBaseResult);
+  const baseResults = allRows.map(buildBaseResult);
 
   const liveFilteredBaseResults = needsLiveChangeData
     ? baseResults.filter((result) => {
@@ -764,29 +800,13 @@ async function screenFromDatabase(
 
   const sortedBaseResults = needsLiveChangeData
     ? [...liveFilteredBaseResults].sort((a, b) => {
-        let aVal: number;
-        let bVal: number;
-
+        let aVal: number, bVal: number;
         switch (sortBy) {
-          case "change":
-            aVal = a.changePercent ?? 0;
-            bVal = b.changePercent ?? 0;
-            break;
-          case "price":
-            aVal = a.price ?? 0;
-            bVal = b.price ?? 0;
-            break;
-          case "marketCap":
-            aVal = a.marketCap ?? 0;
-            bVal = b.marketCap ?? 0;
-            break;
-          case "volume":
-          default:
-            aVal = a.volume ?? 0;
-            bVal = b.volume ?? 0;
-            break;
+          case "change": aVal = a.changePercent ?? 0; bVal = b.changePercent ?? 0; break;
+          case "price": aVal = a.price ?? 0; bVal = b.price ?? 0; break;
+          case "marketCap": aVal = a.marketCap ?? 0; bVal = b.marketCap ?? 0; break;
+          default: aVal = a.volume ?? 0; bVal = b.volume ?? 0;
         }
-
         return sortDir === "desc" ? bVal - aVal : aVal - bVal;
       })
     : liveFilteredBaseResults;
@@ -799,54 +819,45 @@ async function screenFromDatabase(
     : (baseCount ?? sortedBaseResults.length);
 
   if (!metricFiltersActive) {
-    // No metric filters: enrich only what's needed for the page
+    // Fetch fundamentals
     const fundamentalsMap = await fetchBatchFundamentals(
       paginatedBaseResults.map((r: any) => ({ symbol: r.symbol, price: r.price, marketCap: r.marketCap })),
       apiKey,
       Math.min(paginatedBaseResults.length, 20)
     );
 
-    const results = await Promise.all(paginatedBaseResults.map(async (r: any) => {
-      const f = fundamentalsMap.get(r.symbol);
-      const pe = f?.pe ?? null;
-      const epsGrowth = f?.epsGrowth ?? null;
-      const peg = calculatePEG(pe, epsGrowth);
-      return {
-        ...r,
-        pe,
-        forwardPE: f?.forwardPE ?? null,
-        peg,
-        pb: f?.pb ?? null,
-        pCash: null,
-        evEbitda: f?.evEbitda ?? null,
-        opMargin: f?.opMargin ?? null,
-        epsGrowth,
-        revenueGrowth: f?.revenueGrowth ?? null,
-        debtEquity: f?.debtEquity ?? null,
-        quickRatio: f?.quickRatio ?? null,
-        sharpe: null,
-        maxDrawdown: null,
-        stdDev: null,
-      };
-    }));
+    // Fetch performance metrics (1W, 1M, YTD, beta, volatility) for displayed page
+    const perfMap = await fetchBatchPerformance(
+      paginatedBaseResults.map((r: any) => ({
+        symbol: r.symbol,
+        pe: fundamentalsMap.get(r.symbol)?.pe ?? null,
+        epsGrowth: fundamentalsMap.get(r.symbol)?.epsGrowth ?? null,
+      })),
+      apiKey,
+      Math.min(paginatedBaseResults.length, 15)
+    );
+
+    // Fetch descriptions for tickers missing shortDescription
+    const needDesc = paginatedBaseResults.filter((r: any) => !r.shortDescription).map((r: any) => r.symbol);
+    const descMap = needDesc.length > 0 ? await fetchBatchDescriptions(needDesc, apiKey, 10) : new Map();
+
+    const results = paginatedBaseResults.map((r: any) => {
+      return enrichResult(r, fundamentalsMap.get(r.symbol), perfMap.get(r.symbol), descMap.get(r.symbol));
+    });
 
     return json({
       ok: true,
       count: totalBaseResults,
       results,
-      pagination: {
-        offset,
-        limit,
-        hasMore: totalBaseResults > offset + limit,
-        total: totalBaseResults,
-      },
+      pagination: { offset, limit, hasMore: totalBaseResults > offset + limit, total: totalBaseResults },
       source: "database",
     });
   }
 
-  // Metric filters active: scan through a bounded set and fetch fundamentals in chunks,
-  // accumulating matches so filters don't return empty just because the first chunk lacked fundamentals.
+  // Metric filters active: scan in chunks
+  const enrichedMatches: any[] = [];
   const CHUNK_SIZE = 25;
+
   for (let i = 0; i < sortedBaseResults.length; i += CHUNK_SIZE) {
     const chunkResults = sortedBaseResults.slice(i, i + CHUNK_SIZE);
 
@@ -856,43 +867,19 @@ async function screenFromDatabase(
       chunkResults.length
     );
 
-    // Compute advanced metrics for each ticker in the chunk
-    const advancedMetricsResults = new Map<string, { peg: number | null; maxDrawdown: number | null; stdDev: number | null }>();
-    const advChunks = chunk(chunkResults, 5);
-    for (const advChunk of advChunks) {
-      await Promise.allSettled(advChunk.map(async (r: any) => {
-        const f = fundamentalsMap.get(r.symbol);
-        const adv = await computeAdvancedMetrics(r.symbol, apiKey, f?.pe ?? null, f?.epsGrowth ?? null);
-        advancedMetricsResults.set(r.symbol, adv);
-      }));
-    }
+    const perfMap = await fetchBatchPerformance(
+      chunkResults.map((r: any) => ({
+        symbol: r.symbol,
+        pe: fundamentalsMap.get(r.symbol)?.pe ?? null,
+        epsGrowth: fundamentalsMap.get(r.symbol)?.epsGrowth ?? null,
+      })),
+      apiKey,
+      chunkResults.length
+    );
 
-    const enrichedChunk = chunkResults.map((r: any) => {
-      const f = fundamentalsMap.get(r.symbol);
-      const adv = advancedMetricsResults.get(r.symbol);
-      return {
-        ...r,
-        pe: f?.pe ?? null,
-        forwardPE: f?.forwardPE ?? null,
-        peg: adv?.peg ?? null,
-        pb: f?.pb ?? null,
-        pCash: null,
-        evEbitda: f?.evEbitda ?? null,
-        opMargin: f?.opMargin ?? null,
-        epsGrowth: f?.epsGrowth ?? null,
-        revenueGrowth: f?.revenueGrowth ?? null,
-        debtEquity: f?.debtEquity ?? null,
-        quickRatio: f?.quickRatio ?? null,
-        sharpe: null,
-        maxDrawdown: adv?.maxDrawdown ?? null,
-        stdDev: adv?.stdDev ?? null,
-      };
-    });
+    const enrichedChunk = chunkResults.map((r: any) => enrichResult(r, fundamentalsMap.get(r.symbol), perfMap.get(r.symbol), null));
 
-    // Apply fundamental filters
     let matching = applyFundamentalFilters(enrichedChunk, filters);
-    
-    // Apply custom filters
     if (hasCustomFilters(filters)) {
       const cf = filters.customFilters!;
       matching = matching.filter((r: any) => {
@@ -902,30 +889,33 @@ async function screenFromDatabase(
         return true;
       });
     }
-    
-    enrichedMatches.push(...matching);
 
-    // Stop early once we have enough to satisfy the requested page
+    enrichedMatches.push(...matching);
     if (enrichedMatches.length >= offset + limit) break;
   }
 
-  const results = enrichedMatches.slice(offset, offset + limit);
+  // Fetch descriptions for final page
+  const pageResults = enrichedMatches.slice(offset, offset + limit);
+  const needDesc = pageResults.filter((r: any) => !r.shortDescription).map((r: any) => r.symbol);
+  const descMap = needDesc.length > 0 ? await fetchBatchDescriptions(needDesc, apiKey, 10) : new Map();
+  const results = pageResults.map((r: any) => ({
+    ...r,
+    shortDescription: descMap.get(r.symbol) ?? r.shortDescription ?? null,
+  }));
+
   const totalCount = enrichedMatches.length;
-  const mayHaveMore = (baseCount ?? 0) > SCAN_LIMIT;
+  const mayHaveMore = (baseCount ?? 0) > 5000;
 
   return json({
     ok: true,
     count: totalCount,
     results,
-    pagination: {
-      offset,
-      limit,
-      hasMore: offset + limit < totalCount || mayHaveMore,
-      total: totalCount,
-    },
+    pagination: { offset, limit, hasMore: offset + limit < totalCount || mayHaveMore, total: totalCount },
     source: "database",
   });
 }
+
+// ---- Polygon API fallback ----
 
 async function screenFromPolygonAPI(
   filters: ScreenerFilters,
@@ -935,28 +925,20 @@ async function screenFromPolygonAPI(
 ) {
   console.log("[polygon-screener] Screening from Polygon API...");
 
-  // Step 1: Fetch all ticker snapshots
   const snapshotUrl = `${BASE_URL}/v2/snapshot/locale/us/markets/stocks/tickers?apiKey=${apiKey}`;
   const snapshotRes = await fetchWithTimeout(snapshotUrl);
 
   if (!snapshotRes.ok) {
     const errorText = await snapshotRes.text();
     console.error(`[polygon-screener] Snapshot API error:`, errorText);
-
     if (snapshotRes.status === 403 || snapshotRes.status === 401) {
-      return json({
-        ok: false,
-        error: "Polygon Snapshot API requires Stocks Starter plan or higher.",
-        fallback: true,
-      }, 403);
+      return json({ ok: false, error: "Polygon Snapshot API requires Stocks Starter plan or higher.", fallback: true }, 403);
     }
-
     return json({ ok: false, error: `Polygon API error: ${snapshotRes.status}` }, snapshotRes.status);
   }
 
   const snapshotData = await snapshotRes.json();
   const tickers: TickerSnapshot[] = snapshotData.tickers || [];
-
   console.log(`[polygon-screener] Got ${tickers.length} tickers from snapshot`);
 
   const hasFundamentalFilters =
@@ -964,195 +946,133 @@ async function screenFromPolygonAPI(
     filters.maxMarketCap !== undefined ||
     (filters.sectors && filters.sectors.length > 0);
 
-  // Detect if market is closed: if most tickers have no day data, use prevDay
   const tickersWithDayData = tickers.filter(t => t.day && t.day.c && t.day.c > 0).length;
-  const marketClosed = tickersWithDayData < tickers.length * 0.1; // <10% have day data = closed
-  if (marketClosed) {
-    console.log(`[polygon-screener] Market appears closed (${tickersWithDayData}/${tickers.length} have day data), using prevDay`);
-  }
+  const marketClosed = tickersWithDayData < tickers.length * 0.1;
 
-  // Step 2: Apply basic filters on snapshot data
   let filteredTickers = tickers.filter((t) => {
-    // When market is closed, use prevDay as the "current" data
     const price = marketClosed ? (t.prevDay?.c || 0) : (t.day?.c || 0);
     const volume = marketClosed ? (t.prevDay?.v || 0) : (t.day?.v || 0);
-    
-    if (price <= 0) return false;
-    if (!t.prevDay || !t.prevDay.c || t.prevDay.c <= 0) return false;
-
+    if (price <= 0 || !t.prevDay || !t.prevDay.c || t.prevDay.c <= 0) return false;
     if (filters.minPrice !== undefined && price < filters.minPrice) return false;
     if (filters.maxPrice !== undefined && price > filters.maxPrice) return false;
-
-    // Use todaysChangePerc from snapshot (works even when market is closed)
     const accurateChangePercent = marketClosed ? (t.todaysChangePerc || 0) : ((price - t.prevDay.c) / t.prevDay.c) * 100;
     if (!hasFundamentalFilters) {
       if (filters.minChange1D !== undefined && accurateChangePercent < filters.minChange1D) return false;
       if (filters.maxChange1D !== undefined && accurateChangePercent > filters.maxChange1D) return false;
     }
-
     if (filters.minVolume !== undefined && volume < filters.minVolume) return false;
-
     if (!hasFundamentalFilters && filters.minRelativeVolume !== undefined && t.prevDay?.v > 0 && !marketClosed) {
-      const relativeVol = (t.day?.v || 0) / t.prevDay.v;
-      if (relativeVol < filters.minRelativeVolume) return false;
+      if ((t.day?.v || 0) / t.prevDay.v < filters.minRelativeVolume) return false;
     }
-
     return true;
   });
 
-  console.log(`[polygon-screener] After basic filters: ${filteredTickers.length} tickers`);
-
-  // Step 3: Sort and determine how many to fetch details for
   const sortBy = filters.sortBy || "volume";
   const sortDir = filters.sortDirection || "desc";
-  const candidateSortBy = hasFundamentalFilters ? "volume" : sortBy;
-  const candidateSortDir = hasFundamentalFilters ? "desc" : sortDir;
 
   filteredTickers.sort((a, b) => {
     let aVal: number, bVal: number;
     const aPrice = marketClosed ? (a.prevDay?.c || 0) : (a.day?.c || 0);
     const bPrice = marketClosed ? (b.prevDay?.c || 0) : (b.day?.c || 0);
-    const aChangePercent = marketClosed ? (a.todaysChangePerc || 0) : (a.prevDay?.c > 0 ? ((a.day.c - a.prevDay.c) / a.prevDay.c) * 100 : 0);
-    const bChangePercent = marketClosed ? (b.todaysChangePerc || 0) : (b.prevDay?.c > 0 ? ((b.day.c - b.prevDay.c) / b.prevDay.c) * 100 : 0);
-
-    switch (candidateSortBy) {
+    switch (sortBy) {
       case "change":
-        aVal = aChangePercent;
-        bVal = bChangePercent;
+        aVal = marketClosed ? (a.todaysChangePerc || 0) : (a.prevDay?.c > 0 ? ((a.day.c - a.prevDay.c) / a.prevDay.c) * 100 : 0);
+        bVal = marketClosed ? (b.todaysChangePerc || 0) : (b.prevDay?.c > 0 ? ((b.day.c - b.prevDay.c) / b.prevDay.c) * 100 : 0);
         break;
-      case "price":
-        aVal = aPrice;
-        bVal = bPrice;
-        break;
-      case "volume":
+      case "price": aVal = aPrice; bVal = bPrice; break;
       default:
         aVal = marketClosed ? (a.prevDay?.v || 0) : (a.day?.v || 0);
         bVal = marketClosed ? (b.prevDay?.v || 0) : (b.day?.v || 0);
-        break;
     }
-
-    return candidateSortDir === "desc" ? bVal - aVal : aVal - bVal;
+    return sortDir === "desc" ? bVal - aVal : aVal - bVal;
   });
 
-  // Cap candidates to avoid overwhelming the API with detail requests
   const maxCandidates = hasFundamentalFilters ? 500 : 200;
-  const candidateTickers = filteredTickers.slice(0, Math.min(filteredTickers.length, maxCandidates));
+  const candidateTickers = filteredTickers.slice(0, maxCandidates);
 
-  console.log(`[polygon-screener] Fetching details for ${candidateTickers.length} tickers...`);
-
-  // Step 4: Fetch ticker details in small batches (10 concurrent) to avoid connection resets
-  const batchSize = 10;
+  // Fetch ticker details
   const tickerDetails: Map<string, TickerDetails> = new Map();
-
-  for (let i = 0; i < candidateTickers.length; i += batchSize) {
-    const batch = candidateTickers.slice(i, i + batchSize);
-
-    const detailPromises = batch.map(async (t) => {
+  for (let i = 0; i < candidateTickers.length; i += 10) {
+    const batch = candidateTickers.slice(i, i + 10);
+    const results = await Promise.allSettled(batch.map(async (t) => {
       try {
-        const detailUrl = `${BASE_URL}/v3/reference/tickers/${encodeURIComponent(t.ticker)}?apiKey=${apiKey}`;
-        const detailRes = await fetchWithTimeout(detailUrl, {}, 8000);
-        const text = await detailRes.text();
-        if (!detailRes.ok) return null;
-        const data = JSON.parse(text);
-        if (data.results) {
-          return { ticker: t.ticker, details: data.results as TickerDetails };
+        const url = `${BASE_URL}/v3/reference/tickers/${encodeURIComponent(t.ticker)}?apiKey=${apiKey}`;
+        const res = await fetchWithTimeout(url, {}, 8000);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.results) return { ticker: t.ticker, details: data.results as TickerDetails };
         }
-      } catch (err) {
-        // Silently skip failed detail fetches
-      }
+      } catch {}
       return null;
-    });
-
-    const results = await Promise.allSettled(detailPromises);
+    }));
     results.forEach((r) => {
       if (r.status === "fulfilled" && r.value) tickerDetails.set(r.value.ticker, r.value.details);
     });
-
-    // Brief pause between batches
-    if (i + batchSize < candidateTickers.length) {
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
+    if (i + 10 < candidateTickers.length) await new Promise((resolve) => setTimeout(resolve, 100));
   }
 
-  console.log(`[polygon-screener] Got details for ${tickerDetails.size} tickers`);
-
-  // Step 5: Apply market cap and sector filters
   let finalResults = candidateTickers.filter((t) => {
     const details = tickerDetails.get(t.ticker);
-
-    if (filters.minMarketCap !== undefined) {
-      if (!details?.market_cap || details.market_cap < filters.minMarketCap) return false;
-    }
-    if (filters.maxMarketCap !== undefined) {
-      if (details?.market_cap && details.market_cap > filters.maxMarketCap) return false;
-    }
-
+    if (filters.minMarketCap !== undefined && (!details?.market_cap || details.market_cap < filters.minMarketCap)) return false;
+    if (filters.maxMarketCap !== undefined && details?.market_cap && details.market_cap > filters.maxMarketCap) return false;
     if (filters.sectors && filters.sectors.length > 0) {
       const sector = getSectorFromSIC(details?.sic_code || null);
       if (!filters.sectors.includes(sector)) return false;
     }
-
     if (hasFundamentalFilters) {
-      const accurateChangePercent = marketClosed ? (t.todaysChangePerc || 0) : (t.prevDay?.c > 0 ? ((t.day.c - t.prevDay.c) / t.prevDay.c) * 100 : 0);
-      if (filters.minChange1D !== undefined && accurateChangePercent < filters.minChange1D) return false;
-      if (filters.maxChange1D !== undefined && accurateChangePercent > filters.maxChange1D) return false;
-
+      const cp = marketClosed ? (t.todaysChangePerc || 0) : (t.prevDay?.c > 0 ? ((t.day.c - t.prevDay.c) / t.prevDay.c) * 100 : 0);
+      if (filters.minChange1D !== undefined && cp < filters.minChange1D) return false;
+      if (filters.maxChange1D !== undefined && cp > filters.maxChange1D) return false;
       if (filters.minRelativeVolume !== undefined && t.prevDay?.v > 0) {
-        const relativeVol = t.day.v / t.prevDay.v;
-        if (relativeVol < filters.minRelativeVolume) return false;
+        if (t.day.v / t.prevDay.v < filters.minRelativeVolume) return false;
       }
     }
-
     return true;
   });
 
-  console.log(`[polygon-screener] After market cap/sector filters: ${finalResults.length} results`);
-
-  // Step 6: Re-sort final results
   finalResults.sort((a, b) => {
     let aVal: number, bVal: number;
-    const aPrice = marketClosed ? (a.prevDay?.c || 0) : (a.day?.c || 0);
-    const bPrice = marketClosed ? (b.prevDay?.c || 0) : (b.day?.c || 0);
-    const aChangePercent = marketClosed ? (a.todaysChangePerc || 0) : (a.prevDay?.c > 0 ? ((a.day.c - a.prevDay.c) / a.prevDay.c) * 100 : 0);
-    const bChangePercent = marketClosed ? (b.todaysChangePerc || 0) : (b.prevDay?.c > 0 ? ((b.day.c - b.prevDay.c) / b.prevDay.c) * 100 : 0);
-
     switch (sortBy) {
       case "change":
-        aVal = aChangePercent;
-        bVal = bChangePercent;
+        aVal = marketClosed ? (a.todaysChangePerc || 0) : (a.prevDay?.c > 0 ? ((a.day.c - a.prevDay.c) / a.prevDay.c) * 100 : 0);
+        bVal = marketClosed ? (b.todaysChangePerc || 0) : (b.prevDay?.c > 0 ? ((b.day.c - b.prevDay.c) / b.prevDay.c) * 100 : 0);
         break;
       case "price":
-        aVal = aPrice;
-        bVal = bPrice;
+        aVal = marketClosed ? (a.prevDay?.c || 0) : (a.day?.c || 0);
+        bVal = marketClosed ? (b.prevDay?.c || 0) : (b.day?.c || 0);
         break;
       case "marketCap":
         aVal = tickerDetails.get(a.ticker)?.market_cap || 0;
         bVal = tickerDetails.get(b.ticker)?.market_cap || 0;
         break;
-      case "volume":
       default:
         aVal = marketClosed ? (a.prevDay?.v || 0) : (a.day?.v || 0);
         bVal = marketClosed ? (b.prevDay?.v || 0) : (b.day?.v || 0);
-        break;
     }
-
     return sortDir === "desc" ? bVal - aVal : aVal - bVal;
   });
 
-  // Step 7: Apply pagination
   const paginatedResults = finalResults.slice(offset, offset + limit);
 
-  // Build initial results
   const initialResults = paginatedResults.map((t) => {
     const details = tickerDetails.get(t.ticker);
     const sector = getSectorFromSIC(details?.sic_code || null);
-
-    // Use prevDay as source when market is closed
     const dayData = marketClosed ? t.prevDay : t.day;
     const prevClose = t.prevDay?.c || 0;
     const currentPrice = dayData?.c || 0;
-    const accurateChange = marketClosed ? (t.todaysChange || 0) : (prevClose > 0 ? currentPrice - prevClose : 0);
-    const accurateChangePercent = marketClosed ? (t.todaysChangePerc || 0) : (prevClose > 0 ? ((currentPrice - prevClose) / prevClose) * 100 : 0);
+    const change = marketClosed ? (t.todaysChange || 0) : (prevClose > 0 ? currentPrice - prevClose : 0);
+    const changePercent = marketClosed ? (t.todaysChangePerc || 0) : (prevClose > 0 ? ((currentPrice - prevClose) / prevClose) * 100 : 0);
+    
+    // Truncate description for preview
+    let shortDesc: string | null = null;
+    if (details?.description) {
+      if (details.description.length > 200) {
+        const sentences = details.description.match(/[^.!?]+[.!?]+/g);
+        shortDesc = sentences ? sentences.slice(0, 2).join(' ').trim() : details.description.slice(0, 200) + '…';
+      } else {
+        shortDesc = details.description;
+      }
+    }
 
     return {
       symbol: t.ticker,
@@ -1160,8 +1080,11 @@ async function screenFromPolygonAPI(
       sector,
       sicDescription: details?.sic_description || null,
       price: currentPrice,
-      change: accurateChange,
-      changePercent: accurateChangePercent,
+      change,
+      changePercent,
+      changePercent1W: null,
+      changePercent1M: null,
+      changePercentYTD: null,
       volume: dayData?.v || 0,
       prevVolume: t.prevDay?.v || 0,
       relativeVolume: t.prevDay?.v > 0 && !marketClosed ? (t.day?.v || 0) / t.prevDay.v : null,
@@ -1174,61 +1097,34 @@ async function screenFromPolygonAPI(
       type: details?.type || null,
       volatility: null,
       beta: null,
-      marketClosed, // signal to frontend
+      shortDescription: shortDesc,
     };
   });
 
-  // Fetch fundamentals for the displayed results
-  console.log(`[polygon-screener] Fetching fundamentals for ${Math.min(initialResults.length, 20)} tickers (API mode)...`);
+  // Fetch fundamentals
   const fundamentalsMap = await fetchBatchFundamentals(
     initialResults.map((r: any) => ({ symbol: r.symbol, price: r.price, marketCap: r.marketCap })),
     apiKey
   );
 
-  // Merge fundamentals into results
-  const results = initialResults.map((r: any) => {
-    const fundamentals = fundamentalsMap.get(r.symbol) || {
-      pe: null,
-      forwardPE: null,
-      pb: null,
-      evEbitda: null,
-      debtEquity: null,
-      quickRatio: null,
-      opMargin: null,
-      epsGrowth: null,
-      revenueGrowth: null,
-    };
+  // Fetch performance metrics
+  const perfMap = await fetchBatchPerformance(
+    initialResults.map((r: any) => ({
+      symbol: r.symbol,
+      pe: fundamentalsMap.get(r.symbol)?.pe ?? null,
+      epsGrowth: fundamentalsMap.get(r.symbol)?.epsGrowth ?? null,
+    })),
+    apiKey,
+    15
+  );
 
-    const peg = calculatePEG(fundamentals.pe, fundamentals.epsGrowth);
-    return {
-      ...r,
-      pe: fundamentals.pe,
-      forwardPE: fundamentals.forwardPE,
-      peg,
-      pb: fundamentals.pb,
-      pCash: null,
-      evEbitda: fundamentals.evEbitda,
-      opMargin: fundamentals.opMargin,
-      epsGrowth: fundamentals.epsGrowth,
-      revenueGrowth: fundamentals.revenueGrowth,
-      debtEquity: fundamentals.debtEquity,
-      quickRatio: fundamentals.quickRatio,
-      sharpe: null,
-      maxDrawdown: null,
-      stdDev: null,
-    };
-  });
+  const results = initialResults.map((r: any) => enrichResult(r, fundamentalsMap.get(r.symbol), perfMap.get(r.symbol), r.shortDescription));
 
   return json({
     ok: true,
     count: finalResults.length,
     results,
-    pagination: {
-      offset,
-      limit,
-      hasMore: offset + limit < finalResults.length,
-      total: finalResults.length,
-    },
+    pagination: { offset, limit, hasMore: offset + limit < finalResults.length, total: finalResults.length },
     source: "api",
     marketClosed,
   });
