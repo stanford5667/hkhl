@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { 
   TrendingUp, Activity, Zap, Flame, BarChart3, Filter, X, ChevronDown, ChevronUp,
@@ -1097,7 +1097,6 @@ function FilterCategory({
 // =====================
 
 export function UnifiedDiscoveryScreener() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   
   // Restore persisted state from sessionStorage
