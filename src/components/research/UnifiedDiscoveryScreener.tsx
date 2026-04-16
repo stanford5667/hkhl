@@ -892,7 +892,104 @@ function FilterDropdown({
   );
 }
 
-function ActiveFilterBadges({ 
+// Market Cap custom filter component
+function MarketCapFilter({
+  direction,
+  value1,
+  value2,
+  onDirectionChange,
+  onValue1Change,
+  onValue2Change,
+}: {
+  direction: string;
+  value1: string;
+  value2: string;
+  onDirectionChange: (d: string) => void;
+  onValue1Change: (v: string) => void;
+  onValue2Change: (v: string) => void;
+}) {
+  const isActive = direction !== 'any';
+
+  const parseDisplayValue = (raw: string): string => {
+    const num = parseFloat(raw);
+    if (!raw || isNaN(num)) return '';
+    return raw;
+  };
+
+  return (
+    <div className="flex flex-col gap-1 col-span-2">
+      <Label className="text-[10px] text-muted-foreground flex items-center gap-1">
+        <Building2 className="h-3 w-3" />
+        Market Cap
+      </Label>
+      <div className="flex items-center gap-1.5">
+        <Select value={direction} onValueChange={onDirectionChange}>
+          <SelectTrigger className={cn(
+            "h-7 text-[11px] w-[90px] shrink-0",
+            isActive && "border-primary bg-primary/5"
+          )}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {MARKET_CAP_DIRECTION_OPTIONS.map(opt => (
+              <SelectItem key={opt.value} value={opt.value} className="text-xs">{opt.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        
+        {direction !== 'any' && (
+          <>
+            <div className="relative">
+              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">$</span>
+              <Input
+                type="number"
+                placeholder="e.g. 1000000000"
+                value={parseDisplayValue(value1)}
+                onChange={(e) => onValue1Change(e.target.value)}
+                className="h-7 text-[11px] pl-5 w-[130px]"
+              />
+            </div>
+            {direction === 'between' && (
+              <>
+                <span className="text-[10px] text-muted-foreground">and</span>
+                <div className="relative">
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">$</span>
+                  <Input
+                    type="number"
+                    placeholder="e.g. 10000000000"
+                    value={parseDisplayValue(value2)}
+                    onChange={(e) => onValue2Change(e.target.value)}
+                    className="h-7 text-[11px] pl-5 w-[130px]"
+                  />
+                </div>
+              </>
+            )}
+            {/* Quick preset buttons */}
+            <div className="flex gap-0.5 flex-wrap">
+              {MARKET_CAP_PRESETS.slice(direction === 'below' ? 0 : 3, direction === 'above' ? undefined : 7).map(preset => (
+                <Button
+                  key={preset.value}
+                  variant="outline"
+                  size="sm"
+                  className="h-6 text-[10px] px-1.5"
+                  onClick={() => {
+                    if (direction === 'between' && value1) {
+                      onValue2Change(String(preset.value));
+                    } else {
+                      onValue1Change(String(preset.value));
+                    }
+                  }}
+                >
+                  {preset.label}
+                </Button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
   filters, 
   onClearFilter,
   onClearAll 
