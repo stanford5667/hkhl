@@ -28,7 +28,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { screenStocksFromPolygon, QUICK_SCREENS, type ScreenerResult, type ScreenerFilters } from '@/services/polygonScreenerService';
+import { screenStocksFromPolygon, QUICK_SCREENS, SECTORS, type ScreenerResult, type ScreenerFilters } from '@/services/polygonScreenerService';
 import { generateBatchInsights, getInsightSummary, type StockInsight } from '@/services/stockInsightGenerator';
 import { CustomFilterBuilder, type CustomFiltersPayload } from '@/components/screener/CustomFilterBuilder';
 import { TickerHoverPreview } from '@/components/screener/TickerHoverPreview';
@@ -75,6 +75,17 @@ const MARKET_CAP_PRESETS = [
 // Keep a dummy options array for FILTER_CONFIG compatibility
 const MARKET_CAP_OPTIONS = [
   { value: 'all', label: 'Any' },
+];
+
+const SECTOR_OPTIONS = [
+  { value: 'all', label: 'Any Sector' },
+  ...SECTORS.map(s => ({ value: s, label: s })),
+];
+
+const OPTIONS_YES_NO = [
+  { value: 'all', label: 'Any' },
+  { value: 'yes', label: 'Yes' },
+  { value: 'no', label: 'No' },
 ];
 
 const PE_RATIO_OPTIONS = [
@@ -277,6 +288,8 @@ interface FilterState {
   // Performance
   performancePeriod: string;
   performanceDirection: string;
+  sector: string;
+  hasOptions: string;
 }
 
 const DEFAULT_FILTERS: FilterState = {
@@ -301,6 +314,8 @@ const DEFAULT_FILTERS: FilterState = {
   beatProbability: 'all',
   performancePeriod: 'all',
   performanceDirection: 'all',
+  sector: 'all',
+  hasOptions: 'all',
 };
 
 // Filter metadata for display
@@ -326,6 +341,8 @@ const FILTER_CONFIG: Record<keyof FilterState, { label: string; options: { value
   beatProbability: { label: 'Beat Prob', options: BEAT_PROBABILITY_OPTIONS, icon: Target, category: 'Earnings' },
   performancePeriod: { label: 'Perf Period', options: PERFORMANCE_PERIOD_OPTIONS, icon: Clock, category: 'Performance' },
   performanceDirection: { label: 'Perf Range', options: PERFORMANCE_DIRECTION_OPTIONS, icon: TrendingUp, category: 'Performance' },
+  sector: { label: 'Sector', options: SECTOR_OPTIONS, icon: Building2, category: 'Sector' },
+  hasOptions: { label: 'Has Options', options: OPTIONS_YES_NO, icon: Target, category: 'Other' },
 };
 
 // Group filters by category
@@ -333,6 +350,10 @@ const FILTER_CATEGORIES = [
   { 
     name: 'Valuation', 
     filters: ['marketCap', 'peRatio', 'forwardPE', 'peg', 'priceToBook', 'priceToCash', 'evEbitda'] as (keyof FilterState)[],
+  },
+  {
+    name: 'Sector & Type',
+    filters: ['sector', 'hasOptions'] as (keyof FilterState)[],
     isPrimary: true
   },
   { 
@@ -1284,7 +1305,12 @@ export function UnifiedDiscoveryScreener() {
         if (revOption.min !== undefined) combined.minRevenueGrowth = revOption.min;
         if (revOption.max !== undefined) combined.maxRevenueGrowth = revOption.max;
       }
-      
+
+      // Sector filter
+      if (filters.sector !== 'all') {
+        combined.sectors = [filters.sector];
+      }
+
       // Pagination
       combined.limit = ITEMS_PER_PAGE;
       combined.offset = offset;
@@ -1360,7 +1386,7 @@ export function UnifiedDiscoveryScreener() {
   });
 
   const handleStockClick = (symbol: string) => {
-    navigate(`/stock/${symbol}`);
+    window.open(`/stock/${symbol}`, '_blank', 'noopener');
   };
 
   const handleFilterChange = (key: keyof FilterState) => (value: string) => {
