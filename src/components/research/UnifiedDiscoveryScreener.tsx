@@ -7,6 +7,7 @@ import {
   Clock, Volume2, Gauge, TrendingDown, Calculator, Ratio, ChevronLeft, ChevronRight, SlidersHorizontal,
   Sparkles, Lightbulb, Newspaper
 } from 'lucide-react';
+import { ColumnSettings, loadSavedColumns } from '@/components/screener/ColumnSettings';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
