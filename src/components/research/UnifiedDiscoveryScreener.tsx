@@ -1116,6 +1116,7 @@ export function UnifiedDiscoveryScreener() {
   
   // Sector filter state
   const [sectorFilter, setSectorFilter] = useState<string>(stored?.sectorFilter || 'all');
+  const [hasOptionsFilter, setHasOptionsFilter] = useState<string>(stored?.hasOptionsFilter || 'all');
 
   // Custom market cap state
   const [mcDirection, setMcDirection] = useState<string>(stored?.mcDirection || 'any');
@@ -1141,10 +1142,10 @@ export function UnifiedDiscoveryScreener() {
     const state = {
       activeTab, filters, showFilters, currentPage, sortConfig, customFilters,
       mcDirection, mcValue1, mcValue2, debouncedMcValue1, debouncedMcValue2,
-      sectorFilter,
+      sectorFilter, hasOptionsFilter,
     };
     sessionStorage.setItem('screener-state', JSON.stringify(state));
-  }, [activeTab, filters, showFilters, currentPage, sortConfig, customFilters, mcDirection, mcValue1, mcValue2, debouncedMcValue1, debouncedMcValue2, sectorFilter]);
+  }, [activeTab, filters, showFilters, currentPage, sortConfig, customFilters, mcDirection, mcValue1, mcValue2, debouncedMcValue1, debouncedMcValue2, sectorFilter, hasOptionsFilter]);
 
   // AI Insights state
   const [showInsights, setShowInsights] = useState(false);
@@ -1311,6 +1312,14 @@ export function UnifiedDiscoveryScreener() {
         combined.sectors = [sectorFilter];
       }
 
+      // Has Options filter — optionable stocks generally have market cap >$100M and volume >1M
+      if (hasOptionsFilter === 'yes') {
+        combined.minMarketCap = Math.max(combined.minMarketCap || 0, 100_000_000);
+        combined.minVolume = Math.max(combined.minVolume || 0, 1_000_000);
+      } else if (hasOptionsFilter === 'no') {
+        combined.maxMarketCap = Math.min(combined.maxMarketCap || 100_000_000, 100_000_000);
+      }
+
       // Pagination
       combined.limit = ITEMS_PER_PAGE;
       combined.offset = offset;
@@ -1322,11 +1331,11 @@ export function UnifiedDiscoveryScreener() {
       
       return combined;
     };
-  }, [filters, hasFundamentalFilters, customFilters, mcDirection, debouncedMcValue1, debouncedMcValue2, sectorFilter]);
+  }, [filters, hasFundamentalFilters, customFilters, mcDirection, debouncedMcValue1, debouncedMcValue2, sectorFilter, hasOptionsFilter]);
 
   // Top Gainers query
   const { data: gainersData, isLoading: loadingGainers } = useQuery({
-    queryKey: ['screener', 'topGainers-full', filters, currentPage, mcDirection, debouncedMcValue1, debouncedMcValue2, sectorFilter],
+    queryKey: ['screener', 'topGainers-full', filters, currentPage, mcDirection, debouncedMcValue1, debouncedMcValue2, sectorFilter, hasOptionsFilter],
     queryFn: async () => {
       const baseFilters: ScreenerFilters = {
         minChange1D: 2,
@@ -1344,7 +1353,7 @@ export function UnifiedDiscoveryScreener() {
 
   // Most Active query
   const { data: mostActiveData, isLoading: loadingActive } = useQuery({
-    queryKey: ['screener', 'mostActive-full', filters, currentPage, mcDirection, debouncedMcValue1, debouncedMcValue2, sectorFilter],
+    queryKey: ['screener', 'mostActive-full', filters, currentPage, mcDirection, debouncedMcValue1, debouncedMcValue2, sectorFilter, hasOptionsFilter],
     queryFn: async () => {
       const baseFilters: ScreenerFilters = {
         minPrice: 2,
@@ -1361,7 +1370,7 @@ export function UnifiedDiscoveryScreener() {
 
   // Momentum query
   const { data: momentumData, isLoading: loadingMomentum } = useQuery({
-    queryKey: ['screener', 'smallCapMomentum-full', filters, currentPage, mcDirection, debouncedMcValue1, debouncedMcValue2, sectorFilter],
+    queryKey: ['screener', 'smallCapMomentum-full', filters, currentPage, mcDirection, debouncedMcValue1, debouncedMcValue2, sectorFilter, hasOptionsFilter],
     queryFn: async () => {
       const screenConfig = QUICK_SCREENS['smallCapMomentum'];
       if (!screenConfig) return { results: [], count: 0, pagination: { hasMore: false, total: 0 } };
@@ -1374,7 +1383,7 @@ export function UnifiedDiscoveryScreener() {
 
   // Unusual Volume query
   const { data: unusualVolData, isLoading: loadingUnusual } = useQuery({
-    queryKey: ['screener', 'unusualVolume-full', filters, currentPage, mcDirection, debouncedMcValue1, debouncedMcValue2, sectorFilter],
+    queryKey: ['screener', 'unusualVolume-full', filters, currentPage, mcDirection, debouncedMcValue1, debouncedMcValue2, sectorFilter, hasOptionsFilter],
     queryFn: async () => {
       const screenConfig = QUICK_SCREENS['unusualVolume'];
       if (!screenConfig) return { results: [], count: 0, pagination: { hasMore: false, total: 0 } };
@@ -1413,6 +1422,7 @@ export function UnifiedDiscoveryScreener() {
     setDebouncedMcValue1('');
     setDebouncedMcValue2('');
     setSectorFilter('all');
+    setHasOptionsFilter('all');
     if (mcDebounceRef.current) clearTimeout(mcDebounceRef.current);
     setCurrentPage(0);
     queryClient.invalidateQueries({ queryKey: ['screener'] });
@@ -1540,8 +1550,8 @@ export function UnifiedDiscoveryScreener() {
             />
           ))}
           
-          {/* Sector Filter */}
-          <div className="mt-2">
+        {/* Additional Quick Filters: Sector + Has Options */}
+          <div className="mt-2 flex flex-wrap gap-2">
             <FilterDropdown
               label="Sector"
               value={sectorFilter}
@@ -1555,6 +1565,21 @@ export function UnifiedDiscoveryScreener() {
                 queryClient.invalidateQueries({ queryKey: ['screener'] });
               }}
               icon={Building2}
+            />
+            <FilterDropdown
+              label="Has Options"
+              value={hasOptionsFilter}
+              options={[
+                { value: 'all', label: 'Any' },
+                { value: 'yes', label: 'Yes' },
+                { value: 'no', label: 'No' },
+              ]}
+              onChange={(v) => {
+                setHasOptionsFilter(v);
+                setCurrentPage(0);
+                queryClient.invalidateQueries({ queryKey: ['screener'] });
+              }}
+              icon={Target}
             />
           </div>
         </div>
