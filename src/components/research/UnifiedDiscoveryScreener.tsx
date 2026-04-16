@@ -496,10 +496,19 @@ function StockRow({
   showInsights: boolean;
 }) {
   const isPositive = stock.changePercent >= 0;
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onClick();
+    }
+  };
   
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={handleKeyDown}
       className="w-full flex items-center gap-2 py-2.5 px-3 hover:bg-muted/50 transition-colors text-left border-b border-border last:border-b-0"
     >
       {visibleColumns.map(col => {
@@ -588,7 +597,7 @@ function StockRow({
       <div className="w-36 flex-shrink-0">
         <DailyDigestCell ticker={stock.symbol} />
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -751,8 +760,8 @@ function StockList({
       
       {/* Stock rows — cards on mobile, table rows on desktop */}
       <div className="max-h-[500px] overflow-y-auto">
-        {sortedStocks.map(stock => (
-          <div key={stock.symbol}>
+        {sortedStocks.map((stock, index) => (
+          <div key={`${stock.symbol}-${index}`}>
             {/* Mobile card */}
             <div className="sm:hidden">
               <StockRowMobile 
