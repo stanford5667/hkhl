@@ -610,22 +610,21 @@ function StockList({
   const startItem = currentPage * ITEMS_PER_PAGE + 1;
   const endItem = Math.min((currentPage + 1) * ITEMS_PER_PAGE, totalCount);
 
-  // Determine which columns to show based on active filters
+  // Determine which columns to show: user settings + filter-activated columns
   const visibleColumns = useMemo(() => {
     const columns: SortableColumn[] = [];
     
-    // Always show columns marked as alwaysShow, plus any with active filters
     SORTABLE_COLUMNS.forEach(col => {
-      if (col.alwaysShow) {
-        columns.push(col);
-      } else if (col.filterKey && activeFilters.has(col.filterKey)) {
-        // Show column if its filter is active
+      // Show if user explicitly enabled it, OR if its filter is active
+      const userEnabled = userVisibleColumnKeys.has(col.key);
+      const filterActive = col.filterKey && activeFilters.has(col.filterKey);
+      if (userEnabled || filterActive) {
         columns.push(col);
       }
     });
     
     return columns;
-  }, [activeFilters]);
+  }, [activeFilters, userVisibleColumnKeys]);
 
   // Sort stocks locally
   const sortedStocks = useMemo(() => {
