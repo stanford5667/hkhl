@@ -703,6 +703,10 @@ function StockList({
             )}
           </div>
         )}
+        <div className="w-36 flex-shrink-0 flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
+          <Newspaper className="h-3 w-3" />
+          Daily Digest
+        </div>
       </div>
       
       {/* Mobile: sort control */}
