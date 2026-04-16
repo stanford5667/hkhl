@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { 
@@ -1112,6 +1112,19 @@ export function UnifiedDiscoveryScreener() {
   const [mcValue1, setMcValue1] = useState<string>('');
   const [mcValue2, setMcValue2] = useState<string>('');
 
+  // Debounced versions of market cap values for queries
+  const [debouncedMcValue1, setDebouncedMcValue1] = useState('');
+  const [debouncedMcValue2, setDebouncedMcValue2] = useState('');
+  const mcDebounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const debounceMcUpdate = useCallback((v1: string, v2: string) => {
+    if (mcDebounceRef.current) clearTimeout(mcDebounceRef.current);
+    mcDebounceRef.current = setTimeout(() => {
+      setDebouncedMcValue1(v1);
+      setDebouncedMcValue2(v2);
+      setCurrentPage(0);
+    }, 500);
+  }, []);
   // AI Insights state
   const [showInsights, setShowInsights] = useState(false);
   const [insights, setInsights] = useState<Map<string, StockInsight>>(new Map());
@@ -1170,8 +1183,8 @@ export function UnifiedDiscoveryScreener() {
       
       // Market Cap filter (custom numeric)
       if (mcDirection !== 'any') {
-        const v1 = parseFloat(mcValue1);
-        const v2 = parseFloat(mcValue2);
+        const v1 = parseFloat(debouncedMcValue1);
+        const v2 = parseFloat(debouncedMcValue2);
         if (mcDirection === 'above' && !isNaN(v1)) {
           combined.minMarketCap = v1;
         } else if (mcDirection === 'below' && !isNaN(v1)) {
@@ -1283,11 +1296,11 @@ export function UnifiedDiscoveryScreener() {
       
       return combined;
     };
-  }, [filters, hasFundamentalFilters, customFilters, mcDirection, mcValue1, mcValue2]);
+  }, [filters, hasFundamentalFilters, customFilters, mcDirection, debouncedMcValue1, debouncedMcValue2]);
 
   // Top Gainers query
   const { data: gainersData, isLoading: loadingGainers } = useQuery({
-    queryKey: ['screener', 'topGainers-full', filters, currentPage, mcDirection, mcValue1, mcValue2],
+    queryKey: ['screener', 'topGainers-full', filters, currentPage, mcDirection, debouncedMcValue1, debouncedMcValue2],
     queryFn: async () => {
       const baseFilters: ScreenerFilters = {
         minChange1D: 2,
@@ -1298,13 +1311,14 @@ export function UnifiedDiscoveryScreener() {
       };
       return await screenStocksFromPolygon(buildQueryFilters(baseFilters, currentPage * ITEMS_PER_PAGE));
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
+    placeholderData: (prev: any) => prev,
     enabled: activeTab === 'topGainers',
   });
 
   // Most Active query
   const { data: mostActiveData, isLoading: loadingActive } = useQuery({
-    queryKey: ['screener', 'mostActive-full', filters, currentPage, mcDirection, mcValue1, mcValue2],
+    queryKey: ['screener', 'mostActive-full', filters, currentPage, mcDirection, debouncedMcValue1, debouncedMcValue2],
     queryFn: async () => {
       const baseFilters: ScreenerFilters = {
         minPrice: 2,
@@ -1314,31 +1328,34 @@ export function UnifiedDiscoveryScreener() {
       };
       return await screenStocksFromPolygon(buildQueryFilters(baseFilters, currentPage * ITEMS_PER_PAGE));
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
+    placeholderData: (prev: any) => prev,
     enabled: activeTab === 'mostActive',
   });
 
   // Momentum query
   const { data: momentumData, isLoading: loadingMomentum } = useQuery({
-    queryKey: ['screener', 'smallCapMomentum-full', filters, currentPage, mcDirection, mcValue1, mcValue2],
+    queryKey: ['screener', 'smallCapMomentum-full', filters, currentPage, mcDirection, debouncedMcValue1, debouncedMcValue2],
     queryFn: async () => {
       const screenConfig = QUICK_SCREENS['smallCapMomentum'];
       if (!screenConfig) return { results: [], count: 0, pagination: { hasMore: false, total: 0 } };
       return await screenStocksFromPolygon(buildQueryFilters(screenConfig.filters, currentPage * ITEMS_PER_PAGE));
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
+    placeholderData: (prev: any) => prev,
     enabled: activeTab === 'momentum',
   });
 
   // Unusual Volume query
   const { data: unusualVolData, isLoading: loadingUnusual } = useQuery({
-    queryKey: ['screener', 'unusualVolume-full', filters, currentPage, mcDirection, mcValue1, mcValue2],
+    queryKey: ['screener', 'unusualVolume-full', filters, currentPage, mcDirection, debouncedMcValue1, debouncedMcValue2],
     queryFn: async () => {
       const screenConfig = QUICK_SCREENS['unusualVolume'];
       if (!screenConfig) return { results: [], count: 0, pagination: { hasMore: false, total: 0 } };
       return await screenStocksFromPolygon(buildQueryFilters(screenConfig.filters, currentPage * ITEMS_PER_PAGE));
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
+    placeholderData: (prev: any) => prev,
     enabled: activeTab === 'unusualVolume',
   });
 
@@ -1367,6 +1384,9 @@ export function UnifiedDiscoveryScreener() {
     setMcDirection('any');
     setMcValue1('');
     setMcValue2('');
+    setDebouncedMcValue1('');
+    setDebouncedMcValue2('');
+    if (mcDebounceRef.current) clearTimeout(mcDebounceRef.current);
     setCurrentPage(0);
     queryClient.invalidateQueries({ queryKey: ['screener'] });
   };
@@ -1472,19 +1492,21 @@ export function UnifiedDiscoveryScreener() {
                   value2={mcValue2}
                   onDirectionChange={(d) => {
                     setMcDirection(d);
-                    if (d === 'any') { setMcValue1(''); setMcValue2(''); }
+                    if (d === 'any') {
+                      setMcValue1(''); setMcValue2('');
+                      setDebouncedMcValue1(''); setDebouncedMcValue2('');
+                      if (mcDebounceRef.current) clearTimeout(mcDebounceRef.current);
+                    }
                     setCurrentPage(0);
                     queryClient.invalidateQueries({ queryKey: ['screener'] });
                   }}
                   onValue1Change={(v) => {
                     setMcValue1(v);
-                    setCurrentPage(0);
-                    queryClient.invalidateQueries({ queryKey: ['screener'] });
+                    debounceMcUpdate(v, mcValue2);
                   }}
                   onValue2Change={(v) => {
                     setMcValue2(v);
-                    setCurrentPage(0);
-                    queryClient.invalidateQueries({ queryKey: ['screener'] });
+                    debounceMcUpdate(mcValue1, v);
                   }}
                 />
               }
@@ -1617,6 +1639,9 @@ export function UnifiedDiscoveryScreener() {
               setMcDirection('any');
               setMcValue1('');
               setMcValue2('');
+              setDebouncedMcValue1('');
+              setDebouncedMcValue2('');
+              if (mcDebounceRef.current) clearTimeout(mcDebounceRef.current);
               setCurrentPage(0);
               queryClient.invalidateQueries({ queryKey: ['screener'] });
             } else {
