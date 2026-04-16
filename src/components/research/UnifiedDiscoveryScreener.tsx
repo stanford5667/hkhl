@@ -1112,6 +1112,19 @@ export function UnifiedDiscoveryScreener() {
   const [mcValue1, setMcValue1] = useState<string>('');
   const [mcValue2, setMcValue2] = useState<string>('');
 
+  // Debounced versions of market cap values for queries
+  const [debouncedMcValue1, setDebouncedMcValue1] = useState('');
+  const [debouncedMcValue2, setDebouncedMcValue2] = useState('');
+  const mcDebounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const debounceMcUpdate = useCallback((v1: string, v2: string) => {
+    if (mcDebounceRef.current) clearTimeout(mcDebounceRef.current);
+    mcDebounceRef.current = setTimeout(() => {
+      setDebouncedMcValue1(v1);
+      setDebouncedMcValue2(v2);
+      setCurrentPage(0);
+    }, 500);
+  }, []);
   // AI Insights state
   const [showInsights, setShowInsights] = useState(false);
   const [insights, setInsights] = useState<Map<string, StockInsight>>(new Map());
