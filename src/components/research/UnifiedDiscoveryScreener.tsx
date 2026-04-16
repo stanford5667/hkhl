@@ -1273,7 +1273,7 @@ export function UnifiedDiscoveryScreener() {
       
       return combined;
     };
-  }, [filters, hasFundamentalFilters, customFilters]);
+  }, [filters, hasFundamentalFilters, customFilters, mcDirection, mcValue1, mcValue2]);
 
   // Top Gainers query
   const { data: gainersData, isLoading: loadingGainers } = useQuery({
@@ -1354,6 +1354,9 @@ export function UnifiedDiscoveryScreener() {
 
   const handleClearAllFilters = () => {
     setFilters(DEFAULT_FILTERS);
+    setMcDirection('any');
+    setMcValue1('');
+    setMcValue2('');
     setCurrentPage(0);
     queryClient.invalidateQueries({ queryKey: ['screener'] });
   };
@@ -1452,6 +1455,29 @@ export function UnifiedDiscoveryScreener() {
               filterKeys={category.filters}
               filters={filters}
               onFilterChange={handleFilterChange}
+              marketCapFilter={
+                <MarketCapFilter
+                  direction={mcDirection}
+                  value1={mcValue1}
+                  value2={mcValue2}
+                  onDirectionChange={(d) => {
+                    setMcDirection(d);
+                    if (d === 'any') { setMcValue1(''); setMcValue2(''); }
+                    setCurrentPage(0);
+                    queryClient.invalidateQueries({ queryKey: ['screener'] });
+                  }}
+                  onValue1Change={(v) => {
+                    setMcValue1(v);
+                    setCurrentPage(0);
+                    queryClient.invalidateQueries({ queryKey: ['screener'] });
+                  }}
+                  onValue2Change={(v) => {
+                    setMcValue2(v);
+                    setCurrentPage(0);
+                    queryClient.invalidateQueries({ queryKey: ['screener'] });
+                  }}
+                />
+              }
             />
           ))}
         </div>
