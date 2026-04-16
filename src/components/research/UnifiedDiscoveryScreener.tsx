@@ -1184,7 +1184,8 @@ export function UnifiedDiscoveryScreener() {
            filters.priceToBook !== 'all' ||
            filters.evEbitda !== 'all' ||
            filters.beta !== 'all' ||
-           filters.avgVolume !== 'all';
+           filters.avgVolume !== 'all' ||
+           filters.sector !== 'all';
   }, [filters, mcDirection]);
 
   // Build query filters based on active tab + fundamental filters
