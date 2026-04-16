@@ -1217,11 +1217,12 @@ async function screenFromPolygonAPI(
       revenueGrowth: null,
     };
 
+    const peg = calculatePEG(fundamentals.pe, fundamentals.epsGrowth);
     return {
       ...r,
       pe: fundamentals.pe,
       forwardPE: fundamentals.forwardPE,
-      peg: null,
+      peg,
       pb: fundamentals.pb,
       pCash: null,
       evEbitda: fundamentals.evEbitda,
@@ -1232,6 +1233,7 @@ async function screenFromPolygonAPI(
       quickRatio: fundamentals.quickRatio,
       sharpe: null,
       maxDrawdown: null,
+      stdDev: null,
     };
   });
 
