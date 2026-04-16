@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { 
   TrendingUp, Activity, Zap, Flame, BarChart3, Filter, X, ChevronDown, ChevronUp,
@@ -75,17 +74,6 @@ const MARKET_CAP_PRESETS = [
 // Keep a dummy options array for FILTER_CONFIG compatibility
 const MARKET_CAP_OPTIONS = [
   { value: 'all', label: 'Any' },
-];
-
-const SECTOR_OPTIONS = [
-  { value: 'all', label: 'Any Sector' },
-  ...SECTORS.map(s => ({ value: s, label: s })),
-];
-
-const OPTIONS_YES_NO = [
-  { value: 'all', label: 'Any' },
-  { value: 'yes', label: 'Yes' },
-  { value: 'no', label: 'No' },
 ];
 
 const PE_RATIO_OPTIONS = [
@@ -288,8 +276,6 @@ interface FilterState {
   // Performance
   performancePeriod: string;
   performanceDirection: string;
-  sector: string;
-  hasOptions: string;
 }
 
 const DEFAULT_FILTERS: FilterState = {
@@ -314,8 +300,6 @@ const DEFAULT_FILTERS: FilterState = {
   beatProbability: 'all',
   performancePeriod: 'all',
   performanceDirection: 'all',
-  sector: 'all',
-  hasOptions: 'all',
 };
 
 // Filter metadata for display
@@ -341,8 +325,6 @@ const FILTER_CONFIG: Record<keyof FilterState, { label: string; options: { value
   beatProbability: { label: 'Beat Prob', options: BEAT_PROBABILITY_OPTIONS, icon: Target, category: 'Earnings' },
   performancePeriod: { label: 'Perf Period', options: PERFORMANCE_PERIOD_OPTIONS, icon: Clock, category: 'Performance' },
   performanceDirection: { label: 'Perf Range', options: PERFORMANCE_DIRECTION_OPTIONS, icon: TrendingUp, category: 'Performance' },
-  sector: { label: 'Sector', options: SECTOR_OPTIONS, icon: Building2, category: 'Sector' },
-  hasOptions: { label: 'Has Options', options: OPTIONS_YES_NO, icon: Target, category: 'Other' },
 };
 
 // Group filters by category
@@ -350,10 +332,6 @@ const FILTER_CATEGORIES = [
   { 
     name: 'Valuation', 
     filters: ['marketCap', 'peRatio', 'forwardPE', 'peg', 'priceToBook', 'priceToCash', 'evEbitda'] as (keyof FilterState)[],
-  },
-  {
-    name: 'Sector & Type',
-    filters: ['sector', 'hasOptions'] as (keyof FilterState)[],
     isPrimary: true
   },
   { 
@@ -1118,24 +1096,35 @@ function FilterCategory({
 // =====================
 
 export function UnifiedDiscoveryScreener() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<TabId>('topGainers');
-  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
-  const [showFilters, setShowFilters] = useState(false);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [sortConfig, setSortConfig] = useState<SortConfig>({ column: 'change', direction: 'desc' });
-  const [customFilters, setCustomFilters] = useState<CustomFiltersPayload>({});
+  
+  // Restore persisted state from sessionStorage
+  const stored = useMemo(() => {
+    try {
+      const raw = sessionStorage.getItem('screener-state');
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  }, []);
+
+  const [activeTab, setActiveTab] = useState<TabId>(stored?.activeTab || 'topGainers');
+  const [filters, setFilters] = useState<FilterState>(stored?.filters || DEFAULT_FILTERS);
+  const [showFilters, setShowFilters] = useState(stored?.showFilters || false);
+  const [currentPage, setCurrentPage] = useState(stored?.currentPage || 0);
+  const [sortConfig, setSortConfig] = useState<SortConfig>(stored?.sortConfig || { column: 'change', direction: 'desc' });
+  const [customFilters, setCustomFilters] = useState<CustomFiltersPayload>(stored?.customFilters || {});
   const [userVisibleColumnKeys, setUserVisibleColumnKeys] = useState<Set<string>>(loadSavedColumns);
   
+  // Sector filter state
+  const [sectorFilter, setSectorFilter] = useState<string>(stored?.sectorFilter || 'all');
+
   // Custom market cap state
-  const [mcDirection, setMcDirection] = useState<string>('any');
-  const [mcValue1, setMcValue1] = useState<string>('');
-  const [mcValue2, setMcValue2] = useState<string>('');
+  const [mcDirection, setMcDirection] = useState<string>(stored?.mcDirection || 'any');
+  const [mcValue1, setMcValue1] = useState<string>(stored?.mcValue1 || '');
+  const [mcValue2, setMcValue2] = useState<string>(stored?.mcValue2 || '');
 
   // Debounced versions of market cap values for queries
-  const [debouncedMcValue1, setDebouncedMcValue1] = useState('');
-  const [debouncedMcValue2, setDebouncedMcValue2] = useState('');
+  const [debouncedMcValue1, setDebouncedMcValue1] = useState(stored?.debouncedMcValue1 || '');
+  const [debouncedMcValue2, setDebouncedMcValue2] = useState(stored?.debouncedMcValue2 || '');
   const mcDebounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   const debounceMcUpdate = useCallback((v1: string, v2: string) => {
@@ -1146,6 +1135,17 @@ export function UnifiedDiscoveryScreener() {
       setCurrentPage(0);
     }, 500);
   }, []);
+
+  // Persist screener state to sessionStorage
+  useEffect(() => {
+    const state = {
+      activeTab, filters, showFilters, currentPage, sortConfig, customFilters,
+      mcDirection, mcValue1, mcValue2, debouncedMcValue1, debouncedMcValue2,
+      sectorFilter,
+    };
+    sessionStorage.setItem('screener-state', JSON.stringify(state));
+  }, [activeTab, filters, showFilters, currentPage, sortConfig, customFilters, mcDirection, mcValue1, mcValue2, debouncedMcValue1, debouncedMcValue2, sectorFilter]);
+
   // AI Insights state
   const [showInsights, setShowInsights] = useState(false);
   const [insights, setInsights] = useState<Map<string, StockInsight>>(new Map());
@@ -1184,8 +1184,7 @@ export function UnifiedDiscoveryScreener() {
            filters.priceToBook !== 'all' ||
            filters.evEbitda !== 'all' ||
            filters.beta !== 'all' ||
-           filters.avgVolume !== 'all' ||
-           filters.sector !== 'all';
+           filters.avgVolume !== 'all';
   }, [filters, mcDirection]);
 
   // Build query filters based on active tab + fundamental filters
@@ -1306,10 +1305,10 @@ export function UnifiedDiscoveryScreener() {
         if (revOption.min !== undefined) combined.minRevenueGrowth = revOption.min;
         if (revOption.max !== undefined) combined.maxRevenueGrowth = revOption.max;
       }
-
+      
       // Sector filter
-      if (filters.sector !== 'all') {
-        combined.sectors = [filters.sector];
+      if (sectorFilter !== 'all') {
+        combined.sectors = [sectorFilter];
       }
 
       // Pagination
@@ -1323,11 +1322,11 @@ export function UnifiedDiscoveryScreener() {
       
       return combined;
     };
-  }, [filters, hasFundamentalFilters, customFilters, mcDirection, debouncedMcValue1, debouncedMcValue2]);
+  }, [filters, hasFundamentalFilters, customFilters, mcDirection, debouncedMcValue1, debouncedMcValue2, sectorFilter]);
 
   // Top Gainers query
   const { data: gainersData, isLoading: loadingGainers } = useQuery({
-    queryKey: ['screener', 'topGainers-full', filters, currentPage, mcDirection, debouncedMcValue1, debouncedMcValue2],
+    queryKey: ['screener', 'topGainers-full', filters, currentPage, mcDirection, debouncedMcValue1, debouncedMcValue2, sectorFilter],
     queryFn: async () => {
       const baseFilters: ScreenerFilters = {
         minChange1D: 2,
@@ -1345,7 +1344,7 @@ export function UnifiedDiscoveryScreener() {
 
   // Most Active query
   const { data: mostActiveData, isLoading: loadingActive } = useQuery({
-    queryKey: ['screener', 'mostActive-full', filters, currentPage, mcDirection, debouncedMcValue1, debouncedMcValue2],
+    queryKey: ['screener', 'mostActive-full', filters, currentPage, mcDirection, debouncedMcValue1, debouncedMcValue2, sectorFilter],
     queryFn: async () => {
       const baseFilters: ScreenerFilters = {
         minPrice: 2,
@@ -1362,7 +1361,7 @@ export function UnifiedDiscoveryScreener() {
 
   // Momentum query
   const { data: momentumData, isLoading: loadingMomentum } = useQuery({
-    queryKey: ['screener', 'smallCapMomentum-full', filters, currentPage, mcDirection, debouncedMcValue1, debouncedMcValue2],
+    queryKey: ['screener', 'smallCapMomentum-full', filters, currentPage, mcDirection, debouncedMcValue1, debouncedMcValue2, sectorFilter],
     queryFn: async () => {
       const screenConfig = QUICK_SCREENS['smallCapMomentum'];
       if (!screenConfig) return { results: [], count: 0, pagination: { hasMore: false, total: 0 } };
@@ -1375,7 +1374,7 @@ export function UnifiedDiscoveryScreener() {
 
   // Unusual Volume query
   const { data: unusualVolData, isLoading: loadingUnusual } = useQuery({
-    queryKey: ['screener', 'unusualVolume-full', filters, currentPage, mcDirection, debouncedMcValue1, debouncedMcValue2],
+    queryKey: ['screener', 'unusualVolume-full', filters, currentPage, mcDirection, debouncedMcValue1, debouncedMcValue2, sectorFilter],
     queryFn: async () => {
       const screenConfig = QUICK_SCREENS['unusualVolume'];
       if (!screenConfig) return { results: [], count: 0, pagination: { hasMore: false, total: 0 } };
@@ -1387,7 +1386,7 @@ export function UnifiedDiscoveryScreener() {
   });
 
   const handleStockClick = (symbol: string) => {
-    window.open(`/stock/${symbol}`, '_blank', 'noopener');
+    window.open(`/stock/${symbol}`, '_blank');
   };
 
   const handleFilterChange = (key: keyof FilterState) => (value: string) => {
@@ -1413,6 +1412,7 @@ export function UnifiedDiscoveryScreener() {
     setMcValue2('');
     setDebouncedMcValue1('');
     setDebouncedMcValue2('');
+    setSectorFilter('all');
     if (mcDebounceRef.current) clearTimeout(mcDebounceRef.current);
     setCurrentPage(0);
     queryClient.invalidateQueries({ queryKey: ['screener'] });
@@ -1539,6 +1539,24 @@ export function UnifiedDiscoveryScreener() {
               }
             />
           ))}
+          
+          {/* Sector Filter */}
+          <div className="mt-2">
+            <FilterDropdown
+              label="Sector"
+              value={sectorFilter}
+              options={[
+                { value: 'all', label: 'Any Sector' },
+                ...SECTORS.map(s => ({ value: s, label: s }))
+              ]}
+              onChange={(v) => {
+                setSectorFilter(v);
+                setCurrentPage(0);
+                queryClient.invalidateQueries({ queryKey: ['screener'] });
+              }}
+              icon={Building2}
+            />
+          </div>
         </div>
 
         {/* Tab Navigation — horizontal scroll on mobile */}

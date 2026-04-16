@@ -4,7 +4,7 @@ import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/h
 import { AreaChart, Area, ResponsiveContainer, YAxis } from 'recharts';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
-import { Zap, Sparkles, Building2 } from 'lucide-react';
+import { Zap, Sparkles } from 'lucide-react';
 import type { ScreenerResult } from '@/services/polygonScreenerService';
 
 interface TickerHoverPreviewProps {
@@ -18,13 +18,11 @@ interface SparklinePoint {
   close: number;
 }
 
-interface NewsItem {
+interface CatalystData {
   title: string;
-  shortTitle: string;
   source: string;
-  publishedAt: string;
   url: string;
-  type?: 'news' | 'ai';
+  isAI?: boolean;
 }
 
 const SPARKLINE_LOOKBACK_DAYS = 45;
@@ -39,25 +37,15 @@ function getSparklineQueryOptions(ticker: string) {
   };
 }
 
-interface CatalystInput {
-  ticker: string;
-  name?: string;
-  sector?: string;
-  changePercent?: number;
-  price?: number;
-  marketCap?: number | null;
-}
-
-function getCatalystQueryOptions(input: CatalystInput) {
+function getCatalystQueryOptions(ticker: string, sector: string) {
   return {
-    queryKey: ['catalyst', input.ticker],
-    queryFn: () => fetchCatalyst(input),
+    queryKey: ['catalyst', ticker],
+    queryFn: () => fetchCatalyst(ticker, sector),
     staleTime: 30 * 60 * 1000,
     gcTime: 60 * 60 * 1000,
   };
 }
 
-// Fetch sparkline from DB (fast) instead of edge function
 async function fetchSparklineData(ticker: string): Promise<SparklinePoint[]> {
   try {
     const normalizedTicker = ticker.toUpperCase();
@@ -93,20 +81,29 @@ async function fetchSparklineData(ticker: string): Promise<SparklinePoint[]> {
   }
 }
 
-async function fetchCatalyst(input: CatalystInput): Promise<NewsItem | null> {
+async function fetchCatalyst(ticker: string, sector: string): Promise<CatalystData | null> {
   try {
-    const { data, error } = await supabase.functions.invoke('generate-catalyst', {
-      body: {
-        ticker: input.ticker,
-        name: input.name,
-        sector: input.sector,
-        changePercent: input.changePercent,
-        price: input.price,
-        marketCap: input.marketCap,
-      },
+    // Try real news first
+    const { data, error } = await supabase.functions.invoke('polygon-news', {
+      body: { ticker },
     });
-    if (error || !data?.catalyst) return null;
-    return data.catalyst as NewsItem;
+    if (!error && data?.article) {
+      return { ...data.article, isAI: false } as CatalystData;
+    }
+    
+    // Fall back to AI-generated catalyst
+    const { data: aiData } = await supabase.functions.invoke('generate-catalyst', {
+      body: { ticker, sector },
+    });
+    if (aiData?.catalyst) {
+      return {
+        title: aiData.catalyst,
+        source: 'AI Analysis',
+        url: '',
+        isAI: true,
+      };
+    }
+    return null;
   } catch {
     return null;
   }
@@ -120,17 +117,14 @@ function formatLargeNumber(n: number | null): string {
   return `$${n.toLocaleString()}`;
 }
 
+function formatPerfChange(val: number | null): string {
+  if (val == null) return '—';
+  return `${val >= 0 ? '+' : ''}${val.toFixed(1)}%`;
+}
+
 export const TickerHoverPreview = memo(function TickerHoverPreview({ ticker, stock, children }: TickerHoverPreviewProps) {
   const queryClient = useQueryClient();
   const normalizedTicker = ticker.toUpperCase();
-  const catalystInput: CatalystInput = {
-    ticker: normalizedTicker,
-    name: stock.name,
-    sector: stock.sector,
-    changePercent: stock.changePercent,
-    price: stock.price,
-    marketCap: stock.marketCap,
-  };
 
   const { data: sparkline, isFetching: sparklineFetching } = useQuery({
     ...getSparklineQueryOptions(normalizedTicker),
@@ -138,14 +132,14 @@ export const TickerHoverPreview = memo(function TickerHoverPreview({ ticker, sto
   });
 
   const { data: catalyst, isFetching: catalystFetching } = useQuery({
-    ...getCatalystQueryOptions(catalystInput),
+    ...getCatalystQueryOptions(normalizedTicker, stock.sector || ''),
     enabled: false,
   });
 
   const prefetchPreviewData = useCallback(() => {
     void queryClient.prefetchQuery(getSparklineQueryOptions(normalizedTicker));
-    void queryClient.prefetchQuery(getCatalystQueryOptions(catalystInput));
-  }, [normalizedTicker, queryClient, catalystInput]);
+    void queryClient.prefetchQuery(getCatalystQueryOptions(normalizedTicker, stock.sector || ''));
+  }, [normalizedTicker, queryClient, stock.sector]);
 
   const handleOpenChange = (open: boolean) => {
     if (open) {
@@ -185,12 +179,11 @@ export const TickerHoverPreview = memo(function TickerHoverPreview({ ticker, sto
         </div>
 
         {/* Company Description */}
-        {(stock.sicDescription || stock.sector) && (
+        {(stock.shortDescription || stock.sicDescription) && (
           <div className="px-3 pb-1.5">
-            <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-              <Building2 className="h-2.5 w-2.5 shrink-0" />
-              <span className="truncate">{stock.sicDescription || stock.sector}</span>
-            </div>
+            <p className="text-[10px] text-muted-foreground line-clamp-2 leading-relaxed">
+              {stock.shortDescription || stock.sicDescription}
+            </p>
           </div>
         )}
 
@@ -241,35 +234,61 @@ export const TickerHoverPreview = memo(function TickerHoverPreview({ ticker, sto
             <span className="font-medium tabular-nums">{stock.pe != null ? stock.pe.toFixed(1) : '—'}</span>
           </div>
           <div>
+            <span className="text-muted-foreground block text-[9px]">PEG</span>
+            <span className="font-medium tabular-nums">{stock.peg != null ? stock.peg.toFixed(2) : '—'}</span>
+          </div>
+          <div>
             <span className="text-muted-foreground block text-[9px]">Mkt Cap</span>
             <span className="font-medium tabular-nums">{formatLargeNumber(stock.marketCap)}</span>
           </div>
           <div>
-            <span className="text-muted-foreground block text-[9px]">Day Chg</span>
-            <span className={cn('font-medium tabular-nums', isPositive ? 'text-emerald-500' : 'text-destructive')}>
-              {isPositive ? '+' : ''}${stock.change.toFixed(2)}
+            <span className="text-muted-foreground block text-[9px]">Sector</span>
+            <span className="font-medium truncate block">{stock.sector || '—'}</span>
+          </div>
+          <div>
+            <span className="text-muted-foreground block text-[9px]">Beta</span>
+            <span className="font-medium tabular-nums">{stock.beta != null ? stock.beta.toFixed(2) : '—'}</span>
+          </div>
+        </div>
+
+        {/* Multi-period Performance */}
+        <div className="grid grid-cols-4 gap-1 px-3 py-2 border-t border-border/50 text-[10px]">
+          <div className="text-center">
+            <span className="text-muted-foreground block text-[8px]">1D</span>
+            <span className={cn('font-semibold tabular-nums', stock.changePercent >= 0 ? 'text-emerald-500' : 'text-destructive')}>
+              {formatPerfChange(stock.changePercent)}
             </span>
           </div>
-          <div>
-            <span className="text-muted-foreground block text-[9px]">High</span>
-            <span className="font-medium tabular-nums">${stock.high > 0 ? stock.high.toFixed(2) : '—'}</span>
+          <div className="text-center">
+            <span className="text-muted-foreground block text-[8px]">1W</span>
+            <span className={cn('font-semibold tabular-nums', (stock.changePercent1W ?? 0) >= 0 ? 'text-emerald-500' : 'text-destructive')}>
+              {formatPerfChange(stock.changePercent1W)}
+            </span>
           </div>
-          <div>
-            <span className="text-muted-foreground block text-[9px]">Low</span>
-            <span className="font-medium tabular-nums">${stock.low > 0 ? stock.low.toFixed(2) : '—'}</span>
+          <div className="text-center">
+            <span className="text-muted-foreground block text-[8px]">1M</span>
+            <span className={cn('font-semibold tabular-nums', (stock.changePercent1M ?? 0) >= 0 ? 'text-emerald-500' : 'text-destructive')}>
+              {formatPerfChange(stock.changePercent1M)}
+            </span>
+          </div>
+          <div className="text-center">
+            <span className="text-muted-foreground block text-[8px]">YTD</span>
+            <span className={cn('font-semibold tabular-nums', (stock.changePercentYTD ?? 0) >= 0 ? 'text-emerald-500' : 'text-destructive')}>
+              {formatPerfChange(stock.changePercentYTD)}
+            </span>
           </div>
         </div>
 
         {/* Key Catalyst */}
         <div className="px-3 py-2 border-t border-border/50 bg-muted/30">
           <div className="flex items-center gap-1 mb-1">
-            {catalyst?.type === 'ai' ? (
+            {catalyst?.isAI ? (
               <Sparkles className="h-3 w-3 text-purple-500" />
             ) : (
               <Zap className="h-3 w-3 text-amber-500" />
             )}
             <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">
-              {catalyst?.type === 'ai' ? 'AI Catalyst' : 'Key Catalyst'}
+              {catalyst?.isAI ? 'AI Catalyst' : 'Key Catalyst'}
             </span>
           </div>
           {catalyst ? (
@@ -289,9 +308,6 @@ export const TickerHoverPreview = memo(function TickerHoverPreview({ ticker, sto
             ) : (
               <p className="text-[11px] text-foreground line-clamp-2 leading-snug">
                 {catalyst.title}
-                <span className="text-muted-foreground ml-1 text-[9px]">
-                  — {catalyst.source}
-                </span>
               </p>
             )
           ) : (

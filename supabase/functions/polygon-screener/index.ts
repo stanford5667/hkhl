@@ -635,7 +635,7 @@ async function screenFromDatabase(
   for (let cursor = fetchStart; cursor < fetchStart + totalToFetch; cursor += PAGE_SIZE) {
     const end = Math.min(cursor + PAGE_SIZE - 1, fetchStart + totalToFetch - 1);
     const q = buildFilteredQuery(
-      "ticker, name, sector, market_cap_tier, last_close, change_percent_1d, avg_daily_volume, avg_daily_dollar_volume, volatility_30d, beta_spy, primary_exchange, asset_type, metadata"
+      "ticker, name, sector, market_cap_tier, last_close, change_percent_1d, change_percent_1w, change_percent_1m, change_percent_ytd, avg_daily_volume, avg_daily_dollar_volume, volatility_30d, beta_spy, primary_exchange, asset_type, metadata, short_description, industry"
     )
       .order(sortColumn, { ascending: sortDir === "asc", nullsFirst: false })
       .range(cursor, end);
@@ -699,33 +699,40 @@ async function screenFromDatabase(
         symbol: row.ticker,
         name: row.name,
         sector: row.sector,
-        sicDescription: null,
-        price: currentPrice,
-        change,
-        changePercent,
-        volume: (hasLiveDay ? snapshot.day.v : snapshot.prevDay?.v) || row.avg_daily_volume || 0,
-        prevVolume: snapshot.prevDay?.v || 0,
-        relativeVolume: snapshot.prevDay?.v > 0 && hasLiveDay ? snapshot.day.v / snapshot.prevDay.v : null,
-        marketCap,
-        high: snapshot.day?.h || 0,
-        low: snapshot.day?.l || 0,
-        open: snapshot.day?.o || 0,
-        vwap: snapshot.day?.vw || null,
-        exchange: row.primary_exchange || null,
-        type: row.asset_type || null,
-        volatility,
-        beta,
-      };
+      sicDescription: row.industry || null,
+      price: currentPrice,
+      change,
+      changePercent,
+      changePercent1W: row.change_percent_1w || null,
+      changePercent1M: row.change_percent_1m || null,
+      changePercentYTD: row.change_percent_ytd || null,
+      volume: (hasLiveDay ? snapshot.day.v : snapshot.prevDay?.v) || row.avg_daily_volume || 0,
+      prevVolume: snapshot.prevDay?.v || 0,
+      relativeVolume: snapshot.prevDay?.v > 0 && hasLiveDay ? snapshot.day.v / snapshot.prevDay.v : null,
+      marketCap,
+      high: snapshot.day?.h || 0,
+      low: snapshot.day?.l || 0,
+      open: snapshot.day?.o || 0,
+      vwap: snapshot.day?.vw || null,
+      exchange: row.primary_exchange || null,
+      type: row.asset_type || null,
+      volatility,
+      beta,
+      shortDescription: row.short_description || null,
+    };
     }
 
     return {
       symbol: row.ticker,
       name: row.name,
       sector: row.sector,
-      sicDescription: null,
+      sicDescription: row.industry || null,
       price: row.last_close || 0,
       change: 0,
       changePercent: row.change_percent_1d || 0,
+      changePercent1W: row.change_percent_1w || null,
+      changePercent1M: row.change_percent_1m || null,
+      changePercentYTD: row.change_percent_ytd || null,
       volume: row.avg_daily_volume || 0,
       prevVolume: 0,
       relativeVolume: null,
@@ -738,6 +745,7 @@ async function screenFromDatabase(
       type: row.asset_type || null,
       volatility,
       beta,
+      shortDescription: row.short_description || null,
     };
   };
 
