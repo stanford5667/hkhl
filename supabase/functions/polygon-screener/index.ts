@@ -668,6 +668,7 @@ async function screenFromDatabase(
 
   const liveFilteredBaseResults = needsLiveChangeData
     ? baseResults.filter((result) => {
+        if (!snapshotMap.has(result.symbol)) return false;
         if (filters.minChange1D !== undefined && result.changePercent < filters.minChange1D) return false;
         if (filters.maxChange1D !== undefined && result.changePercent > filters.maxChange1D) return false;
         return true;
