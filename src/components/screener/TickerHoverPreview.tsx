@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, memo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/hover-card';
 import { AreaChart, Area, ResponsiveContainer, YAxis } from 'recharts';
@@ -26,13 +26,23 @@ interface NewsItem {
   url: string;
 }
 
+// Fetch sparkline from DB (fast) instead of edge function
 async function fetchSparklineData(ticker: string): Promise<SparklinePoint[]> {
   try {
-    const { data, error } = await supabase.functions.invoke('polygon-ticker-chart', {
-      body: { ticker, range: '1M', interval: '1d' },
-    });
-    if (error || !data?.bars) return [];
-    return (data.bars as any[]).map((b: any) => ({ date: b.date || b.t, close: b.close || b.c }));
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 35);
+    const startDate = thirtyDaysAgo.toISOString().split('T')[0];
+    
+    const { data, error } = await supabase
+      .from('market_daily_bars')
+      .select('bar_date, close')
+      .eq('ticker', ticker)
+      .gte('bar_date', startDate)
+      .order('bar_date', { ascending: true })
+      .limit(30);
+    
+    if (error || !data || data.length === 0) return [];
+    return data.map((b: any) => ({ date: b.bar_date, close: b.close }));
   } catch {
     return [];
   }
@@ -58,26 +68,27 @@ function formatLargeNumber(n: number | null): string {
   return `$${n.toLocaleString()}`;
 }
 
-export function TickerHoverPreview({ ticker, stock, children }: TickerHoverPreviewProps) {
+export const TickerHoverPreview = memo(function TickerHoverPreview({ ticker, stock, children }: TickerHoverPreviewProps) {
   const queryClient = useQueryClient();
 
   const { data: sparkline, refetch: refetchSparkline } = useQuery({
     queryKey: ['sparkline', ticker],
     queryFn: () => fetchSparklineData(ticker),
-    staleTime: 10 * 60 * 1000,
+    staleTime: 30 * 60 * 1000, // 30 min — chart data doesn't change frequently
+    gcTime: 60 * 60 * 1000, // keep in cache 1 hour
     enabled: false,
   });
 
   const { data: catalyst, refetch: refetchCatalyst } = useQuery({
     queryKey: ['catalyst', ticker],
     queryFn: () => fetchCatalyst(ticker),
-    staleTime: 15 * 60 * 1000,
+    staleTime: 30 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
     enabled: false,
   });
 
   const handleOpenChange = (open: boolean) => {
     if (open) {
-      // Only fetch if not already cached
       const sparklineCache = queryClient.getQueryData(['sparkline', ticker]);
       const catalystCache = queryClient.getQueryData(['catalyst', ticker]);
       if (!sparklineCache) refetchSparkline();
@@ -87,10 +98,9 @@ export function TickerHoverPreview({ ticker, stock, children }: TickerHoverPrevi
 
   const isPositive = stock.changePercent >= 0;
   const sparkColor = isPositive ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))';
-  const sparkFill = isPositive ? 'hsl(var(--chart-2) / 0.15)' : 'hsl(var(--destructive) / 0.15)';
 
   return (
-    <HoverCard openDelay={250} closeDelay={100} onOpenChange={handleOpenChange}>
+    <HoverCard openDelay={300} closeDelay={150} onOpenChange={handleOpenChange}>
       <HoverCardTrigger asChild>
         {children}
       </HoverCardTrigger>
@@ -202,4 +212,4 @@ export function TickerHoverPreview({ ticker, stock, children }: TickerHoverPrevi
       </HoverCardContent>
     </HoverCard>
   );
-}
+});
