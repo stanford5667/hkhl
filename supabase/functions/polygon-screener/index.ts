@@ -537,18 +537,6 @@ serve(async (req) => {
       hasCustomFilters(filters);
 
     const metricFiltersActive = hasMetricFilters(filters) || hasCustomFilters(filters);
-      filters.minPE !== undefined || filters.maxPE !== undefined ||
-      filters.minForwardPE !== undefined || filters.maxForwardPE !== undefined ||
-      filters.minPEG !== undefined || filters.maxPEG !== undefined ||
-      filters.minPB !== undefined || filters.maxPB !== undefined ||
-      filters.minEvEbitda !== undefined || filters.maxEvEbitda !== undefined ||
-      filters.minOpMargin !== undefined || filters.maxOpMargin !== undefined ||
-      filters.minDebtEquity !== undefined || filters.maxDebtEquity !== undefined ||
-      filters.minQuickRatio !== undefined || filters.maxQuickRatio !== undefined ||
-      filters.minVolatility !== undefined || filters.maxVolatility !== undefined ||
-      filters.minBeta !== undefined || filters.maxBeta !== undefined ||
-      filters.minEpsGrowth !== undefined || filters.maxEpsGrowth !== undefined ||
-      filters.minRevenueGrowth !== undefined || filters.maxRevenueGrowth !== undefined;
 
     // Always try database-first approach (Snapshot API requires higher Polygon plan)
     const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
