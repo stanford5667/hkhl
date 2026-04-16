@@ -1308,6 +1308,11 @@ export function UnifiedDiscoveryScreener() {
         if (revOption.max !== undefined) combined.maxRevenueGrowth = revOption.max;
       }
       
+      // Sector filter
+      if (sectorFilter !== 'all') {
+        combined.sectors = [sectorFilter];
+      }
+
       // Pagination
       combined.limit = ITEMS_PER_PAGE;
       combined.offset = offset;
@@ -1319,7 +1324,7 @@ export function UnifiedDiscoveryScreener() {
       
       return combined;
     };
-  }, [filters, hasFundamentalFilters, customFilters, mcDirection, debouncedMcValue1, debouncedMcValue2]);
+  }, [filters, hasFundamentalFilters, customFilters, mcDirection, debouncedMcValue1, debouncedMcValue2, sectorFilter]);
 
   // Top Gainers query
   const { data: gainersData, isLoading: loadingGainers } = useQuery({
