@@ -60,6 +60,14 @@ const MARKET_CAP_OPTIONS = [
   { value: 'mid', label: 'Mid ($2B-$10B)', min: 2_000_000_000, max: 10_000_000_000 },
   { value: 'small', label: 'Small ($300M-$2B)', min: 300_000_000, max: 2_000_000_000 },
   { value: 'micro', label: 'Micro (<$300M)', min: 0, max: 300_000_000 },
+  { value: 'above_1b', label: 'Above $1B', min: 1_000_000_000, max: undefined },
+  { value: 'above_10b', label: 'Above $10B', min: 10_000_000_000, max: undefined },
+  { value: 'above_50b', label: 'Above $50B', min: 50_000_000_000, max: undefined },
+  { value: 'above_100b', label: 'Above $100B', min: 100_000_000_000, max: undefined },
+  { value: 'below_1b', label: 'Below $1B', min: 0, max: 1_000_000_000 },
+  { value: 'below_10b', label: 'Below $10B', min: 0, max: 10_000_000_000 },
+  { value: 'below_50b', label: 'Below $50B', min: 0, max: 50_000_000_000 },
+  { value: 'below_500m', label: 'Below $500M', min: 0, max: 500_000_000 },
 ];
 
 const PE_RATIO_OPTIONS = [
