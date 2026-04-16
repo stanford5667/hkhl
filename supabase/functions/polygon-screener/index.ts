@@ -529,10 +529,14 @@ serve(async (req) => {
     console.log(`[polygon-screener] Running screen with filters:`, filters);
 
     // Check if we have fundamental filters that require ticker details
-    const hasFundamentalFilters =
+    const hasFundFilters =
       filters.minMarketCap !== undefined ||
       filters.maxMarketCap !== undefined ||
       (filters.sectors && filters.sectors.length > 0) ||
+      hasMetricFilters(filters) ||
+      hasCustomFilters(filters);
+
+    const metricFiltersActive = hasMetricFilters(filters) || hasCustomFilters(filters);
       filters.minPE !== undefined || filters.maxPE !== undefined ||
       filters.minForwardPE !== undefined || filters.maxForwardPE !== undefined ||
       filters.minPEG !== undefined || filters.maxPEG !== undefined ||
