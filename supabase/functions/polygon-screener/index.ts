@@ -228,6 +228,12 @@ function getSectorFromSIC(sicCode: string | null): string {
   return SIC_TO_SECTOR[prefix] || "Other";
 }
 
+interface CustomFilter {
+  operator: string;
+  value: number;
+  value2?: number;
+}
+
 interface ScreenerFilters {
   query?: string;
   minMarketCap?: number;
@@ -269,6 +275,113 @@ interface ScreenerFilters {
   maxEpsGrowth?: number;
   minRevenueGrowth?: number;
   maxRevenueGrowth?: number;
+
+  // Custom advanced filters with operator support
+  customFilters?: {
+    peg?: CustomFilter;
+    drawdown?: CustomFilter;
+    stdDev?: CustomFilter;
+  };
+}
+
+// ---- Advanced Metrics Computation ----
+
+function calculatePEG(pe: number | null, epsGrowth: number | null): number | null {
+  if (pe == null || epsGrowth == null || epsGrowth <= 0 || pe <= 0) return null;
+  return Math.round((pe / epsGrowth) * 100) / 100;
+}
+
+function calculateMaxDrawdown(prices: number[]): number | null {
+  if (prices.length < 2) return null;
+  let peak = prices[0];
+  let maxDD = 0;
+  for (let i = 1; i < prices.length; i++) {
+    if (prices[i] > peak) peak = prices[i];
+    const dd = (prices[i] - peak) / peak;
+    if (dd < maxDD) maxDD = dd;
+  }
+  return Math.round(maxDD * 10000) / 100; // return as percentage e.g. -15.23
+}
+
+function calculateStdDev(returns: number[]): number | null {
+  if (returns.length < 2) return null;
+  const mean = returns.reduce((s, r) => s + r, 0) / returns.length;
+  const variance = returns.reduce((s, r) => s + (r - mean) ** 2, 0) / (returns.length - 1);
+  return Math.round(Math.sqrt(variance) * 10000) / 10000;
+}
+
+// Cache for advanced metrics
+const advancedMetricsCache = new Map<string, { data: { peg: number | null; maxDrawdown: number | null; stdDev: number | null }; timestamp: number }>();
+
+async function computeAdvancedMetrics(
+  ticker: string,
+  apiKey: string,
+  pe: number | null,
+  epsGrowth: number | null
+): Promise<{ peg: number | null; maxDrawdown: number | null; stdDev: number | null }> {
+  const cached = advancedMetricsCache.get(ticker);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) return cached.data;
+
+  const peg = calculatePEG(pe, epsGrowth);
+  let maxDrawdown: number | null = null;
+  let stdDev: number | null = null;
+
+  try {
+    // Fetch 252 daily bars for drawdown + last 25 for stddev
+    const toDate = new Date().toISOString().split("T")[0];
+    const fromDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+    const aggUrl = `https://api.polygon.io/v2/aggs/ticker/${encodeURIComponent(ticker)}/range/1/day/${fromDate}/${toDate}?adjusted=true&sort=asc&limit=300&apiKey=${apiKey}`;
+    const aggRes = await fetchWithTimeout(aggUrl, {}, 8000);
+    if (aggRes.ok) {
+      const aggData = await aggRes.json();
+      const bars = aggData.results || [];
+      if (bars.length > 2) {
+        const closes: number[] = bars.map((b: any) => b.c);
+        maxDrawdown = calculateMaxDrawdown(closes);
+
+        // Std dev of last 20 daily returns
+        const recentCloses = closes.slice(-21);
+        if (recentCloses.length >= 2) {
+          const dailyReturns: number[] = [];
+          for (let i = 1; i < recentCloses.length; i++) {
+            if (recentCloses[i - 1] > 0) {
+              dailyReturns.push((recentCloses[i] - recentCloses[i - 1]) / recentCloses[i - 1]);
+            }
+          }
+          stdDev = calculateStdDev(dailyReturns);
+        }
+      }
+    }
+  } catch (err) {
+    console.warn(`[polygon-screener] Error computing advanced metrics for ${ticker}:`, err);
+  }
+
+  const result = { peg, maxDrawdown, stdDev };
+  advancedMetricsCache.set(ticker, { data: result, timestamp: Date.now() });
+  if (advancedMetricsCache.size > 500) {
+    const oldest = [...advancedMetricsCache.entries()].sort((a, b) => a[1].timestamp - b[1].timestamp)[0];
+    if (oldest) advancedMetricsCache.delete(oldest[0]);
+  }
+  return result;
+}
+
+function applyCustomFilter(actual: number | null, filter: CustomFilter): boolean {
+  if (actual == null) return false;
+  const { operator, value, value2 } = filter;
+  switch (operator) {
+    case '<': return actual < value;
+    case '>': return actual > value;
+    case '<=': return actual <= value;
+    case '>=': return actual >= value;
+    case '=': return Math.abs(actual - value) < 0.001;
+    case 'between': return value2 != null ? actual >= value && actual <= value2 : actual >= value;
+    default: return true;
+  }
+}
+
+function hasCustomFilters(filters: ScreenerFilters): boolean {
+  const cf = filters.customFilters;
+  return !!(cf && (cf.peg || cf.drawdown || cf.stdDev));
 }
 
 interface TickerSnapshot {
