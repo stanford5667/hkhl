@@ -1183,8 +1183,8 @@ export function UnifiedDiscoveryScreener() {
       
       // Market Cap filter (custom numeric)
       if (mcDirection !== 'any') {
-        const v1 = parseFloat(mcValue1);
-        const v2 = parseFloat(mcValue2);
+        const v1 = parseFloat(debouncedMcValue1);
+        const v2 = parseFloat(debouncedMcValue2);
         if (mcDirection === 'above' && !isNaN(v1)) {
           combined.minMarketCap = v1;
         } else if (mcDirection === 'below' && !isNaN(v1)) {
@@ -1296,11 +1296,11 @@ export function UnifiedDiscoveryScreener() {
       
       return combined;
     };
-  }, [filters, hasFundamentalFilters, customFilters, mcDirection, mcValue1, mcValue2]);
+  }, [filters, hasFundamentalFilters, customFilters, mcDirection, debouncedMcValue1, debouncedMcValue2]);
 
   // Top Gainers query
   const { data: gainersData, isLoading: loadingGainers } = useQuery({
-    queryKey: ['screener', 'topGainers-full', filters, currentPage, mcDirection, mcValue1, mcValue2],
+    queryKey: ['screener', 'topGainers-full', filters, currentPage, mcDirection, debouncedMcValue1, debouncedMcValue2],
     queryFn: async () => {
       const baseFilters: ScreenerFilters = {
         minChange1D: 2,
@@ -1311,13 +1311,14 @@ export function UnifiedDiscoveryScreener() {
       };
       return await screenStocksFromPolygon(buildQueryFilters(baseFilters, currentPage * ITEMS_PER_PAGE));
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
+    placeholderData: (prev: any) => prev,
     enabled: activeTab === 'topGainers',
   });
 
   // Most Active query
   const { data: mostActiveData, isLoading: loadingActive } = useQuery({
-    queryKey: ['screener', 'mostActive-full', filters, currentPage, mcDirection, mcValue1, mcValue2],
+    queryKey: ['screener', 'mostActive-full', filters, currentPage, mcDirection, debouncedMcValue1, debouncedMcValue2],
     queryFn: async () => {
       const baseFilters: ScreenerFilters = {
         minPrice: 2,
@@ -1327,31 +1328,34 @@ export function UnifiedDiscoveryScreener() {
       };
       return await screenStocksFromPolygon(buildQueryFilters(baseFilters, currentPage * ITEMS_PER_PAGE));
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
+    placeholderData: (prev: any) => prev,
     enabled: activeTab === 'mostActive',
   });
 
   // Momentum query
   const { data: momentumData, isLoading: loadingMomentum } = useQuery({
-    queryKey: ['screener', 'smallCapMomentum-full', filters, currentPage, mcDirection, mcValue1, mcValue2],
+    queryKey: ['screener', 'smallCapMomentum-full', filters, currentPage, mcDirection, debouncedMcValue1, debouncedMcValue2],
     queryFn: async () => {
       const screenConfig = QUICK_SCREENS['smallCapMomentum'];
       if (!screenConfig) return { results: [], count: 0, pagination: { hasMore: false, total: 0 } };
       return await screenStocksFromPolygon(buildQueryFilters(screenConfig.filters, currentPage * ITEMS_PER_PAGE));
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
+    placeholderData: (prev: any) => prev,
     enabled: activeTab === 'momentum',
   });
 
   // Unusual Volume query
   const { data: unusualVolData, isLoading: loadingUnusual } = useQuery({
-    queryKey: ['screener', 'unusualVolume-full', filters, currentPage, mcDirection, mcValue1, mcValue2],
+    queryKey: ['screener', 'unusualVolume-full', filters, currentPage, mcDirection, debouncedMcValue1, debouncedMcValue2],
     queryFn: async () => {
       const screenConfig = QUICK_SCREENS['unusualVolume'];
       if (!screenConfig) return { results: [], count: 0, pagination: { hasMore: false, total: 0 } };
       return await screenStocksFromPolygon(buildQueryFilters(screenConfig.filters, currentPage * ITEMS_PER_PAGE));
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
+    placeholderData: (prev: any) => prev,
     enabled: activeTab === 'unusualVolume',
   });
 
