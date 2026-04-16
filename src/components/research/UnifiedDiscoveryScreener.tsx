@@ -33,7 +33,7 @@ import { CustomFilterBuilder, type CustomFiltersPayload } from '@/components/scr
 import { TickerHoverPreview } from '@/components/screener/TickerHoverPreview';
 import { DailyDigestCell } from '@/components/screener/DailyDigestCell';
 
-const ITEMS_PER_PAGE = 50;
+const ITEMS_PER_PAGE = 200;
 
 // =====================
 // Tab Configuration
@@ -640,6 +640,7 @@ function StockList({
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
   const startItem = currentPage * ITEMS_PER_PAGE + 1;
   const endItem = Math.min((currentPage + 1) * ITEMS_PER_PAGE, totalCount);
+  const shouldConstrainListHeight = totalCount > ITEMS_PER_PAGE;
 
   // Determine which columns to show: user settings + filter-activated columns
   const visibleColumns = useMemo(() => {
@@ -759,7 +760,7 @@ function StockList({
       </div>
       
       {/* Stock rows — cards on mobile, table rows on desktop */}
-      <div className="max-h-[500px] overflow-y-auto">
+      <div className={cn("overflow-y-auto", shouldConstrainListHeight && "max-h-[500px]")}>
         {sortedStocks.map((stock, index) => (
           <div key={`${stock.symbol}-${index}`}>
             {/* Mobile card */}
@@ -1485,6 +1486,15 @@ export function UnifiedDiscoveryScreener() {
   };
 
   const { stocks, isLoading, totalCount, hasMore } = getTabData();
+
+  useEffect(() => {
+    if (totalCount <= 0) return;
+
+    const maxPage = Math.max(0, Math.ceil(totalCount / ITEMS_PER_PAGE) - 1);
+    if (currentPage > maxPage) {
+      setCurrentPage(maxPage);
+    }
+  }, [currentPage, totalCount]);
 
   // Generate insights asynchronously when stocks change and insights are enabled
   useEffect(() => {
