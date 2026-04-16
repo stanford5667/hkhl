@@ -48,6 +48,14 @@ const SCREENER_TABS = [
 
 type TabId = typeof SCREENER_TABS[number]['id'];
 
+const VALID_SCREENER_TAB_IDS = new Set<TabId>(SCREENER_TABS.map((tab) => tab.id));
+
+function getValidStoredTab(tab: unknown): TabId {
+  return typeof tab === 'string' && VALID_SCREENER_TAB_IDS.has(tab as TabId)
+    ? (tab as TabId)
+    : 'topGainers';
+}
+
 // =====================
 // Filter Configurations - All 19 Metrics
 // =====================
@@ -1106,7 +1114,7 @@ export function UnifiedDiscoveryScreener() {
     } catch { return null; }
   }, []);
 
-  const [activeTab, setActiveTab] = useState<TabId>(stored?.activeTab || 'topGainers');
+  const [activeTab, setActiveTab] = useState<TabId>(getValidStoredTab(stored?.activeTab));
   const [filters, setFilters] = useState<FilterState>(stored?.filters || DEFAULT_FILTERS);
   const [showFilters, setShowFilters] = useState(stored?.showFilters || false);
   const [currentPage, setCurrentPage] = useState(stored?.currentPage || 0);
