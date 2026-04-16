@@ -1495,13 +1495,11 @@ export function UnifiedDiscoveryScreener() {
                   }}
                   onValue1Change={(v) => {
                     setMcValue1(v);
-                    setCurrentPage(0);
-                    queryClient.invalidateQueries({ queryKey: ['screener'] });
+                    debounceMcUpdate(v, mcValue2);
                   }}
                   onValue2Change={(v) => {
                     setMcValue2(v);
-                    setCurrentPage(0);
-                    queryClient.invalidateQueries({ queryKey: ['screener'] });
+                    debounceMcUpdate(mcValue1, v);
                   }}
                 />
               }
