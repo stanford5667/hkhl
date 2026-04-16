@@ -5,7 +5,7 @@ import {
   TrendingUp, Activity, Zap, Flame, BarChart3, Filter, X, ChevronDown, ChevronUp,
   Building2, DollarSign, Percent, Scale, Target, LineChart, AlertTriangle,
   Clock, Volume2, Gauge, TrendingDown, Calculator, Ratio, ChevronLeft, ChevronRight, SlidersHorizontal,
-  Sparkles, Lightbulb
+  Sparkles, Lightbulb, Newspaper
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,6 +29,9 @@ import {
 import { cn } from '@/lib/utils';
 import { screenStocksFromPolygon, QUICK_SCREENS, type ScreenerResult, type ScreenerFilters } from '@/services/polygonScreenerService';
 import { generateBatchInsights, getInsightSummary, type StockInsight } from '@/services/stockInsightGenerator';
+import { CustomFilterBuilder, type CustomFiltersPayload } from '@/components/screener/CustomFilterBuilder';
+import { TickerHoverPreview } from '@/components/screener/TickerHoverPreview';
+import { DailyDigestCell } from '@/components/screener/DailyDigestCell';
 
 const ITEMS_PER_PAGE = 50;
 
@@ -480,7 +483,9 @@ function StockRow({
         if (col.key === 'symbol') {
           return (
             <div key={col.key} className={col.width}>
-              <span className="text-sm font-semibold text-primary">{stock.symbol}</span>
+              <TickerHoverPreview ticker={stock.symbol} stock={stock}>
+                <span className="text-sm font-semibold text-primary cursor-pointer hover:underline">{stock.symbol}</span>
+              </TickerHoverPreview>
             </div>
           );
         }
@@ -555,6 +560,11 @@ function StockRow({
           </Tooltip>
         </TooltipProvider>
       )}
+      
+      {/* Daily Digest column */}
+      <div className="w-36 flex-shrink-0">
+        <DailyDigestCell ticker={stock.symbol} />
+      </div>
     </button>
   );
 }
@@ -693,6 +703,10 @@ function StockList({
             )}
           </div>
         )}
+        <div className="w-36 flex-shrink-0 flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
+          <Newspaper className="h-3 w-3" />
+          Daily Digest
+        </div>
       </div>
       
       {/* Mobile: sort control */}
@@ -963,6 +977,7 @@ export function UnifiedDiscoveryScreener() {
   const [showFilters, setShowFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [sortConfig, setSortConfig] = useState<SortConfig>({ column: 'change', direction: 'desc' });
+  const [customFilters, setCustomFilters] = useState<CustomFiltersPayload>({});
   
   // AI Insights state
   const [showInsights, setShowInsights] = useState(false);
@@ -1120,10 +1135,15 @@ export function UnifiedDiscoveryScreener() {
       // Pagination
       combined.limit = ITEMS_PER_PAGE;
       combined.offset = offset;
+
+      // Custom filters
+      if (Object.keys(customFilters).length > 0) {
+        combined.customFilters = customFilters;
+      }
       
       return combined;
     };
-  }, [filters, hasFundamentalFilters]);
+  }, [filters, hasFundamentalFilters, customFilters]);
 
   // Top Gainers query
   const { data: gainersData, isLoading: loadingGainers } = useQuery({
@@ -1372,6 +1392,12 @@ export function UnifiedDiscoveryScreener() {
                 onFilterChange={handleFilterChange}
               />
             ))}
+            
+            {/* Custom Filter Builder */}
+            <div className="space-y-2 pt-2 border-t border-border/50">
+              <h4 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Custom Metric Filters</h4>
+              <CustomFilterBuilder onChange={(cf) => { setCustomFilters(cf); setCurrentPage(0); queryClient.invalidateQueries({ queryKey: ['screener'] }); }} />
+            </div>
             
             {hasActiveFilters && (
               <div className="flex justify-end pt-2 border-t border-border/50">
