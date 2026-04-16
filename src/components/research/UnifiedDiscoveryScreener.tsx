@@ -1304,7 +1304,7 @@ export function UnifiedDiscoveryScreener() {
 
   // Most Active query
   const { data: mostActiveData, isLoading: loadingActive } = useQuery({
-    queryKey: ['screener', 'mostActive-full', filters, currentPage],
+    queryKey: ['screener', 'mostActive-full', filters, currentPage, mcDirection, mcValue1, mcValue2],
     queryFn: async () => {
       const baseFilters: ScreenerFilters = {
         minPrice: 2,
@@ -1320,7 +1320,7 @@ export function UnifiedDiscoveryScreener() {
 
   // Momentum query
   const { data: momentumData, isLoading: loadingMomentum } = useQuery({
-    queryKey: ['screener', 'smallCapMomentum-full', filters, currentPage],
+    queryKey: ['screener', 'smallCapMomentum-full', filters, currentPage, mcDirection, mcValue1, mcValue2],
     queryFn: async () => {
       const screenConfig = QUICK_SCREENS['smallCapMomentum'];
       if (!screenConfig) return { results: [], count: 0, pagination: { hasMore: false, total: 0 } };
@@ -1332,7 +1332,7 @@ export function UnifiedDiscoveryScreener() {
 
   // Unusual Volume query
   const { data: unusualVolData, isLoading: loadingUnusual } = useQuery({
-    queryKey: ['screener', 'unusualVolume-full', filters, currentPage],
+    queryKey: ['screener', 'unusualVolume-full', filters, currentPage, mcDirection, mcValue1, mcValue2],
     queryFn: async () => {
       const screenConfig = QUICK_SCREENS['unusualVolume'];
       if (!screenConfig) return { results: [], count: 0, pagination: { hasMore: false, total: 0 } };
