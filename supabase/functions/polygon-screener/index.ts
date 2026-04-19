@@ -699,10 +699,19 @@ async function screenFromDatabase(
     filters.minChange1D !== undefined ||
     filters.maxChange1D !== undefined ||
     sortBy === "change";
+  const hasQuoteFilters =
+    filters.minPrice !== undefined ||
+    filters.maxPrice !== undefined ||
+    filters.minVolume !== undefined;
   const scanFromStart = metricFiltersActive || needsLiveChangeData;
   const SCAN_LIMIT = scanFromStart ? 5000 : limit;
 
-  function buildFilteredQuery(selectFields: string, opts?: { count?: "exact" }) {
+  function buildFilteredQuery(
+    selectFields: string,
+    opts?: { count?: "exact" },
+    options?: { includeQuoteFilters?: boolean },
+  ) {
+    const includeQuoteFilters = options?.includeQuoteFilters ?? true;
     let q = supabase
       .from("asset_universe")
       .select(selectFields, opts ? { count: opts.count } : undefined)
@@ -723,9 +732,9 @@ async function screenFromDatabase(
       else if (maxCap < 200_000_000_000) q = q.in("market_cap_tier", ["Micro", "Small", "Mid", "Large"]);
     }
     if (filters.sectors && filters.sectors.length > 0) q = q.in("sector", filters.sectors);
-    if (filters.minPrice !== undefined) q = q.gte("last_close", filters.minPrice);
-    if (filters.maxPrice !== undefined) q = q.lte("last_close", filters.maxPrice);
-    if (filters.minVolume !== undefined) q = q.gte("avg_daily_volume", filters.minVolume);
+    if (includeQuoteFilters && filters.minPrice !== undefined) q = q.gte("last_close", filters.minPrice);
+    if (includeQuoteFilters && filters.maxPrice !== undefined) q = q.lte("last_close", filters.maxPrice);
+    if (includeQuoteFilters && filters.minVolume !== undefined) q = q.gte("avg_daily_volume", filters.minVolume);
     if (!needsLiveChangeData && filters.minChange1D !== undefined) q = q.gte("change_percent_1d", filters.minChange1D);
     if (!needsLiveChangeData && filters.maxChange1D !== undefined) q = q.lte("change_percent_1d", filters.maxChange1D);
     return q;
@@ -738,7 +747,15 @@ async function screenFromDatabase(
     case "marketCap": sortColumn = "avg_daily_dollar_volume"; break;
   }
 
-  const { count: baseCount } = await buildFilteredQuery("ticker", { count: "exact" });
+  let includeDbQuoteFilters = true;
+  let { count: baseCount } = await buildFilteredQuery("ticker", { count: "exact" }, { includeQuoteFilters: includeDbQuoteFilters });
+
+  if ((baseCount ?? 0) === 0 && (hasQuoteFilters || needsLiveChangeData || filters.minRelativeVolume !== undefined)) {
+    includeDbQuoteFilters = false;
+    const retry = await buildFilteredQuery("ticker", { count: "exact" }, { includeQuoteFilters: false });
+    baseCount = retry.count;
+    console.log("[polygon-screener] Retrying DB query without cached quote filters due to empty cached quote fields");
+  }
 
   const PAGE_SIZE = 1000;
   const totalToFetch = scanFromStart ? Math.min(SCAN_LIMIT, baseCount ?? SCAN_LIMIT) : limit;
@@ -748,7 +765,9 @@ async function screenFromDatabase(
   for (let cursor = fetchStart; cursor < fetchStart + totalToFetch; cursor += PAGE_SIZE) {
     const end = Math.min(cursor + PAGE_SIZE - 1, fetchStart + totalToFetch - 1);
     const q = buildFilteredQuery(
-      "ticker, name, sector, market_cap_tier, last_close, change_percent_1d, avg_daily_volume, avg_daily_dollar_volume, primary_exchange, asset_type, metadata, industry"
+      "ticker, name, sector, market_cap_tier, last_close, change_percent_1d, avg_daily_volume, avg_daily_dollar_volume, primary_exchange, asset_type, metadata, industry",
+      undefined,
+      { includeQuoteFilters: includeDbQuoteFilters }
     )
       .order(sortColumn, { ascending: sortDir === "asc", nullsFirst: false })
       .range(cursor, end);
@@ -847,14 +866,15 @@ async function screenFromDatabase(
 
   const baseResults = allRows.map(buildBaseResult);
 
-  const liveFilteredBaseResults = needsLiveChangeData
-    ? baseResults.filter((result) => {
-        if (!snapshotMap.has(result.symbol)) return false;
-        if (filters.minChange1D !== undefined && result.changePercent < filters.minChange1D) return false;
-        if (filters.maxChange1D !== undefined && result.changePercent > filters.maxChange1D) return false;
-        return true;
-      })
-    : baseResults;
+  const liveFilteredBaseResults = baseResults.filter((result) => {
+    if (filters.minPrice !== undefined && result.price < filters.minPrice) return false;
+    if (filters.maxPrice !== undefined && result.price > filters.maxPrice) return false;
+    if (filters.minVolume !== undefined && result.volume < filters.minVolume) return false;
+    if (filters.minChange1D !== undefined && result.changePercent < filters.minChange1D) return false;
+    if (filters.maxChange1D !== undefined && result.changePercent > filters.maxChange1D) return false;
+    if (filters.minRelativeVolume !== undefined && (result.relativeVolume === null || result.relativeVolume < filters.minRelativeVolume)) return false;
+    return true;
+  });
 
   const sortedBaseResults = needsLiveChangeData
     ? [...liveFilteredBaseResults].sort((a, b) => {
