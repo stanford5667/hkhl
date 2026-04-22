@@ -1,8 +1,6 @@
 import { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import { geoNaturalEarth1, geoPath, type GeoPermissibleObjects } from 'd3-geo';
 import { feature } from 'topojson-client';
-import type { Topology, GeometryCollection } from 'topojson-specification';
-import type { FeatureCollection, Feature, Geometry } from 'geojson';
 import { useHeatmapStore } from '@/stores/heatmapStore';
 import type { RegionThemeData } from '@/hooks/useInvestmentHeatmap';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -51,14 +49,26 @@ interface Props {
   onCountryClick?: (countryCode: string) => void;
 }
 
-interface CountryFeature extends Feature<Geometry> {
+interface TopologyLike {
+  objects: {
+    countries: unknown;
+  };
+}
+
+interface CountryFeature {
   id: string;
+  type: string;
+  geometry: unknown;
   properties: { name: string };
+}
+
+interface WorldFeatureCollection {
+  features: CountryFeature[];
 }
 
 export function D3WorldMap({ regionData, onCountryClick }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
-  const [worldData, setWorldData] = useState<FeatureCollection | null>(null);
+  const [worldData, setWorldData] = useState<WorldFeatureCollection | null>(null);
   const [loading, setLoading] = useState(true);
   const [tooltip, setTooltip] = useState<{
     x: number; y: number; data: RegionThemeData | { countryCode: string; countryName: string };
@@ -71,10 +81,10 @@ export function D3WorldMap({ regionData, onCountryClick }: Props) {
     let cancelled = false;
     fetch(WORLD_TOPO_URL)
       .then(r => r.json())
-      .then((topo: Topology) => {
+      .then((topo: TopologyLike) => {
         if (cancelled) return;
-        const countries = feature(topo, topo.objects.countries as GeometryCollection);
-        setWorldData(countries as FeatureCollection);
+        const countries = feature(topo as never, topo.objects.countries as never);
+        setWorldData(countries as unknown as WorldFeatureCollection);
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -198,7 +208,7 @@ export function D3WorldMap({ regionData, onCountryClick }: Props) {
           const alpha2 = NUMERIC_TO_ALPHA2[f.id] || '';
           const region = regionMap.get(alpha2);
           const isHovered = hoveredCountry === alpha2;
-          const d = pathGenerator(f as GeoPermissibleObjects);
+          const d = pathGenerator(f as unknown as GeoPermissibleObjects);
           if (!d) return null;
 
           const hasTheme = !!region;
@@ -236,7 +246,7 @@ export function D3WorldMap({ regionData, onCountryClick }: Props) {
         {spotlightCountries.map((sc) => {
           const feat = worldData.features.find(f => NUMERIC_TO_ALPHA2[(f as CountryFeature).id] === sc.countryCode) as CountryFeature | undefined;
           if (!feat) return null;
-          const centroid = pathGenerator.centroid(feat as GeoPermissibleObjects);
+          const centroid = pathGenerator.centroid(feat as unknown as GeoPermissibleObjects);
           if (!centroid || isNaN(centroid[0])) return null;
           const fill = SENTIMENT_FILLS[sc.sentiment] || SENTIMENT_FILLS.neutral;
           return (
@@ -255,7 +265,7 @@ export function D3WorldMap({ regionData, onCountryClick }: Props) {
       {spotlightCountries.map((sc) => {
         const feat = worldData.features.find(f => NUMERIC_TO_ALPHA2[(f as CountryFeature).id] === sc.countryCode) as CountryFeature | undefined;
         if (!feat) return null;
-        const centroid = pathGenerator.centroid(feat as GeoPermissibleObjects);
+        const centroid = pathGenerator.centroid(feat as unknown as GeoPermissibleObjects);
         if (!centroid || isNaN(centroid[0])) return null;
         const fill = SENTIMENT_FILLS[sc.sentiment] || SENTIMENT_FILLS.neutral;
         const topTheme = sc.activeThemes[0] || '';
