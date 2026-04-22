@@ -17,14 +17,14 @@ interface RegionTheme {
 }
 
 const REGIONS: RegionTheme[] = [
-  { country: "US", flag: "🇺🇸", name: "United States", theme: "AI & Tech Leadership", sentiment: "bullish", intensity: 88, tickers: THEME_TICKERS["AI & Machine Learning"] || THEME_TICKERS["Technology"] || [] },
-  { country: "CN", flag: "🇨🇳", name: "China", theme: "US-China Trade Tensions", sentiment: "bearish", intensity: 70, tickers: THEME_TICKERS["US-China Trade Tensions"] || [] },
-  { country: "JP", flag: "🇯🇵", name: "Japan", theme: "Yen Weakness & Reform", sentiment: "bullish", intensity: 68, tickers: THEME_TICKERS["Yen Weakness & Corporate Governance Reform"] || [] },
-  { country: "IR", flag: "🇮🇷", name: "Iran", theme: "Middle East Conflict", sentiment: "bearish", intensity: 85, tickers: THEME_TICKERS["Middle East Conflict & Sanctions"] || [] },
-  { country: "IN", flag: "🇮🇳", name: "India", theme: "Manufacturing Shift", sentiment: "bullish", intensity: 72, tickers: THEME_TICKERS["Demographic Dividend & Manufacturing Shift"] || [] },
-  { country: "UA", flag: "🇺🇦", name: "Ukraine", theme: "War & Reconstruction", sentiment: "bearish", intensity: 90, tickers: THEME_TICKERS["War & Reconstruction Demand"] || [] },
-  { country: "BR", flag: "🇧🇷", name: "Brazil", theme: "Commodity Supercycle", sentiment: "bullish", intensity: 58, tickers: THEME_TICKERS["Agribusiness & Commodity Supercycle"] || [] },
-  { country: "DE", flag: "🇩🇪", name: "Germany", theme: "EU Energy Transition", sentiment: "neutral", intensity: 50, tickers: THEME_TICKERS["EU Industrial Policy & Energy Transition"] || [] },
+  { country: "US", flag: "🇺🇸", name: "United States", theme: "AI & Tech Leadership", sentiment: "bullish", intensity: 88, tickers: pickTickers("AI & Machine Learning", "Technology") },
+  { country: "CN", flag: "🇨🇳", name: "China", theme: "US-China Trade Tensions", sentiment: "bearish", intensity: 70, tickers: pickTickers("US-China Trade Tensions") },
+  { country: "JP", flag: "🇯🇵", name: "Japan", theme: "Yen Weakness & Reform", sentiment: "bullish", intensity: 68, tickers: pickTickers("Yen Weakness & Corporate Governance Reform") },
+  { country: "IR", flag: "🇮🇷", name: "Iran", theme: "Middle East Conflict", sentiment: "bearish", intensity: 85, tickers: pickTickers("Middle East Conflict & Sanctions") },
+  { country: "IN", flag: "🇮🇳", name: "India", theme: "Manufacturing Shift", sentiment: "bullish", intensity: 72, tickers: pickTickers("Demographic Dividend & Manufacturing Shift") },
+  { country: "UA", flag: "🇺🇦", name: "Ukraine", theme: "War & Reconstruction", sentiment: "bearish", intensity: 90, tickers: pickTickers("War & Reconstruction Demand") },
+  { country: "BR", flag: "🇧🇷", name: "Brazil", theme: "Commodity Supercycle", sentiment: "bullish", intensity: 58, tickers: pickTickers("Agribusiness & Commodity Supercycle") },
+  { country: "DE", flag: "🇩🇪", name: "Germany", theme: "EU Energy Transition", sentiment: "neutral", intensity: 50, tickers: pickTickers("EU Industrial Policy & Energy Transition") },
 ];
 
 const SENTIMENT_ICON = { bullish: TrendingUp, bearish: TrendingDown, neutral: Minus };
