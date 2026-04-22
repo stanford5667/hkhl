@@ -10,6 +10,7 @@ import { NewsAnalysisWidget } from "@/pages/research/components/NewsAnalysisWidg
 
 export default function ResearchPage() {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [date, setDate] = useState<Date>(new Date());
 
   const handleRefresh = () => {
     setLastUpdated(new Date());
@@ -18,7 +19,7 @@ export default function ResearchPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <ResearchTopBar onRefresh={handleRefresh} />
+      <ResearchTopBar onRefresh={handleRefresh} date={date} onDateChange={setDate} />
 
       <main className="flex-1 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 space-y-3 sm:space-y-4 max-w-[1800px] w-full mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
