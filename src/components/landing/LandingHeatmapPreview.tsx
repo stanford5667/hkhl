@@ -2,8 +2,6 @@ import { useRef, useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { geoNaturalEarth1, geoPath, type GeoPermissibleObjects } from 'd3-geo';
 import { feature } from 'topojson-client';
-import type { Topology, GeometryCollection } from 'topojson-specification';
-import type { FeatureCollection, Feature, Geometry } from 'geojson';
 import { Globe, ChevronRight, TrendingUp, TrendingDown, Minus, X, BarChart3, Zap, ArrowUpRight, ArrowDownRight, Newspaper, AlertTriangle, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -147,9 +145,21 @@ const MOCK_NEWS: NewsItem[] = [
   { id: '8', time: '1h ago', region: 'S. Korea', regionCode: 'KR', headline: 'SK Hynix HBM4 production begins ahead of schedule, Samsung follows', sentiment: 'bullish', tickers: ['000660.KS', '005930.KS'] },
 ];
 
-interface CountryFeature extends Feature<Geometry> {
+interface TopologyLike {
+  objects: {
+    countries: unknown;
+  };
+}
+
+interface CountryFeature {
   id: string;
+  type: string;
+  geometry: unknown;
   properties: { name: string };
+}
+
+interface WorldFeatureCollection {
+  features: CountryFeature[];
 }
 
 interface Props {
@@ -158,7 +168,7 @@ interface Props {
 
 export function LandingHeatmapPreview({ onSignUp }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
-  const [worldData, setWorldData] = useState<FeatureCollection | null>(null);
+  const [worldData, setWorldData] = useState<WorldFeatureCollection | null>(null);
   const [loading, setLoading] = useState(true);
   const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
   const [selectedCountry, setSelectedCountry] = useState<MockRegion | null>(null);
@@ -168,10 +178,10 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
     let cancelled = false;
     fetch(WORLD_TOPO_URL)
       .then(r => r.json())
-      .then((topo: Topology) => {
+      .then((topo: TopologyLike) => {
         if (cancelled) return;
-        const countries = feature(topo, topo.objects.countries as GeometryCollection);
-        setWorldData(countries as FeatureCollection);
+        const countries = feature(topo as never, topo.objects.countries as never);
+        setWorldData(countries as unknown as WorldFeatureCollection);
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -216,7 +226,7 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
         f => NUMERIC_TO_ALPHA2[(f as CountryFeature).id] === hud.code
       ) as CountryFeature | undefined;
       if (!feat) return null;
-      const centroid = pathGenerator.centroid(feat as GeoPermissibleObjects);
+      const centroid = pathGenerator.centroid(feat as unknown as GeoPermissibleObjects);
       if (!centroid || isNaN(centroid[0])) return null;
       const offset = HUD_OFFSETS[hud.code] || { dx: 20, dy: -30 };
       return {
@@ -336,7 +346,7 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
                         const region = regionMap.get(alpha2);
                         const isHovered = hoveredCountry === alpha2;
                         const isSelected = selectedCountry?.code === alpha2;
-                        const d = pathGenerator(f as GeoPermissibleObjects);
+                        const d = pathGenerator(f as unknown as GeoPermissibleObjects);
                         if (!d) return null;
 
                         const hasTheme = !!region;
@@ -369,7 +379,7 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
                           f => NUMERIC_TO_ALPHA2[(f as CountryFeature).id] === sc.code
                         ) as CountryFeature | undefined;
                         if (!feat) return null;
-                        const centroid = pathGenerator.centroid(feat as GeoPermissibleObjects);
+                        const centroid = pathGenerator.centroid(feat as unknown as GeoPermissibleObjects);
                         if (!centroid || isNaN(centroid[0])) return null;
                         const fill = SENTIMENT_FILLS[sc.sentiment];
                         const isSelected = selectedCountry?.code === sc.code;
@@ -451,7 +461,7 @@ export function LandingHeatmapPreview({ onSignUp }: Props) {
                       f => NUMERIC_TO_ALPHA2[(f as CountryFeature).id] === sc.code
                     ) as CountryFeature | undefined;
                     if (!feat) return null;
-                    const centroid = pathGenerator.centroid(feat as GeoPermissibleObjects);
+                    const centroid = pathGenerator.centroid(feat as unknown as GeoPermissibleObjects);
                     if (!centroid || isNaN(centroid[0])) return null;
                     const fill = SENTIMENT_FILLS[sc.sentiment];
                     const offset = LABEL_OFFSETS[sc.code] || { dx: 12, dy: 0 };
