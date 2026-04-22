@@ -17,8 +17,8 @@ import {
 } from "@/services/polygonScreenerService";
 import { cn } from "@/lib/utils";
 
-const QUICK_FILTERS = [
-  { id: "all", label: "All", filters: {} as Partial<ScreenerFilters> },
+const QUICK_FILTERS: { id: string; label: string; filters: Partial<ScreenerFilters> }[] = [
+  { id: "all", label: "All", filters: {} },
   { id: "gainers", label: "Top Gainers", filters: { sortBy: "change", sortDirection: "desc", minChange1D: 0 } },
   { id: "losers", label: "Top Losers", filters: { sortBy: "change", sortDirection: "asc", maxChange1D: 0 } },
   { id: "active", label: "Most Active", filters: { sortBy: "volume", sortDirection: "desc" } },
