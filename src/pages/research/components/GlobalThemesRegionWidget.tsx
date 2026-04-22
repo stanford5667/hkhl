@@ -16,6 +16,16 @@ interface RegionTheme {
   tickers: string[];
 }
 
+function pickTickers(...keys: string[]): string[] {
+  for (const k of keys) {
+    const v = (THEME_TICKERS as Record<string, any>)[k];
+    if (Array.isArray(v) && v.length) {
+      return v.map((t) => (typeof t === "string" ? t : t?.symbol)).filter(Boolean);
+    }
+  }
+  return [];
+}
+
 const REGIONS: RegionTheme[] = [
   { country: "US", flag: "🇺🇸", name: "United States", theme: "AI & Tech Leadership", sentiment: "bullish", intensity: 88, tickers: pickTickers("AI & Machine Learning", "Technology") },
   { country: "CN", flag: "🇨🇳", name: "China", theme: "US-China Trade Tensions", sentiment: "bearish", intensity: 70, tickers: pickTickers("US-China Trade Tensions") },
