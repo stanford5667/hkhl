@@ -11,8 +11,8 @@ export function ResearchBottomBar({ lastUpdated }: ResearchBottomBarProps) {
       <div className="max-w-[1600px] mx-auto flex items-center justify-between text-[11px] font-mono text-muted-foreground">
         <div className="inline-flex items-center gap-1.5">
           <span className="relative flex h-1.5 w-1.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500/60 opacity-75" />
-            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success/60 opacity-75" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-success" />
           </span>
           <span>Live</span>
           <Activity className="h-3 w-3 ml-1" />
