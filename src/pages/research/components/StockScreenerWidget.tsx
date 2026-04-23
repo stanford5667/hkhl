@@ -84,10 +84,12 @@ export function StockScreenerWidget() {
         accessorKey: "symbol",
         header: "Symbol",
         cell: ({ row }) => (
-          <div className="flex flex-col">
-            <span className="font-mono text-xs font-semibold text-foreground">{row.original.symbol}</span>
-            <span className="text-[10px] text-muted-foreground truncate max-w-[160px]">{row.original.name}</span>
-          </div>
+          <TickerHoverPreview ticker={row.original.symbol} stock={row.original}>
+            <div className="flex flex-col cursor-pointer">
+              <span className="font-mono text-xs font-semibold text-foreground hover:text-primary hover:underline">{row.original.symbol}</span>
+              <span className="text-[10px] text-muted-foreground truncate max-w-[160px]">{row.original.name}</span>
+            </div>
+          </TickerHoverPreview>
         ),
         enableSorting: false,
       },
