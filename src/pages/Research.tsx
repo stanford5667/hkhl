@@ -27,7 +27,7 @@ export default function ResearchPage() {
           <GlobalThemesWidget />
         </div>
 
-        <StockScreenerWidget />
+        <UnifiedDiscoveryScreener />
         <EarningsCalendarWidget />
         <MarketMoversWidget />
         <NewsAnalysisWidget />
