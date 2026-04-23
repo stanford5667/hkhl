@@ -19,19 +19,34 @@ interface NewsItem {
   url: string;
 }
 
+function safeStr(v: unknown): string {
+  if (typeof v === 'string') return v;
+  if (v == null) return '';
+  if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+  return '';
+}
+
 async function fetchTickerNews(ticker: string): Promise<NewsItem | null> {
   try {
     const { data, error } = await supabase.functions.invoke('polygon-news', {
       body: { ticker },
     });
     if (error || !data?.article) return null;
-    return data.article as NewsItem;
+    const a = data.article;
+    return {
+      title: safeStr(a.title),
+      shortTitle: safeStr(a.shortTitle),
+      source: safeStr(a.source),
+      publishedAt: safeStr(a.publishedAt),
+      url: safeStr(a.url),
+    };
   } catch {
     return null;
   }
 }
 
 function truncateToWords(text: string, maxWords: number): string {
+  if (typeof text !== 'string') return '';
   const words = text.split(/\s+/);
   if (words.length <= maxWords) return text;
   return words.slice(0, maxWords).join(' ') + '…';
