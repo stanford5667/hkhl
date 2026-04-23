@@ -16,6 +16,7 @@ import {
   type ScreenerResult,
 } from "@/services/polygonScreenerService";
 import { cn } from "@/lib/utils";
+import { TickerHoverPreview } from "@/components/screener/TickerHoverPreview";
 
 const QUICK_FILTERS: { id: string; label: string; filters: Partial<ScreenerFilters> }[] = [
   { id: "all", label: "All", filters: {} },
