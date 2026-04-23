@@ -81,6 +81,13 @@ async function fetchSparklineData(ticker: string): Promise<SparklinePoint[]> {
   }
 }
 
+function safeString(v: unknown): string {
+  if (typeof v === 'string') return v;
+  if (v == null) return '';
+  if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+  return '';
+}
+
 async function fetchCatalyst(ticker: string, sector: string): Promise<CatalystData | null> {
   try {
     // Try real news first
@@ -88,7 +95,13 @@ async function fetchCatalyst(ticker: string, sector: string): Promise<CatalystDa
       body: { ticker },
     });
     if (!error && data?.article) {
-      return { ...data.article, isAI: false } as CatalystData;
+      const a = data.article;
+      return {
+        title: safeString(a.title),
+        source: safeString(a.source),
+        url: safeString(a.url),
+        isAI: false,
+      };
     }
     
     // Fall back to AI-generated catalyst
