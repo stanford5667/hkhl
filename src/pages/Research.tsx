@@ -3,7 +3,7 @@ import { ResearchTopBar } from "@/pages/research/components/ResearchTopBar";
 import { ResearchBottomBar } from "@/pages/research/components/ResearchBottomBar";
 import { MarketThemesWidget } from "@/pages/research/components/MarketThemesWidget";
 import { GlobalThemesWidget } from "@/pages/research/components/GlobalThemesRegionWidget";
-import { StockScreenerWidget } from "@/pages/research/components/StockScreenerWidget";
+import { UnifiedDiscoveryScreener } from "@/components/research/UnifiedDiscoveryScreener";
 import { EarningsCalendarWidget } from "@/pages/research/components/EarningsCalendarWidget";
 import { MarketMoversWidget } from "@/pages/research/components/MarketMoversWidget";
 import { NewsAnalysisWidget } from "@/pages/research/components/NewsAnalysisWidget";
