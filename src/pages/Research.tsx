@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { ResearchTopBar } from "@/pages/research/components/ResearchTopBar";
 import { ResearchBottomBar } from "@/pages/research/components/ResearchBottomBar";
 import { MarketThemesWidget } from "@/pages/research/components/MarketThemesWidget";
@@ -7,15 +8,51 @@ import { UnifiedDiscoveryScreener } from "@/components/research/UnifiedDiscovery
 import { EarningsCalendarWidget } from "@/pages/research/components/EarningsCalendarWidget";
 import { MarketMoversWidget } from "@/pages/research/components/MarketMoversWidget";
 import { NewsAnalysisWidget } from "@/pages/research/components/NewsAnalysisWidget";
+import { ResearchHero } from "@/components/research/ResearchHero";
+import { StockOfTheDay } from "@/components/research/StockOfTheDay";
+import { DiscoveryFeed } from "@/components/research/DiscoveryFeed";
+
+const RECENT_KEY = "research:recent-searches";
 
 export default function ResearchPage() {
+  const navigate = useNavigate();
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [date, setDate] = useState<Date>(new Date());
+  const [searchQuery, setSearchQuery] = useState("");
+  const [recentSearches, setRecentSearches] = useState<string[]>(() => {
+    try {
+      const raw = localStorage.getItem(RECENT_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
 
   const handleRefresh = () => {
     setLastUpdated(new Date());
     window.dispatchEvent(new CustomEvent("research:refresh"));
   };
+
+  const handleSearch = useCallback(
+    (ticker: string) => {
+      const t = ticker.trim().toUpperCase();
+      if (!t) return;
+      const next = [t, ...recentSearches.filter((r) => r !== t)].slice(0, 8);
+      setRecentSearches(next);
+      try {
+        localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+      } catch {}
+      navigate(`/research?ticker=${encodeURIComponent(t)}`);
+    },
+    [recentSearches, navigate]
+  );
+
+  const handleClearRecent = useCallback(() => {
+    setRecentSearches([]);
+    try {
+      localStorage.removeItem(RECENT_KEY);
+    } catch {}
+  }, []);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -31,6 +68,21 @@ export default function ResearchPage() {
         <EarningsCalendarWidget />
         <MarketMoversWidget />
         <NewsAnalysisWidget />
+
+        {/* Restored landing-style sections */}
+        <section className="pt-4">
+          <ResearchHero
+            searchQuery={searchQuery}
+            onSearchQueryChange={setSearchQuery}
+            onSearch={handleSearch}
+            recentSearches={recentSearches}
+            onClearRecent={handleClearRecent}
+          />
+        </section>
+
+        <StockOfTheDay />
+
+        <DiscoveryFeed />
       </main>
 
       <ResearchBottomBar lastUpdated={lastUpdated} />
