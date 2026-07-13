@@ -59,18 +59,8 @@ export default function ResearchPage() {
       <ResearchTopBar onRefresh={handleRefresh} date={date} onDateChange={setDate} />
 
       <main className="flex-1 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 space-y-3 sm:space-y-4 max-w-[1800px] w-full mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
-          <MarketThemesWidget />
-          <GlobalThemesWidget />
-        </div>
-
-        <UnifiedDiscoveryScreener />
-        <EarningsCalendarWidget />
-        <MarketMoversWidget />
-        <NewsAnalysisWidget />
-
-        {/* Restored landing-style sections */}
-        <section className="pt-4">
+        {/* Restored landing-style sections - moved to top */}
+        <section>
           <ResearchHero
             searchQuery={searchQuery}
             onSearchQueryChange={setSearchQuery}
@@ -83,7 +73,18 @@ export default function ResearchPage() {
         <StockOfTheDay />
 
         <DiscoveryFeed />
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+          <MarketThemesWidget />
+          <GlobalThemesWidget />
+        </div>
+
+        <UnifiedDiscoveryScreener />
+        <EarningsCalendarWidget />
+        <MarketMoversWidget />
+        <NewsAnalysisWidget />
       </main>
+
 
       <ResearchBottomBar lastUpdated={lastUpdated} />
     </div>
