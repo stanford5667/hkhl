@@ -70,11 +70,17 @@ const renderApp = async () => {
         )
       : import("react-dom/client"),
     import.meta.env.DEV
-      ? import("./App.tsx?root=assetlabs-react-root-20260729-1")
+      ? import(/* @vite-ignore */ "/src/App.tsx?root=assetlabs-react-root-20260729-1")
       : import("./App.tsx"),
   ]);
 
-  reactDomClient.createRoot(rootElement).render(<appModule.default />);
+  const createRoot = reactDomClient.createRoot ?? reactDomClient.default?.createRoot;
+
+  if (!createRoot) {
+    throw new Error("React root renderer failed to load");
+  }
+
+  createRoot(rootElement).render(<appModule.default />);
 
   // Preload common routes after initial render is complete
   preloadCommonRoutes();
