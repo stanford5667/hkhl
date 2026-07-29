@@ -27,7 +27,6 @@ interface HubCardProps {
   to: string;
   icon: React.ElementType;
   title: string;
-  accent: Accent;
   loading?: boolean;
   primary?: React.ReactNode;
   secondary?: React.ReactNode;
@@ -40,7 +39,6 @@ function HubCard({
   to,
   icon: Icon,
   title,
-  accent,
   loading,
   primary,
   secondary,
@@ -48,37 +46,27 @@ function HubCard({
   visual,
   tone = "default",
 }: HubCardProps) {
-  const a = ACCENTS[accent];
   return (
     <Link
       to={to}
       className={cn(
-        "group relative rounded-lg border border-border/60 bg-card/50 backdrop-blur-sm",
-        "p-3 sm:p-4 pt-4 sm:pt-5 flex flex-col gap-2 min-h-[130px] overflow-hidden",
-        "transition-all duration-200 will-change-transform",
-        "hover:-translate-y-0.5 hover:bg-card/70 hover:shadow-lg",
-        a.ring,
-        a.glow,
+        "group relative rounded-md border border-border/40 bg-background",
+        "p-4 flex flex-col gap-3 min-h-[128px] overflow-hidden",
+        "transition-colors duration-150",
+        "hover:border-border hover:bg-muted/20",
+        "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/40",
       )}
     >
-      {/* Top accent bar */}
-      <div className={cn("absolute inset-x-0 top-0 h-0.5", a.bar)} />
-
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <div
-            className={cn(
-              "flex h-9 w-9 items-center justify-center rounded-md border shrink-0 transition-transform group-hover:scale-105",
-              a.badge,
-            )}
-          >
-            <Icon className="h-4.5 w-4.5" strokeWidth={2} />
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex h-8 w-8 items-center justify-center rounded border border-border/50 bg-muted/30 text-muted-foreground shrink-0 transition-colors group-hover:text-foreground">
+            <Icon className="h-4 w-4" strokeWidth={1.75} />
           </div>
-          <h3 className="text-xs sm:text-sm font-mono font-semibold uppercase tracking-wide truncate text-foreground">
+          <h3 className="text-[11px] font-medium uppercase tracking-[0.08em] truncate text-muted-foreground group-hover:text-foreground transition-colors">
             {title}
           </h3>
         </div>
-        <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
+        <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors shrink-0" />
       </div>
 
       <div className="flex-1 flex flex-col justify-end gap-1">
@@ -92,15 +80,15 @@ function HubCard({
             <div className="flex items-end justify-between gap-2">
               <div
                 className={cn(
-                  "text-base sm:text-lg font-semibold font-mono truncate",
-                  tone === "positive" && "text-emerald-400",
-                  tone === "negative" && "text-red-400",
+                  "text-lg font-semibold tracking-tight tabular-nums truncate",
+                  tone === "positive" && "text-success",
+                  tone === "negative" && "text-destructive",
                   tone === "default" && "text-foreground",
                 )}
               >
                 {primary}
               </div>
-              {visual && <div className="shrink-0 opacity-80">{visual}</div>}
+              {visual && <div className="shrink-0">{visual}</div>}
             </div>
             {secondary && (
               <div className="text-[11px] text-muted-foreground truncate">{secondary}</div>
@@ -108,9 +96,8 @@ function HubCard({
             {extra && (
               <div
                 className={cn(
-                  "text-[11px] truncate transition-all duration-200 overflow-hidden",
+                  "text-[11px] text-muted-foreground/80 truncate overflow-hidden transition-all duration-150",
                   "max-h-0 opacity-0 group-hover:max-h-6 group-hover:opacity-100 group-focus-visible:max-h-6 group-focus-visible:opacity-100",
-                  a.text,
                 )}
               >
                 {extra}
@@ -134,16 +121,16 @@ function fmtCurrency(n: number) {
 function ChangeChip({ pct }: { pct: number }) {
   const up = pct >= 0;
   return (
-    <div
+    <span
       className={cn(
-        "inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-mono font-semibold",
-        up ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400",
+        "inline-flex items-center gap-1 text-[11px] font-medium tabular-nums",
+        up ? "text-success" : "text-destructive",
       )}
     >
       {up ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
       {up ? "+" : ""}
       {pct.toFixed(2)}%
-    </div>
+    </span>
   );
 }
 
@@ -167,7 +154,7 @@ function Sparkline({ points, positive }: { points: number[]; positive: boolean }
         strokeWidth={1.5}
         strokeLinecap="round"
         strokeLinejoin="round"
-        className={positive ? "text-emerald-400" : "text-red-400"}
+        className={positive ? "text-success" : "text-destructive"}
       />
     </svg>
   );
@@ -181,7 +168,6 @@ function PortfolioCard() {
       to="/assets"
       icon={Briefcase}
       title="Portfolio"
-      accent="emerald"
       loading={isLoading}
       primary={data ? fmtCurrency(data.totalValue) : "—"}
       secondary={data ? `${gain >= 0 ? "+" : ""}${gain.toFixed(2)}% total return` : undefined}
@@ -202,7 +188,6 @@ function PipelineCard() {
       to="/pipeline"
       icon={GitBranch}
       title="Pipeline"
-      accent="violet"
       loading={isLoading}
       primary={`${count}`}
       secondary={count === 1 ? "active deal" : "active deals"}
@@ -224,7 +209,6 @@ function WatchlistCard() {
       to="/watchlist"
       icon={Eye}
       title="Watchlist"
-      accent="amber"
       loading={isLoading}
       primary={top ? top.item_id : "Empty"}
       secondary={top ? `${changePct >= 0 ? "+" : ""}${changePct.toFixed(2)}% today` : "Add tickers to track"}
@@ -273,7 +257,6 @@ function BacktesterCard() {
       to="/backtester"
       icon={LineChart}
       title="Backtester"
-      accent="teal"
       loading={isLoading}
       primary={latest ? latest.theme_title : "Run your first"}
       secondary={
@@ -315,7 +298,6 @@ function AcademyCard() {
       to="/academy"
       icon={GraduationCap}
       title="Academy"
-      accent="indigo"
       loading={isLoading}
       primary={data ? `${data.completed}` : "0"}
       secondary={data && data.completed > 0 ? "lessons completed" : "Continue learning"}
@@ -345,7 +327,6 @@ function SmartMoneyCard() {
       to="/smart-money"
       icon={Radar}
       title="Smart Money"
-      accent="rose"
       loading={isLoading}
       primary={d ? d.ticker : "Latest signals"}
       secondary={
@@ -367,20 +348,17 @@ function TeaserCard({
   to,
   icon,
   title,
-  accent,
 }: {
   to: string;
   icon: React.ElementType;
   title: string;
-  accent: Accent;
 }) {
   return (
     <HubCard
       to={to}
       icon={icon}
       title={title}
-      accent={accent}
-      primary={<span className="text-muted-foreground text-sm font-normal">Sign in</span>}
+      primary={<span className="text-sm font-normal text-muted-foreground">Sign in</span>}
       secondary="to see your data"
     />
   );
@@ -391,15 +369,15 @@ export function HubOverviewGrid() {
 
   return (
     <WidgetCard title="Your Hub" subtitle="Live snapshots across the platform">
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 p-3 sm:p-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 p-4 sm:p-6">
         {!isAuthenticated && !loading ? (
           <>
-            <TeaserCard to="/auth" icon={Briefcase} title="Portfolio" accent="emerald" />
-            <TeaserCard to="/auth" icon={GitBranch} title="Pipeline" accent="violet" />
-            <TeaserCard to="/auth" icon={Eye} title="Watchlist" accent="amber" />
-            <TeaserCard to="/backtester" icon={LineChart} title="Backtester" accent="teal" />
-            <TeaserCard to="/academy" icon={GraduationCap} title="Academy" accent="indigo" />
-            <TeaserCard to="/smart-money" icon={Radar} title="Smart Money" accent="rose" />
+            <TeaserCard to="/auth" icon={Briefcase} title="Portfolio" />
+            <TeaserCard to="/auth" icon={GitBranch} title="Pipeline" />
+            <TeaserCard to="/auth" icon={Eye} title="Watchlist" />
+            <TeaserCard to="/backtester" icon={LineChart} title="Backtester" />
+            <TeaserCard to="/academy" icon={GraduationCap} title="Academy" />
+            <TeaserCard to="/smart-money" icon={Radar} title="Smart Money" />
           </>
         ) : (
           <>
