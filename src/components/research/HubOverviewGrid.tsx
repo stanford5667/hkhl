@@ -23,53 +23,6 @@ import {
 import { useWatchlistWithQuotes } from "@/hooks/useWatchlistWithQuotes";
 import { useSavedReports } from "@/hooks/useSavedReports";
 
-type Accent = "emerald" | "violet" | "amber" | "teal" | "indigo" | "rose";
-
-const ACCENTS: Record<Accent, { bar: string; badge: string; ring: string; text: string; glow: string }> = {
-  emerald: {
-    bar: "bg-emerald-500/70",
-    badge: "bg-emerald-500/10 border-emerald-500/30 text-emerald-400",
-    ring: "hover:border-emerald-500/50",
-    text: "text-emerald-400",
-    glow: "hover:shadow-emerald-500/10",
-  },
-  violet: {
-    bar: "bg-violet-500/70",
-    badge: "bg-violet-500/10 border-violet-500/30 text-violet-400",
-    ring: "hover:border-violet-500/50",
-    text: "text-violet-400",
-    glow: "hover:shadow-violet-500/10",
-  },
-  amber: {
-    bar: "bg-amber-500/70",
-    badge: "bg-amber-500/10 border-amber-500/30 text-amber-400",
-    ring: "hover:border-amber-500/50",
-    text: "text-amber-400",
-    glow: "hover:shadow-amber-500/10",
-  },
-  teal: {
-    bar: "bg-teal-500/70",
-    badge: "bg-teal-500/10 border-teal-500/30 text-teal-400",
-    ring: "hover:border-teal-500/50",
-    text: "text-teal-400",
-    glow: "hover:shadow-teal-500/10",
-  },
-  indigo: {
-    bar: "bg-indigo-500/70",
-    badge: "bg-indigo-500/10 border-indigo-500/30 text-indigo-400",
-    ring: "hover:border-indigo-500/50",
-    text: "text-indigo-400",
-    glow: "hover:shadow-indigo-500/10",
-  },
-  rose: {
-    bar: "bg-rose-500/70",
-    badge: "bg-rose-500/10 border-rose-500/30 text-rose-400",
-    ring: "hover:border-rose-500/50",
-    text: "text-rose-400",
-    glow: "hover:shadow-rose-500/10",
-  },
-};
-
 interface HubCardProps {
   to: string;
   icon: React.ElementType;
