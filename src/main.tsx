@@ -63,15 +63,17 @@ const renderApp = async () => {
     throw new Error("Root element not found");
   }
 
+  const appModulePromise: Promise<{ default: React.ComponentType }> = import.meta.env.DEV
+    ? import(/* @vite-ignore */ `/src/App.tsx?root=assetlabs-react-root-20260729-1`)
+    : import("./App.tsx");
+
   const [reactDomClient, appModule] = await Promise.all([
     import.meta.env.DEV
       ? import(
           /* @vite-ignore */ `/node_modules/.vite/deps/react-dom_client.js?v=${REACT_ROOT_BOOTSTRAP_VERSION}`
         )
       : import("react-dom/client"),
-    import.meta.env.DEV
-      ? import(/* @vite-ignore */ "/src/App.tsx?root=assetlabs-react-root-20260729-1")
-      : import("./App.tsx"),
+    appModulePromise,
   ]);
 
   const createRoot = reactDomClient.createRoot ?? reactDomClient.default?.createRoot;
