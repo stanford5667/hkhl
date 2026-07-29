@@ -456,7 +456,7 @@ function StockRowMobile({ stock, onClick, showInsights, insight }: { stock: Scre
           <span className="text-sm font-medium text-foreground tabular-nums block">${stock.price.toFixed(2)}</span>
           <span className={cn(
             "text-xs font-semibold tabular-nums",
-            isPositive ? 'text-emerald-500' : 'text-destructive'
+            isPositive ? 'text-success' : 'text-destructive'
           )}>
             {isPositive ? '+' : ''}{stock.changePercent.toFixed(2)}%
           </span>
@@ -473,7 +473,7 @@ function StockRowMobile({ stock, onClick, showInsights, insight }: { stock: Scre
       {showInsights && insight && (
         <div className="mt-2 pt-2 border-t border-border/30">
           <p className="text-[10px] text-muted-foreground line-clamp-2">
-            <Sparkles className="h-3 w-3 text-amber-500 inline mr-1" />
+            <Sparkles className="h-3 w-3 text-muted-foreground inline mr-1" />
             {getInsightSummary(insight)}
           </p>
         </div>
@@ -541,7 +541,7 @@ function StockRow({
           return (
             <div key={col.key} className={cn(
               col.width, 'text-right text-xs font-semibold tabular-nums',
-              isPositive ? 'text-emerald-500' : 'text-destructive'
+              isPositive ? 'text-success' : 'text-destructive'
             )}>
               {isPositive ? '+' : ''}{stock.changePercent.toFixed(2)}%
             </div>
@@ -566,8 +566,8 @@ function StockRow({
               <div className="w-32 flex-shrink-0 flex items-center gap-1.5 text-left">
                 <Lightbulb className={cn(
                   "h-3 w-3 flex-shrink-0",
-                  insight.confidence === 'high' ? 'text-amber-500' : 
-                  insight.confidence === 'medium' ? 'text-amber-400/70' : 'text-muted-foreground'
+                  insight.confidence === 'high' ? 'text-foreground' : 
+                  insight.confidence === 'medium' ? 'text-muted-foreground' : 'text-muted-foreground/70'
                 )} />
                 <span className="text-[10px] text-muted-foreground truncate">
                   {getInsightSummary(insight)}
@@ -729,7 +729,7 @@ function StockList({
           );
         })}
         {showInsights && (
-          <div className="w-32 flex-shrink-0 flex items-center gap-1 text-[10px] font-medium text-amber-500">
+          <div className="w-32 flex-shrink-0 flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
             <Sparkles className="h-3 w-3" />
             Insight
             {insightsLoading && (
@@ -1710,7 +1710,7 @@ export function UnifiedDiscoveryScreener() {
               htmlFor="show-insights" 
               className="text-xs font-medium cursor-pointer flex items-center gap-1.5"
             >
-              <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+              <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
               <span className="hidden sm:inline">Show AI Insights</span>
               <span className="sm:hidden">AI Insights</span>
             </Label>
