@@ -70,8 +70,9 @@ export function DataTable<TData>({
     getSortedRowModel: manualSorting ? undefined : getSortedRowModel(),
   });
 
-  const cellPad = dense ? "px-2.5 py-1.5" : "px-3 py-2.5";
-  const headPad = dense ? "px-2.5 py-2" : "px-3 py-2.5";
+  const edgePad = "first:pl-4 sm:first:pl-6 last:pr-4 sm:last:pr-6";
+  const cellPad = cn(dense ? "px-3 py-2" : "px-3 py-3", edgePad);
+  const headPad = cn(dense ? "px-3 py-2.5" : "px-3 py-3", edgePad);
 
   const totalPages = useMemo(() => {
     if (pageCount && pageCount > 0) return pageCount;
@@ -91,7 +92,7 @@ export function DataTable<TData>({
         <table className="w-full caption-bottom text-xs sm:text-[13px]">
           <thead
             className={cn(
-              "bg-muted/30 border-b border-border/60",
+              "bg-muted/20 border-b border-border/40",
               stickyHeader && "sticky top-0 z-10",
             )}
           >
@@ -100,18 +101,25 @@ export function DataTable<TData>({
                 {hg.headers.map((header) => {
                   const canSort = header.column.getCanSort();
                   const sortDir = header.column.getIsSorted();
+                  const numeric = (header.column.columnDef.meta as any)?.numeric === true;
                   return (
                     <th
                       key={header.id}
                       className={cn(
                         headPad,
-                        "text-left align-middle font-mono font-semibold text-[10px] sm:text-[11px] uppercase tracking-wide text-muted-foreground whitespace-nowrap",
+                        "align-middle font-medium text-[10px] sm:text-[11px] uppercase tracking-[0.08em] text-muted-foreground whitespace-nowrap",
+                        numeric ? "text-right" : "text-left",
                         canSort && "cursor-pointer select-none hover:text-foreground",
                       )}
                       onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
                       style={{ width: header.column.columnDef.size }}
                     >
-                      <div className="inline-flex items-center gap-1">
+                      <div
+                        className={cn(
+                          "inline-flex items-center gap-1",
+                          numeric && "justify-end w-full",
+                        )}
+                      >
                         {header.isPlaceholder
                           ? null
                           : flexRender(header.column.columnDef.header, header.getContext())}
@@ -137,7 +145,7 @@ export function DataTable<TData>({
             {isLoading ? (
               <tr>
                 <td colSpan={columns.length} className="h-32 text-center">
-                  <div className="inline-flex items-center gap-2 text-muted-foreground font-mono text-xs">
+                  <div className="inline-flex items-center gap-2 text-muted-foreground text-xs">
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     Loading…
                   </div>
@@ -146,7 +154,7 @@ export function DataTable<TData>({
             ) : table.getRowModel().rows.length === 0 ? (
               <tr>
                 <td colSpan={columns.length} className="h-32 text-center">
-                  <span className="text-muted-foreground font-mono text-xs">{emptyMessage}</span>
+                  <span className="text-muted-foreground text-xs">{emptyMessage}</span>
                 </td>
               </tr>
             ) : (
@@ -154,14 +162,22 @@ export function DataTable<TData>({
                 <tr
                   key={rowKey ? rowKey(row.original, idx) : row.id}
                   className={cn(
-                    "border-b border-border/40 transition-colors",
-                    onRowClick && "cursor-pointer hover:bg-primary/5",
+                    "border-b border-border/30 transition-colors",
+                    onRowClick && "cursor-pointer hover:bg-muted/30",
                     !onRowClick && "hover:bg-muted/20",
                   )}
                   onClick={onRowClick ? () => onRowClick(row.original) : undefined}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className={cn(cellPad, "align-middle whitespace-nowrap")}>
+                    <td
+                      key={cell.id}
+                      className={cn(
+                        cellPad,
+                        "align-middle whitespace-nowrap",
+                        (cell.column.columnDef.meta as any)?.numeric === true &&
+                          "text-right tabular-nums",
+                      )}
+                    >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}
@@ -173,8 +189,8 @@ export function DataTable<TData>({
       </div>
 
       {/* Footer / Pagination */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 px-3 py-2 border-t border-border/50 bg-muted/10">
-        <div className="text-[11px] font-mono text-muted-foreground">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 px-4 sm:px-6 py-3 border-t border-border/40">
+        <div className="text-[11px] text-muted-foreground tabular-nums">
           {totalRows != null ? (
             <>
               {data.length === 0
@@ -190,7 +206,7 @@ export function DataTable<TData>({
             <select
               value={pageSize}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
-              className="h-7 rounded-md border border-border/60 bg-background px-2 text-[11px] font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              className="h-7 rounded border border-border/40 bg-background px-2 text-[11px] font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
             >
               {pageSizeOptions.map((s) => (
                 <option key={s} value={s}>
@@ -208,7 +224,7 @@ export function DataTable<TData>({
           >
             <ChevronLeft className="h-3.5 w-3.5" />
           </Button>
-          <span className="text-[11px] font-mono text-muted-foreground tabular-nums min-w-[60px] text-center">
+          <span className="text-[11px] text-muted-foreground tabular-nums min-w-[60px] text-center">
             {pageIndex + 1}{totalPages ? ` / ${totalPages}` : ""}
           </span>
           <Button
