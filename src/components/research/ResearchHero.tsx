@@ -123,7 +123,7 @@ export function ResearchHero({
           </motion.p>
         </div>
 
-        {/* Search Section - Command palette style with glow */}
+        {/* Search Section - Command palette style */}
         <motion.div
           ref={containerRef}
           className="max-w-xl mx-auto mb-6 relative"
