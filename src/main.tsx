@@ -1,7 +1,7 @@
-import { createRoot } from "react-dom/client";
-import App from "./App.tsx";
 import "./index.css";
 import { preloadCommonRoutes } from "./lib/routePreloader";
+
+const REACT_ROOT_BOOTSTRAP_VERSION = "assetlabs-react-root-20260729-1";
 
 const CHUNK_RELOAD_KEY = "assetlabs:chunk-reload-attempt";
 const CHUNK_RELOAD_WINDOW_MS = 15000;
@@ -56,7 +56,28 @@ if (typeof window !== "undefined") {
   });
 }
 
-createRoot(document.getElementById("root")!).render(<App />);
+const renderApp = async () => {
+  const rootElement = document.getElementById("root");
 
-// Preload common routes after initial render is complete
-preloadCommonRoutes();
+  if (!rootElement) {
+    throw new Error("Root element not found");
+  }
+
+  const [reactDomClient, appModule] = await Promise.all([
+    import.meta.env.DEV
+      ? import(
+          /* @vite-ignore */ `/node_modules/.vite/deps/react-dom_client.js?v=${REACT_ROOT_BOOTSTRAP_VERSION}`
+        )
+      : import("react-dom/client"),
+    import.meta.env.DEV
+      ? import("./App.tsx?root=assetlabs-react-root-20260729-1")
+      : import("./App.tsx"),
+  ]);
+
+  reactDomClient.createRoot(rootElement).render(<appModule.default />);
+
+  // Preload common routes after initial render is complete
+  preloadCommonRoutes();
+};
+
+void renderApp();
