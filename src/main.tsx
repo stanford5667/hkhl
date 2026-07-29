@@ -1,7 +1,10 @@
 import "./index.css";
 import { preloadCommonRoutes } from "./lib/routePreloader";
+import type { ComponentType } from "react";
 
 const REACT_ROOT_BOOTSTRAP_VERSION = "assetlabs-react-root-20260729-1";
+
+const dynamicImport = (path: string) => import(/* @vite-ignore */ path);
 
 const CHUNK_RELOAD_KEY = "assetlabs:chunk-reload-attempt";
 const CHUNK_RELOAD_WINDOW_MS = 15000;
@@ -63,15 +66,13 @@ const renderApp = async () => {
     throw new Error("Root element not found");
   }
 
-  const appModulePromise: Promise<{ default: React.ComponentType }> = import.meta.env.DEV
-    ? import(/* @vite-ignore */ `/src/App.tsx?root=assetlabs-react-root-20260729-1`)
+  const appModulePromise: Promise<{ default: ComponentType }> = import.meta.env.DEV
+    ? dynamicImport(`/src/App.tsx?root=assetlabs-react-root-20260729-1`)
     : import("./App.tsx");
 
   const [reactDomClient, appModule] = await Promise.all([
     import.meta.env.DEV
-      ? import(
-          /* @vite-ignore */ `/node_modules/.vite/deps/react-dom_client.js?v=${REACT_ROOT_BOOTSTRAP_VERSION}`
-        )
+      ? dynamicImport(`/node_modules/.vite/deps/react-dom_client.js?v=${REACT_ROOT_BOOTSTRAP_VERSION}`)
       : import("react-dom/client"),
     appModulePromise,
   ]);
