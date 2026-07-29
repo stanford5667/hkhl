@@ -69,7 +69,7 @@ export function NewsAnalysisWidget() {
                   e.stopPropagation();
                   navigate(`/stock/${t}`);
                 }}
-                className="px-1.5 py-0.5 rounded border border-border/60 bg-muted/30 hover:bg-primary/10 hover:border-primary/30 text-[10px] font-mono text-foreground transition-colors"
+                className="px-1.5 py-0.5 rounded border border-border/40 bg-muted/20 hover:border-border hover:bg-muted/50 text-[10px] font-mono text-foreground transition-colors"
               >
                 {t}
               </button>
@@ -86,10 +86,10 @@ export function NewsAnalysisWidget() {
             <Badge
               variant="outline"
               className={cn(
-                "font-mono text-[10px] capitalize",
-                s === "positive" && "border-success/40 text-success bg-success/10",
-                s === "negative" && "border-destructive/40 text-destructive bg-destructive/10",
-                s === "neutral" && "border-border text-muted-foreground",
+                "text-[10px] font-normal capitalize border-border/40",
+                s === "positive" && "text-success",
+                s === "negative" && "text-destructive",
+                s === "neutral" && "text-muted-foreground",
               )}
             >
               {s}
@@ -99,6 +99,7 @@ export function NewsAnalysisWidget() {
       },
       {
         accessorKey: "publishedAt",
+        meta: { numeric: true },
         header: "Time",
         cell: ({ row }) => (
           <span className="font-mono text-[11px] text-muted-foreground tabular-nums">

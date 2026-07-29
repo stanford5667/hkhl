@@ -63,13 +63,15 @@ export function MarketMoversWidget() {
       },
       {
         accessorKey: "price",
+        meta: { numeric: true },
         header: "Price",
         cell: ({ row }) => (
-          <span className="font-mono text-xs tabular-nums">${row.original.price?.toFixed(2) ?? "—"}</span>
+          <span className="font-mono text-xs tabular-nums text-foreground">${row.original.price?.toFixed(2) ?? "—"}</span>
         ),
       },
       {
         accessorKey: "changePercent",
+        meta: { numeric: true },
         header: "Change %",
         cell: ({ row }) => {
           const v = row.original.changePercent;
@@ -77,7 +79,7 @@ export function MarketMoversWidget() {
           return (
             <span
               className={cn(
-                "font-mono text-xs tabular-nums font-semibold",
+                "font-mono text-xs tabular-nums font-medium",
                 positive ? "text-success" : "text-destructive",
               )}
             >
@@ -89,6 +91,7 @@ export function MarketMoversWidget() {
       },
       {
         accessorKey: "volume",
+        meta: { numeric: true },
         header: "Volume",
         cell: ({ row }) => (
           <span className="font-mono text-xs tabular-nums text-muted-foreground">
@@ -98,6 +101,7 @@ export function MarketMoversWidget() {
       },
       {
         accessorKey: "marketCap",
+        meta: { numeric: true },
         header: "Mkt Cap",
         cell: ({ row }) => (
           <span className="font-mono text-xs tabular-nums text-muted-foreground">
@@ -124,14 +128,14 @@ export function MarketMoversWidget() {
             setPageIndex(0);
           }}
         >
-          <TabsList className="h-7">
-            <TabsTrigger value="gainers" className="h-6 text-[11px] font-mono gap-1">
+          <TabsList className="h-7 bg-muted/40">
+            <TabsTrigger value="gainers" className="h-6 text-[11px] gap-1.5">
               <TrendingUp className="h-3 w-3" /> Gainers
             </TabsTrigger>
-            <TabsTrigger value="losers" className="h-6 text-[11px] font-mono gap-1">
+            <TabsTrigger value="losers" className="h-6 text-[11px] gap-1.5">
               <TrendingDown className="h-3 w-3" /> Losers
             </TabsTrigger>
-            <TabsTrigger value="active" className="h-6 text-[11px] font-mono gap-1">
+            <TabsTrigger value="active" className="h-6 text-[11px] gap-1.5">
               <Activity className="h-3 w-3" /> Active
             </TabsTrigger>
           </TabsList>

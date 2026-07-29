@@ -53,20 +53,20 @@ export function GlobalThemesWidget() {
         <Button
           size="sm"
           variant="outline"
-          className="h-7 text-[11px] font-mono"
+          className="h-7 text-[11px] border-border/40"
           onClick={() => navigate("/investment-heatmap")}
         >
           Open Map
         </Button>
       }
     >
-      <ul className="divide-y divide-border/40">
+      <ul className="divide-y divide-border/30">
         {sorted.map((r) => {
           const Icon = SENTIMENT_ICON[r.sentiment];
           return (
             <li
               key={r.country}
-              className="flex items-center gap-3 px-3 sm:px-4 py-2 hover:bg-muted/20 transition-colors cursor-pointer"
+              className="flex items-center gap-3 px-4 sm:px-6 py-2.5 hover:bg-muted/20 transition-colors cursor-pointer"
               onClick={() => navigate(`/investment-heatmap?region=${r.country}`)}
             >
               <span className="text-xl leading-none shrink-0">{r.flag}</span>
@@ -75,7 +75,7 @@ export function GlobalThemesWidget() {
                   <span className="font-mono text-xs font-semibold text-foreground truncate">{r.name}</span>
                   <span
                     className={cn(
-                      "inline-flex items-center gap-0.5 text-[10px] font-mono",
+                      "inline-flex items-center gap-1 text-[10px] capitalize",
                       r.sentiment === "bullish" && "text-success",
                       r.sentiment === "bearish" && "text-destructive",
                       r.sentiment === "neutral" && "text-muted-foreground",
@@ -96,7 +96,7 @@ export function GlobalThemesWidget() {
                         e.stopPropagation();
                         navigate(`/stock/${t}`);
                       }}
-                      className="px-1.5 py-0.5 rounded border border-border/60 bg-muted/30 hover:bg-primary/10 hover:border-primary/30 text-[10px] font-mono text-foreground transition-colors"
+                      className="px-1.5 py-0.5 rounded border border-border/40 bg-muted/20 hover:border-border hover:bg-muted/50 text-[10px] font-mono text-foreground transition-colors"
                     >
                       {t}
                     </button>
@@ -113,7 +113,7 @@ export function GlobalThemesWidget() {
                     style={{ width: `${r.intensity}%` }}
                   />
                 </div>
-                <span className="text-[10px] font-mono tabular-nums text-muted-foreground w-7 text-right">
+                <span className="text-[10px] tabular-nums text-muted-foreground w-7 text-right">
                   {r.intensity}
                 </span>
               </div>
