@@ -7,6 +7,7 @@ interface Feature {
   icon: LucideIcon;
   title: string;
   description: string;
+  summary: string;
   cta: string;
   action: () => void;
   accentClass: string;
