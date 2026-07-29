@@ -29,8 +29,11 @@ function FeatureCard({ feature: f, compact = false }: { feature: Feature; compac
         <f.icon className="h-4 w-4 sm:h-5 sm:w-5" />
       </div>
       <h3 className={cn("font-semibold font-mono text-foreground mb-1.5", compact ? "text-xs" : "text-sm sm:text-base")}>{f.title}</h3>
-      <p className={cn("text-foreground/70 leading-relaxed", compact ? "text-[10px] mb-3 line-clamp-2" : "text-[11px] sm:text-xs mb-4")}>
+      <p className={cn("text-foreground/70 leading-relaxed", compact ? "text-[10px] mb-2 line-clamp-2" : "text-[11px] sm:text-xs mb-2")}>
         {f.description}
+      </p>
+      <p className={cn("text-foreground/50 leading-relaxed", compact ? "text-[10px] mb-3 line-clamp-3" : "text-[10px] sm:text-[11px] mb-4 line-clamp-3")}>
+        {f.summary}
       </p>
       <span
         className={cn(
@@ -54,6 +57,7 @@ export function FeatureShowcaseRow() {
       icon: FlaskConical,
       title: 'No-Code AI Investing',
       description: 'Backtest strategies, run Monte Carlo simulations, and analyze risk — no programming required.',
+      summary: 'Build strategies with a visual node builder, simulate slippage-adjusted NAV, and test against 1+ years of historical data.',
       cta: 'Try it free',
       action: () => navigate('/stock/AAPL', { state: { tab: 'backtest' } }),
       accentClass: 'text-primary bg-primary/10 border-primary/20',
@@ -62,6 +66,7 @@ export function FeatureShowcaseRow() {
       icon: Brain,
       title: 'AI Analysis',
       description: 'Get instant AI-generated insights on fundamentals, technicals, and earnings for any ticker.',
+      summary: 'Open any stock page to see AI-generated summaries on valuation, momentum, catalysts, and analyst sentiment.',
       cta: 'See AI insights',
       action: () => navigate('/stock/NVDA'),
       accentClass: 'text-chart-4 bg-chart-4/10 border-chart-4/20',
@@ -70,6 +75,7 @@ export function FeatureShowcaseRow() {
       icon: SlidersHorizontal,
       title: 'Stock Screener',
       description: 'Filter 10,000+ stocks by 18+ metrics including P/E, ROE, beta, and growth rates.',
+      summary: 'Screen the full market by fundamentals, volatility, and liquidity, then sort and export your shortlist in real time.',
       cta: 'Open screener',
       action: () => {
         const el = document.getElementById('market-intelligence');
