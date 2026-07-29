@@ -11,6 +11,7 @@ import { NewsAnalysisWidget } from "@/pages/research/components/NewsAnalysisWidg
 import { ResearchHero } from "@/components/research/ResearchHero";
 import { StockOfTheDay } from "@/components/research/StockOfTheDay";
 import { DiscoveryFeed } from "@/components/research/DiscoveryFeed";
+import { HubOverviewGrid } from "@/components/research/HubOverviewGrid";
 
 const RECENT_KEY = "research:recent-searches";
 
