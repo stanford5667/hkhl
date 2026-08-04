@@ -385,7 +385,7 @@ export function FeaturePreviewShowcase() {
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] px-3 sm:px-5 pb-5">
         {/* Copy side */}
-        <div className="flex flex-col justify-center gap-3">
+        <div className="flex flex-col justify-start gap-3 pt-1">
           <h3 className={cn("font-display text-base sm:text-xl font-semibold", tab.accent)}>
             {tab.headline}
           </h3>
