@@ -429,24 +429,36 @@ export default function LessonView() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-background/85 backdrop-blur-md px-6 text-center"
+                    className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-background/90 backdrop-blur-md px-6 text-center"
                   >
                     <div className="w-12 h-12 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center">
                       <Lock className="w-5 h-5 text-primary" />
                     </div>
-                    <div className="space-y-1">
-                      <p className="text-base md:text-lg font-semibold">Preview ended</p>
-                      <p className="text-sm text-muted-foreground max-w-sm">
-                        You've watched the free {previewLabel ?? '2 min'} preview. Unlock the full lesson and the entire Academy with Pro.
+                    <div className="space-y-2">
+                      <p className="text-lg md:text-2xl font-bold tracking-tight">
+                        The best part starts right here.
                       </p>
+                      <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                        That was just the {previewLabel ?? 'free'} preview. The rest of this lesson
+                        walks through the exact framework — plus {' '}
+                        <span className="font-semibold text-foreground">90+ lessons</span>, live trade
+                        ideas, and the AI research suite.
+                      </p>
+                      <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 pt-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                        <span>Instant access</span>
+                        <span className="text-primary">•</span>
+                        <span>Cancel anytime</span>
+                        <span className="text-primary">•</span>
+                        <span>Full Academy included</span>
+                      </div>
                     </div>
                     <div className="flex flex-wrap items-center justify-center gap-2">
-                      <Button onClick={() => setShowUpgradeModal(true)}>
+                      <Button size="lg" onClick={() => setShowUpgradeModal(true)}>
                         <Sparkles className="w-4 h-4 mr-2" />
-                        Unlock full lesson
+                        Continue this lesson with Pro
                       </Button>
                       <Button
-                        variant="outline"
+                        variant="ghost"
                         onClick={() => {
                           setPreviewEnded(false);
                           const el = videoRef.current as HTMLVideoElement | null;
