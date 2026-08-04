@@ -18,7 +18,10 @@ import {
   Lock,
   Sparkles,
   LogIn,
-  X
+  X,
+  BarChart3,
+  Search,
+  MessageCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -467,6 +470,20 @@ export default function LessonView() {
                       >
                         Rewatch preview
                       </Button>
+                    </div>
+                    <div className="flex flex-wrap justify-center gap-3 pt-2 text-xs text-muted-foreground">
+                      <span className="inline-flex items-center gap-1.5">
+                        <BarChart3 className="w-3.5 h-3.5 text-primary" />
+                        Backtest this lesson's thesis
+                      </span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <Search className="w-3.5 h-3.5 text-primary" />
+                        Screen the same setup
+                      </span>
+                      <span className="inline-flex items-center gap-1.5">
+                        <MessageCircle className="w-3.5 h-3.5 text-primary" />
+                        Chatroom trade ideas
+                      </span>
                     </div>
                   </motion.div>
                 )}
