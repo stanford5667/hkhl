@@ -486,6 +486,17 @@ export default function CourseDetail() {
             </div>
           )}
 
+          {/* Auto-playing preview of the first lesson */}
+          {firstLesson?.video_url && (
+            <CoursePreviewPlayer
+              lessonTitle={firstLesson.title}
+              videoUrl={firstLesson.video_url}
+              videoProvider={firstLesson.video_provider}
+              videoDuration={firstLesson.video_duration}
+              hasAccess={!!hasAccess}
+              onOpenLesson={() => navigate(`/academy/lesson/${firstLesson.id}`)}
+            />
+          )}
 
           {/* Tabs */}
           <Tabs defaultValue="curriculum">
