@@ -354,7 +354,18 @@ function PortfolioCard() {
       primary={data ? fmtCurrency(data.totalValue) : "—"}
       secondary={data ? `${gain >= 0 ? "+" : ""}${gain.toFixed(2)}% total return` : undefined}
       extra={data ? `IRR ${(data.avgIrr || 0).toFixed(1)}% · MOIC ${(data.avgMoic || 0).toFixed(2)}x` : undefined}
-      visual={data ? <ChangeChip pct={gain} /> : null}
+      visual={
+        data ? (
+          <div className="flex items-center gap-2">
+            <MiniBars
+              values={[data.totalCost || 1, data.totalValue || 1]}
+              className={gain >= 0 ? "text-emerald-400" : "text-red-400"}
+            />
+            <ChangeChip pct={gain} />
+          </div>
+        ) : null
+      }
+
       tone={gain >= 0 ? "positive" : "negative"}
     />
   );
