@@ -492,11 +492,16 @@ export default function CourseDetail() {
           {firstLesson?.video_url && (
             <CoursePreviewPlayer
               lessonTitle={firstLesson.title}
+              lessonNumberLabel="Lesson 1"
               videoUrl={firstLesson.video_url}
               videoProvider={firstLesson.video_provider}
               videoDuration={firstLesson.video_duration}
               hasAccess={!!hasAccess}
               onOpenLesson={() => navigate(`/academy/lesson/${firstLesson.id}`)}
+              onUpgrade={() => {
+                if (!user) { setShowAuthSheet(true); return; }
+                handleStartLearning();
+              }}
             />
           )}
 
