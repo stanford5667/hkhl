@@ -171,7 +171,7 @@ function HubCard({
               <Skeleton className="h-5 w-24 rounded-md" />
               <Skeleton className="h-3 w-32 rounded-md" />
             </>
-          ) : (
+          ) : primary ? (
             <>
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span
@@ -189,6 +189,7 @@ function HubCard({
                 )}
                 {visual && <div className="ml-auto shrink-0 opacity-80">{visual}</div>}
               </div>
+
 
               {extra && (
                 <div
