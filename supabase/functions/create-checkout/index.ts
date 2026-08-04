@@ -258,6 +258,12 @@ serve(async (req) => {
           if (validPromoId) {
             sessionParams.discounts = [{ promotion_code: validPromoId }];
             sessionParams.metadata = {
+              ...sessionParams.metadata,
+              affiliate_id: affiliateData.id,
+              affiliate_code: affiliateCode,
+            };
+            sessionParams.subscription_data.metadata = {
+              ...sessionParams.subscription_data.metadata,
               affiliate_id: affiliateData.id,
               affiliate_code: affiliateCode,
             };
