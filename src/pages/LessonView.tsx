@@ -263,9 +263,9 @@ export default function LessonView() {
   const flatLessonIds = allLessons?.flatMap((m: any) => (m.lessons || []).map((l: any) => l.id)) || [];
   const lessonIndex = flatLessonIds.indexOf(lesson.id);
   const lessonCount = flatLessonIds.length || totalLessons;
-  const previewableCount = getPreviewableLessonCount(totalLessons);
+  const previewableCount = getPreviewableLessonCount(lessonCount);
   const hasFullAccess = Boolean(user && isPro);
-  const canPreviewThisLesson = totalLessons === 0 || isLessonPreviewable(lessonIndex, totalLessons);
+  const canPreviewThisLesson = lessonCount === 0 || isLessonPreviewable(lessonIndex, lessonCount);
   const hasVideoAccess = hasFullAccess || canPreviewThisLesson;
   const isPreviewOnly = !hasFullAccess && canPreviewThisLesson;
   const effectiveDuration = lesson?.video_duration || measuredDuration;
