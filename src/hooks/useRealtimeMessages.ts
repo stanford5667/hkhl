@@ -26,8 +26,8 @@ export function useRealtimeMessages(roomId: string | null) {
 
     const [{ data: profileData }, { data: roleData }] = await Promise.all([
       supabase
-        .from('profiles')
-        .select('full_name, avatar_url, is_anonymous, bio')
+        .from('profiles_public')
+        .select('full_name, avatar_url, is_anonymous')
         .eq('user_id', userId)
         .single(),
       supabase
@@ -43,7 +43,7 @@ export function useRealtimeMessages(roomId: string | null) {
       avatar_url: profileData?.is_anonymous ? null : (profileData?.avatar_url || null),
       is_anonymous: profileData?.is_anonymous || false,
       is_admin: !!roleData,
-      bio: profileData?.bio || null,
+      bio: null,
     };
     profileCacheRef.current.set(userId, profile);
     return profile;

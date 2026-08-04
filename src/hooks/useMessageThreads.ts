@@ -20,7 +20,7 @@ export function useMessageThreads(roomId: string | null) {
 
     const [{ data: profileData }, { data: roleData }] = await Promise.all([
       supabase
-        .from('profiles')
+        .from('profiles_public')
         .select('full_name, avatar_url, is_anonymous')
         .eq('user_id', userId)
         .single(),

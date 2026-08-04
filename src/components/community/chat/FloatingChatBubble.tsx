@@ -51,7 +51,7 @@ export function FloatingChatBubble() {
       if (data) {
         const userIds = [...new Set(data.map(m => m.user_id))];
         const { data: profiles } = await supabase
-          .from('profiles')
+          .from('profiles_public')
           .select('user_id, full_name')
           .in('user_id', userIds);
 
@@ -78,7 +78,7 @@ export function FloatingChatBubble() {
         if (msg.reply_to) return;
         
         const { data: profile } = await supabase
-          .from('profiles')
+          .from('profiles_public')
           .select('full_name')
           .eq('user_id', msg.user_id)
           .single();

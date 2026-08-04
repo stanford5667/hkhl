@@ -22,6 +22,25 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
+    // Admin-only endpoint
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) throw new Error("Authentication required");
+    const { data: userData } = await supabaseAdmin.auth.getUser(authHeader.replace("Bearer ", ""));
+    if (!userData.user) throw new Error("Authentication required");
+
+    const { data: adminRole } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userData.user.id)
+      .eq("role", "admin")
+      .maybeSingle();
+    if (!adminRole) {
+      return new Response(JSON.stringify({ error: "Admin access required" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 403,
+      });
+    }
+
     const { affiliate_code } = await req.json();
     if (!affiliate_code) throw new Error("affiliate_code required");
 

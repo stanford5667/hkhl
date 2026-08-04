@@ -1,3 +1,4 @@
+import { getAuthenticatedUser, unauthorizedResponse } from "../_shared/auth.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
@@ -50,6 +51,10 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Require an authenticated user (prevents abuse of paid upstream APIs)
+  const { user, error: authError } = await getAuthenticatedUser(req);
+  if (!user) return unauthorizedResponse(authError || "Authentication required");
 
   try {
     const { article_uri, news_event_id } = await req.json();

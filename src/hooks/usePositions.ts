@@ -31,7 +31,7 @@ export function useBrokerageConnections() {
     
     try {
       const { data, error } = await supabase
-        .from('brokerage_connections')
+        .from('brokerage_connections_secure')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
@@ -63,7 +63,7 @@ export function useBrokerageConnections() {
     const { data, error } = await supabase
       .from('brokerage_connections')
       .insert(connection)
-      .select()
+      .select('id, user_id, brokerage_name, account_name, account_mask, connection_status, last_sync_at, sync_error, portfolio_id, created_at, updated_at')
       .single();
     
     if (error) throw error;
@@ -83,7 +83,7 @@ export function useBrokerageConnections() {
       })
       .eq('id', id)
       .eq('user_id', user.id)
-      .select()
+      .select('id, user_id, brokerage_name, account_name, account_mask, connection_status, last_sync_at, sync_error, portfolio_id, created_at, updated_at')
       .single();
     
     if (error) throw error;

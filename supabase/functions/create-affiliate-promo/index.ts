@@ -36,19 +36,41 @@ serve(async (req) => {
     const { data: userData } = await supabaseClient.auth.getUser(token);
     if (!userData.user) throw new Error("Not authenticated");
 
-    const { affiliate_id, affiliate_code } = await req.json();
-    if (!affiliate_id || !affiliate_code) throw new Error("Missing affiliate_id or affiliate_code");
+    const { affiliate_id } = await req.json();
+    if (!affiliate_id) throw new Error("Missing affiliate_id");
+
+    // Authorization: caller must own this affiliate record, or be an admin
+    const { data: affiliateRow, error: affLookupError } = await supabaseClient
+      .from("affiliates")
+      .select("id, user_id, affiliate_code, stripe_promo_code_id")
+      .eq("id", affiliate_id)
+      .maybeSingle();
+
+    if (affLookupError || !affiliateRow) throw new Error("Affiliate not found");
+
+    const { data: adminRole } = await supabaseClient
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userData.user.id)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    if (affiliateRow.user_id !== userData.user.id && !adminRole) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 403,
+      });
+    }
+
+    // Always use the code stored in the database, never the client-supplied one
+    const affiliate_code = affiliateRow.affiliate_code;
 
     logStep("Creating promo for affiliate", { affiliate_id, affiliate_code });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
 
     // Check if affiliate already has a promo code
-    const { data: existing } = await supabaseClient
-      .from("affiliates")
-      .select("stripe_promo_code_id")
-      .eq("id", affiliate_id)
-      .single();
+    const existing = affiliateRow;
 
     if (existing?.stripe_promo_code_id) {
       logStep("Affiliate already has promo code", { promo_id: existing.stripe_promo_code_id });

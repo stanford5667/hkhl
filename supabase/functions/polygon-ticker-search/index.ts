@@ -1,3 +1,4 @@
+import { getAuthenticatedUser, unauthorizedResponse } from "../_shared/auth.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -26,6 +27,10 @@ interface TickerResult {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+
+  // Require an authenticated user (prevents abuse of paid upstream APIs)
+  const { user, error: authError } = await getAuthenticatedUser(req);
+  if (!user) return unauthorizedResponse(authError || "Authentication required");
   try {
     const body = await req.json().catch(() => ({}));
     const query = String(body.query || "").toUpperCase().trim();
