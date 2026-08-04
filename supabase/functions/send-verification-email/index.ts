@@ -12,7 +12,6 @@ const logStep = (step: string, details?: unknown) => {
 };
 
 interface VerificationRequest {
-  userId?: string;
   email: string;
   fullName?: string;
 }
@@ -38,8 +37,9 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { userId: userIdInput, email, fullName }: VerificationRequest = await req.json();
+    const { email: emailInput, fullName }: VerificationRequest = await req.json();
 
+    const email = String(emailInput || "").trim().toLowerCase();
     if (!email) {
       return new Response(
         JSON.stringify({ error: "email is required" }),
@@ -47,8 +47,24 @@ serve(async (req) => {
       );
     }
 
-    // Resolve the user id server-side when the client has no session (resend flow)
-    let userId = userIdInput;
+    // Never trust a client-supplied user id. Resolve it server-side:
+    // 1) from the caller's own session when present, 2) otherwise from the
+    //    verification record that belongs to this exact email address.
+    let userId: string | undefined;
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+      const { data: userData } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
+      if (userData.user) {
+        if ((userData.user.email ?? "").toLowerCase() !== email) {
+          return new Response(
+            JSON.stringify({ error: "Email does not match the authenticated user" }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        userId = userData.user.id;
+      }
+    }
+
     if (!userId) {
       const { data: priorRecord } = await supabase
         .from('email_verifications')
@@ -66,7 +82,6 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
 
     logStep("Processing verification request", { userId, email });
 
