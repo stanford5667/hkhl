@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   Briefcase,
-  GitBranch,
+  MessagesSquare,
   Eye,
   LineChart,
   GraduationCap,
@@ -11,6 +11,7 @@ import {
   TrendingUp,
   TrendingDown,
 } from "lucide-react";
+
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,7 +19,7 @@ import { WidgetCard } from "@/pages/research/components/WidgetCard";
 import { cn } from "@/lib/utils";
 import {
   usePortfolioTotals,
-  useDealPipeline,
+
 } from "@/hooks/useMarketIntel";
 import { useWatchlistWithQuotes } from "@/hooks/useWatchlistWithQuotes";
 import { useSavedReports } from "@/hooks/useSavedReports";
@@ -75,6 +76,7 @@ interface HubCardProps {
   icon: React.ElementType;
   title: string;
   accent: Accent;
+  blurb: string;
   loading?: boolean;
   primary?: React.ReactNode;
   secondary?: React.ReactNode;
@@ -88,6 +90,7 @@ function HubCard({
   icon: Icon,
   title,
   accent,
+  blurb,
   loading,
   primary,
   secondary,
@@ -101,7 +104,7 @@ function HubCard({
       to={to}
       className={cn(
         "group relative rounded-lg border border-border/60 bg-card/50 backdrop-blur-sm",
-        "p-3 sm:p-4 pt-4 sm:pt-5 flex flex-col gap-2 min-h-[130px] overflow-hidden",
+        "p-3 sm:p-4 pt-4 sm:pt-5 flex flex-col gap-2 min-h-[190px] overflow-hidden",
         "transition-all duration-200 will-change-transform",
         "hover:-translate-y-0.5 hover:bg-card/70 hover:shadow-lg",
         a.ring,
@@ -127,6 +130,8 @@ function HubCard({
         </div>
         <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
       </div>
+
+      <p className="text-[11px] sm:text-xs leading-relaxed text-muted-foreground">{blurb}</p>
 
       <div className="flex-1 flex flex-col justify-end gap-1">
         {loading ? (
@@ -169,6 +174,22 @@ function HubCard({
     </Link>
   );
 }
+
+const BLURBS = {
+  academy:
+    "Go from beginner to confident investor with guided courses on valuation, technicals, options and risk — bite-sized lessons that track your progress.",
+  chatroom:
+    "Trade ideas in real time with the community: live ticker rooms, analyst commentary, shared research notes and livestreamed market sessions.",
+  backtester:
+    "Build strategies with a no-code node builder and prove them against years of real market data — slippage-adjusted returns, drawdowns and equity curves.",
+  portfolio:
+    "One live view of everything you own: real-time values, total return, IRR and MOIC, so you always know exactly how your capital is performing.",
+  watchlist:
+    "Your personal market radar — live quotes, daily movers and instant one-click access to full AI research on any ticker you follow.",
+  smartMoney:
+    "Follow the institutions: 13F holdings, insider buys and sells and block trades, decoded into signals you can act on before the crowd.",
+} as const;
+
 
 function fmtCurrency(n: number) {
   if (!isFinite(n)) return "—";
@@ -229,6 +250,7 @@ function PortfolioCard() {
       icon={Briefcase}
       title="Portfolio"
       accent="emerald"
+      blurb={BLURBS.portfolio}
       loading={isLoading}
       primary={data ? fmtCurrency(data.totalValue) : "—"}
       secondary={data ? `${gain >= 0 ? "+" : ""}${gain.toFixed(2)}% total return` : undefined}
@@ -239,24 +261,47 @@ function PortfolioCard() {
   );
 }
 
-function PipelineCard() {
-  const { data, isLoading } = useDealPipeline();
-  const count = data?.length ?? 0;
-  const next = (data?.[0] as any) || null;
-  const nextName = next?.company_name || next?.name || next?.deal_name || null;
+function ChatroomCard() {
+  const { data, isLoading } = useQuery({
+    queryKey: ["hub-chatrooms-latest"],
+    queryFn: async () => {
+      const [{ data: rooms }, { count }] = await Promise.all([
+        supabase
+          .from("chat_rooms")
+          .select("name, member_count, is_live")
+          .eq("is_admin_only", false)
+          .order("member_count", { ascending: false })
+          .limit(3),
+        supabase
+          .from("chat_messages")
+          .select("id", { count: "exact", head: true })
+          .gte("created_at", new Date(Date.now() - 86_400_000).toISOString()),
+      ]);
+      return { rooms: rooms || [], todayMessages: count ?? 0 };
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+  const top = data?.rooms?.[0] as any;
+  const others = (data?.rooms || []).slice(1, 3) as any[];
   return (
     <HubCard
-      to="/pipeline"
-      icon={GitBranch}
-      title="Pipeline"
+      to="/community"
+      icon={MessagesSquare}
+      title="Chatroom"
       accent="violet"
+      blurb={BLURBS.chatroom}
       loading={isLoading}
-      primary={`${count}`}
-      secondary={count === 1 ? "active deal" : "active deals"}
-      extra={nextName ? `Next up: ${nextName}` : undefined}
+      primary={top ? top.name : "Join the room"}
+      secondary={
+        data
+          ? `${data.todayMessages} messages in the last 24h`
+          : "Live rooms, ideas & analyst chat"
+      }
+      extra={others.length ? others.map((r) => r.name).join(" · ") : undefined}
     />
   );
 }
+
 
 function WatchlistCard() {
   const { itemsWithQuotes, isLoading } = useWatchlistWithQuotes() as any;
@@ -272,7 +317,9 @@ function WatchlistCard() {
       icon={Eye}
       title="Watchlist"
       accent="amber"
+      blurb={BLURBS.watchlist}
       loading={isLoading}
+
       primary={top ? top.item_id : "Empty"}
       secondary={top ? `${changePct >= 0 ? "+" : ""}${changePct.toFixed(2)}% today` : "Add tickers to track"}
       extra={
@@ -321,7 +368,9 @@ function BacktesterCard() {
       icon={LineChart}
       title="Backtester"
       accent="teal"
+      blurb={BLURBS.backtester}
       loading={isLoading}
+
       primary={latest ? latest.theme_title : "Run your first"}
       secondary={
         latest
@@ -363,7 +412,9 @@ function AcademyCard() {
       icon={GraduationCap}
       title="Academy"
       accent="indigo"
+      blurb={BLURBS.academy}
       loading={isLoading}
+
       primary={data ? `${data.completed}` : "0"}
       secondary={data && data.completed > 0 ? "lessons completed" : "Continue learning"}
       extra={data?.lastCourse ? `Resume: ${String(data.lastCourse).slice(0, 32)}` : undefined}
@@ -393,7 +444,9 @@ function SmartMoneyCard() {
       icon={Radar}
       title="Smart Money"
       accent="rose"
+      blurb={BLURBS.smartMoney}
       loading={isLoading}
+
       primary={d ? d.ticker : "Latest signals"}
       secondary={
         d
@@ -415,11 +468,13 @@ function TeaserCard({
   icon,
   title,
   accent,
+  blurb,
 }: {
   to: string;
   icon: React.ElementType;
   title: string;
   accent: Accent;
+  blurb: string;
 }) {
   return (
     <HubCard
@@ -427,6 +482,7 @@ function TeaserCard({
       icon={icon}
       title={title}
       accent={accent}
+      blurb={blurb}
       primary={<span className="text-muted-foreground text-sm font-normal">Sign in</span>}
       secondary="to see your data"
     />
@@ -437,24 +493,24 @@ export function HubOverviewGrid() {
   const { isAuthenticated, loading } = useAuth();
 
   return (
-    <WidgetCard title="Your Hub" subtitle="Live snapshots across the platform">
+    <WidgetCard title="Your Hub" subtitle="Everything the platform can do, live">
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 p-3 sm:p-4">
         {!isAuthenticated && !loading ? (
           <>
-            <TeaserCard to="/auth" icon={Briefcase} title="Portfolio" accent="emerald" />
-            <TeaserCard to="/auth" icon={GitBranch} title="Pipeline" accent="violet" />
-            <TeaserCard to="/auth" icon={Eye} title="Watchlist" accent="amber" />
-            <TeaserCard to="/backtester" icon={LineChart} title="Backtester" accent="teal" />
-            <TeaserCard to="/academy" icon={GraduationCap} title="Academy" accent="indigo" />
-            <TeaserCard to="/smart-money" icon={Radar} title="Smart Money" accent="rose" />
+            <TeaserCard to="/academy" icon={GraduationCap} title="Academy" accent="indigo" blurb={BLURBS.academy} />
+            <TeaserCard to="/community" icon={MessagesSquare} title="Chatroom" accent="violet" blurb={BLURBS.chatroom} />
+            <TeaserCard to="/backtester" icon={LineChart} title="Backtester" accent="teal" blurb={BLURBS.backtester} />
+            <TeaserCard to="/auth" icon={Briefcase} title="Portfolio" accent="emerald" blurb={BLURBS.portfolio} />
+            <TeaserCard to="/auth" icon={Eye} title="Watchlist" accent="amber" blurb={BLURBS.watchlist} />
+            <TeaserCard to="/smart-money" icon={Radar} title="Smart Money" accent="rose" blurb={BLURBS.smartMoney} />
           </>
         ) : (
           <>
-            <PortfolioCard />
-            <PipelineCard />
-            <WatchlistCard />
-            <BacktesterCard />
             <AcademyCard />
+            <ChatroomCard />
+            <BacktesterCard />
+            <PortfolioCard />
+            <WatchlistCard />
             <SmartMoneyCard />
           </>
         )}
@@ -462,3 +518,4 @@ export function HubOverviewGrid() {
     </WidgetCard>
   );
 }
+
