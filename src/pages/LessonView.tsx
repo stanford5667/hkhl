@@ -36,8 +36,6 @@ const THUMB_GRADIENTS = [
   'from-[hsl(210,50%,10%)] via-[hsl(230,45%,14%)] to-[hsl(250,30%,6%)]',
 ];
 
-// Free preview viewers only get the first slice of the lesson video
-const PREVIEW_LIMIT_SECONDS = 600;
 
 
 export default function LessonView() {
