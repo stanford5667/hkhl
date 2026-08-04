@@ -12,41 +12,12 @@ import {
   type CheckoutOptions,
 } from "@/lib/checkout";
 
-
-const signInSchema = z.object({
-  email: z.string().trim().email("Please enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-});
-
-const forgotPasswordSchema = z.object({
-  email: z.string().trim().email("Please enter a valid email address"),
-});
-
-const signUpSchema = z.object({
-  fullName: z.string().trim().min(2, "Name must be at least 2 characters").max(100, "Name is too long"),
-  email: z.string().trim().email("Please enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
-
-type SignInFormData = z.infer<typeof signInSchema>;
-type SignUpFormData = z.infer<typeof signUpSchema>;
-type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
-
 export default function Auth() {
-  const [mode, setMode] = useState<"signin" | "signup" | "forgot-password">("signup");
-  const [signUpStep, setSignUpStep] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
-  const [resetEmailSent, setResetEmailSent] = useState(false);
-  const [isAgeVerified, setIsAgeVerified] = useState(false);
-  const [ageError, setAgeError] = useState("");
+  const [mode, setMode] = useState<AuthMode>("signup");
   const navigate = useNavigate();
   const location = useLocation();
-  const { toast } = useToast();
-  const { user, signIn, signUp, resetPassword } = useAuth();
+  const { user } = useAuth();
+
 
   // Get the redirect path and optional checkout intent from state
   const locationState = location.state as { from?: string; checkoutPlan?: string; checkoutReturnPath?: string } | null;
