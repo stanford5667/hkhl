@@ -258,15 +258,21 @@ export default function LessonView() {
     );
   }
 
-  // No lesson is ever fully free. Non-Pro viewers get a capped preview of every lesson.
+  // Non-Pro viewers can only preview the first 30% of the course's lessons,
+  // and each of those plays as a short capped window.
   const flatLessonIds = allLessons?.flatMap((m: any) => (m.lessons || []).map((l: any) => l.id)) || [];
   const lessonIndex = flatLessonIds.indexOf(lesson.id);
+  const totalLessons = flatLessonIds.length;
+  const previewableCount = getPreviewableLessonCount(totalLessons);
   const hasFullAccess = Boolean(user && isPro);
-  const hasVideoAccess = true;
-  const isPreviewOnly = !hasFullAccess;
-  const previewLimit = getPreviewLimitSeconds(lesson?.video_duration);
-  const previewMinutes = Math.max(1, Math.round(previewLimit / 60));
+  const canPreviewThisLesson = totalLessons === 0 || isLessonPreviewable(lessonIndex, totalLessons);
+  const hasVideoAccess = hasFullAccess || canPreviewThisLesson;
+  const isPreviewOnly = !hasFullAccess && canPreviewThisLesson;
+  const effectiveDuration = lesson?.video_duration || measuredDuration;
+  const previewLimit = getPreviewLimitSeconds(effectiveDuration);
+  const previewLabel = getPreviewLabel(effectiveDuration);
   const courseProgress = 45;
+
 
   const gradientIndex = (lesson.module?.order_index || 0) % THUMB_GRADIENTS.length;
 
