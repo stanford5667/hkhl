@@ -307,12 +307,30 @@ export default function LessonView() {
                     src={lesson.video_url}
                     controls
                     preload="metadata"
-                    onTimeUpdate={(e) => setVideoProgress(Math.floor((e.currentTarget as HTMLVideoElement).currentTime))}
+                    onTimeUpdate={(e) => {
+                      const el = e.currentTarget as HTMLVideoElement;
+                      setVideoProgress(Math.floor(el.currentTime));
+                      if (isPreviewOnly && el.currentTime >= previewLimit) {
+                        el.pause();
+                        el.currentTime = previewLimit;
+                        setPreviewEnded(true);
+                      }
+                    }}
+                    onSeeking={(e) => {
+                      const el = e.currentTarget as HTMLVideoElement;
+                      if (isPreviewOnly && el.currentTime > previewLimit) {
+                        el.currentTime = previewLimit;
+                      }
+                    }}
                   />
                 ) : (
                   <iframe
                     ref={videoRef as React.RefObject<HTMLIFrameElement>}
-                    src={getVideoEmbedUrl(lesson.video_url, lesson.video_provider || 'youtube')}
+                    src={getVideoEmbedUrl(
+                      lesson.video_url,
+                      lesson.video_provider || 'youtube',
+                      isPreviewOnly ? previewLimit : undefined
+                    )}
                     title={lesson.title}
                     className="w-full h-full"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -320,6 +338,7 @@ export default function LessonView() {
                   />
                 )
               ) : (
+
                 /* Premium Thumbnail Tease — visible to everyone without access */
                 <div
                   className="w-full h-full cursor-pointer group relative select-none"
