@@ -126,6 +126,7 @@ export default function CourseDetail() {
   const [showAuthSheet, setShowAuthSheet] = useState(false);
   const [showBillingSheet, setShowBillingSheet] = useState(false);
   const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({});
+  const [openModules, setOpenModules] = useState<string[]>([]);
 
   // Social proof toasts — show for guests/non-members
   useSocialProofToasts(!isPro);
