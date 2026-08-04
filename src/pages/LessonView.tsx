@@ -199,10 +199,11 @@ export default function LessonView() {
     return clean.endsWith('.mp4') || clean.endsWith('.mov') || clean.endsWith('.webm') || clean.endsWith('.m4v');
   };
 
-  const getVideoEmbedUrl = (url: string, provider: string) => {
+  const getVideoEmbedUrl = (url: string, provider: string, limitSeconds?: number) => {
     if (provider === 'youtube') {
       const videoId = url.includes('v=') ? url.split('v=')[1]?.split('&')[0] : url.split('/').pop();
-      return `https://www.youtube.com/embed/${videoId}?enablejsapi=1`;
+      const endParam = limitSeconds ? `&start=0&end=${limitSeconds}` : '';
+      return `https://www.youtube.com/embed/${videoId}?enablejsapi=1&rel=0${endParam}`;
     }
     if (provider === 'vimeo') {
       const videoId = url.split('/').pop();
@@ -210,6 +211,7 @@ export default function LessonView() {
     }
     return url;
   };
+
 
   const getCurrentLessonIndex = () => {
     if (!allLessons) return -1;
