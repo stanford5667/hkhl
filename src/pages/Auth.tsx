@@ -11,7 +11,12 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { AssetLabsLogo } from "@/components/brand/AssetLabsLogo";
 import { AgeVerificationInput, AgeRatingBadge } from "@/components/auth/AgeVerificationInput";
-import { getAffiliateRef } from "@/hooks/useAffiliateTracking";
+import {
+  launchCheckout,
+  readCheckoutIntent,
+  clearCheckoutIntent,
+  type CheckoutOptions,
+} from "@/lib/checkout";
 
 const signInSchema = z.object({
   email: z.string().trim().email("Please enter a valid email address"),

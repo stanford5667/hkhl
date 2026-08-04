@@ -17,7 +17,7 @@ import { useMediaQuery } from '@/hooks/use-media-query';
 import { MobileAuthSheet } from '@/components/auth/MobileAuthSheet';
 import { cn } from '@/lib/utils';
 import { PRICING, COMPARISON_FEATURES, COMING_SOON } from '@/config/pricing';
-import { getAffiliateRef } from '@/hooks/useAffiliateTracking';
+import { launchCheckout } from '@/lib/checkout';
 
 interface UpgradeModalProps {
   isOpen: boolean;

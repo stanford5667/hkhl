@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useUsage } from '@/contexts/UsageContext';
 import { toast } from 'sonner';
 import { PRICING, COMPARISON_FEATURES } from '@/config/pricing';
-import { getAffiliateRef } from '@/hooks/useAffiliateTracking';
+import { launchCheckout } from '@/lib/checkout';
 
 function PriceIncreaseCountdown() {
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
