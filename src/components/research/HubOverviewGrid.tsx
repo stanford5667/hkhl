@@ -115,8 +115,7 @@ function HubCard({
       to={to}
       className={cn(
         "group relative rounded-2xl border border-border/50 bg-card/40 backdrop-blur-sm overflow-hidden",
-        "p-4 sm:p-5 flex gap-3.5 sm:gap-4 min-h-[132px] sm:min-h-[180px]",
-        "sm:flex-col",
+        "p-3.5 sm:p-5 flex flex-col gap-2.5 sm:gap-4 min-h-[152px] sm:min-h-[180px]",
         "transition-all duration-200 will-change-transform",
         "active:scale-[0.985] hover:-translate-y-0.5 hover:bg-card/70 hover:shadow-xl",
         a.ring,
@@ -146,7 +145,7 @@ function HubCard({
       {/* Icon badge — left rail on mobile, top on desktop */}
       <div
         className={cn(
-          "relative z-10 flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl border transition-transform duration-200 group-hover:scale-105",
+          "relative z-10 flex h-9 w-9 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl border transition-transform duration-200 group-hover:scale-105",
           a.badge,
         )}
       >
@@ -171,7 +170,7 @@ function HubCard({
               <Skeleton className="h-5 w-24 rounded-md" />
               <Skeleton className="h-3 w-32 rounded-md" />
             </>
-          ) : (
+          ) : primary ? (
             <>
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span
@@ -190,6 +189,7 @@ function HubCard({
                 {visual && <div className="ml-auto shrink-0 opacity-80">{visual}</div>}
               </div>
 
+
               {extra && (
                 <div
                   className={cn(
@@ -202,7 +202,7 @@ function HubCard({
                 </div>
               )}
             </>
-          )}
+          ) : null}
 
           <div
             className={cn(
@@ -672,8 +672,6 @@ function TeaserCard({
       title={title}
       accent={accent}
       blurb={blurb}
-      primary={<span className="text-muted-foreground text-sm font-normal">Sign in</span>}
-      secondary="to see your data"
     />
   );
 }
@@ -681,10 +679,26 @@ function TeaserCard({
 export function HubOverviewGrid() {
   const { isAuthenticated, loading } = useAuth();
 
+  const isGuest = !isAuthenticated && !loading;
+
   return (
     <WidgetCard title="Your Hub" subtitle="Everything the platform can do, live">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3 p-3 sm:p-4">
-        {!isAuthenticated && !loading ? (
+      {isGuest && (
+        <div className="mx-3 sm:mx-4 mt-3 sm:mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-primary/25 bg-primary/[0.06] px-3 py-2.5">
+          <p className="text-[12px] sm:text-[13px] text-muted-foreground">
+            You're browsing as a guest — sign in to see your live portfolio, watchlist and progress.
+          </p>
+          <Link
+            to="/auth"
+            className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-[12px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Sign in free
+            <ArrowUpRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+      )}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 p-3 sm:p-4">
+        {isGuest ? (
           <>
             <TeaserCard to="/academy" icon={GraduationCap} title="Academy" accent="indigo" blurb={BLURBS.academy} />
             <TeaserCard to="/community" icon={MessagesSquare} title="Chatroom" accent="violet" blurb={BLURBS.chatroom} />
