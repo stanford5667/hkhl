@@ -783,17 +783,20 @@ export default function CourseDetail() {
                     disabled={enrollMutation.isPending || isCheckoutLoading || (!!user && isUsageLoading)}
                   >
                     {!user ? (
-                      'Sign in to Start'
+                      'Sign in — start in 30 seconds'
                     ) : isCheckoutLoading || isUsageLoading ? (
                       'Loading...'
                     ) : course.is_free ? (
                       'Start Free Course'
                     ) : isPro ? (
-                      'Start Learning'
+                      <>
+                        <Play className="w-4 h-4 mr-2" />
+                        Start lesson 1 now
+                      </>
                     ) : (
                       <>
                         <Sparkles className="w-4 h-4 mr-2" />
-                        Subscribe & Start
+                        Unlock all 92 lessons
                       </>
                     )}
                   </Button>
