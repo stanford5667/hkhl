@@ -742,7 +742,7 @@ export default function CourseDetail() {
                    <div className="p-3 rounded-lg bg-primary/10 border border-primary/30 text-center">
                      <Lock className="w-5 h-5 text-primary mx-auto mb-2" />
                      <p className="text-xs sm:text-sm text-muted-foreground">
-                       Subscribe to continue learning
+                       Pick up right where you left off
                      </p>
                   </div>
                   <Button 
@@ -750,8 +750,9 @@ export default function CourseDetail() {
                     onClick={() => handleSubscribe()}
                     disabled={isCheckoutLoading}
                   >
-                    {isCheckoutLoading ? 'Loading...' : 'Subscribe Now'}
+                    {isCheckoutLoading ? 'Loading...' : 'Resume my course →'}
                   </Button>
+
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -783,17 +784,20 @@ export default function CourseDetail() {
                     disabled={enrollMutation.isPending || isCheckoutLoading || (!!user && isUsageLoading)}
                   >
                     {!user ? (
-                      'Sign in to Start'
+                      'Sign in — start in 30 seconds'
                     ) : isCheckoutLoading || isUsageLoading ? (
                       'Loading...'
                     ) : course.is_free ? (
                       'Start Free Course'
                     ) : isPro ? (
-                      'Start Learning'
+                      <>
+                        <Play className="w-4 h-4 mr-2" />
+                        Start lesson 1 now
+                      </>
                     ) : (
                       <>
                         <Sparkles className="w-4 h-4 mr-2" />
-                        Subscribe & Start
+                        Unlock all 92 lessons
                       </>
                     )}
                   </Button>
