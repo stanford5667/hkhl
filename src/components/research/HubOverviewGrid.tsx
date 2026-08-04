@@ -468,11 +468,13 @@ function TeaserCard({
   icon,
   title,
   accent,
+  blurb,
 }: {
   to: string;
   icon: React.ElementType;
   title: string;
   accent: Accent;
+  blurb: string;
 }) {
   return (
     <HubCard
@@ -480,6 +482,7 @@ function TeaserCard({
       icon={icon}
       title={title}
       accent={accent}
+      blurb={blurb}
       primary={<span className="text-muted-foreground text-sm font-normal">Sign in</span>}
       secondary="to see your data"
     />
@@ -490,24 +493,24 @@ export function HubOverviewGrid() {
   const { isAuthenticated, loading } = useAuth();
 
   return (
-    <WidgetCard title="Your Hub" subtitle="Live snapshots across the platform">
+    <WidgetCard title="Your Hub" subtitle="Everything the platform can do, live">
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 p-3 sm:p-4">
         {!isAuthenticated && !loading ? (
           <>
-            <TeaserCard to="/auth" icon={Briefcase} title="Portfolio" accent="emerald" />
-            <TeaserCard to="/auth" icon={GitBranch} title="Pipeline" accent="violet" />
-            <TeaserCard to="/auth" icon={Eye} title="Watchlist" accent="amber" />
-            <TeaserCard to="/backtester" icon={LineChart} title="Backtester" accent="teal" />
-            <TeaserCard to="/academy" icon={GraduationCap} title="Academy" accent="indigo" />
-            <TeaserCard to="/smart-money" icon={Radar} title="Smart Money" accent="rose" />
+            <TeaserCard to="/academy" icon={GraduationCap} title="Academy" accent="indigo" blurb={BLURBS.academy} />
+            <TeaserCard to="/community" icon={MessagesSquare} title="Chatroom" accent="violet" blurb={BLURBS.chatroom} />
+            <TeaserCard to="/backtester" icon={LineChart} title="Backtester" accent="teal" blurb={BLURBS.backtester} />
+            <TeaserCard to="/auth" icon={Briefcase} title="Portfolio" accent="emerald" blurb={BLURBS.portfolio} />
+            <TeaserCard to="/auth" icon={Eye} title="Watchlist" accent="amber" blurb={BLURBS.watchlist} />
+            <TeaserCard to="/smart-money" icon={Radar} title="Smart Money" accent="rose" blurb={BLURBS.smartMoney} />
           </>
         ) : (
           <>
-            <PortfolioCard />
-            <PipelineCard />
-            <WatchlistCard />
-            <BacktesterCard />
             <AcademyCard />
+            <ChatroomCard />
+            <BacktesterCard />
+            <PortfolioCard />
+            <WatchlistCard />
             <SmartMoneyCard />
           </>
         )}
@@ -515,3 +518,4 @@ export function HubOverviewGrid() {
     </WidgetCard>
   );
 }
+
