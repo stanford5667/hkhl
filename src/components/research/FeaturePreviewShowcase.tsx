@@ -466,7 +466,7 @@ export function FeaturePreviewShowcase() {
         </div>
 
         {/* Visual preview side */}
-        <div className="min-w-0">
+        <div className="order-1 lg:order-2 min-w-0">
           {clip && (
             <div className="mb-2 flex items-center gap-1">
               {(["clip", "demo"] as const).map((m) => (
