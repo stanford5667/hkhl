@@ -60,6 +60,17 @@ export function DemoFrame({
   );
 }
 
+type ChipTone = "primary" | "sky" | "cyan" | "indigo" | "violet" | "teal";
+
+const CHIP_ACTIVE: Record<ChipTone, string> = {
+  primary: "border-primary/40 bg-primary/15 text-primary",
+  sky: "border-sky-400/40 bg-sky-400/15 text-sky-300",
+  cyan: "border-cyan-400/40 bg-cyan-400/15 text-cyan-300",
+  indigo: "border-indigo-400/40 bg-indigo-400/15 text-indigo-300",
+  violet: "border-violet-400/40 bg-violet-400/15 text-violet-300",
+  teal: "border-teal-400/40 bg-teal-400/15 text-teal-300",
+};
+
 function Chip({
   active,
   onClick,
@@ -69,7 +80,7 @@ function Chip({
   active: boolean;
   onClick: () => void;
   children: React.ReactNode;
-  tone?: string;
+  tone?: ChipTone;
 }) {
   return (
     <button
@@ -79,7 +90,7 @@ function Chip({
       className={cn(
         "shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors",
         active
-          ? `border-${tone}/40 bg-${tone}/15 text-${tone}`
+          ? CHIP_ACTIVE[tone]
           : "border-border/50 bg-muted/20 text-muted-foreground hover:text-foreground hover:bg-muted/40",
       )}
     >
@@ -195,7 +206,7 @@ export function BacktestMiniDemo() {
     <DemoFrame title="Strategy backtester">
       <div className="flex flex-wrap items-center gap-1.5">
         {BT_TICKERS.map((t) => (
-          <Chip key={t} active={t === ticker} onClick={() => setTicker(t)} tone="sky-400">
+          <Chip key={t} active={t === ticker} onClick={() => setTicker(t)} tone="sky">
             {t}
           </Chip>
         ))}
@@ -206,7 +217,7 @@ export function BacktestMiniDemo() {
             key={s.id}
             active={s.id === stratId}
             onClick={() => setStratId(s.id)}
-            tone="sky-400"
+            tone="sky"
           >
             {s.label}
           </Chip>
@@ -523,7 +534,7 @@ export function ScreenerMiniDemo() {
     <DemoFrame title="Market screener">
       <div className="flex flex-wrap items-center gap-1.5">
         {SCREENER_FILTERS.map((f) => (
-          <Chip key={f.id} active={active.includes(f.id)} onClick={() => toggle(f.id)} tone="cyan-400">
+          <Chip key={f.id} active={active.includes(f.id)} onClick={() => toggle(f.id)} tone="cyan">
             {f.label}
           </Chip>
         ))}
@@ -608,7 +619,7 @@ export function SmartMoneyMiniDemo() {
     <DemoFrame title="Smart money signals">
       <div className="flex flex-wrap items-center gap-1.5">
         {SM_TABS.map((t) => (
-          <Chip key={t.id} active={t.id === tab} onClick={() => setTab(t.id)} tone="indigo-400">
+          <Chip key={t.id} active={t.id === tab} onClick={() => setTab(t.id)} tone="indigo">
             {t.label}
           </Chip>
         ))}
