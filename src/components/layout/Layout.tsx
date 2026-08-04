@@ -22,7 +22,7 @@ import { useEventNotifications } from "@/hooks/useEventNotifications";
 import { useActivityHeartbeat } from "@/hooks/useActivityHeartbeat";
 import { useGlobalScrollPersistence } from "@/hooks/useScrollPersistence";
 import { cn } from "@/lib/utils";
-import { BacktestPromoToast } from "@/components/ui/BacktestPromoToast";
+
 import { useAffiliateTracking } from "@/hooks/useAffiliateTracking";
 
 interface LayoutProps {
@@ -183,7 +183,6 @@ export function Layout({ children }: LayoutProps) {
       />
       <FloatingHelpWidget />
       <FloatingChatBubble />
-      {!user && <BacktestPromoToast />}
       
       {/* Auth gate dialog */}
       <AuthGateDialog 
