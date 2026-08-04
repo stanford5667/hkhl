@@ -1,12 +1,10 @@
-// Free (non-Pro) viewers can watch the first 30% of a course's lessons in full.
-export const PREVIEW_LESSON_RATIO = 0.3;
+// Non-Pro viewers never get a lesson for free in full. Instead every lesson is
+// watchable as a capped preview: the first 30% of the video, up to 10 minutes.
+export const PREVIEW_RATIO = 0.3;
+export const PREVIEW_MAX_SECONDS = 600;
 
-export function getFreeLessonCount(totalLessons: number): number {
-  if (!totalLessons || totalLessons <= 0) return 0;
-  return Math.max(1, Math.ceil(totalLessons * PREVIEW_LESSON_RATIO));
-}
-
-export function isFreeLessonIndex(index: number, totalLessons: number): boolean {
-  if (index < 0) return false;
-  return index < getFreeLessonCount(totalLessons);
+/** Seconds of a lesson a non-Pro viewer may watch. */
+export function getPreviewLimitSeconds(videoDuration?: number | null): number {
+  if (!videoDuration || videoDuration <= 0) return PREVIEW_MAX_SECONDS;
+  return Math.max(30, Math.min(Math.floor(videoDuration * PREVIEW_RATIO), PREVIEW_MAX_SECONDS));
 }
