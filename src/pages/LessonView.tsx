@@ -499,9 +499,12 @@ export default function LessonView() {
                       </div>
                     </div>
                     <div className="flex flex-wrap items-center justify-center gap-2">
-                      <Button size="lg" onClick={() => setShowUpgradeModal(true)}>
+                      <Button size="lg" onClick={startCheckout}>
                         <Sparkles className="w-4 h-4 mr-2" />
-                        Continue this lesson with Pro
+                        Unlock the full lesson
+                      </Button>
+                      <Button variant="outline" onClick={() => setShowUpgradeModal(true)}>
+                        See what Pro includes
                       </Button>
                       <Button
                         variant="ghost"
@@ -514,6 +517,7 @@ export default function LessonView() {
                         Rewatch preview
                       </Button>
                     </div>
+
                     <div className="flex flex-wrap justify-center gap-3 pt-2 text-xs text-muted-foreground">
                       <span className="inline-flex items-center gap-1.5">
                         <BarChart3 className="w-3.5 h-3.5 text-primary" />
