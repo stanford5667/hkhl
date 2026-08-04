@@ -24,7 +24,7 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MobileAuthSheet } from '@/components/auth/MobileAuthSheet';
 import { UpgradeModal } from '@/components/premium/UpgradeModal';
-import { getPreviewLimitSeconds } from '@/lib/coursePreview';
+import { getPreviewLimitSeconds, getPreviewLabel, isLessonPreviewable, getPreviewableLessonCount } from '@/lib/coursePreview';
 
 // Premium dark thumbnail gradients
 const THUMB_GRADIENTS = [
@@ -49,6 +49,7 @@ export default function LessonView() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showAuthSheet, setShowAuthSheet] = useState(false);
   const [previewEnded, setPreviewEnded] = useState(false);
+  const [measuredDuration, setMeasuredDuration] = useState<number | null>(null);
 
 
   // Fetch lesson details
@@ -258,15 +259,21 @@ export default function LessonView() {
     );
   }
 
-  // No lesson is ever fully free. Non-Pro viewers get a capped preview of every lesson.
+  // Non-Pro viewers can only preview the first 30% of the course's lessons,
+  // and each of those plays as a short capped window.
   const flatLessonIds = allLessons?.flatMap((m: any) => (m.lessons || []).map((l: any) => l.id)) || [];
   const lessonIndex = flatLessonIds.indexOf(lesson.id);
+  const lessonCount = flatLessonIds.length || totalLessons;
+  const previewableCount = getPreviewableLessonCount(lessonCount);
   const hasFullAccess = Boolean(user && isPro);
-  const hasVideoAccess = true;
-  const isPreviewOnly = !hasFullAccess;
-  const previewLimit = getPreviewLimitSeconds(lesson?.video_duration);
-  const previewMinutes = Math.max(1, Math.round(previewLimit / 60));
+  const canPreviewThisLesson = lessonCount === 0 || isLessonPreviewable(lessonIndex, lessonCount);
+  const hasVideoAccess = hasFullAccess || canPreviewThisLesson;
+  const isPreviewOnly = !hasFullAccess && canPreviewThisLesson;
+  const effectiveDuration = lesson?.video_duration || measuredDuration;
+  const previewLimit = getPreviewLimitSeconds(effectiveDuration);
+  const previewLabel = getPreviewLabel(effectiveDuration);
   const courseProgress = 45;
+
 
   const gradientIndex = (lesson.module?.order_index || 0) % THUMB_GRADIENTS.length;
 
@@ -303,6 +310,12 @@ export default function LessonView() {
                     className="w-full h-full object-cover"
                     src={lesson.video_url}
                     controls
+                    onLoadedMetadata={(e) => {
+                      const el = e.currentTarget as HTMLVideoElement;
+                      if (Number.isFinite(el.duration) && el.duration > 0) {
+                        setMeasuredDuration(Math.floor(el.duration));
+                      }
+                    }}
                     preload="metadata"
                     onTimeUpdate={(e) => {
                       const el = e.currentTarget as HTMLVideoElement;
@@ -395,7 +408,7 @@ export default function LessonView() {
                 <div className="absolute top-3 left-3 z-10 pointer-events-none">
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-md border border-white/10 text-[11px] font-medium text-white/80 tracking-wide uppercase">
                     <Sparkles className="w-3 h-3" />
-                    {previewMinutes}-min preview
+                    {previewLabel ? `${previewLabel} preview` : 'Free preview'}
                   </span>
                 </div>
               )}
@@ -415,7 +428,7 @@ export default function LessonView() {
                     <div className="space-y-1">
                       <p className="text-base md:text-lg font-semibold">Preview ended</p>
                       <p className="text-sm text-muted-foreground max-w-sm">
-                        You've watched the free {previewMinutes}-minute preview. Unlock the full lesson and the entire Academy with Pro.
+                        You've watched the free {previewLabel ?? '2 min'} preview. Unlock the full lesson and the entire Academy with Pro.
                       </p>
                     </div>
                     <div className="flex flex-wrap items-center justify-center gap-2">

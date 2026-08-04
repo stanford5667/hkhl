@@ -1,4 +1,4 @@
-import { getPreviewLabel } from '@/lib/coursePreview';
+import { getPreviewLabel, isLessonPreviewable, getPreviewableLessonCount } from '@/lib/coursePreview';
 import { useState, useEffect } from 'react';
 import { PRICING } from '@/config/pricing';
 import { useParams, Link, useNavigate } from 'react-router-dom';
@@ -504,7 +504,7 @@ export default function CourseDetail() {
                     {durationLabel ? ` · ${durationLabel} of video` : ''}
                     {hasAccess ? ` · ${completedCount} completed` : ''}
                     {!hasAccess && totalLessons > 0
-                      ? ' · free preview of every lesson'
+                      ? ` · ${getPreviewableLessonCount(totalLessons)} lessons open for a short free preview`
                       : ''}
                   </CardDescription>
                 </CardHeader>
@@ -547,8 +547,8 @@ export default function CourseDetail() {
                                 const isCompleted = completedLessons.has(lesson.id);
                                 const thumbnail = getYouTubeThumbnail(lesson.video_url, lesson.video_provider);
                                 const globalIndex = modules!.slice(0, moduleIndex).reduce((s: number, m: any) => s + (m.lessons?.length || 0), 0) + lessonIndex;
-                                const isFreeLesson = false;
-                                const canAccess = true;
+                                const isPreviewable = isLessonPreviewable(globalIndex, totalLessons);
+                                const canAccess = hasAccess || isPreviewable;
 
                                 return (
                                   <div
@@ -592,10 +592,19 @@ export default function CourseDetail() {
                                       </div>
                                     </div>
                                     {!hasAccess ? (
-                                      <Badge className="text-[10px] flex-shrink-0 bg-primary/15 text-primary border-primary/30 gap-1">
-                                        <Play className="w-2.5 h-2.5" />
-                                        {getPreviewLabel(lesson.video_duration) ? `${getPreviewLabel(lesson.video_duration)} preview` : 'Free preview'}
-                                      </Badge>
+                                      isPreviewable ? (
+                                        <Badge className="text-[10px] flex-shrink-0 bg-primary/15 text-primary border-primary/30 gap-1">
+                                          <Play className="w-2.5 h-2.5" />
+                                          {getPreviewLabel(lesson.video_duration)
+                                            ? `${getPreviewLabel(lesson.video_duration)} preview`
+                                            : 'Free preview'}
+                                        </Badge>
+                                      ) : (
+                                        <Badge variant="outline" className="text-[10px] flex-shrink-0 text-muted-foreground gap-1">
+                                          <Lock className="w-2.5 h-2.5" />
+                                          Pro
+                                        </Badge>
+                                      )
                                     ) : null}
                                   </div>
                                 );
