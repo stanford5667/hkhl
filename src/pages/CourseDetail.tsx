@@ -40,7 +40,7 @@ import { TestimonialsSection } from '@/components/academy/TestimonialsSection';
 import { BillingIntervalSheet } from '@/components/academy/BillingIntervalSheet';
 import { MembershipStep } from '@/components/onboarding/MembershipStep';
 import { FeatureComparisonPanel } from '@/components/auth/FeatureComparisonPanel';
-import { Check, X, ArrowLeft } from 'lucide-react';
+import { Check, X, ArrowLeft, ChevronRight } from 'lucide-react';
 
 function getYouTubeThumbnail(url: string | null, provider: string | null): string | null {
   if (!url) return null;
