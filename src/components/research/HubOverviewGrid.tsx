@@ -114,6 +114,32 @@ function HubCard({
       {/* Top accent bar */}
       <div className={cn("absolute inset-x-0 top-0 h-0.5", a.bar)} />
 
+      {/* Decorative accent glow */}
+      <div
+        aria-hidden
+        className={cn(
+          "pointer-events-none absolute -top-10 -right-10 h-28 w-28 rounded-full blur-2xl opacity-20 transition-opacity duration-300 group-hover:opacity-40",
+          a.bar,
+        )}
+      />
+
+      {/* Decorative grid pattern */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-[0.05] [background-image:linear-gradient(to_right,currentColor_1px,transparent_1px),linear-gradient(to_bottom,currentColor_1px,transparent_1px)] [background-size:18px_18px] text-foreground"
+      />
+
+      {/* Watermark icon */}
+      <Icon
+        aria-hidden
+        className={cn(
+          "pointer-events-none absolute -bottom-4 -right-3 h-20 w-20 opacity-[0.06] transition-all duration-300 group-hover:opacity-[0.12] group-hover:scale-110",
+          a.text,
+        )}
+        strokeWidth={1.25}
+      />
+
+
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <div
