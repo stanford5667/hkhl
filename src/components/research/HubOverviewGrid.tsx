@@ -19,7 +19,7 @@ import { WidgetCard } from "@/pages/research/components/WidgetCard";
 import { cn } from "@/lib/utils";
 import {
   usePortfolioTotals,
-  useDealPipeline,
+
 } from "@/hooks/useMarketIntel";
 import { useWatchlistWithQuotes } from "@/hooks/useWatchlistWithQuotes";
 import { useSavedReports } from "@/hooks/useSavedReports";
