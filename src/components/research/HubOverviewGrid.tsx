@@ -673,8 +673,6 @@ function TeaserCard({
       title={title}
       accent={accent}
       blurb={blurb}
-      primary={<span className="text-muted-foreground text-sm font-normal">Sign in</span>}
-      secondary="to see your data"
     />
   );
 }
