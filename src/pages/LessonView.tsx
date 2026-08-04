@@ -27,6 +27,8 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MobileAuthSheet } from '@/components/auth/MobileAuthSheet';
 import { UpgradeModal } from '@/components/premium/UpgradeModal';
+import { launchCheckout } from '@/lib/checkout';
+
 import { getPreviewLimitSeconds, getPreviewLabel, isLessonPreviewable, getPreviewableLessonCount } from '@/lib/coursePreview';
 
 // Premium dark thumbnail gradients
