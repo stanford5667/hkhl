@@ -43,7 +43,7 @@ export function useRealtimeMessages(roomId: string | null) {
       avatar_url: profileData?.is_anonymous ? null : (profileData?.avatar_url || null),
       is_anonymous: profileData?.is_anonymous || false,
       is_admin: !!roleData,
-      bio: profileData?.bio || null,
+      bio: null,
     };
     profileCacheRef.current.set(userId, profile);
     return profile;
