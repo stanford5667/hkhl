@@ -73,7 +73,6 @@ export function useAffiliateTracking() {
         body: {
           action: "attribute_signup",
           visitor_id: visitorId,
-          user_id: user.id,
         },
       }).then(() => {
         // Don't remove cookie yet - keep for conversion attribution

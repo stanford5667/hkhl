@@ -68,7 +68,24 @@ serve(async (req) => {
 
     // Attribute a signup to an affiliate
     if (action === "attribute_signup") {
-      const { visitor_id, user_id } = params;
+      const { visitor_id } = params;
+
+      // Derive the user from the caller's session; never trust a client-supplied id
+      const signupAuth = req.headers.get("Authorization");
+      if (!signupAuth?.startsWith("Bearer ")) {
+        return new Response(JSON.stringify({ success: false, error: "Authentication required" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 401,
+        });
+      }
+      const { data: signupUser } = await supabase.auth.getUser(signupAuth.replace("Bearer ", ""));
+      if (!signupUser.user) {
+        return new Response(JSON.stringify({ success: false, error: "Invalid token" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 401,
+        });
+      }
+      const user_id = signupUser.user.id;
 
       // Check if this user is already attributed to any affiliate (prevent duplicates)
       const { data: existingAttribution } = await supabase
@@ -151,7 +168,24 @@ serve(async (req) => {
 
     // Attribute a conversion (payment) to an affiliate
     if (action === "attribute_conversion") {
+      // Internal-only: commissions may only be recorded by trusted server code
+      const internalAuth = req.headers.get("Authorization")?.replace("Bearer ", "");
+      if (!internalAuth || internalAuth !== Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) {
+        logStep("Rejected unauthorized conversion attribution");
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 403,
+        });
+      }
+
       const { user_id, amount, stripe_subscription_id } = params;
+      const conversionAmount = Number(amount);
+      if (!user_id || !Number.isFinite(conversionAmount) || conversionAmount <= 0) {
+        return new Response(JSON.stringify({ error: "Invalid conversion payload" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        });
+      }
 
       // Find referral for this user
       const { data: referral } = await supabase
@@ -171,14 +205,14 @@ serve(async (req) => {
       }
 
       const affiliate = (referral as any).affiliates;
-      const commissionAmount = (amount * affiliate.commission_rate) / 100;
+      const commissionAmount = (conversionAmount * affiliate.commission_rate) / 100;
 
       // Update referral with conversion data
       await supabase
         .from("affiliate_referrals")
         .update({
           converted_at: new Date().toISOString(),
-          conversion_amount: amount,
+          conversion_amount: conversionAmount,
           commission_amount: commissionAmount,
           commission_status: "approved",
           stripe_subscription_id,
@@ -191,7 +225,7 @@ serve(async (req) => {
         earning_amount: commissionAmount,
       });
 
-      logStep("Conversion attributed", { user_id, amount, commission: commissionAmount });
+      logStep("Conversion attributed", { user_id, amount: conversionAmount, commission: commissionAmount });
       return new Response(JSON.stringify({ success: true, commission: commissionAmount }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
