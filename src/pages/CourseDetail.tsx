@@ -441,7 +441,7 @@ export default function CourseDetail() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-6">
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-3 sm:space-y-6">
-          {/* Hero */}
+          {/* Hero with preview placed under instructor */}
           <CourseHero
             title={course.title}
             headline={parsedContent.headline}
@@ -477,53 +477,29 @@ export default function CourseDetail() {
             }}
             instructorName="Chris Stanford"
             instructorRole="Hedge Fund Manager"
+            preview={
+              firstLesson?.video_url ? (
+                <div className="z-30 lg:sticky lg:top-4">
+                  <CoursePreviewPlayer
+                    lessonTitle={firstLesson.title}
+                    lessonNumberLabel={
+                      previewLessonIndex >= 0 ? `Lesson ${previewLessonIndex + 1}` : 'Lesson 1'
+                    }
+                    videoUrl={firstLesson.video_url}
+                    videoProvider={firstLesson.video_provider}
+                    videoDuration={firstLesson.video_duration}
+                    hasAccess={!!hasAccess}
+                    onOpenLesson={() => navigate(`/academy/lesson/${firstLesson.id}`)}
+                    onUpgrade={() => {
+                      if (!user) { setShowAuthSheet(true); return; }
+                      handleStartLearning();
+                    }}
+                  />
+                </div>
+              ) : null
+            }
           />
 
-          {/* Trust strip — non-members only */}
-          {!hasAccess && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-              {[
-                { icon: BarChart3, label: `${totalLessons} lessons`, sub: 'Step-by-step' },
-                { icon: TrendingUp, label: 'Real strategies', sub: 'Institutional-grade' },
-                { icon: Brain, label: 'AI-powered', sub: 'Smart insights' },
-                { icon: Award, label: 'Certificate', sub: 'On completion' },
-              ].map(({ icon: Icon, label, sub }) => (
-                <div
-                  key={label}
-                  className="flex items-center gap-2 rounded-xl border border-border/50 bg-card/60 p-2.5 sm:p-3"
-                >
-                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                    <Icon className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="truncate text-xs font-semibold text-foreground">{label}</p>
-                    <p className="truncate text-[10px] text-muted-foreground">{sub}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Auto-playing preview — sticks to the top while scrolling the tabs */}
-          {firstLesson?.video_url && (
-            <div className="z-30 lg:sticky lg:top-4">
-              <CoursePreviewPlayer
-                lessonTitle={firstLesson.title}
-                lessonNumberLabel={
-                  previewLessonIndex >= 0 ? `Lesson ${previewLessonIndex + 1}` : 'Lesson 1'
-                }
-                videoUrl={firstLesson.video_url}
-                videoProvider={firstLesson.video_provider}
-                videoDuration={firstLesson.video_duration}
-                hasAccess={!!hasAccess}
-                onOpenLesson={() => navigate(`/academy/lesson/${firstLesson.id}`)}
-                onUpgrade={() => {
-                  if (!user) { setShowAuthSheet(true); return; }
-                  handleStartLearning();
-                }}
-              />
-            </div>
-          )}
 
           {/* Tabs */}
           <Tabs defaultValue="curriculum">

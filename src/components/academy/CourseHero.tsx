@@ -1,8 +1,10 @@
+import type { ReactNode } from 'react';
 import { Award, BookOpen, Clock, Layers, Lock, Play, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { prettyLabel } from '@/lib/courseContent';
+
 
 interface CourseHeroProps {
   title: string;
@@ -21,7 +23,9 @@ interface CourseHeroProps {
   primaryLoading?: boolean;
   instructorName: string;
   instructorRole: string;
+  preview?: ReactNode;
 }
+
 
 const levelStyles: Record<string, string> = {
   beginner: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
@@ -55,7 +59,9 @@ export function CourseHero({
   primaryLoading,
   instructorName,
   instructorRole,
+  preview,
 }: CourseHeroProps) {
+
   const initials = instructorName
     .split(' ')
     .map((p) => p[0])
@@ -140,6 +146,10 @@ export function CourseHero({
             <p className="truncate text-[11px] sm:text-xs text-muted-foreground">{instructorRole}</p>
           </div>
         </div>
+
+        {/* Preview video placed directly under the instructor block */}
+        {preview && <div className="mt-5">{preview}</div>}
+
 
         {/* Primary action / progress */}
         <div className="mt-5 space-y-3">
