@@ -72,7 +72,15 @@ if (typeof window !== "undefined") {
   });
 
   window.addEventListener("pageshow", () => {
-    sessionStorage.removeItem(REACT_RUNTIME_RELOAD_KEY);
+    const runtimeReloadAttempt = Number(
+      sessionStorage.getItem(REACT_RUNTIME_RELOAD_KEY) ?? "0",
+    );
+    if (
+      runtimeReloadAttempt > 0 &&
+      Date.now() - runtimeReloadAttempt >= CHUNK_RELOAD_WINDOW_MS
+    ) {
+      sessionStorage.removeItem(REACT_RUNTIME_RELOAD_KEY);
+    }
 
     try {
       const rawAttempt = sessionStorage.getItem(CHUNK_RELOAD_KEY);
