@@ -50,7 +50,7 @@ export default function SharedPost() {
 
       // Fetch author name
       const { data: profile } = await supabase
-        .from('profiles')
+        .from('profiles_public')
         .select('full_name, is_anonymous')
         .eq('user_id', data.user_id)
         .maybeSingle();

@@ -44,7 +44,7 @@ export function usePinnedMessages(roomId: string | null) {
       const userIds = [...new Set(messages.map(m => m.user_id))];
       const [{ data: profiles }, { data: roles }] = await Promise.all([
         supabase
-          .from('profiles')
+          .from('profiles_public')
           .select('user_id, full_name, avatar_url, is_anonymous')
           .in('user_id', userIds),
         supabase

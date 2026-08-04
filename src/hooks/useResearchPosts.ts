@@ -90,7 +90,7 @@ export function useResearchPosts() {
       if (fetchedPosts.length > 0) {
         const userIds = [...new Set(fetchedPosts.map(p => p.user_id))];
         const { data: profiles } = await supabase
-          .from('profiles')
+          .from('profiles_public')
           .select('user_id, full_name, avatar_url, is_anonymous')
           .in('user_id', userIds);
 
@@ -338,7 +338,7 @@ export function usePostDetail(postId: string | null) {
 
       // Fetch author profile
       const { data: profileData } = await supabase
-        .from('profiles')
+        .from('profiles_public')
         .select('user_id, full_name, avatar_url, is_anonymous')
         .eq('user_id', postData.user_id)
         .single();
@@ -379,7 +379,7 @@ export function usePostDetail(postId: string | null) {
       let commentProfileMap = new Map<string, any>();
       if (commentUserIds.length > 0) {
         const { data: cProfiles } = await supabase
-          .from('profiles')
+          .from('profiles_public')
           .select('user_id, full_name, avatar_url, is_anonymous')
           .in('user_id', commentUserIds);
         if (cProfiles) {

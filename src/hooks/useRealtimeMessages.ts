@@ -26,8 +26,8 @@ export function useRealtimeMessages(roomId: string | null) {
 
     const [{ data: profileData }, { data: roleData }] = await Promise.all([
       supabase
-        .from('profiles')
-        .select('full_name, avatar_url, is_anonymous, bio')
+        .from('profiles_public')
+        .select('full_name, avatar_url, is_anonymous')
         .eq('user_id', userId)
         .single(),
       supabase
