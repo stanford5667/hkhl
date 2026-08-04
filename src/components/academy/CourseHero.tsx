@@ -23,7 +23,7 @@ interface CourseHeroProps {
   primaryLoading?: boolean;
   instructorName: string;
   instructorRole: string;
-  preview?: React.ReactNode;
+  preview?: ReactNode;
 }
 
 
