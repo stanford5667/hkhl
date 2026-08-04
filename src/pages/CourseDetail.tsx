@@ -504,21 +504,25 @@ export default function CourseDetail() {
             </div>
           )}
 
-          {/* Auto-playing preview of the first lesson */}
+          {/* Auto-playing preview — sticks to the top while scrolling the tabs */}
           {firstLesson?.video_url && (
-            <CoursePreviewPlayer
-              lessonTitle={firstLesson.title}
-              lessonNumberLabel="Lesson 1"
-              videoUrl={firstLesson.video_url}
-              videoProvider={firstLesson.video_provider}
-              videoDuration={firstLesson.video_duration}
-              hasAccess={!!hasAccess}
-              onOpenLesson={() => navigate(`/academy/lesson/${firstLesson.id}`)}
-              onUpgrade={() => {
-                if (!user) { setShowAuthSheet(true); return; }
-                handleStartLearning();
-              }}
-            />
+            <div className="z-30 lg:sticky lg:top-4">
+              <CoursePreviewPlayer
+                lessonTitle={firstLesson.title}
+                lessonNumberLabel={
+                  previewLessonIndex >= 0 ? `Lesson ${previewLessonIndex + 1}` : 'Lesson 1'
+                }
+                videoUrl={firstLesson.video_url}
+                videoProvider={firstLesson.video_provider}
+                videoDuration={firstLesson.video_duration}
+                hasAccess={!!hasAccess}
+                onOpenLesson={() => navigate(`/academy/lesson/${firstLesson.id}`)}
+                onUpgrade={() => {
+                  if (!user) { setShowAuthSheet(true); return; }
+                  handleStartLearning();
+                }}
+              />
+            </div>
           )}
 
           {/* Tabs */}
