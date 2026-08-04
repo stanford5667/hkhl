@@ -50,5 +50,7 @@ export function getPreviewLabel(videoDuration?: number | null): string | null {
   if (!videoDuration || videoDuration <= 0) return null;
   const seconds = getPreviewLimitSeconds(videoDuration);
   if (seconds < 60) return `${seconds} sec`;
-  return `${Math.max(1, Math.round(seconds / 60))} min`;
+  const mins = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  return rest === 0 ? `${mins} min` : `${mins} min ${rest} sec`;
 }
