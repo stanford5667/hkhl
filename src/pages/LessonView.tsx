@@ -443,6 +443,31 @@ export default function LessonView() {
                 </div>
               )}
 
+              {/* Preview running out — nudge before the hard stop */}
+              <AnimatePresence>
+                {showPreviewWarning && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 12 }}
+                    className="absolute bottom-3 left-3 right-3 z-10 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-primary/30 bg-background/85 backdrop-blur-md px-3 py-2"
+                  >
+                    <p className="text-xs md:text-sm text-foreground">
+                      <span className="font-semibold text-primary">
+                        {previewSecondsLeft}s
+                      </span>{' '}
+                      of preview left — unlock the full lesson and the rest of the Academy.
+                    </p>
+                    <Button size="sm" onClick={startCheckout}>
+                      <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                      Unlock now
+                    </Button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+
+
               {/* Preview limit reached — paywall overlay */}
               <AnimatePresence>
                 {isPreviewOnly && previewEnded && (
