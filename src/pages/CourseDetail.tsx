@@ -362,38 +362,24 @@ export default function CourseDetail() {
         {/* Mobile: compact back action */}
         <div className="flex sm:hidden items-center justify-between gap-2">
           <Link
-            to="/academy"
+            to="/"
             className="inline-flex items-center gap-1.5 text-sm text-foreground font-medium hover:text-foreground transition-colors"
           >
             <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center">
               <ArrowLeft className="w-4 h-4" />
             </div>
-            Academy
-          </Link>
-          <Link
-            to="/"
-            className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
-          >
             Dashboard
-            <TrendingUp className="w-3.5 h-3.5" />
           </Link>
         </div>
 
         {/* Desktop / tablet: full action links */}
         <div className="hidden sm:flex sm:flex-row sm:items-center gap-2 sm:gap-4">
           <Link
-            to="/academy"
+            to="/"
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors w-fit"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Academy
-          </Link>
-          <Link
-            to="/"
-            className="inline-flex items-center gap-1.5 text-sm text-primary hover:text-primary/80 transition-colors w-fit"
-          >
-            <TrendingUp className="w-4 h-4" />
-            Go to dashboard
+            Back to dashboard
           </Link>
         </div>
       </nav>
