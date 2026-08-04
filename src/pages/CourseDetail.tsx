@@ -316,6 +316,7 @@ export default function CourseDetail() {
   );
 
   const totalLessons = modules?.reduce((sum, m) => sum + (m.lessons?.length || 0), 0) || 0;
+  const firstLesson = modules?.flatMap((m: any) => m.lessons || [])[0] as any | undefined;
   const completedCount = completedLessons.size;
   const progressPercentage = totalLessons > 0 ? (completedCount / totalLessons) * 100 : 0;
 
