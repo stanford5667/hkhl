@@ -26,31 +26,26 @@ export function EmailVerificationPending({
   // Check if user has verified via our custom Loops verification
   const checkVerification = useCallback(async () => {
     try {
-      // Check our custom email_verifications table for verified status
-      const { data, error } = await supabase
-        .from('email_verifications')
-        .select('verified')
-        .eq('email', email)
-        .eq('verified', true)
-        .limit(1);
-      
+      // Safe RPC — returns only a boolean, never the verification token
+      const { data, error } = await supabase.rpc('is_email_verified', { _email: email });
+
       if (error) {
         console.error("Error checking verification:", error);
         return false;
       }
 
-      if (data && data.length > 0) {
-        // User has verified via Loops email
+      if (data === true) {
         onVerified?.();
         return true;
       }
-      
+
       return false;
     } catch (err) {
       console.error("Verification check error:", err);
       return false;
     }
   }, [email, onVerified]);
+
 
   // Polling loop to check for email verification
   useEffect(() => {
@@ -95,32 +90,10 @@ export function EmailVerificationPending({
   const handleResendEmail = async () => {
     setIsResending(true);
     try {
-      // Get user ID from existing verification record or current session
+      // Prefer the current session's user id; otherwise the backend resolves it from the email
       const { data: sessionData } = await supabase.auth.getSession();
-      let userId = sessionData?.session?.user?.id;
-      
-      // If no session, look up from existing verification record
-      if (!userId) {
-        const { data: verificationData } = await supabase
-          .from('email_verifications')
-          .select('user_id')
-          .eq('email', email)
-          .order('created_at', { ascending: false })
-          .limit(1);
-        
-        userId = verificationData?.[0]?.user_id;
-      }
-      
-      if (!userId) {
-        toast({
-          title: "Unable to resend",
-          description: "Please try signing up again.",
-          variant: "destructive",
-        });
-        setIsResending(false);
-        return;
-      }
-      
+      const userId = sessionData?.session?.user?.id;
+
       const response = await supabase.functions.invoke('send-verification-email', {
         body: {
           userId: userId,
@@ -128,6 +101,7 @@ export function EmailVerificationPending({
           fullName: email.split('@')[0], // Fallback name
         },
       });
+
 
       if (response.error) {
         toast({

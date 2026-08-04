@@ -12,10 +12,11 @@ const logStep = (step: string, details?: unknown) => {
 };
 
 interface VerificationRequest {
-  userId: string;
+  userId?: string;
   email: string;
   fullName?: string;
 }
+
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -37,14 +38,35 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { userId, email, fullName }: VerificationRequest = await req.json();
+    const { userId: userIdInput, email, fullName }: VerificationRequest = await req.json();
 
-    if (!userId || !email) {
+    if (!email) {
       return new Response(
-        JSON.stringify({ error: "userId and email are required" }),
+        JSON.stringify({ error: "email is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Resolve the user id server-side when the client has no session (resend flow)
+    let userId = userIdInput;
+    if (!userId) {
+      const { data: priorRecord } = await supabase
+        .from('email_verifications')
+        .select('user_id')
+        .eq('email', email)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      userId = priorRecord?.user_id ?? undefined;
+    }
+
+    if (!userId) {
+      return new Response(
+        JSON.stringify({ error: "Unable to resolve user for this email" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
 
     logStep("Processing verification request", { userId, email });
 
