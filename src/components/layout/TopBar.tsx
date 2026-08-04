@@ -119,7 +119,7 @@ export function TopBar({ onOpenSearch }: TopBarProps) {
                 onClick={() => setShowAuthDialog(true)}
               >
                 <User className="h-4 w-4 sm:mr-1" />
-                <span className="hidden sm:inline">Sign Up</span>
+                <span className="hidden sm:inline">Sign up free</span>
               </Button>
             </>
           )}

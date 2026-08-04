@@ -94,7 +94,7 @@ export function MessageInput({
         </p>
         <Button size="sm" variant="default" className="gap-2" onClick={() => navigateTo('/auth')}>
           <LogIn className="h-4 w-4" />
-          Sign In / Sign Up
+          Sign in
         </Button>
       </div>
     );

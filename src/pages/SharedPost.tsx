@@ -185,7 +185,7 @@ export default function SharedPost() {
         <div className="bg-muted/50 rounded-xl p-6 text-center space-y-3">
           <p className="text-sm font-medium">Want to join the discussion and access more research?</p>
           <Link to="/auth">
-            <Button>Sign Up Free</Button>
+            <Button>Create free account</Button>
           </Link>
         </div>
       </div>

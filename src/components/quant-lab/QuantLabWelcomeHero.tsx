@@ -801,7 +801,7 @@ export function QuantLabWelcomeHero({
             </div>
             <Button onClick={(e) => { e.stopPropagation(); onSignUp(); }} className="gap-2 h-8 sm:h-10 text-[10px] sm:text-sm px-2 sm:px-4">
               <Zap className="h-3 sm:h-4 w-3 sm:w-4" />
-              <span className="hidden sm:inline">Get Started Free</span>
+              <span className="hidden sm:inline">Create free account</span>
               <span className="sm:hidden">Start Free</span>
             </Button>
           </div>

@@ -338,7 +338,7 @@ export function MarketingLandingPage() {
               onClick={() => navigate('/auth', { state: { mode: 'signup' } })}
               className="rounded-full bg-cyan-400 px-6 font-semibold text-black hover:bg-cyan-300"
             >
-              Sign Up
+              Sign up free
             </Button>
           </div>
         </div>

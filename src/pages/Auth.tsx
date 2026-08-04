@@ -1,16 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, TrendingUp, Shield, Zap, Sparkles, BarChart3, Brain } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
+import { TrendingUp, Shield, Zap, Sparkles, BarChart3, Brain } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { AssetLabsLogo } from "@/components/brand/AssetLabsLogo";
-import { AgeVerificationInput, AgeRatingBadge } from "@/components/auth/AgeVerificationInput";
+import { AuthForm, type AuthMode } from "@/components/auth/AuthForm";
+import { AUTH_COPY } from "@/lib/authCopy";
 import {
   launchCheckout,
   readCheckoutIntent,
@@ -18,40 +12,12 @@ import {
   type CheckoutOptions,
 } from "@/lib/checkout";
 
-const signInSchema = z.object({
-  email: z.string().trim().email("Please enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-});
-
-const forgotPasswordSchema = z.object({
-  email: z.string().trim().email("Please enter a valid email address"),
-});
-
-const signUpSchema = z.object({
-  fullName: z.string().trim().min(2, "Name must be at least 2 characters").max(100, "Name is too long"),
-  email: z.string().trim().email("Please enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
-
-type SignInFormData = z.infer<typeof signInSchema>;
-type SignUpFormData = z.infer<typeof signUpSchema>;
-type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
-
 export default function Auth() {
-  const [mode, setMode] = useState<"signin" | "signup" | "forgot-password">("signup");
-  const [signUpStep, setSignUpStep] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
-  const [resetEmailSent, setResetEmailSent] = useState(false);
-  const [isAgeVerified, setIsAgeVerified] = useState(false);
-  const [ageError, setAgeError] = useState("");
+  const [mode, setMode] = useState<AuthMode>("signup");
   const navigate = useNavigate();
   const location = useLocation();
-  const { toast } = useToast();
-  const { user, signIn, signUp, resetPassword } = useAuth();
+  const { user } = useAuth();
+
 
   // Get the redirect path and optional checkout intent from state
   const locationState = location.state as { from?: string; checkoutPlan?: string; checkoutReturnPath?: string } | null;
@@ -95,96 +61,7 @@ export default function Auth() {
   }, [user, navigate, from, checkoutPlan, checkoutReturnPath]);
 
 
-  const signInForm = useForm<SignInFormData>({
-    resolver: zodResolver(signInSchema),
-    defaultValues: { email: "", password: "" },
-  });
 
-  const signUpForm = useForm<SignUpFormData>({
-    resolver: zodResolver(signUpSchema),
-    defaultValues: { fullName: "", email: "", password: "", confirmPassword: "" },
-  });
-
-  const forgotPasswordForm = useForm<ForgotPasswordFormData>({
-    resolver: zodResolver(forgotPasswordSchema),
-    defaultValues: { email: "" },
-  });
-
-  const handleSignIn = async (data: SignInFormData) => {
-    setIsLoading(true);
-    const { error } = await signIn(data.email, data.password);
-    setIsLoading(false);
-
-    if (error) {
-      toast({
-        title: "Sign in failed",
-        description: error.message === "Invalid login credentials" 
-          ? "Invalid email or password. Please try again."
-          : error.message,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    toast({
-      title: "Welcome back!",
-      description: "You have been signed in successfully.",
-    });
-    navigate(from, { replace: true });
-  };
-
-  const handleSignUp = async (data: SignUpFormData) => {
-    // Validate age verification
-    if (!isAgeVerified) {
-      setAgeError("Please verify your age to continue");
-      return;
-    }
-    setAgeError("");
-
-    setIsLoading(true);
-    const { error } = await signUp(data.email, data.password, data.fullName);
-    setIsLoading(false);
-
-    if (error) {
-      let message = error.message;
-      if (error.message.includes("already registered")) {
-        message = "This email is already registered. Please sign in instead.";
-      }
-      toast({
-        title: "Sign up failed",
-        description: message,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    toast({
-      title: "Welcome to Asset Labs AI!",
-      description: "Your account has been created successfully.",
-    });
-    navigate(from, { replace: true });
-  };
-
-  const handleForgotPassword = async (data: ForgotPasswordFormData) => {
-    setIsLoading(true);
-    const { error } = await resetPassword(data.email);
-    setIsLoading(false);
-
-    if (error) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setResetEmailSent(true);
-    toast({
-      title: "Reset email sent",
-      description: "Check your email for a password reset link.",
-    });
-  };
 
   const features = [
     { icon: BarChart3, title: "Portfolio Analytics", description: "Real-time performance tracking across all your holdings" },
@@ -255,279 +132,25 @@ export default function Auth() {
             <AssetLabsLogo size="lg" showTagline />
           </div>
 
-          {mode === "forgot-password" ? (
-            <>
-              <div className="text-center">
-                <h1 className="text-3xl font-bold text-foreground">Reset your password</h1>
-                <p className="mt-2 text-muted-foreground">
-                  {resetEmailSent 
-                    ? "Check your email for a reset link" 
-                    : "Enter your email and we'll send you a reset link"}
-                </p>
-              </div>
+          <div className="text-center space-y-2">
+            <h1 className="text-3xl font-bold text-foreground">
+              {mode === "signin"
+                ? AUTH_COPY.signInTitle
+                : mode === "signup"
+                  ? AUTH_COPY.signUpTitle
+                  : AUTH_COPY.resetTitle}
+            </h1>
+            <p className="text-muted-foreground">
+              {mode === "signin"
+                ? AUTH_COPY.signInSubtitle
+                : mode === "signup"
+                  ? AUTH_COPY.signUpSubtitle
+                  : AUTH_COPY.resetSubtitle}
+            </p>
+          </div>
 
-              {resetEmailSent ? (
-                <div className="text-center space-y-4">
-                  <div className="p-4 rounded-lg bg-primary/10 text-primary">
-                    We've sent a password reset link to your email address.
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    className="w-full"
-                    onClick={() => {
-                      setMode("signin");
-                      setResetEmailSent(false);
-                      forgotPasswordForm.reset();
-                    }}
-                  >
-                    Back to sign in
-                  </Button>
-                </div>
-              ) : (
-                <form onSubmit={forgotPasswordForm.handleSubmit(handleForgotPassword)} className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="reset-email" className="text-foreground">Email</Label>
-                    <Input
-                      id="reset-email"
-                      type="email"
-                      placeholder="name@company.com"
-                      className="bg-secondary border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary/50"
-                      {...forgotPasswordForm.register("email")}
-                    />
-                    {forgotPasswordForm.formState.errors.email && (
-                      <p className="text-sm text-destructive">{forgotPasswordForm.formState.errors.email.message}</p>
-                    )}
-                  </div>
+          <AuthForm mode={mode} onModeChange={setMode} density="comfortable" />
 
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Sending...
-                      </>
-                    ) : (
-                      "Send reset link"
-                    )}
-                  </Button>
-
-                  <div className="text-center">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMode("signin");
-                        forgotPasswordForm.reset();
-                      }}
-                      className="text-sm text-primary hover:text-primary/80 transition-colors"
-                    >
-                      Back to sign in
-                    </button>
-                  </div>
-                </form>
-              )}
-            </>
-          ) : (
-            <>
-              <div className="text-center space-y-3">
-                <h1 className="text-3xl font-bold text-foreground">
-                  {mode === "signin" ? "Welcome back" : "Create your account"}
-                </h1>
-                <p className="text-muted-foreground">
-                  {mode === "signin" 
-                    ? "Sign in to access your portfolio and insights" 
-                    : "Get started with Asset Labs AI today"}
-                </p>
-              </div>
-
-              {mode === "signin" ? (
-                <form onSubmit={signInForm.handleSubmit(handleSignIn)} className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="email" className="text-foreground">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="name@company.com"
-                      className="bg-secondary border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary/50"
-                      {...signInForm.register("email")}
-                    />
-                    {signInForm.formState.errors.email && (
-                      <p className="text-sm text-destructive">{signInForm.formState.errors.email.message}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="password" className="text-foreground">Password</Label>
-                      <button
-                        type="button"
-                        onClick={() => setMode("forgot-password")}
-                        className="text-sm text-primary hover:text-primary/80 transition-colors"
-                      >
-                        Forgot password?
-                      </button>
-                    </div>
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="••••••••"
-                      className="bg-secondary border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary/50"
-                      {...signInForm.register("password")}
-                    />
-                    {signInForm.formState.errors.password && (
-                      <p className="text-sm text-destructive">{signInForm.formState.errors.password.message}</p>
-                    )}
-                  </div>
-
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Signing in...
-                      </>
-                    ) : (
-                      "Sign in"
-                    )}
-                  </Button>
-                </form>
-              ) : (
-                <form onSubmit={signUpForm.handleSubmit(handleSignUp)} className="space-y-6">
-                  {/* Step indicator */}
-                  <div className="flex items-center gap-2 justify-center mb-2">
-                    <div className={`h-2 w-16 rounded-full transition-colors ${signUpStep >= 1 ? 'bg-primary' : 'bg-muted'}`} />
-                    <div className={`h-2 w-16 rounded-full transition-colors ${signUpStep >= 2 ? 'bg-primary' : 'bg-muted'}`} />
-                  </div>
-                  <p className="text-center text-xs text-muted-foreground">Step {signUpStep} of 2</p>
-
-                  {signUpStep === 1 ? (
-                    <>
-                      <div className="space-y-2">
-                        <Label htmlFor="fullName" className="text-foreground">Full Name</Label>
-                        <Input
-                          id="fullName"
-                          type="text"
-                          placeholder="John Smith"
-                          className="bg-secondary border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary/50"
-                          {...signUpForm.register("fullName")}
-                        />
-                        {signUpForm.formState.errors.fullName && (
-                          <p className="text-sm text-destructive">{signUpForm.formState.errors.fullName.message}</p>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="signup-email" className="text-foreground">Email</Label>
-                        <Input
-                          id="signup-email"
-                          type="email"
-                          placeholder="name@company.com"
-                          className="bg-secondary border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary/50"
-                          {...signUpForm.register("email")}
-                        />
-                        {signUpForm.formState.errors.email && (
-                          <p className="text-sm text-destructive">{signUpForm.formState.errors.email.message}</p>
-                        )}
-                      </div>
-
-                      <Button
-                        type="button"
-                        className="w-full"
-                        onClick={async () => {
-                          const valid = await signUpForm.trigger(["fullName", "email"]);
-                          if (valid) setSignUpStep(2);
-                        }}
-                      >
-                        Continue
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <div className="space-y-2">
-                        <Label htmlFor="signup-password" className="text-foreground">Password</Label>
-                        <Input
-                          id="signup-password"
-                          type="password"
-                          placeholder="••••••••"
-                          className="bg-secondary border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary/50"
-                          {...signUpForm.register("password")}
-                        />
-                        {signUpForm.formState.errors.password && (
-                          <p className="text-sm text-destructive">{signUpForm.formState.errors.password.message}</p>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="confirmPassword" className="text-foreground">Confirm Password</Label>
-                        <Input
-                          id="confirmPassword"
-                          type="password"
-                          placeholder="••••••••"
-                          className="bg-secondary border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary/50"
-                          {...signUpForm.register("confirmPassword")}
-                        />
-                        {signUpForm.formState.errors.confirmPassword && (
-                          <p className="text-sm text-destructive">{signUpForm.formState.errors.confirmPassword.message}</p>
-                        )}
-                      </div>
-
-                      <AgeVerificationInput
-                        onVerificationChange={setIsAgeVerified}
-                        error={ageError}
-                      />
-
-                      <div className="flex gap-3">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="flex-1"
-                          onClick={() => setSignUpStep(1)}
-                        >
-                          Back
-                        </Button>
-                        <Button type="submit" className="flex-1" disabled={isLoading}>
-                          {isLoading ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Creating...
-                            </>
-                          ) : (
-                            "Create account"
-                          )}
-                        </Button>
-                      </div>
-                    </>
-                  )}
-                </form>
-              )}
-
-              <div className="text-center space-y-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMode(mode === "signin" ? "signup" : "signin");
-                    setSignUpStep(1);
-                    signInForm.reset();
-                    signUpForm.reset();
-                  }}
-                  className="text-sm font-medium text-primary hover:text-primary/80 transition-colors"
-                >
-                  {mode === "signin" 
-                    ? "Don't have an account? Sign up" 
-                    : "Already have an account? Sign in"}
-                </button>
-                
-                {mode === "signup" && (
-                  <div>
-                    <button
-                      type="button"
-                      onClick={() => setMode("forgot-password")}
-                      className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                    >
-                      Forgot your password?
-                    </button>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
         </div>
       </div>
     </div>
