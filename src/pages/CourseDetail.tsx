@@ -489,30 +489,44 @@ export default function CourseDetail() {
             <TabsContent value="curriculum" className="mt-4 sm:mt-6">
               <Card>
                 <CardHeader className="p-4 sm:p-6">
-                  <CardTitle className="text-base sm:text-lg">Course Content</CardTitle>
+                  <CardTitle className="font-heading text-base sm:text-lg">Course content</CardTitle>
                   <CardDescription className="text-xs sm:text-sm">
-                    {modules?.length || 0} modules • {totalLessons} lessons
+                    {modules?.length || 0} modules · {totalLessons} lessons
+                    {durationLabel ? ` · ${durationLabel} of video` : ''}
+                    {hasAccess ? ` · ${completedCount} completed` : ''}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
                   <Accordion type="multiple" defaultValue={modules?.[0] ? [modules[0].id] : []} className="w-full">
-                    {modules?.map((module: any, moduleIndex: number) => (
+                    {modules?.map((module: any, moduleIndex: number) => {
+                      const lessons: any[] = module.lessons || [];
+                      const moduleDone = lessons.filter((l) => completedLessons.has(l.id)).length;
+                      const isExpanded = !!expandedModules[module.id];
+                      const visibleLessons = isExpanded ? lessons : lessons.slice(0, LESSON_PREVIEW_COUNT);
+                      const hiddenCount = lessons.length - visibleLessons.length;
+
+                      return (
                       <div key={module.id}>
-                        <AccordionItem value={module.id}>
+                        <AccordionItem value={module.id} className="border-border/50">
                           <AccordionTrigger className="px-4 sm:px-6 hover:no-underline">
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-left">
-                              <span className="text-xs text-muted-foreground">
-                                Module {moduleIndex + 1}
+                            <div className="flex items-center gap-3 text-left min-w-0">
+                              <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/40 text-[11px] font-semibold text-muted-foreground">
+                                {moduleIndex + 1}
                               </span>
-                              <span className="font-semibold text-sm sm:text-base">{module.title}</span>
-                              <Badge variant="outline" className="text-xs w-fit">
-                                {module.lessons?.length || 0} lessons
-                              </Badge>
+                              <div className="min-w-0">
+                                <span className="block font-semibold text-sm sm:text-base leading-tight">
+                                  {module.title}
+                                </span>
+                                <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                                  {lessons.length} lessons
+                                  {hasAccess && moduleDone > 0 ? ` · ${moduleDone} done` : ''}
+                                </span>
+                              </div>
                             </div>
                           </AccordionTrigger>
                           <AccordionContent>
-                            <div className="px-4 sm:px-6 pb-4 space-y-2">
-                              {module.lessons?.map((lesson: any, lessonIndex: number) => {
+                            <div className="px-4 sm:px-6 pb-4 space-y-1.5">
+                              {visibleLessons.map((lesson: any, lessonIndex: number) => {
                                 const isCompleted = completedLessons.has(lesson.id);
                                 const canAccess = hasAccess || lesson.is_preview;
                                 const thumbnail = getYouTubeThumbnail(lesson.video_url, lesson.video_provider);
@@ -521,7 +535,11 @@ export default function CourseDetail() {
                                 return (
                                   <div
                                     key={lesson.id}
-                                    className="flex items-center justify-between p-2 sm:p-3 rounded-lg border hover:bg-muted/50 cursor-pointer"
+                                    className={`group flex items-center justify-between gap-2 rounded-xl border p-2 sm:p-2.5 cursor-pointer transition-colors ${
+                                      canAccess
+                                        ? 'border-border/50 hover:border-primary/40 hover:bg-primary/[0.04]'
+                                        : 'border-border/40 hover:bg-muted/40'
+                                    }`}
                                     onClick={() => {
                                       navigate(`/academy/lesson/${lesson.id}`);
                                     }}
@@ -536,33 +554,46 @@ export default function CourseDetail() {
                                       />
                                       <div className="xs:hidden flex-shrink-0">
                                         {isCompleted ? (
-                                          <CheckCircle2 className="w-4 h-4 text-green-400" />
+                                          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                                         ) : !canAccess ? (
-                                          <Lock className="w-4 h-4 text-muted-foreground" />
+                                          <Lock className="w-3.5 h-3.5 text-muted-foreground/70" />
                                         ) : (
-                                          <Play className="w-4 h-4 text-muted-foreground" />
+                                          <Play className="w-3.5 h-3.5 text-primary" />
                                         )}
                                       </div>
                                       <div className="min-w-0 flex-1">
-                                        <p className="font-medium text-xs sm:text-sm truncate">
-                                          {moduleIndex + 1}.{lessonIndex + 1} {lesson.title}
+                                        <p className={`font-medium text-xs sm:text-sm truncate ${canAccess ? 'text-foreground' : 'text-muted-foreground'}`}>
+                                          <span className="text-muted-foreground/70 mr-1.5">
+                                            {moduleIndex + 1}.{lessonIndex + 1}
+                                          </span>
+                                          {lesson.title}
                                         </p>
                                         {lesson.description && (
-                                          <p className="text-xs text-muted-foreground line-clamp-1 hidden sm:block">{lesson.description}</p>
+                                          <p className="text-[11px] text-muted-foreground line-clamp-1 hidden sm:block">{lesson.description}</p>
                                         )}
                                       </div>
                                     </div>
-                                    {lesson.is_preview && !hasAccess && lessonIndex === 0 ? (
-                                      <Badge className="text-[10px] sm:text-xs flex-shrink-0 ml-2 bg-primary/15 text-primary border-primary/30 gap-1">
+                                    {lesson.is_preview && !hasAccess ? (
+                                      <Badge className="text-[10px] flex-shrink-0 bg-primary/15 text-primary border-primary/30 gap-1">
                                         <Play className="w-2.5 h-2.5" />
-                                        Free Preview
+                                        Free preview
                                       </Badge>
-                                    ) : lesson.is_preview && !hasAccess ? (
-                                      <Badge variant="outline" className="text-[10px] sm:text-xs flex-shrink-0 ml-2">Preview</Badge>
                                     ) : null}
                                   </div>
                                 );
                               })}
+                              {hiddenCount > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setExpandedModules((prev) => ({ ...prev, [module.id]: true }))
+                                  }
+                                  className="mt-1 flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-border/60 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+                                >
+                                  Show {hiddenCount} more {hiddenCount === 1 ? 'lesson' : 'lessons'}
+                                  <ChevronDown className="h-3.5 w-3.5" />
+                                </button>
+                              )}
                             </div>
                           </AccordionContent>
                         </AccordionItem>
@@ -587,7 +618,8 @@ export default function CourseDetail() {
                           </div>
                         )}
                       </div>
-                    ))}
+                      );
+                    })}
                   </Accordion>
                   {/* Mid-curriculum CTA */}
                   {!hasAccess && (
