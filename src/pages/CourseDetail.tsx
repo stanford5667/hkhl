@@ -31,6 +31,7 @@ import {
   Brain,
   Target,
   Flame,
+  Layers,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { MobileAuthSheet } from '@/components/auth/MobileAuthSheet';
