@@ -324,7 +324,7 @@ function PeekCard({ tab }: { tab: TabDef }) {
           <div className="h-14 w-20 shrink-0 overflow-hidden rounded-lg border border-border/60 bg-background/70">
             <PeekThumb tab={tab.key} />
           </div>
-          <div className="order-1 lg:order-2 min-w-0">
+          <div className="min-w-0">
             <p className={cn("flex items-center gap-1.5 text-xs font-semibold", tab.accent)}>
               <Icon className="h-3.5 w-3.5" />
               {tab.label}
