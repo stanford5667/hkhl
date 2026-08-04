@@ -310,6 +310,12 @@ export default function LessonView() {
                     className="w-full h-full object-cover"
                     src={lesson.video_url}
                     controls
+                    onLoadedMetadata={(e) => {
+                      const el = e.currentTarget as HTMLVideoElement;
+                      if (Number.isFinite(el.duration) && el.duration > 0) {
+                        setMeasuredDuration(Math.floor(el.duration));
+                      }
+                    }}
                     preload="metadata"
                     onTimeUpdate={(e) => {
                       const el = e.currentTarget as HTMLVideoElement;
