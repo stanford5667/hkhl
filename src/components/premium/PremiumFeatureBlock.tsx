@@ -122,9 +122,11 @@ export function PremiumFeatureInline({ className }: { className?: string }) {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
+        setIsLoading(false);
         setShowAuthSheet(true);
         return;
       }
+
 
       const affiliateCode = getAffiliateRef();
       const { data, error } = await supabase.functions.invoke('create-checkout', {
