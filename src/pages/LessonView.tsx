@@ -36,7 +36,7 @@ const THUMB_GRADIENTS = [
 ];
 
 // Free preview viewers only get the first slice of the lesson video
-const PREVIEW_LIMIT_SECONDS = 120;
+const PREVIEW_LIMIT_SECONDS = 600;
 
 
 export default function LessonView() {
@@ -266,7 +266,7 @@ export default function LessonView() {
   const isPreviewOnly = hasVideoAccess && !hasFullAccess;
   const previewLimit = Math.min(
     PREVIEW_LIMIT_SECONDS,
-    lesson.video_duration ? Math.max(30, Math.floor(lesson.video_duration * 0.2)) : PREVIEW_LIMIT_SECONDS
+    lesson.video_duration ? Math.max(60, Math.floor(lesson.video_duration * 0.5)) : PREVIEW_LIMIT_SECONDS
   );
   const previewMinutes = Math.max(1, Math.round(previewLimit / 60));
   const courseProgress = 45;
