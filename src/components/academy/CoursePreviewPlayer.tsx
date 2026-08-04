@@ -50,10 +50,48 @@ export function CoursePreviewPlayer({
   onUpgrade,
 }: CoursePreviewPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [muted, setMuted] = useState(true);
+  const [muted, setMuted] = useState(false);
   const [playing, setPlaying] = useState(true);
   const [current, setCurrent] = useState(0);
   const [duration, setDuration] = useState<number | null>(null);
+
+  // Try to start with sound. If the browser blocks unmuted autoplay,
+  // fall back to muted playback and unmute on the first user gesture.
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    let cancelled = false;
+
+    const unmuteOnGesture = () => {
+      const v = videoRef.current;
+      if (v) {
+        v.muted = false;
+        setMuted(false);
+        v.play().catch(() => {});
+      }
+      cleanup();
+    };
+
+    const cleanup = () => {
+      document.removeEventListener('pointerdown', unmuteOnGesture);
+      document.removeEventListener('keydown', unmuteOnGesture);
+    };
+
+    el.muted = false;
+    el.play().catch(() => {
+      if (cancelled) return;
+      el.muted = true;
+      setMuted(true);
+      el.play().catch(() => {});
+      document.addEventListener('pointerdown', unmuteOnGesture, { once: true });
+      document.addEventListener('keydown', unmuteOnGesture, { once: true });
+    });
+
+    return () => {
+      cancelled = true;
+      cleanup();
+    };
+  }, [videoUrl, direct]);
 
   const effectiveDuration = videoDuration || duration;
   const previewLimit = getPreviewLimitSeconds(effectiveDuration);
