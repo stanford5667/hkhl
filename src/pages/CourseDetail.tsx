@@ -504,7 +504,7 @@ export default function CourseDetail() {
                     {durationLabel ? ` · ${durationLabel} of video` : ''}
                     {hasAccess ? ` · ${completedCount} completed` : ''}
                     {!hasAccess && totalLessons > 0
-                      ? ' · free preview of every lesson'
+                      ? ` · ${getPreviewableLessonCount(totalLessons)} lessons open for a short free preview`
                       : ''}
                   </CardDescription>
                 </CardHeader>
