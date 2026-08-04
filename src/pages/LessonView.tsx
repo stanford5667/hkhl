@@ -285,6 +285,22 @@ export default function LessonView() {
   const previewLimit = getPreviewLimitSeconds(effectiveDuration);
   const previewLabel = getPreviewLabel(effectiveDuration);
   const courseProgress = 45;
+  const previewSecondsLeft = Math.max(0, Math.round(previewLimit - videoProgress));
+  const showPreviewWarning =
+    isPreviewOnly && !previewEnded && videoProgress > 5 && previewSecondsLeft <= 45;
+
+  // One-click upgrade: skip the extra modal step and go straight to Stripe.
+  const startCheckout = () =>
+    launchCheckout(
+      {
+        plan: 'research_education',
+        billingInterval: 'annual',
+        source: 'lesson_preview_paywall',
+        returnPath: `/academy/lesson/${lessonId}`,
+      },
+      { onNeedsAuth: () => setShowAuthSheet(true) },
+    );
+
 
 
   const gradientIndex = (lesson.module?.order_index || 0) % THUMB_GRADIENTS.length;
