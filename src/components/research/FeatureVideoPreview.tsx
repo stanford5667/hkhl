@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 
 export interface FeatureVideo {
   src: string;
+  webm?: string;
   poster: string;
   label: string;
 }
@@ -23,16 +24,19 @@ export interface FeatureVideo {
 export const FEATURE_VIDEOS = {
   ai: {
     src: "/previews/ai.mp4",
+    webm: "/previews/ai.webm",
     poster: "/previews/ai.jpg",
     label: "AI research memo being generated",
   },
   backtest: {
     src: "/previews/backtest.mp4",
+    webm: "/previews/backtest.webm",
     poster: "/previews/backtest.jpg",
     label: "A strategy backtest running against a benchmark",
   },
   screener: {
     src: "/previews/screener.mp4",
+    webm: "/previews/screener.webm",
     poster: "/previews/screener.jpg",
     label: "Screener filters narrowing the full market",
   },
@@ -114,7 +118,6 @@ export function FeatureVideoPreview({
       {showVideo && (
         <video
           ref={videoRef}
-          src={video.src}
           poster={video.poster}
           muted
           loop
@@ -124,7 +127,10 @@ export function FeatureVideoPreview({
           aria-label={video.label}
           onError={() => setFailed(true)}
           className="absolute inset-0 h-full w-full object-cover"
-        />
+        >
+          {video.webm && <source src={video.webm} type="video/webm" />}
+          <source src={video.src} type="video/mp4" />
+        </video>
       )}
 
       <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-gradient-to-t from-background/90 to-transparent px-2.5 py-2">
