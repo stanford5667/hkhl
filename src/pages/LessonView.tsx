@@ -49,6 +49,7 @@ export default function LessonView() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showAuthSheet, setShowAuthSheet] = useState(false);
   const [previewEnded, setPreviewEnded] = useState(false);
+  const [measuredDuration, setMeasuredDuration] = useState<number | null>(null);
 
 
   // Fetch lesson details
