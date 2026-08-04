@@ -106,18 +106,18 @@ export function ResearchHero({
         {/* Hero Text — Terminal style */}
         <div className="text-left sm:text-center mb-5 sm:mb-8">
           <motion.h1
-            className="text-2xl sm:text-3xl lg:text-5xl font-bold mb-1.5 sm:mb-2.5 tracking-tight font-mono leading-tight"
+            className="font-display text-[30px] leading-[1.08] sm:text-4xl lg:text-5xl font-bold mb-2 sm:mb-3 tracking-tight"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <span className="text-foreground">Find Your Next</span>{' '}
-            <span className="bg-gradient-to-r from-[hsl(175_80%_45%)] to-[hsl(190_90%_55%)] bg-clip-text text-transparent">Big</span>
-            <br />
-            <span className="bg-gradient-to-r from-[hsl(190_90%_55%)] to-[hsl(175_80%_45%)] bg-clip-text text-transparent">Investment Idea</span>
+            <span className="text-foreground">Find your next</span>{' '}
+            <span className="bg-gradient-to-r from-[hsl(220_90%_62%)] via-[hsl(200_95%_58%)] to-[hsl(188_92%_55%)] bg-clip-text text-transparent">
+              big investment idea
+            </span>
           </motion.h1>
           <motion.p
-            className="text-muted-foreground text-[11px] sm:text-xs lg:text-sm max-w-lg sm:mx-auto font-mono font-semibold"
+            className="text-muted-foreground text-[13px] sm:text-sm lg:text-base max-w-lg sm:mx-auto leading-relaxed"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
@@ -125,6 +125,7 @@ export function ResearchHero({
             Type any ticker — get AI analysis, backtests and setups in seconds
           </motion.p>
         </div>
+
 
 
         {/* Search Section - Command palette style with glow */}
@@ -136,15 +137,14 @@ export function ResearchHero({
           transition={{ duration: 0.5, delay: 0.2 }}
         >
           <div className={cn(
-            "relative rounded-xl",
-            "bg-card border-2 border-[hsl(175_80%_40%/0.4)]",
-            "shadow-[0_0_20px_-3px_hsl(175_80%_40%/0.25),0_0_40px_-8px_hsl(175_80%_40%/0.1)]",
+            "relative rounded-2xl",
+            "bg-card border border-primary/35",
+            "shadow-[0_0_24px_-6px_hsl(var(--primary)/0.3)]",
             "transition-all duration-300",
-            "animate-[pulse-glow-cyan_3s_ease-in-out_infinite]",
-            isFocused && "border-[hsl(175_80%_40%/0.7)] shadow-[0_0_30px_-3px_hsl(175_80%_40%/0.4),0_0_60px_-8px_hsl(175_80%_40%/0.15)] ring-2 ring-[hsl(175_80%_40%/0.3)] animate-none"
+            isFocused && "border-primary/70 shadow-[0_0_34px_-6px_hsl(var(--primary)/0.45)] ring-2 ring-primary/25"
           )}>
             {/* Input row */}
-            <div className="flex items-center gap-2 px-3 sm:px-4 h-11 sm:h-13">
+            <div className="flex items-center gap-2.5 px-3.5 sm:px-4 h-12 sm:h-14">
               <Search className="h-4 w-4 text-primary shrink-0" />
               <input
                 ref={inputRef}
@@ -153,10 +153,11 @@ export function ResearchHero({
                 onKeyDown={handleKeyDown}
                 onFocus={() => setIsFocused(true)}
                 onBlur={handleBlur}
-                placeholder="Search tickers or company names... (e.g., AAPL, Microsoft)"
-                className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
+                placeholder="Search a ticker or company…"
+                className="flex-1 bg-transparent text-[15px] sm:text-sm text-foreground placeholder:text-muted-foreground/80 outline-none"
                 autoFocus={false}
               />
+
               {isSearching && (
                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />
               )}
@@ -347,23 +348,27 @@ export function ResearchHero({
           </div>
         )}
 
-        {/* Stats Bar — moved below search for immediate validation */}
+        {/* Stats Bar — compact tiles on mobile, inline row on desktop */}
         <motion.div
-          className="flex items-center justify-start sm:justify-center gap-3 sm:gap-8 mt-2 sm:mt-4"
+          className="grid grid-cols-3 gap-2 sm:flex sm:items-center sm:justify-center sm:gap-8 mt-3 sm:mt-4 max-w-xl mx-auto"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.35 }}
         >
           {STATS.map((stat, i) => (
-            <div key={stat.label} className="flex items-center gap-2">
-              {i > 0 && <span className="text-border text-xs">│</span>}
-              <div className="flex flex-col items-start sm:items-center gap-0">
-                <span className="text-[10px] sm:text-sm font-mono font-bold text-foreground tabular-nums">{stat.value}</span>
-                <span className="text-[7px] sm:text-[9px] font-mono text-muted-foreground uppercase tracking-wider">{stat.label}</span>
+            <div
+              key={stat.label}
+              className="flex flex-col items-center gap-0.5 rounded-xl border border-border/50 bg-card/40 px-2 py-2 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:flex-row sm:gap-2"
+            >
+              {i > 0 && <span className="hidden sm:inline text-border text-xs">│</span>}
+              <div className="flex flex-col items-center gap-0">
+                <span className="text-[13px] sm:text-sm font-mono font-bold text-foreground tabular-nums">{stat.value}</span>
+                <span className="text-[8px] sm:text-[9px] text-muted-foreground uppercase tracking-wider text-center leading-tight">{stat.label}</span>
               </div>
             </div>
           ))}
         </motion.div>
+
       </div>
     </div>
   );
