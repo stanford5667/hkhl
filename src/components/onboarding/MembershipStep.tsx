@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { launchCheckout, saveCheckoutIntent } from '@/lib/checkout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -29,9 +30,20 @@ export function MembershipStep({ onComplete, onBack, isStandalone = false }: Mem
   const handleSelectPlan = async (plan: PlanType, interval?: 'annual' | 'monthly') => {
     const billingInterval = interval ?? selectedInterval;
     if (!user) {
-      // Logged-out visitors (e.g. course page paywall): send them to auth first
+      // Logged-out visitors (e.g. course page paywall): remember the purchase,
+      // send them to auth, and resume checkout automatically afterwards.
       sessionStorage.setItem('post_auth_redirect', location.pathname + location.search);
-      toast.info('Sign in to continue');
+      if (plan === 'research_education') {
+        saveCheckoutIntent({
+          plan: 'research_education',
+          billingInterval,
+          returnPath: location.pathname + location.search,
+          source: 'membership_step',
+        });
+        toast.info('Create your account to finish checkout');
+      } else {
+        toast.info('Sign in to continue');
+      }
       navigate('/auth');
       return;
     }
@@ -41,34 +53,14 @@ export function MembershipStep({ onComplete, onBack, isStandalone = false }: Mem
 
     try {
       if (plan === 'research_education') {
-        const { data: sessionData } = await supabase.auth.getSession();
-        if (!sessionData.session) {
-          toast.error('Your session has expired. Please sign in again.');
-          setIsLoading(false);
-          return;
-        }
-
-        // Include affiliate code if user arrived via referral link
-        const { getAffiliateRef } = await import('@/hooks/useAffiliateTracking');
-        const affiliateCode = getAffiliateRef();
-
-        const { data, error } = await supabase.functions.invoke('create-checkout', {
-          body: { 
-            plan: 'research_education', 
-            billing_interval: billingInterval,
-            ...(affiliateCode && { affiliate_code: affiliateCode }),
-          },
+        await launchCheckout({
+          plan: 'research_education',
+          billingInterval,
+          returnPath: location.pathname + location.search,
+          source: 'membership_step',
         });
-        
-        if (error) throw error;
-        
-        if (data?.url) {
-          window.location.href = data.url;
-          setIsLoading(false);
-          return;
-        } else {
-          throw new Error('No checkout URL returned');
-        }
+        setIsLoading(false);
+        return;
       } else {
         const { error } = await supabase
           .from('profiles')
