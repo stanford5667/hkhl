@@ -864,9 +864,15 @@ export default function CourseDetail() {
               <Separator />
 
               <div className="space-y-2 sm:space-y-3 text-xs sm:text-sm">
+                {durationLabel && (
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
+                    <span>{durationLabel} of video content</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
-                  <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
-                  <span>{course.duration_hours} hours of content</span>
+                  <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
+                  <span>{modules?.length || 0} modules</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
