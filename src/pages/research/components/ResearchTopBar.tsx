@@ -23,7 +23,7 @@ export function ResearchTopBar({ date, onDateChange, onRefresh, isRefreshing }: 
             <Button
               variant="outline"
               size="sm"
-              className="h-9 gap-1.5 font-mono text-xs"
+              className="h-8 sm:h-9 gap-1.5 font-mono text-xs px-2.5 sm:px-3"
             >
               <CalendarIcon className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">{format(date, "MMM d, yyyy")}</span>
@@ -43,7 +43,7 @@ export function ResearchTopBar({ date, onDateChange, onRefresh, isRefreshing }: 
         <Button
           variant="outline"
           size="sm"
-          className="h-9 gap-1.5 font-mono text-xs"
+          className="h-8 sm:h-9 gap-1.5 font-mono text-xs px-2.5 sm:px-3"
           onClick={onRefresh}
           disabled={isRefreshing}
         >
