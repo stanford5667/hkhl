@@ -344,7 +344,8 @@ export default function CourseDetail() {
     <div className="container mx-auto px-3 py-3 sm:p-6 max-w-6xl space-y-3 sm:space-y-6">
       {/* Navigation hierarchy */}
       <nav aria-label="Breadcrumb" className="flex flex-col gap-2">
-        <ol className="flex flex-wrap items-center gap-1.5 text-xs sm:text-sm text-muted-foreground">
+        {/* Desktop / tablet: full breadcrumb */}
+        <ol className="hidden sm:flex flex-wrap items-center gap-1.5 text-xs sm:text-sm text-muted-foreground">
           <li>
             <Link to="/" className="hover:text-foreground transition-colors">Home</Link>
           </li>
@@ -357,7 +358,29 @@ export default function CourseDetail() {
             {course.title}
           </li>
         </ol>
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+
+        {/* Mobile: compact back action */}
+        <div className="flex sm:hidden items-center justify-between gap-2">
+          <Link
+            to="/academy"
+            className="inline-flex items-center gap-1.5 text-sm text-foreground font-medium hover:text-foreground transition-colors"
+          >
+            <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center">
+              <ArrowLeft className="w-4 h-4" />
+            </div>
+            Academy
+          </Link>
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
+          >
+            Dashboard
+            <TrendingUp className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        {/* Desktop / tablet: full action links */}
+        <div className="hidden sm:flex sm:flex-row sm:items-center gap-2 sm:gap-4">
           <Link
             to="/academy"
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors w-fit"
@@ -374,6 +397,7 @@ export default function CourseDetail() {
           </Link>
         </div>
       </nav>
+
 
 
 
