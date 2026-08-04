@@ -170,9 +170,14 @@ export default function Affiliate() {
       }
 
       if (data?.url) {
-        window.open(data.url, "_blank");
+        const w = window.open(data.url, "_blank");
+        if (!w) {
+          window.location.href = data.url;
+          return;
+        }
         toast.success("Opening Stripe in a new tab...");
       }
+
     } catch (e: any) {
       toast.error(e.message || "Failed to start Stripe Connect setup");
     } finally {
