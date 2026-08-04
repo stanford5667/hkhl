@@ -680,10 +680,26 @@ function TeaserCard({
 export function HubOverviewGrid() {
   const { isAuthenticated, loading } = useAuth();
 
+  const isGuest = !isAuthenticated && !loading;
+
   return (
     <WidgetCard title="Your Hub" subtitle="Everything the platform can do, live">
+      {isGuest && (
+        <div className="mx-3 sm:mx-4 mt-3 sm:mt-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-primary/25 bg-primary/[0.06] px-3 py-2.5">
+          <p className="text-[12px] sm:text-[13px] text-muted-foreground">
+            You're browsing as a guest — sign in to see your live portfolio, watchlist and progress.
+          </p>
+          <Link
+            to="/auth"
+            className="inline-flex items-center gap-1 rounded-lg bg-primary px-3 py-1.5 text-[12px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Sign in free
+            <ArrowUpRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3 p-3 sm:p-4">
-        {!isAuthenticated && !loading ? (
+        {isGuest ? (
           <>
             <TeaserCard to="/academy" icon={GraduationCap} title="Academy" accent="indigo" blurb={BLURBS.academy} />
             <TeaserCard to="/community" icon={MessagesSquare} title="Chatroom" accent="violet" blurb={BLURBS.chatroom} />
