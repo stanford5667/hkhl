@@ -7,7 +7,7 @@
 export const SHORT_VIDEO_THRESHOLD_SECONDS = 30 * 60; // 30 minutes
 export const SHORT_PREVIEW_RATIO = 0.15;
 export const LONG_PREVIEW_RATIO = 0.3;
-export const SHORT_PREVIEW_MAX_SECONDS = 120; // 2 minutes
+export const SHORT_PREVIEW_MAX_SECONDS = 210; // 3 min 30 sec
 export const PREVIEW_MIN_SECONDS = 30;
 export const PREVIEW_MAX_SECONDS = 600; // 10 minutes
 
