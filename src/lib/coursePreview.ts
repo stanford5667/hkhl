@@ -2,7 +2,7 @@
 // 1. Only the first 30% of the course's lessons are previewable at all. The
 //    remaining lessons are fully locked behind Pro.
 // 2. Previewable lessons play as a capped window:
-//    - Videos 30 minutes or shorter: 15% of runtime, hard-capped at 2 minutes.
+//    - Videos 30 minutes or shorter: 15% of runtime, hard-capped at 3 min 30 sec.
 //    - Longer videos: 30% of runtime, hard-capped at 10 minutes.
 export const SHORT_VIDEO_THRESHOLD_SECONDS = 30 * 60; // 30 minutes
 export const SHORT_PREVIEW_RATIO = 0.15;
