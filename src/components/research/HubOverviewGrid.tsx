@@ -604,6 +604,22 @@ function SmartMoneyCard() {
           : undefined
       }
       tone={d ? (isBuy ? "positive" : "negative") : "default"}
+      visual={
+        d ? (
+          <div
+            className={cn(
+              "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-mono font-semibold",
+              isBuy ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400",
+            )}
+          >
+            {isBuy ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+            {d.total_value ? fmtCurrency(Number(d.total_value)) : isBuy ? "BUY" : "SELL"}
+          </div>
+        ) : (
+          <LiveDots count={3} />
+        )
+      }
+
     />
   );
 }
