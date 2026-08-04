@@ -45,6 +45,8 @@ export default function LessonView() {
   const [videoProgress, setVideoProgress] = useState(0);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showAuthSheet, setShowAuthSheet] = useState(false);
+  const [previewEnded, setPreviewEnded] = useState(false);
+
 
   // Fetch lesson details
   const { data: lesson } = useQuery({
