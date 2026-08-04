@@ -140,7 +140,7 @@ function HubCard({
       />
 
 
-      <div className="flex items-center justify-between gap-2">
+      <div className="relative z-10 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <div
             className={cn(
@@ -157,9 +157,10 @@ function HubCard({
         <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
       </div>
 
-      <p className="text-[11px] sm:text-xs leading-relaxed text-muted-foreground">{blurb}</p>
+      <p className="relative z-10 text-[11px] sm:text-xs leading-relaxed text-muted-foreground">{blurb}</p>
 
-      <div className="flex-1 flex flex-col justify-end gap-1">
+      <div className="relative z-10 flex-1 flex flex-col justify-end gap-1">
+
         {loading ? (
           <>
             <Skeleton className="h-5 w-24" />
