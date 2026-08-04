@@ -244,17 +244,25 @@ function ChangeChip({ pct }: { pct: number }) {
 
 function Sparkline({ points, positive }: { points: number[]; positive: boolean }) {
   if (!points || points.length < 2) return null;
-  const w = 60;
-  const h = 20;
+  const w = 64;
+  const h = 22;
   const min = Math.min(...points);
   const max = Math.max(...points);
   const range = max - min || 1;
   const step = w / (points.length - 1);
-  const d = points
-    .map((p, i) => `${i === 0 ? "M" : "L"} ${(i * step).toFixed(1)} ${(h - ((p - min) / range) * h).toFixed(1)}`)
-    .join(" ");
+  const coords = points.map((p, i) => [i * step, h - ((p - min) / range) * h] as const);
+  const d = coords.map(([x, y], i) => `${i === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(1)}`).join(" ");
+  const area = `${d} L ${w} ${h} L 0 ${h} Z`;
+  const gid = `spark-${positive ? "up" : "dn"}-${points.length}-${Math.round(min)}`;
   return (
-    <svg width={w} height={h} className="overflow-visible">
+    <svg width={w} height={h} className={cn("overflow-visible", positive ? "text-emerald-400" : "text-red-400")}>
+      <defs>
+        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="currentColor" stopOpacity={0.35} />
+          <stop offset="100%" stopColor="currentColor" stopOpacity={0} />
+        </linearGradient>
+      </defs>
+      <path d={area} fill={`url(#${gid})`} stroke="none" />
       <path
         d={d}
         fill="none"
@@ -262,11 +270,75 @@ function Sparkline({ points, positive }: { points: number[]; positive: boolean }
         strokeWidth={1.5}
         strokeLinecap="round"
         strokeLinejoin="round"
-        className={positive ? "text-emerald-400" : "text-red-400"}
       />
+      <circle cx={coords[coords.length - 1][0]} cy={coords[coords.length - 1][1]} r={1.8} fill="currentColor" />
     </svg>
   );
 }
+
+/** Small vertical bar chart — values are normalized to the tallest bar. */
+function MiniBars({ values, className }: { values: number[]; className?: string }) {
+  const vals = values.filter((v) => isFinite(v)).slice(0, 5);
+  if (!vals.length) return null;
+  const max = Math.max(...vals.map(Math.abs)) || 1;
+  return (
+    <div className={cn("flex items-end gap-[3px] h-5", className)}>
+      {vals.map((v, i) => (
+        <div
+          key={i}
+          className="w-[5px] rounded-sm bg-current transition-all duration-300"
+          style={{ height: `${Math.max(15, (Math.abs(v) / max) * 100)}%`, opacity: 0.35 + (0.65 * (5 - i)) / 5 }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/** Circular progress ring, pct 0-1. */
+function ProgressRing({ pct, label, className }: { pct: number; label?: string; className?: string }) {
+  const r = 11;
+  const c = 2 * Math.PI * r;
+  const clamped = Math.max(0, Math.min(1, pct));
+  return (
+    <div className={cn("relative h-7 w-7", className)}>
+      <svg width={28} height={28} viewBox="0 0 28 28" className="-rotate-90">
+        <circle cx={14} cy={14} r={r} fill="none" stroke="currentColor" strokeWidth={2.5} opacity={0.15} />
+        <circle
+          cx={14}
+          cy={14}
+          r={r}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2.5}
+          strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={c * (1 - clamped)}
+          className="transition-all duration-500"
+        />
+      </svg>
+      {label && (
+        <span className="absolute inset-0 flex items-center justify-center text-[8px] font-mono font-semibold">
+          {label}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/** Pulsing live dot + count of active rooms. */
+function LiveDots({ count }: { count: number }) {
+  return (
+    <div className="flex items-center gap-1">
+      {Array.from({ length: Math.max(1, Math.min(3, count)) }).map((_, i) => (
+        <span key={i} className="relative flex h-2 w-2">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-60" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-current" />
+        </span>
+      ))}
+    </div>
+  );
+}
+
 
 function PortfolioCard() {
   const { data, isLoading } = usePortfolioTotals();
