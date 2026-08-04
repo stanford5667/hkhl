@@ -1,4 +1,5 @@
-import React, { Award, BookOpen, Clock, Layers, Lock, Play, Sparkles } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { Award, BookOpen, Clock, Layers, Lock, Play, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
