@@ -606,7 +606,7 @@ export function QuantitativeStudiesPanel({ ticker, companyName }: QuantitativeSt
                       size="sm"
                       onClick={() => toast.info('Create a free account to save unlimited study results', { 
                         description: 'Build your personal research library and track your analysis over time.',
-                        action: { label: 'Sign Up Free', onClick: () => window.location.href = '/login' }
+                        action: { label: 'Sign up free', onClick: () => window.location.href = '/auth' }
                       })}
                       className="gap-2 bg-gradient-to-r from-amber-500/80 to-orange-500/80 hover:from-amber-500 hover:to-orange-500 text-white border-0"
                     >

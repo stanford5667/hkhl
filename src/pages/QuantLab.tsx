@@ -356,7 +356,7 @@ export default function QuantLab() {
     if (!user) {
       toast.info('Create a free account to save unlimited study results', { 
         description: 'Build your personal research library.',
-        action: { label: 'Sign Up', onClick: () => window.location.href = '/login' }
+        action: { label: 'Sign up free', onClick: () => window.location.href = '/auth' }
       });
       return;
     }

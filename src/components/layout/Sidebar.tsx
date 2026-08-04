@@ -651,7 +651,7 @@ function SidebarAuthPrompt({ collapsed }: { collapsed: boolean }) {
             </button>
           </TooltipTrigger>
           <TooltipContent side="right" className="bg-popover border-border">
-            <span className="font-medium">Sign Up / Log In</span>
+            <span className="font-medium">Sign in or sign up</span>
           </TooltipContent>
         </Tooltip>
         <AuthGateDialog
@@ -674,8 +674,8 @@ function SidebarAuthPrompt({ collapsed }: { collapsed: boolean }) {
           <Sparkles className="h-4 w-4 text-primary" />
         </div>
         <div className="flex-1 text-left">
-          <p className="text-sm font-semibold text-foreground">Get Started Free</p>
-          <p className="text-xs text-muted-foreground">Sign up to save progress</p>
+          <p className="text-sm font-semibold text-foreground">Create free account</p>
+          <p className="text-xs text-muted-foreground">Save your research and portfolios</p>
         </div>
       </button>
       <AuthGateDialog

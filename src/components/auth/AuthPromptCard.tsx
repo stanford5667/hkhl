@@ -67,11 +67,11 @@ export function AuthPromptCard({
             <Sparkles className="h-5 w-5 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground">Get started for free</p>
+            <p className="text-sm font-medium text-foreground">Create your free account</p>
             <p className="text-xs text-muted-foreground truncate">Save progress & unlock features</p>
           </div>
           <Button size="sm" onClick={() => setShowAuthDialog(true)}>
-            Sign Up
+            Sign up free
           </Button>
         </div>
         <AuthGateDialog
@@ -103,7 +103,7 @@ export function AuthPromptCard({
               </div>
             </div>
             <Button onClick={() => setShowAuthDialog(true)} className="shrink-0">
-              Create Free Account
+              Create free account
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           </div>
@@ -147,7 +147,7 @@ export function AuthPromptCard({
             )}
 
             <Button onClick={() => setShowAuthDialog(true)} className="w-full" size="lg">
-              Create Free Account
+              Create free account
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
 
