@@ -1,3 +1,4 @@
+import { getFreeLessonCount, isFreeLessonIndex } from '@/lib/coursePreview';
 import { useState, useEffect } from 'react';
 import { PRICING } from '@/config/pricing';
 import { useParams, Link, useNavigate } from 'react-router-dom';
@@ -502,6 +503,9 @@ export default function CourseDetail() {
                     {modules?.length || 0} modules · {totalLessons} lessons
                     {durationLabel ? ` · ${durationLabel} of video` : ''}
                     {hasAccess ? ` · ${completedCount} completed` : ''}
+                    {!hasAccess && totalLessons > 0
+                      ? ` · first ${getFreeLessonCount(totalLessons)} free`
+                      : ''}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
@@ -541,9 +545,10 @@ export default function CourseDetail() {
                             <div className="px-4 sm:px-6 pb-4 space-y-1.5">
                               {visibleLessons.map((lesson: any, lessonIndex: number) => {
                                 const isCompleted = completedLessons.has(lesson.id);
-                                const canAccess = hasAccess || lesson.is_preview;
                                 const thumbnail = getYouTubeThumbnail(lesson.video_url, lesson.video_provider);
                                 const globalIndex = modules!.slice(0, moduleIndex).reduce((s: number, m: any) => s + (m.lessons?.length || 0), 0) + lessonIndex;
+                                const isFreeLesson = lesson.is_preview || isFreeLessonIndex(globalIndex, totalLessons);
+                                const canAccess = hasAccess || isFreeLesson;
 
                                 return (
                                   <div
@@ -586,10 +591,10 @@ export default function CourseDetail() {
                                         )}
                                       </div>
                                     </div>
-                                    {lesson.is_preview && !hasAccess ? (
+                                    {isFreeLesson && !hasAccess ? (
                                       <Badge className="text-[10px] flex-shrink-0 bg-primary/15 text-primary border-primary/30 gap-1">
                                         <Play className="w-2.5 h-2.5" />
-                                        Free preview
+                                        Free
                                       </Badge>
                                     ) : null}
                                   </div>

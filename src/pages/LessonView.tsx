@@ -24,6 +24,7 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MobileAuthSheet } from '@/components/auth/MobileAuthSheet';
 import { UpgradeModal } from '@/components/premium/UpgradeModal';
+import { getFreeLessonCount, isFreeLessonIndex } from '@/lib/coursePreview';
 
 // Premium dark thumbnail gradients
 const THUMB_GRADIENTS = [
@@ -259,15 +260,17 @@ export default function LessonView() {
     );
   }
 
-  const isFreeLesson = Boolean(lesson?.is_preview);
+  // Free viewers unlock the first 30% of the course's lessons — in full, no time cap.
+  const flatLessonIds = allLessons?.flatMap((m: any) => (m.lessons || []).map((l: any) => l.id)) || [];
+  const lessonIndex = flatLessonIds.indexOf(lesson.id);
+  const freeLessonCount = getFreeLessonCount(flatLessonIds.length);
+  const isFreeLesson =
+    Boolean(lesson?.is_preview) || isFreeLessonIndex(lessonIndex, flatLessonIds.length);
   const hasFullAccess = Boolean(user && isPro);
-  // Free preview lessons play for everyone (including guests) — but only a short teaser slice.
   const hasVideoAccess = isFreeLesson || hasFullAccess;
-  const isPreviewOnly = hasVideoAccess && !hasFullAccess;
-  const previewLimit = Math.min(
-    PREVIEW_LIMIT_SECONDS,
-    lesson.video_duration ? Math.max(60, Math.floor(lesson.video_duration * 0.3)) : PREVIEW_LIMIT_SECONDS
-  );
+  // No per-video time cap anymore: free lessons play end-to-end.
+  const isPreviewOnly = false;
+  const previewLimit = PREVIEW_LIMIT_SECONDS;
   const previewMinutes = Math.max(1, Math.round(previewLimit / 60));
   const courseProgress = 45;
 
@@ -393,12 +396,12 @@ export default function LessonView() {
                 </div>
               )}
 
-              {/* Free preview badge */}
-              {isPreviewOnly && !previewEnded && (
+              {/* Free lesson badge */}
+              {isFreeLesson && !hasFullAccess && (
                 <div className="absolute top-3 left-3 z-10 pointer-events-none">
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-md border border-white/10 text-[11px] font-medium text-white/80 tracking-wide uppercase">
                     <Sparkles className="w-3 h-3" />
-                    Free preview · {previewMinutes} min
+                    Free lesson {lessonIndex + 1} of {freeLessonCount}
                   </span>
                 </div>
               )}
@@ -601,7 +604,8 @@ export default function LessonView() {
                     <div>
                       {module.lessons?.map((l: any, lessonIndex: number) => {
                         const isCurrentLesson = l.id === lessonId;
-                        const isFreeTier = l.is_preview;
+                        const globalIndex = flatLessonIds.indexOf(l.id);
+                        const isFreeTier = l.is_preview || isFreeLessonIndex(globalIndex, flatLessonIds.length);
                         const isLocked = !isFreeTier && !(user && isPro);
 
 
