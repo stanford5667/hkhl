@@ -5,8 +5,38 @@ import { preloadCommonRoutes } from "./lib/routePreloader";
 
 const CHUNK_RELOAD_KEY = "assetlabs:chunk-reload-attempt";
 const CHUNK_RELOAD_WINDOW_MS = 15000;
+const REACT_RUNTIME_RELOAD_KEY = "assetlabs:react-runtime-reload-attempt";
+
+const recoverFromStaleReactRuntime = (message: string) => {
+  const isStaleReactRuntime =
+    message.includes("dispatcher.useState") ||
+    message.includes("Cannot read properties of null (reading 'useState')");
+
+  if (!isStaleReactRuntime) return;
+
+  try {
+    if (sessionStorage.getItem(REACT_RUNTIME_RELOAD_KEY)) return;
+    sessionStorage.setItem(REACT_RUNTIME_RELOAD_KEY, String(Date.now()));
+  } catch {
+    return;
+  }
+
+  const recoveryUrl = new URL(window.location.href);
+  recoveryUrl.searchParams.set("runtime-recovery", String(Date.now()));
+  window.location.replace(recoveryUrl.toString());
+};
 
 if (typeof window !== "undefined") {
+  window.addEventListener("error", (event) => {
+    recoverFromStaleReactRuntime(event.message);
+  });
+
+  window.addEventListener("unhandledrejection", (event) => {
+    const message =
+      event.reason instanceof Error ? event.reason.message : String(event.reason);
+    recoverFromStaleReactRuntime(message);
+  });
+
   window.addEventListener("vite:preloadError", (event) => {
     event.preventDefault();
 
@@ -42,6 +72,8 @@ if (typeof window !== "undefined") {
   });
 
   window.addEventListener("pageshow", () => {
+    sessionStorage.removeItem(REACT_RUNTIME_RELOAD_KEY);
+
     try {
       const rawAttempt = sessionStorage.getItem(CHUNK_RELOAD_KEY);
       if (!rawAttempt) return;
