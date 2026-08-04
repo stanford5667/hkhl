@@ -203,7 +203,7 @@ function HubCard({
                 </div>
               )}
             </>
-          )}
+          ) : null}
 
           <div
             className={cn(
