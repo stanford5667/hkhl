@@ -333,8 +333,8 @@ export default function CourseDetail() {
         {courseError && (
           <p className="text-muted-foreground mb-4 text-sm">{(courseError as Error).message}</p>
         )}
-        <Link to="/academy">
-          <Button>Back to Academy</Button>
+        <Link to="/">
+          <Button>Back to dashboard</Button>
         </Link>
       </div>
     );
