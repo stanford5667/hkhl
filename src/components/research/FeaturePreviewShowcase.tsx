@@ -305,7 +305,7 @@ function PeekCard({ tab }: { tab: TabDef }) {
   return (
     <div
       role="tooltip"
-      className="pointer-events-none absolute left-0 right-0 top-full z-30 mt-2 sm:right-auto sm:w-[320px] animate-in fade-in-0 zoom-in-95 slide-in-from-top-1 duration-150"
+      className="pointer-events-none absolute left-3 right-3 sm:left-5 top-full z-30 -mt-1 sm:right-auto sm:w-[340px] animate-in fade-in-0 zoom-in-95 slide-in-from-top-1 duration-150"
     >
       <div
         className={cn(
@@ -368,6 +368,7 @@ export function FeaturePreviewShowcase() {
   const [active, setActive] = useState<TabKey>("ai");
   const [peek, setPeek] = useState<TabKey | null>(null);
   const tab = TABS.find((t) => t.key === active)!;
+  const peekTab = peek ? TABS.find((t) => t.key === peek)! : null;
 
   // Click selects the tab and pins the peek briefly (the touch path); hover
   // just reveals the peek without switching the demo underneath.
@@ -391,8 +392,8 @@ export function FeaturePreviewShowcase() {
       </header>
 
       {/* Tab rail — hover (desktop) or tap (mobile) reveals a peek card */}
-      <div className="px-3 sm:px-5">
-        <div className="relative flex gap-1.5 overflow-x-auto pb-3 -mx-1 px-1 scrollbar-none">
+      <div className="relative px-3 sm:px-5">
+        <div className="flex gap-1.5 overflow-x-auto pb-3 -mx-1 px-1 scrollbar-none">
           {TABS.map((t) => {
             const Icon = t.icon;
             const isActive = t.key === active;
@@ -418,15 +419,15 @@ export function FeaturePreviewShowcase() {
                   <Icon className={cn("h-3.5 w-3.5", isActive ? t.accent : "")} />
                   {t.label}
                 </button>
-                {isPeeking && (
-                  <div id={`peek-${t.key}`}>
-                    <PeekCard tab={t} />
-                  </div>
-                )}
               </div>
             );
           })}
         </div>
+        {peekTab && (
+          <div id={`peek-${peekTab.key}`}>
+            <PeekCard tab={peekTab} />
+          </div>
+        )}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] px-3 sm:px-5 pb-5">
