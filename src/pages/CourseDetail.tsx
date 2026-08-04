@@ -304,6 +304,13 @@ export default function CourseDetail() {
     enrollMutation.mutate();
   };
 
+  // Open the first module once the curriculum loads
+  useEffect(() => {
+    if (modules?.length && openModules.length === 0) {
+      setOpenModules([modules[0].id]);
+    }
+  }, [modules]);
+
   const completedLessons = new Set(
     lessonProgress?.filter(p => p.completed).map(p => p.lesson_id) || []
   );
