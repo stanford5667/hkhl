@@ -91,7 +91,7 @@ export function CoursePreviewPlayer({
       cancelled = true;
       cleanup();
     };
-  }, [videoUrl, direct]);
+  }, [videoUrl]);
 
   const effectiveDuration = videoDuration || duration;
   const previewLimit = getPreviewLimitSeconds(effectiveDuration);
