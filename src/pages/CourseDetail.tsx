@@ -588,10 +588,10 @@ export default function CourseDetail() {
                                         )}
                                       </div>
                                     </div>
-                                    {lesson.is_preview && !hasAccess ? (
+                                    {isFreeLesson && !hasAccess ? (
                                       <Badge className="text-[10px] flex-shrink-0 bg-primary/15 text-primary border-primary/30 gap-1">
                                         <Play className="w-2.5 h-2.5" />
-                                        Free preview
+                                        Free
                                       </Badge>
                                     ) : null}
                                   </div>
