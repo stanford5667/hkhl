@@ -396,12 +396,12 @@ export default function LessonView() {
                 </div>
               )}
 
-              {/* Free preview badge */}
-              {isPreviewOnly && !previewEnded && (
+              {/* Free lesson badge */}
+              {isFreeLesson && !hasFullAccess && (
                 <div className="absolute top-3 left-3 z-10 pointer-events-none">
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-md border border-white/10 text-[11px] font-medium text-white/80 tracking-wide uppercase">
                     <Sparkles className="w-3 h-3" />
-                    Free preview · {previewMinutes} min
+                    Free lesson {lessonIndex + 1} of {freeLessonCount}
                   </span>
                 </div>
               )}
