@@ -90,17 +90,15 @@ export function EmailVerificationPending({
   const handleResendEmail = async () => {
     setIsResending(true);
     try {
-      // Prefer the current session's user id; otherwise the backend resolves it from the email
-      const { data: sessionData } = await supabase.auth.getSession();
-      const userId = sessionData?.session?.user?.id;
-
+      // The backend resolves the user id from the session or the email address
       const response = await supabase.functions.invoke('send-verification-email', {
         body: {
-          userId: userId,
           email: email,
           fullName: email.split('@')[0], // Fallback name
         },
       });
+
+
 
 
       if (response.error) {
