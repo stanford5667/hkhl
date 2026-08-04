@@ -412,7 +412,9 @@ function AcademyCard() {
       icon={GraduationCap}
       title="Academy"
       accent="indigo"
+      blurb={BLURBS.academy}
       loading={isLoading}
+
       primary={data ? `${data.completed}` : "0"}
       secondary={data && data.completed > 0 ? "lessons completed" : "Continue learning"}
       extra={data?.lastCourse ? `Resume: ${String(data.lastCourse).slice(0, 32)}` : undefined}
