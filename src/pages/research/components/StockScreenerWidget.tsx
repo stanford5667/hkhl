@@ -122,6 +122,7 @@ export function StockScreenerWidget() {
       },
       {
         accessorKey: "volume",
+        meta: { hideOnMobile: true },
         header: "Volume",
         cell: ({ row }) => (
           <span className="font-mono text-xs tabular-nums text-muted-foreground">
@@ -140,6 +141,7 @@ export function StockScreenerWidget() {
       },
       {
         accessorKey: "sector",
+        meta: { hideOnMobile: true },
         header: "Sector",
         cell: ({ row }) => (
           <span className="font-mono text-[11px] text-muted-foreground truncate max-w-[140px] inline-block">

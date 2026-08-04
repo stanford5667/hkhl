@@ -114,6 +114,7 @@ export function EarningsCalendarWidget() {
       },
       {
         accessorKey: "time_of_day",
+        meta: { hideOnMobile: true },
         header: "Time",
         cell: ({ row }) => {
           const t = row.original.time_of_day;
@@ -123,6 +124,7 @@ export function EarningsCalendarWidget() {
       },
       {
         accessorKey: "fiscal_period",
+        meta: { hideOnMobile: true },
         header: "Period",
         cell: ({ row }) => (
           <Badge variant="outline" className="font-mono text-[10px]">
@@ -163,6 +165,7 @@ export function EarningsCalendarWidget() {
       },
       {
         accessorKey: "market_cap",
+        meta: { hideOnMobile: true },
         header: "Mkt Cap",
         cell: ({ row }) => (
           <span className="font-mono text-xs tabular-nums text-muted-foreground">

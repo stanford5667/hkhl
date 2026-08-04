@@ -62,6 +62,7 @@ export function MarketThemesWidget() {
       },
       {
         accessorKey: "category",
+        meta: { hideOnMobile: true },
         header: "Category",
         cell: ({ row }) => (
           <span className="font-mono text-[11px] text-muted-foreground">{row.original.category}</span>
@@ -93,6 +94,7 @@ export function MarketThemesWidget() {
       },
       {
         id: "tickers",
+        meta: { hideOnMobile: true },
         header: "Top Tickers",
         cell: ({ row }) => (
           <div className="flex items-center gap-1 flex-wrap max-w-[260px]">

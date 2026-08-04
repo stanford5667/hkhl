@@ -102,11 +102,11 @@ export function ResearchHero({
 
   return (
     <div className="relative">
-      <div className="relative max-w-6xl mx-auto px-3 sm:px-6 pt-6 sm:pt-12 pb-5 sm:pb-8">
+      <div className="relative max-w-6xl mx-auto px-3 sm:px-6 pt-3 sm:pt-12 pb-4 sm:pb-8">
         {/* Hero Text — Terminal style */}
-        <div className="text-left sm:text-center mb-5 sm:mb-8">
+        <div className="text-left sm:text-center mb-4 sm:mb-8">
           <motion.h1
-            className="font-display text-[30px] leading-[1.08] sm:text-4xl lg:text-5xl font-bold mb-2 sm:mb-3 tracking-tight"
+            className="font-display text-[26px] leading-[1.1] sm:text-4xl lg:text-5xl font-bold mb-2 sm:mb-3 tracking-tight"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}

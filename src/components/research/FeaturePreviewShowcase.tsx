@@ -395,7 +395,7 @@ export function FeaturePreviewShowcase() {
 
   return (
     <section className="rounded-xl border border-border/60 bg-card/40 backdrop-blur-sm overflow-hidden">
-      <header className="px-3 sm:px-5 pt-4 pb-3">
+      <header className="px-3 sm:px-5 pt-3 sm:pt-4 pb-2.5 sm:pb-3">
         <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
           Look inside
         </p>
@@ -406,7 +406,7 @@ export function FeaturePreviewShowcase() {
 
       {/* Tab rail — hover (desktop) or tap (mobile) reveals a peek card */}
       <div className="relative z-20 px-3 sm:px-5">
-        <div className="flex gap-1.5 overflow-x-auto pb-3 -mx-1 px-1 scrollbar-none">
+        <div className="flex gap-1.5 overflow-x-auto snap-x pb-3 -mx-1 px-1 scrollbar-none [-webkit-overflow-scrolling:touch]">
           {TABS.map((t) => {
             const Icon = t.icon;
             const isActive = t.key === active;
@@ -423,7 +423,7 @@ export function FeaturePreviewShowcase() {
                   aria-pressed={isActive}
                   aria-describedby={isPeeking ? `peek-${t.key}` : undefined}
                   className={cn(
-                    "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all",
+                    "inline-flex snap-start items-center gap-1.5 rounded-full border px-3 py-2 sm:py-1.5 text-xs font-medium transition-all active:scale-[0.97]",
                     isActive
                       ? cn("border-border bg-muted/60 text-foreground ring-1", t.ring)
                       : "border-border/50 bg-muted/20 text-muted-foreground hover:text-foreground hover:bg-muted/40",
@@ -443,16 +443,16 @@ export function FeaturePreviewShowcase() {
         )}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:items-center px-3 sm:px-5 pb-5">
+      <div className="grid gap-3 sm:gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:items-center px-3 sm:px-5 pb-4 sm:pb-5">
         {/* Copy side */}
-        <div className="flex flex-col justify-center gap-3 pt-1">
-          <h3 className={cn("font-display text-base sm:text-xl font-semibold", tab.accent)}>
+        <div className="order-2 lg:order-1 flex flex-col justify-center gap-2.5 sm:gap-3 pt-1">
+          <h3 className={cn("font-display text-[15px] sm:text-xl font-semibold", tab.accent)}>
             {tab.headline}
           </h3>
-          <p className="text-sm text-muted-foreground leading-relaxed">{tab.blurb}</p>
+          <p className="text-[13px] sm:text-sm text-muted-foreground leading-relaxed">{tab.blurb}</p>
           <Link
             to={tab.to}
-            className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-3.5 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
+            className="inline-flex w-full sm:w-fit items-center justify-center sm:justify-start gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-3.5 py-2.5 sm:py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/20 active:scale-[0.99]"
           >
             {tab.cta}
             <ArrowRight className="h-3.5 w-3.5" />
@@ -466,7 +466,7 @@ export function FeaturePreviewShowcase() {
         </div>
 
         {/* Visual preview side */}
-        <div className="min-w-0">
+        <div className="order-1 lg:order-2 min-w-0">
           {clip && (
             <div className="mb-2 flex items-center gap-1">
               {(["clip", "demo"] as const).map((m) => (
@@ -476,7 +476,7 @@ export function FeaturePreviewShowcase() {
                   onClick={() => setMode(m)}
                   aria-pressed={mode === m}
                   className={cn(
-                    "rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors",
+                    "rounded-full border px-3 py-1.5 sm:py-1 text-[11px] sm:text-[10px] font-medium transition-colors",
                     mode === m
                       ? cn("border-border bg-muted/60 text-foreground ring-1", tab.ring)
                       : "border-border/50 bg-muted/20 text-muted-foreground hover:text-foreground",

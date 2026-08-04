@@ -50,6 +50,7 @@ export function NewsAnalysisWidget() {
       },
       {
         accessorKey: "source",
+        meta: { hideOnMobile: true },
         header: "Source",
         cell: ({ row }) => (
           <span className="font-mono text-[11px] text-muted-foreground truncate max-w-[120px] inline-block">
@@ -59,6 +60,7 @@ export function NewsAnalysisWidget() {
       },
       {
         id: "tickers",
+        meta: { hideOnMobile: true },
         header: "Tickers",
         cell: ({ row }) => (
           <div className="flex flex-wrap gap-1 max-w-[160px]">
@@ -99,6 +101,7 @@ export function NewsAnalysisWidget() {
       },
       {
         accessorKey: "publishedAt",
+        meta: { hideOnMobile: true },
         header: "Time",
         cell: ({ row }) => (
           <span className="font-mono text-[11px] text-muted-foreground tabular-nums">
