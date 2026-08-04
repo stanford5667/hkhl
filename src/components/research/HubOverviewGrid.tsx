@@ -683,7 +683,7 @@ export function HubOverviewGrid() {
 
   return (
     <WidgetCard title="Your Hub" subtitle="Everything the platform can do, live">
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 p-3 sm:p-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3 p-3 sm:p-4">
         {!isAuthenticated && !loading ? (
           <>
             <TeaserCard to="/academy" icon={GraduationCap} title="Academy" accent="indigo" blurb={BLURBS.academy} />
