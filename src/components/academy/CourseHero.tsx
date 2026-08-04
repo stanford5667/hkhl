@@ -145,6 +145,10 @@ export function CourseHero({
           </div>
         </div>
 
+        {/* Preview video placed directly under the instructor block */}
+        {preview && <div className="mt-5">{preview}</div>}
+
+
         {/* Primary action / progress */}
         <div className="mt-5 space-y-3">
           {hasAccess && (
