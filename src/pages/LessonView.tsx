@@ -259,15 +259,17 @@ export default function LessonView() {
     );
   }
 
-  const isFreeLesson = Boolean(lesson?.is_preview);
+  // Free viewers unlock the first 30% of the course's lessons — in full, no time cap.
+  const flatLessonIds = allLessons?.flatMap((m: any) => (m.lessons || []).map((l: any) => l.id)) || [];
+  const lessonIndex = flatLessonIds.indexOf(lesson.id);
+  const freeLessonCount = getFreeLessonCount(flatLessonIds.length);
+  const isFreeLesson =
+    Boolean(lesson?.is_preview) || isFreeLessonIndex(lessonIndex, flatLessonIds.length);
   const hasFullAccess = Boolean(user && isPro);
-  // Free preview lessons play for everyone (including guests) — but only a short teaser slice.
   const hasVideoAccess = isFreeLesson || hasFullAccess;
-  const isPreviewOnly = hasVideoAccess && !hasFullAccess;
-  const previewLimit = Math.min(
-    PREVIEW_LIMIT_SECONDS,
-    lesson.video_duration ? Math.max(60, Math.floor(lesson.video_duration * 0.3)) : PREVIEW_LIMIT_SECONDS
-  );
+  // No per-video time cap anymore: free lessons play end-to-end.
+  const isPreviewOnly = false;
+  const previewLimit = PREVIEW_LIMIT_SECONDS;
   const previewMinutes = Math.max(1, Math.round(previewLimit / 60));
   const courseProgress = 45;
 
