@@ -1,8 +1,9 @@
-import { Award, BookOpen, Clock, Layers, Lock, Play, Sparkles } from 'lucide-react';
+import React, { Award, BookOpen, Clock, Layers, Lock, Play, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { prettyLabel } from '@/lib/courseContent';
+
 
 interface CourseHeroProps {
   title: string;
