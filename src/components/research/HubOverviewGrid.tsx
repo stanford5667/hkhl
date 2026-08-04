@@ -26,48 +26,59 @@ import { useSavedReports } from "@/hooks/useSavedReports";
 
 type Accent = "emerald" | "violet" | "amber" | "teal" | "indigo" | "rose";
 
-const ACCENTS: Record<Accent, { bar: string; badge: string; ring: string; text: string; glow: string }> = {
-  emerald: {
-    bar: "bg-emerald-500/70",
-    badge: "bg-emerald-500/10 border-emerald-500/30 text-emerald-400",
-    ring: "hover:border-emerald-500/50",
-    text: "text-emerald-400",
-    glow: "hover:shadow-emerald-500/10",
+/**
+ * Cohesive "Slate Electric" accent family — everything sits in the
+ * blue / cyan / indigo range so the six cards read as one system on a
+ * dark slate surface instead of six unrelated colours.
+ */
+const ACCENTS: Record<Accent, { bar: string; badge: string; ring: string; text: string; glow: string; wash: string }> = {
+  indigo: {
+    bar: "bg-indigo-400/60",
+    badge: "bg-indigo-500/10 border-indigo-400/25 text-indigo-300",
+    ring: "hover:border-indigo-400/40",
+    text: "text-indigo-300",
+    glow: "hover:shadow-indigo-500/10",
+    wash: "from-indigo-500/[0.07]",
   },
   violet: {
-    bar: "bg-violet-500/70",
-    badge: "bg-violet-500/10 border-violet-500/30 text-violet-400",
-    ring: "hover:border-violet-500/50",
-    text: "text-violet-400",
+    bar: "bg-violet-400/60",
+    badge: "bg-violet-500/10 border-violet-400/25 text-violet-300",
+    ring: "hover:border-violet-400/40",
+    text: "text-violet-300",
     glow: "hover:shadow-violet-500/10",
-  },
-  amber: {
-    bar: "bg-amber-500/70",
-    badge: "bg-amber-500/10 border-amber-500/30 text-amber-400",
-    ring: "hover:border-amber-500/50",
-    text: "text-amber-400",
-    glow: "hover:shadow-amber-500/10",
+    wash: "from-violet-500/[0.07]",
   },
   teal: {
-    bar: "bg-teal-500/70",
-    badge: "bg-teal-500/10 border-teal-500/30 text-teal-400",
-    ring: "hover:border-teal-500/50",
-    text: "text-teal-400",
-    glow: "hover:shadow-teal-500/10",
+    bar: "bg-cyan-400/60",
+    badge: "bg-cyan-500/10 border-cyan-400/25 text-cyan-300",
+    ring: "hover:border-cyan-400/40",
+    text: "text-cyan-300",
+    glow: "hover:shadow-cyan-500/10",
+    wash: "from-cyan-500/[0.07]",
   },
-  indigo: {
-    bar: "bg-indigo-500/70",
-    badge: "bg-indigo-500/10 border-indigo-500/30 text-indigo-400",
-    ring: "hover:border-indigo-500/50",
-    text: "text-indigo-400",
-    glow: "hover:shadow-indigo-500/10",
+  emerald: {
+    bar: "bg-sky-400/60",
+    badge: "bg-sky-500/10 border-sky-400/25 text-sky-300",
+    ring: "hover:border-sky-400/40",
+    text: "text-sky-300",
+    glow: "hover:shadow-sky-500/10",
+    wash: "from-sky-500/[0.07]",
+  },
+  amber: {
+    bar: "bg-blue-400/60",
+    badge: "bg-blue-500/10 border-blue-400/25 text-blue-300",
+    ring: "hover:border-blue-400/40",
+    text: "text-blue-300",
+    glow: "hover:shadow-blue-500/10",
+    wash: "from-blue-500/[0.07]",
   },
   rose: {
-    bar: "bg-rose-500/70",
-    badge: "bg-rose-500/10 border-rose-500/30 text-rose-400",
-    ring: "hover:border-rose-500/50",
-    text: "text-rose-400",
-    glow: "hover:shadow-rose-500/10",
+    bar: "bg-teal-400/60",
+    badge: "bg-teal-500/10 border-teal-400/25 text-teal-300",
+    ring: "hover:border-teal-400/40",
+    text: "text-teal-300",
+    glow: "hover:shadow-teal-500/10",
+    wash: "from-teal-500/[0.07]",
   },
 };
 
@@ -103,115 +114,111 @@ function HubCard({
     <Link
       to={to}
       className={cn(
-        "group relative rounded-lg border border-border/60 bg-card/50 backdrop-blur-sm",
-        "p-3 sm:p-4 pt-4 sm:pt-5 flex flex-col gap-2 min-h-[190px] overflow-hidden",
+        "group relative rounded-2xl border border-border/50 bg-card/40 backdrop-blur-sm overflow-hidden",
+        "p-4 sm:p-5 flex gap-3.5 sm:gap-4 min-h-[132px] sm:min-h-[180px]",
+        "sm:flex-col",
         "transition-all duration-200 will-change-transform",
-        "hover:-translate-y-0.5 hover:bg-card/70 hover:shadow-lg",
+        "active:scale-[0.985] hover:-translate-y-0.5 hover:bg-card/70 hover:shadow-xl",
         a.ring,
         a.glow,
       )}
     >
-      {/* Top accent bar */}
-      <div className={cn("absolute inset-x-0 top-0 h-0.5", a.bar)} />
-
-      {/* Decorative accent glow */}
+      {/* Soft directional wash keeps the accent subtle on dark slate */}
       <div
         aria-hidden
         className={cn(
-          "pointer-events-none absolute -top-10 -right-10 h-28 w-28 rounded-full blur-2xl opacity-20 transition-opacity duration-300 group-hover:opacity-40",
-          a.bar,
+          "pointer-events-none absolute inset-0 bg-gradient-to-br to-transparent opacity-70 transition-opacity duration-300 group-hover:opacity-100",
+          a.wash,
         )}
       />
-
-      {/* Decorative grid pattern */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.05] [background-image:linear-gradient(to_right,currentColor_1px,transparent_1px),linear-gradient(to_bottom,currentColor_1px,transparent_1px)] [background-size:18px_18px] text-foreground"
-      />
+      <div className={cn("absolute inset-x-0 top-0 h-px", a.bar)} />
 
       {/* Watermark icon */}
       <Icon
         aria-hidden
         className={cn(
-          "pointer-events-none absolute -bottom-4 -right-3 h-20 w-20 opacity-[0.06] transition-all duration-300 group-hover:opacity-[0.12] group-hover:scale-110",
+          "pointer-events-none absolute -bottom-5 -right-4 h-24 w-24 opacity-[0.05] transition-all duration-300 group-hover:opacity-[0.1] group-hover:scale-105",
           a.text,
         )}
-        strokeWidth={1.25}
+        strokeWidth={1}
       />
 
-
-      <div className="relative z-10 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <div
-            className={cn(
-              "flex h-9 w-9 items-center justify-center rounded-md border shrink-0 transition-transform group-hover:scale-105",
-              a.badge,
-            )}
-          >
-            <Icon className="h-4.5 w-4.5" strokeWidth={2} />
-          </div>
-          <h3 className="text-xs sm:text-sm font-mono font-semibold uppercase tracking-wide truncate text-foreground">
-            {title}
-          </h3>
-        </div>
-        <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
-      </div>
-
-      <p className="relative z-10 text-[11px] sm:text-xs leading-relaxed text-muted-foreground">{blurb}</p>
-
-      <div className="relative z-10 flex-1 flex flex-col justify-end gap-1">
-
-        {loading ? (
-          <>
-            <Skeleton className="h-5 w-24" />
-            <Skeleton className="h-3 w-32" />
-          </>
-        ) : (
-          <>
-            <div className="flex items-end justify-between gap-2">
-              <div
-                className={cn(
-                  "text-base sm:text-lg font-semibold font-mono truncate",
-                  tone === "positive" && "text-emerald-400",
-                  tone === "negative" && "text-red-400",
-                  tone === "default" && "text-foreground",
-                )}
-              >
-                {primary}
-              </div>
-              {visual && <div className="shrink-0 opacity-80">{visual}</div>}
-            </div>
-            {secondary && (
-              <div className="text-[11px] text-muted-foreground truncate">{secondary}</div>
-            )}
-            {extra && (
-              <div
-                className={cn(
-                  "text-[11px] truncate transition-all duration-200 overflow-hidden",
-                  "max-h-0 opacity-0 group-hover:max-h-6 group-hover:opacity-100 group-focus-visible:max-h-6 group-focus-visible:opacity-100",
-                  a.text,
-                )}
-              >
-                {extra}
-              </div>
-            )}
-          </>
-        )}
-      </div>
-
-      {/* Clear call to action */}
+      {/* Icon badge — left rail on mobile, top on desktop */}
       <div
         className={cn(
-          "relative z-10 mt-1 flex items-center gap-1 text-[11px] font-mono font-semibold uppercase tracking-wide",
-          a.text,
+          "relative z-10 flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl border transition-transform duration-200 group-hover:scale-105",
+          a.badge,
         )}
       >
-        <span>{CTAS[title] ?? `Open ${title}`}</span>
-        <ArrowUpRight className="h-3 w-3 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+        <Icon className="h-5 w-5 sm:h-6 sm:w-6" strokeWidth={1.9} />
+      </div>
+
+      <div className="relative z-10 min-w-0 flex-1 flex flex-col">
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="font-display text-[15px] sm:text-base font-semibold tracking-tight text-foreground truncate">
+            {title}
+          </h3>
+          <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground/60 transition-all duration-200 group-hover:text-foreground group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+        </div>
+
+        <p className="mt-1 text-[12px] sm:text-[13px] leading-relaxed text-muted-foreground line-clamp-2 sm:line-clamp-3">
+          {blurb}
+        </p>
+
+        <div className="mt-2.5 sm:mt-auto sm:pt-3 flex flex-col gap-1.5">
+          {loading ? (
+            <>
+              <Skeleton className="h-5 w-24 rounded-md" />
+              <Skeleton className="h-3 w-32 rounded-md" />
+            </>
+          ) : (
+            <>
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span
+                  className={cn(
+                    "inline-flex max-w-full items-center rounded-md border px-2 py-0.5 text-[11px] font-mono font-semibold uppercase tracking-tight truncate",
+                    tone === "positive" && "border-emerald-400/25 bg-emerald-500/10 text-emerald-300",
+                    tone === "negative" && "border-red-400/25 bg-red-500/10 text-red-300",
+                    tone === "default" && a.badge,
+                  )}
+                >
+                  {primary}
+                </span>
+                {secondary && (
+                  <span className="text-[11px] text-muted-foreground/80 truncate">{secondary}</span>
+                )}
+                {visual && <div className="ml-auto shrink-0 opacity-80">{visual}</div>}
+              </div>
+
+              {extra && (
+                <div
+                  className={cn(
+                    "text-[11px] truncate overflow-hidden transition-all duration-200",
+                    "max-h-0 opacity-0 group-hover:max-h-6 group-hover:opacity-100 group-focus-visible:max-h-6 group-focus-visible:opacity-100",
+                    a.text,
+                  )}
+                >
+                  {extra}
+                </div>
+              )}
+            </>
+          )}
+
+          <div
+            className={cn(
+              "flex items-center gap-1 text-[11px] font-semibold tracking-tight",
+              a.text,
+            )}
+          >
+            <span className="truncate">{CTAS[title] ?? `Open ${title}`}</span>
+            <ArrowUpRight className="h-3 w-3 shrink-0 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+          </div>
+        </div>
       </div>
     </Link>
   );
 }
+
 
 const CTAS: Record<string, string> = {
   Academy: "Start learning free",
