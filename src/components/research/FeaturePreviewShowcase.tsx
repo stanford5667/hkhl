@@ -308,12 +308,13 @@ function PeekCard({ tab }: { tab: TabDef }) {
       className="pointer-events-none absolute left-3 right-3 sm:left-5 top-full z-30 -mt-1 sm:right-auto sm:w-[340px] animate-in fade-in-0 zoom-in-95 slide-in-from-top-1 duration-150"
     >
       <div
-        className={cn(
-          "rounded-xl border border-border/70 bg-popover/95 p-3 shadow-2xl backdrop-blur-md",
-          "bg-gradient-to-br to-transparent",
-          peek.wash,
-        )}
+        className="relative overflow-hidden rounded-xl border border-border/70 bg-popover p-3 shadow-2xl"
       >
+        <span
+          aria-hidden="true"
+          className={cn("absolute inset-0 bg-gradient-to-br to-transparent", peek.wash)}
+        />
+        <div className="relative">
         <div className="flex items-start gap-3">
           <div className="h-14 w-20 shrink-0 overflow-hidden rounded-lg border border-border/60 bg-background/70">
             <PeekThumb tab={tab.key} />
@@ -342,6 +343,7 @@ function PeekCard({ tab }: { tab: TabDef }) {
           {tab.cta}
           <ArrowRight className="h-3 w-3" />
         </p>
+        </div>
       </div>
     </div>
   );
