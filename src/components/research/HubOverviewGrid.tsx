@@ -555,6 +555,14 @@ function AcademyCard() {
       primary={data ? `${data.completed}` : "0"}
       secondary={data && data.completed > 0 ? "lessons completed" : "Continue learning"}
       extra={data?.lastCourse ? `Resume: ${String(data.lastCourse).slice(0, 32)}` : undefined}
+      visual={
+        <ProgressRing
+          pct={Math.min(1, (data?.completed ?? 0) / 20)}
+          label={`${Math.round(Math.min(1, (data?.completed ?? 0) / 20) * 100)}`}
+          className="text-indigo-400"
+        />
+      }
+
     />
   );
 }
