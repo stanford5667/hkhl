@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Play, Pause, Maximize, Volume2, VolumeX, BookOpen, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getPreviewLimitSeconds, getPreviewLabel } from '@/lib/coursePreview';
