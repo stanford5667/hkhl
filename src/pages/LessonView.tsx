@@ -436,13 +436,13 @@ export default function LessonView() {
                     </div>
                     <div className="space-y-2">
                       <p className="text-lg md:text-2xl font-bold tracking-tight">
-                        The best part starts right here.
+                        You just saw the setup. Pro shows you the trade.
                       </p>
                       <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                        That was just the {previewLabel ?? 'free'} preview. The rest of this lesson
-                        walks through the exact framework — plus {' '}
-                        <span className="font-semibold text-foreground">90+ lessons</span>, live trade
-                        ideas, and the AI research suite.
+                        The rest of this lesson breaks down the hedge-fund process step by step — then
+                        you run it yourself with{' '}
+                        <span className="font-semibold text-foreground">AI backtesting</span>, the
+                        screener, and live trade ideas from the chatroom.
                       </p>
                       <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 pt-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
                         <span>Instant access</span>
