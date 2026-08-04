@@ -448,7 +448,18 @@ function WatchlistCard() {
               .join(" · ")
           : undefined
       }
-      visual={top ? <ChangeChip pct={changePct} /> : null}
+      visual={
+        top ? (
+          <div className="flex items-center gap-2">
+            <MiniBars
+              values={sorted.slice(0, 5).map((s: any) => s.changePercent)}
+              className={changePct >= 0 ? "text-emerald-400" : "text-red-400"}
+            />
+            <ChangeChip pct={changePct} />
+          </div>
+        ) : null
+      }
+
       tone={top ? (changePct >= 0 ? "positive" : "negative") : "default"}
     />
   );
