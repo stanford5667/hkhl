@@ -90,8 +90,8 @@ export function PremiumFeatureBlock({
           </p>
         )}
         {!isLoading && (
-          <span className="text-xs text-primary/50 group-hover:text-primary mt-1">
-            Click to upgrade →
+          <span className="text-xs font-semibold text-primary/70 group-hover:text-primary mt-1">
+            Unlock instantly with Pro →
           </span>
         )}
       </button>
