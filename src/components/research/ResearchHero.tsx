@@ -102,43 +102,49 @@ export function ResearchHero({
 
   return (
     <div className="relative">
-      <div className="relative max-w-3xl mx-auto px-4 sm:px-6 pt-10 sm:pt-16 pb-8 sm:pb-12">
-        {/* Page header */}
-        <div className="text-left sm:text-center mb-8">
+      <div className="relative max-w-6xl mx-auto px-3 sm:px-6 pt-6 sm:pt-12 pb-5 sm:pb-8">
+        {/* Hero Text — Terminal style */}
+        <div className="text-left sm:text-center mb-5 sm:mb-8">
           <motion.h1
-            className="text-3xl sm:text-4xl lg:text-5xl font-semibold tracking-[-0.03em] leading-[1.05] text-foreground mb-3"
-            initial={{ opacity: 0, y: 8 }}
+            className="text-2xl sm:text-3xl lg:text-5xl font-bold mb-1.5 sm:mb-2.5 tracking-tight font-mono leading-tight"
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35 }}
+            transition={{ duration: 0.5 }}
           >
-            Find Your Next Big Investment Idea
+            <span className="text-foreground">Find Your Next</span>{' '}
+            <span className="bg-gradient-to-r from-[hsl(175_80%_45%)] to-[hsl(190_90%_55%)] bg-clip-text text-transparent">Big</span>
+            <br />
+            <span className="bg-gradient-to-r from-[hsl(190_90%_55%)] to-[hsl(175_80%_45%)] bg-clip-text text-transparent">Investment Idea</span>
           </motion.h1>
           <motion.p
-            className="text-muted-foreground text-sm max-w-md sm:mx-auto font-normal"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.35, delay: 0.08 }}
+            className="text-muted-foreground text-[11px] sm:text-xs lg:text-sm max-w-lg sm:mx-auto font-mono font-semibold"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
           >
-            AI-powered analysis, backtesting and screening across 10,000+ securities.
+            AI-powered analysis · backtesting · screening
           </motion.p>
         </div>
 
-        {/* Search Section - Command palette style */}
+        {/* Search Section - Command palette style with glow */}
         <motion.div
           ref={containerRef}
-          className="max-w-xl mx-auto mb-6 relative"
+          className="max-w-xl mx-auto mb-4 sm:mb-6 relative"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
           <div className={cn(
-            "relative rounded-md bg-background border border-border/60",
-            "transition-colors duration-150",
-            isFocused && "border-primary/60"
+            "relative rounded-xl",
+            "bg-card border-2 border-[hsl(175_80%_40%/0.4)]",
+            "shadow-[0_0_20px_-3px_hsl(175_80%_40%/0.25),0_0_40px_-8px_hsl(175_80%_40%/0.1)]",
+            "transition-all duration-300",
+            "animate-[pulse-glow-cyan_3s_ease-in-out_infinite]",
+            isFocused && "border-[hsl(175_80%_40%/0.7)] shadow-[0_0_30px_-3px_hsl(175_80%_40%/0.4),0_0_60px_-8px_hsl(175_80%_40%/0.15)] ring-2 ring-[hsl(175_80%_40%/0.3)] animate-none"
           )}>
             {/* Input row */}
-            <div className="flex items-center gap-2.5 px-4 h-12">
-              <Search className="h-4 w-4 text-muted-foreground shrink-0" />
+            <div className="flex items-center gap-2 px-3 sm:px-4 h-11 sm:h-13">
+              <Search className="h-4 w-4 text-primary shrink-0" />
               <input
                 ref={inputRef}
                 value={searchQuery}
@@ -176,7 +182,7 @@ export function ResearchHero({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 4 }}
                 transition={{ duration: 0.15 }}
-                className="absolute left-0 right-0 top-full mt-2 z-50 rounded-md border border-border/60 bg-popover shadow-[0_8px_24px_hsl(var(--foreground)/0.06)] overflow-hidden"
+                className="absolute left-0 right-0 top-full mt-1.5 z-50 rounded-xl border border-border bg-popover shadow-xl shadow-black/20 overflow-hidden"
               >
                 {/* Search results */}
                 {hasResults ? (
@@ -197,8 +203,8 @@ export function ResearchHero({
                           )}
                         >
                           <div className="flex items-center gap-3">
-                            <div className="flex items-center justify-center h-8 w-8 rounded border border-border/50 bg-muted/30 shrink-0">
-                              <span className="font-mono font-medium text-[11px] text-muted-foreground">
+                            <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-primary/10 border border-primary/20 shrink-0">
+                              <span className="font-mono font-bold text-[11px] text-primary">
                                 {result.symbol.slice(0, 3)}
                               </span>
                             </div>
@@ -214,15 +220,15 @@ export function ResearchHero({
                           </div>
                           {result.quote && (
                             <div className="flex items-center gap-2 text-right shrink-0 ml-2">
-                              <span className="font-mono text-sm text-foreground tabular-nums">
+                              <span className="font-mono text-sm text-foreground">
                                 ${result.quote.price?.toFixed(2) || '—'}
                               </span>
                               {result.quote.changePercent !== undefined && (
                                 <span className={cn(
-                                  "flex items-center text-[11px] font-medium tabular-nums",
+                                  "flex items-center text-[11px] font-medium px-1.5 py-0.5 rounded",
                                   result.quote.changePercent >= 0
-                                    ? "text-success"
-                                    : "text-destructive"
+                                    ? "text-success bg-success/10"
+                                    : "text-destructive bg-destructive/10"
                                 )}>
                                   {result.quote.changePercent >= 0 ? (
                                     <TrendingUp className="h-3 w-3 mr-0.5" />
@@ -273,8 +279,8 @@ export function ResearchHero({
                           onClick={() => handleSelect(t.symbol)}
                           className="flex items-center gap-2.5 px-3 py-2.5 bg-popover hover:bg-accent/50 transition-colors text-left"
                         >
-                          <div className="flex items-center justify-center h-7 w-7 rounded border border-border/50 bg-muted/30 shrink-0">
-                            <span className="font-mono font-medium text-[10px] text-muted-foreground">{t.symbol.slice(0, 3)}</span>
+                          <div className="flex items-center justify-center h-7 w-7 rounded-md bg-primary/10 border border-primary/20 shrink-0">
+                            <span className="font-mono font-bold text-[10px] text-primary">{t.symbol.slice(0, 3)}</span>
                           </div>
                           <div className="min-w-0">
                             <p className="font-mono font-semibold text-xs text-foreground">{t.symbol}</p>
@@ -312,7 +318,7 @@ export function ResearchHero({
 
         {/* Recent Searches */}
         {recentSearches.length > 0 && (
-          <div className="max-w-xl mx-auto overflow-x-auto scrollbar-hide">
+          <div className="max-w-xl mx-auto overflow-x-auto scrollbar-hide mb-2 sm:mb-3">
             <div className="flex items-center gap-1.5 min-w-max px-1">
               <span className="text-[10px] text-muted-foreground flex items-center gap-1 shrink-0">
                 <Clock className="h-3 w-3" /> Recent:
@@ -323,7 +329,7 @@ export function ResearchHero({
                   variant="outline"
                   size="sm"
                   onClick={() => onSearch(ticker)}
-                  className="h-6 px-2 text-[10px] font-mono border-border/50 shrink-0"
+                  className="h-6 px-2 text-[10px] border-border/60 shrink-0"
                 >
                   {ticker}
                 </Button>
@@ -340,21 +346,20 @@ export function ResearchHero({
           </div>
         )}
 
-        {/* Key figures */}
+        {/* Stats Bar — moved below search for immediate validation */}
         <motion.div
-          className="flex items-center justify-start sm:justify-center gap-8 mt-8 pt-6 border-t border-border/40"
+          className="flex items-center justify-start sm:justify-center gap-3 sm:gap-8 mt-2 sm:mt-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.4, delay: 0.2 }}
+          transition={{ duration: 0.6, delay: 0.35 }}
         >
-          {STATS.map((stat) => (
-            <div key={stat.label} className="flex flex-col items-start sm:items-center gap-0.5">
-              <span className="text-sm sm:text-base font-semibold text-foreground tabular-nums tracking-tight">
-                {stat.value}
-              </span>
-              <span className="text-[10px] text-muted-foreground uppercase tracking-[0.08em]">
-                {stat.label}
-              </span>
+          {STATS.map((stat, i) => (
+            <div key={stat.label} className="flex items-center gap-2">
+              {i > 0 && <span className="text-border text-xs">│</span>}
+              <div className="flex flex-col items-start sm:items-center gap-0">
+                <span className="text-[10px] sm:text-sm font-mono font-bold text-foreground tabular-nums">{stat.value}</span>
+                <span className="text-[7px] sm:text-[9px] font-mono text-muted-foreground uppercase tracking-wider">{stat.label}</span>
+              </div>
             </div>
           ))}
         </motion.div>

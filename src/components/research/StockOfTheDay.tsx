@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Sparkles, TrendingUp, TrendingDown, ArrowRight, 
-  Brain, Lightbulb, Target 
+  Brain, Lightbulb, Target, Zap 
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -76,9 +76,9 @@ export function StockOfTheDay() {
 
   if (isLoading) {
     return (
-      <div className="rounded-md border border-border/40 bg-card p-6">
-        <Skeleton className="h-5 w-40 mb-4" />
-        <Skeleton className="h-20 w-full rounded" />
+      <div className="bg-gradient-to-br from-primary/5 via-card/80 to-card/60 backdrop-blur-sm rounded-xl border border-primary/20 p-4">
+        <Skeleton className="h-5 w-40 mb-3" />
+        <Skeleton className="h-20 w-full rounded-lg" />
       </div>
     );
   }
@@ -91,22 +91,34 @@ export function StockOfTheDay() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="relative rounded-md border border-border/40 bg-card p-6 overflow-hidden group shadow-[0_1px_2px_hsl(var(--foreground)/0.02)]"
+      className="relative bg-gradient-to-br from-primary/10 via-card/80 to-card/60 backdrop-blur-sm rounded-xl border border-primary/30 p-4 overflow-hidden group"
     >
+      {/* Animated background glow */}
+      <motion.div
+        className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-3xl"
+        animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
+        transition={{ duration: 4, repeat: Infinity }}
+      />
+
       {/* Header */}
-      <div className="relative flex items-center justify-between mb-5 pb-4 border-b border-border/40">
-        <div className="flex items-center gap-2.5">
-          <Sparkles className="h-4 w-4 text-muted-foreground" />
-          <h3 className="text-[11px] font-semibold text-foreground uppercase tracking-[0.08em]">
-            Stock of the Day
-          </h3>
-          <span className="hidden md:inline text-[11px] text-muted-foreground">
-            AI-powered spotlight pick
-          </span>
+      <div className="relative flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 rounded-lg bg-primary/20 border border-primary/30">
+            <Sparkles className="h-4 w-4 text-primary" />
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">Stock of the Day</h3>
+            <p className="text-[9px] text-muted-foreground">AI-powered spotlight pick</p>
+          </div>
         </div>
         <Badge 
           variant="outline" 
-          className="text-[10px] font-normal border-border/50 text-muted-foreground tabular-nums"
+          className={cn(
+            "text-[9px] border",
+            pick.sentiment === 'bullish' ? "border-emerald-500/50 text-emerald-500" :
+            pick.sentiment === 'bearish' ? "border-red-500/50 text-red-500" :
+            "border-yellow-500/50 text-yellow-500"
+          )}
         >
           <Brain className="h-2.5 w-2.5 mr-1" />
           {pick.confidence}% confidence
@@ -114,23 +126,23 @@ export function StockOfTheDay() {
       </div>
 
       {/* Stock Info */}
-      <div className="relative flex items-start justify-between mb-5">
+      <div className="relative flex items-start justify-between mb-3">
         <div>
           <button
             onClick={() => navigate(`/stock/${pick.ticker}`)}
-            className="text-xl font-semibold tracking-tight text-foreground hover:text-primary transition-colors"
+            className="text-lg font-bold text-foreground hover:text-primary transition-colors"
           >
             {pick.ticker}
           </button>
           <p className="text-xs text-muted-foreground">{pick.name}</p>
         </div>
         <div className="text-right">
-          <div className="text-xl font-semibold tracking-tight text-foreground tabular-nums">
+          <div className="text-lg font-bold font-mono text-foreground">
             ${pick.price > 0 ? pick.price.toFixed(2) : '—'}
           </div>
           <div className={cn(
-            "flex items-center justify-end gap-1 text-xs font-medium tabular-nums",
-            isPositive ? "text-success" : "text-destructive"
+            "flex items-center justify-end gap-0.5 text-xs font-medium",
+            isPositive ? "text-emerald-500" : "text-red-500"
           )}>
             {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
             {isPositive ? '+' : ''}{pick.change.toFixed(2)}%
@@ -139,12 +151,12 @@ export function StockOfTheDay() {
       </div>
 
       {/* AI Reasoning */}
-      <div className="relative space-y-2.5 mb-6">
+      <div className="relative space-y-2 mb-4">
         <div className="flex items-start gap-2 text-xs text-muted-foreground">
-          <Lightbulb className="h-3.5 w-3.5 mt-0.5 text-muted-foreground shrink-0" />
+          <Lightbulb className="h-3.5 w-3.5 mt-0.5 text-yellow-500 shrink-0" />
           <p className="leading-relaxed">{pick.reason}</p>
         </div>
-        <div className="flex items-start gap-2 text-xs text-foreground/80">
+        <div className="flex items-start gap-2 text-xs text-primary/80">
           <Target className="h-3.5 w-3.5 mt-0.5 shrink-0" />
           <p className="font-medium">{pick.catalyst}</p>
         </div>
@@ -153,14 +165,17 @@ export function StockOfTheDay() {
       {/* CTA */}
       <Button
         onClick={() => navigate(`/stock/${pick.ticker}`)}
-        variant="outline"
-        className="w-full border-border/50 hover:bg-muted/40 transition-colors"
+        className="w-full bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 group-hover:border-primary/50 transition-all"
         size="sm"
       >
         <span>View Full Analysis</span>
-        <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+        <ArrowRight className="h-3.5 w-3.5 ml-1.5 group-hover:translate-x-0.5 transition-transform" />
       </Button>
 
+      {/* Decorative elements */}
+      <div className="absolute bottom-2 right-2 opacity-10">
+        <Zap className="h-16 w-16 text-primary" />
+      </div>
     </motion.div>
   );
 }

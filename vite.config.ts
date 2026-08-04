@@ -13,14 +13,9 @@ export default defineConfig(({ mode }) => ({
     mode === 'development' && componentTagger(),
   ].filter(Boolean),
   resolve: {
-    // Guarantee a single React instance so hooks never see a null dispatcher
-    dedupe: ["react", "react-dom"],
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
-  },
-  optimizeDeps: {
-    include: ["react", "react-dom", "react-dom/client", "react/jsx-runtime"],
   },
   build: {
     sourcemap: true,

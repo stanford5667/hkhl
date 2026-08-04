@@ -456,7 +456,7 @@ function StockRowMobile({ stock, onClick, showInsights, insight }: { stock: Scre
           <span className="text-sm font-medium text-foreground tabular-nums block">${stock.price.toFixed(2)}</span>
           <span className={cn(
             "text-xs font-semibold tabular-nums",
-            isPositive ? 'text-success' : 'text-destructive'
+            isPositive ? 'text-emerald-500' : 'text-destructive'
           )}>
             {isPositive ? '+' : ''}{stock.changePercent.toFixed(2)}%
           </span>
@@ -473,7 +473,7 @@ function StockRowMobile({ stock, onClick, showInsights, insight }: { stock: Scre
       {showInsights && insight && (
         <div className="mt-2 pt-2 border-t border-border/30">
           <p className="text-[10px] text-muted-foreground line-clamp-2">
-            <Sparkles className="h-3 w-3 text-muted-foreground inline mr-1" />
+            <Sparkles className="h-3 w-3 text-amber-500 inline mr-1" />
             {getInsightSummary(insight)}
           </p>
         </div>
@@ -541,7 +541,7 @@ function StockRow({
           return (
             <div key={col.key} className={cn(
               col.width, 'text-right text-xs font-semibold tabular-nums',
-              isPositive ? 'text-success' : 'text-destructive'
+              isPositive ? 'text-emerald-500' : 'text-destructive'
             )}>
               {isPositive ? '+' : ''}{stock.changePercent.toFixed(2)}%
             </div>
@@ -566,8 +566,8 @@ function StockRow({
               <div className="w-32 flex-shrink-0 flex items-center gap-1.5 text-left">
                 <Lightbulb className={cn(
                   "h-3 w-3 flex-shrink-0",
-                  insight.confidence === 'high' ? 'text-foreground' : 
-                  insight.confidence === 'medium' ? 'text-muted-foreground' : 'text-muted-foreground/70'
+                  insight.confidence === 'high' ? 'text-amber-500' : 
+                  insight.confidence === 'medium' ? 'text-amber-400/70' : 'text-muted-foreground'
                 )} />
                 <span className="text-[10px] text-muted-foreground truncate">
                   {getInsightSummary(insight)}
@@ -729,7 +729,7 @@ function StockList({
           );
         })}
         {showInsights && (
-          <div className="w-32 flex-shrink-0 flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
+          <div className="w-32 flex-shrink-0 flex items-center gap-1 text-[10px] font-medium text-amber-500">
             <Sparkles className="h-3 w-3" />
             Insight
             {insightsLoading && (
@@ -1521,22 +1521,26 @@ export function UnifiedDiscoveryScreener() {
   }, [showInsights, stocks, filters]);
 
   return (
-    <Card className="bg-card border-border/40 rounded-md overflow-hidden shadow-[0_1px_2px_hsl(var(--foreground)/0.02)]">
-      <CardHeader className="pb-4 px-4 sm:px-6 pt-0">
+    <Card className="bg-card border-border overflow-hidden">
+      <CardHeader className="pb-3 px-3 sm:px-6">
         {/* Screener Header */}
-        <div className="flex items-center justify-between gap-4 h-12 -mx-4 sm:-mx-6 px-4 sm:px-6 border-b border-border/40 mb-5">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <SlidersHorizontal className="h-4 w-4 text-muted-foreground shrink-0" />
-            <CardTitle className="text-[11px] sm:text-xs font-semibold uppercase tracking-[0.08em]">Stock Screener</CardTitle>
-            <p className="text-[11px] text-muted-foreground hidden md:block truncate">Filter stocks by fundamentals and technicals</p>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-primary/10 border border-primary/20">
+              <SlidersHorizontal className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <CardTitle className="text-sm sm:text-base font-semibold">Stock Screener</CardTitle>
+              <p className="text-[10px] text-muted-foreground hidden sm:block">Filter stocks by fundamentals and technicals</p>
+            </div>
           </div>
         </div>
-
+        
         {/* Primary Filters - Always visible with clear label */}
-        <div className="p-4 bg-muted/20 rounded-md border border-border/40">
-          <div className="flex items-center gap-2 mb-3">
-            <Filter className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-[0.08em]">Quick Filters</span>
+        <div className="pt-3 pb-3 px-3 -mx-3 bg-muted/30 rounded-lg border border-border/50">
+          <div className="flex items-center gap-2 mb-2">
+            <Filter className="h-3.5 w-3.5 text-primary" />
+            <span className="text-[11px] font-semibold text-foreground uppercase tracking-wide">Quick Filters</span>
           </div>
           {FILTER_CATEGORIES.filter(c => c.isPrimary).map(category => (
             <FilterCategory
@@ -1699,7 +1703,7 @@ export function UnifiedDiscoveryScreener() {
       
       <CardContent className="p-0 pt-0">
         {/* AI Insights Toggle */}
-        <div className="flex items-center justify-between px-4 sm:px-6 py-2.5 border-b border-border/40">
+        <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-gradient-to-r from-amber-500/5 to-transparent">
           <div className="flex items-center gap-2">
             <Checkbox 
               id="show-insights"
@@ -1710,7 +1714,7 @@ export function UnifiedDiscoveryScreener() {
               htmlFor="show-insights" 
               className="text-xs font-medium cursor-pointer flex items-center gap-1.5"
             >
-              <Sparkles className="h-3.5 w-3.5 text-muted-foreground" />
+              <Sparkles className="h-3.5 w-3.5 text-amber-500" />
               <span className="hidden sm:inline">Show AI Insights</span>
               <span className="sm:hidden">AI Insights</span>
             </Label>

@@ -27,7 +27,7 @@ export function ResearchTopBar({ date, onDateChange, onRefresh, isRefreshing }: 
   };
 
   return (
-    <div className="sticky top-0 z-30 px-4 sm:px-6 lg:px-8 py-3 bg-background/90 backdrop-blur-md border-b border-border/40">
+    <div className="sticky top-0 z-30 -mx-3 sm:-mx-6 px-3 sm:px-6 py-2.5 bg-background/85 backdrop-blur-md border-b border-border/60">
       <div className="flex items-center gap-2 max-w-[1600px] mx-auto">
         <form onSubmit={handleSubmit} className="flex-1 flex items-center gap-2 min-w-0">
           <div className="relative flex-1 min-w-0 max-w-2xl">
@@ -36,10 +36,10 @@ export function ResearchTopBar({ date, onDateChange, onRefresh, isRefreshing }: 
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search symbol (e.g. AAPL, NVDA, SPY)…"
-              className="h-9 pl-8 pr-3 text-sm font-mono bg-background border-border/40"
+              className="h-9 pl-8 pr-3 text-sm font-mono bg-card/60 border-border/60"
             />
           </div>
-          <Button type="submit" size="sm" variant="outline" className="h-9 hidden sm:inline-flex border-border/40">
+          <Button type="submit" size="sm" variant="outline" className="h-9 hidden sm:inline-flex">
             Go
           </Button>
         </form>
@@ -49,7 +49,7 @@ export function ResearchTopBar({ date, onDateChange, onRefresh, isRefreshing }: 
             <Button
               variant="outline"
               size="sm"
-              className="h-9 gap-1.5 text-xs border-border/40"
+              className="h-9 gap-1.5 font-mono text-xs"
             >
               <CalendarIcon className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">{format(date, "MMM d, yyyy")}</span>
@@ -69,7 +69,7 @@ export function ResearchTopBar({ date, onDateChange, onRefresh, isRefreshing }: 
         <Button
           variant="outline"
           size="sm"
-          className="h-9 gap-1.5 text-xs border-border/40"
+          className="h-9 gap-1.5 font-mono text-xs"
           onClick={onRefresh}
           disabled={isRefreshing}
         >

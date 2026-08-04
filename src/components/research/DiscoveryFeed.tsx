@@ -13,7 +13,7 @@ interface DiscoveryFeedProps {
 
 function NewsCardSkeleton() {
   return (
-    <div className="rounded-md bg-background border border-border/40 p-4 space-y-3 animate-pulse">
+    <div className="rounded-xl bg-card border border-border/60 p-4 space-y-3 animate-pulse">
       <div className="flex justify-between">
         <div className="h-3 w-20 bg-muted rounded" />
         <div className="h-3 w-12 bg-muted rounded" />
@@ -44,17 +44,21 @@ export function DiscoveryFeed({ className }: DiscoveryFeedProps) {
   const displayArticles = showAll ? articles : articles?.slice(0, 4);
 
   return (
-    <section className={cn('rounded-md border border-border/40 bg-card overflow-hidden shadow-[0_1px_2px_hsl(var(--foreground)/0.02)]', className)}>
+    <section className={cn('space-y-4', className)}>
       {/* Header */}
-      <div className="flex items-center justify-between gap-4 px-4 sm:px-6 h-12 border-b border-border/40">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <Newspaper className="h-4 w-4 text-muted-foreground shrink-0" />
-          <h2 className="text-[11px] sm:text-xs font-semibold text-foreground uppercase tracking-[0.08em]">Market Feed</h2>
-          <p className="text-[11px] text-muted-foreground truncate hidden md:block">Real-time market-moving news</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-xl bg-primary/10 border border-primary/20">
+            <Newspaper className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-foreground">Market Feed</h2>
+            <p className="text-xs text-muted-foreground">Real-time market-moving news</p>
+          </div>
         </div>
-
-        <div className="flex items-center gap-2 shrink-0">
-          <Badge variant="outline" className="font-normal text-[11px] tabular-nums border-border/40 text-muted-foreground">
+        
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="font-mono text-xs border-border/60 text-muted-foreground">
             {articles?.length ?? 0} stories
           </Badge>
           <Button
@@ -62,8 +66,7 @@ export function DiscoveryFeed({ className }: DiscoveryFeedProps) {
             size="icon"
             onClick={handleRefresh}
             disabled={isRefetching}
-            className="h-7 w-7 text-muted-foreground hover:text-foreground"
-            aria-label="Refresh news"
+            className="h-9 w-9 text-muted-foreground hover:text-foreground"
           >
             <RefreshCw className={cn('h-4 w-4', isRefetching && 'animate-spin')} />
           </Button>
@@ -71,7 +74,7 @@ export function DiscoveryFeed({ className }: DiscoveryFeedProps) {
       </div>
 
       {/* Feed Grid - 2 columns on larger screens */}
-      <div className="grid md:grid-cols-2 gap-3 p-4 sm:p-6">
+      <div className="grid md:grid-cols-2 gap-3">
         {isLoading ? (
           <>
             <NewsCardSkeleton />
@@ -80,7 +83,7 @@ export function DiscoveryFeed({ className }: DiscoveryFeedProps) {
             <NewsCardSkeleton />
           </>
         ) : error ? (
-          <div className="md:col-span-2 flex flex-col items-center justify-center py-12 text-center bg-background rounded-md border border-border/40">
+          <div className="md:col-span-2 flex flex-col items-center justify-center py-12 text-center bg-card rounded-xl border border-border/60">
             <AlertCircle className="h-10 w-10 text-destructive/50 mb-3" />
             <p className="text-sm font-medium text-muted-foreground">Failed to load news</p>
             <Button
@@ -103,7 +106,7 @@ export function DiscoveryFeed({ className }: DiscoveryFeedProps) {
             />
           ))
         ) : (
-          <div className="md:col-span-2 flex flex-col items-center justify-center py-12 text-center bg-background rounded-md border border-border/40">
+          <div className="md:col-span-2 flex flex-col items-center justify-center py-12 text-center bg-card rounded-xl border border-border/60">
             <Newspaper className="h-10 w-10 text-muted-foreground/30 mb-3" />
             <p className="text-sm font-medium text-muted-foreground">No news available</p>
           </div>
@@ -112,7 +115,7 @@ export function DiscoveryFeed({ className }: DiscoveryFeedProps) {
 
       {/* Show More Button */}
       {articles && articles.length > 4 && !showAll && (
-        <div className="flex justify-center pb-6">
+        <div className="flex justify-center">
           <Button
             variant="outline"
             size="sm"

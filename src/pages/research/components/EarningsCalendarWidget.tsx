@@ -125,14 +125,13 @@ export function EarningsCalendarWidget() {
         accessorKey: "fiscal_period",
         header: "Period",
         cell: ({ row }) => (
-          <Badge variant="outline" className="font-mono text-[10px] font-normal border-border/40 text-muted-foreground">
+          <Badge variant="outline" className="font-mono text-[10px]">
             {row.original.fiscal_period || "—"}
           </Badge>
         ),
       },
       {
         accessorKey: "eps_estimate",
-        meta: { numeric: true },
         header: "EPS Est",
         cell: ({ row }) => (
           <span className="font-mono text-xs tabular-nums text-muted-foreground">
@@ -142,7 +141,6 @@ export function EarningsCalendarWidget() {
       },
       {
         accessorKey: "eps_actual",
-        meta: { numeric: true },
         header: "EPS Actual",
         cell: ({ row }) => {
           const a = row.original.eps_actual;
@@ -153,7 +151,7 @@ export function EarningsCalendarWidget() {
           return (
             <span
               className={cn(
-                "font-mono text-xs tabular-nums font-medium",
+                "font-mono text-xs tabular-nums font-semibold",
                 beat && "text-success",
                 miss && "text-destructive",
               )}
@@ -165,7 +163,6 @@ export function EarningsCalendarWidget() {
       },
       {
         accessorKey: "market_cap",
-        meta: { numeric: true },
         header: "Mkt Cap",
         cell: ({ row }) => (
           <span className="font-mono text-xs tabular-nums text-muted-foreground">
@@ -190,10 +187,10 @@ export function EarningsCalendarWidget() {
             setPageIndex(0);
           }}
         >
-          <TabsList className="h-7 bg-muted/40">
-            <TabsTrigger value="today" className="h-6 text-[11px]">Today</TabsTrigger>
-            <TabsTrigger value="week" className="h-6 text-[11px]">This Week</TabsTrigger>
-            <TabsTrigger value="next" className="h-6 text-[11px]">Next Week</TabsTrigger>
+          <TabsList className="h-7">
+            <TabsTrigger value="today" className="h-6 text-[11px] font-mono">Today</TabsTrigger>
+            <TabsTrigger value="week" className="h-6 text-[11px] font-mono">This Week</TabsTrigger>
+            <TabsTrigger value="next" className="h-6 text-[11px] font-mono">Next Week</TabsTrigger>
           </TabsList>
         </Tabs>
       }

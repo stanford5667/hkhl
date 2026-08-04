@@ -18,10 +18,10 @@ function SentimentBadge({ score }: { score: number }) {
     <Badge
       variant="outline"
       className={cn(
-        "text-[10px] font-normal gap-1 capitalize border-border/40",
-        sentiment === "bullish" && "text-success",
-        sentiment === "bearish" && "text-destructive",
-        sentiment === "neutral" && "text-muted-foreground",
+        "font-mono text-[10px] gap-1 capitalize",
+        sentiment === "bullish" && "border-success/40 text-success bg-success/10",
+        sentiment === "bearish" && "border-destructive/40 text-destructive bg-destructive/10",
+        sentiment === "neutral" && "border-border text-muted-foreground",
       )}
     >
       <Icon className="h-3 w-3" /> {sentiment}
@@ -45,7 +45,7 @@ export function MarketThemesWidget() {
           const Icon = row.original.icon;
           return (
             <div className="flex items-center gap-2 min-w-0">
-              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded border border-border/40 bg-muted/20 text-muted-foreground">
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary border border-primary/20">
                 <Icon className="h-3 w-3" />
               </div>
               <div className="min-w-0">
@@ -69,7 +69,6 @@ export function MarketThemesWidget() {
       },
       {
         accessorKey: "impactPercent",
-        meta: { numeric: true },
         header: "Impact",
         cell: ({ row }) => {
           const v = row.original.impactPercent;
@@ -77,7 +76,7 @@ export function MarketThemesWidget() {
           return (
             <span
               className={cn(
-                "font-mono text-xs tabular-nums font-medium",
+                "font-mono text-xs tabular-nums font-semibold",
                 positive ? "text-success" : "text-destructive",
               )}
             >
@@ -104,7 +103,7 @@ export function MarketThemesWidget() {
                   e.stopPropagation();
                   navigate(`/stock/${t.symbol}`);
                 }}
-                className="px-1.5 py-0.5 rounded border border-border/40 bg-muted/20 hover:border-border hover:bg-muted/50 text-[10px] font-mono text-foreground transition-colors"
+                className="px-1.5 py-0.5 rounded border border-border/60 bg-muted/30 hover:bg-primary/10 hover:border-primary/30 text-[10px] font-mono text-foreground transition-colors"
               >
                 {t.symbol}
               </button>

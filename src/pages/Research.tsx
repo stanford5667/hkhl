@@ -59,9 +59,9 @@ export default function ResearchPage() {
     <div className="min-h-screen bg-background flex flex-col">
       <ResearchTopBar onRefresh={handleRefresh} date={date} onDateChange={setDate} />
 
-      <main className="flex-1 w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pb-16">
-        {/* Page header / search */}
-        <section className="border-b border-border/40">
+      <main className="flex-1 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 space-y-3 sm:space-y-4 max-w-[1800px] w-full mx-auto">
+        {/* Restored landing-style sections - moved to top */}
+        <section>
           <ResearchHero
             searchQuery={searchQuery}
             onSearchQueryChange={setSearchQuery}
@@ -71,25 +71,21 @@ export default function ResearchPage() {
           />
         </section>
 
-        {/* Overview */}
-        <section className="pt-8 space-y-6">
-          <HubOverviewGrid />
-          <StockOfTheDay />
-        </section>
+        <HubOverviewGrid />
 
-        {/* Primary content widgets */}
-        <section className="pt-8 mt-8 border-t border-border/40 space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <MarketThemesWidget />
-            <GlobalThemesWidget />
-          </div>
+        <StockOfTheDay />
 
-          <UnifiedDiscoveryScreener />
-          <EarningsCalendarWidget />
-          <MarketMoversWidget />
-          <DiscoveryFeed />
-          <NewsAnalysisWidget />
-        </section>
+        <DiscoveryFeed />
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+          <MarketThemesWidget />
+          <GlobalThemesWidget />
+        </div>
+
+        <UnifiedDiscoveryScreener />
+        <EarningsCalendarWidget />
+        <MarketMoversWidget />
+        <NewsAnalysisWidget />
       </main>
 
 
