@@ -251,8 +251,9 @@ export default function LessonView() {
     );
   }
 
-  const isFreeLesson = lesson?.is_preview;
-  const hasVideoAccess = user && (isPro || isFreeLesson);
+  const isFreeLesson = Boolean(lesson?.is_preview);
+  // Free preview lessons play for everyone (including guests); paid lessons need Pro.
+  const hasVideoAccess = isFreeLesson || Boolean(user && isPro);
   const courseProgress = 45;
   const gradientIndex = (lesson.module?.order_index || 0) % THUMB_GRADIENTS.length;
 
@@ -517,7 +518,8 @@ export default function LessonView() {
                       {module.lessons?.map((l: any, lessonIndex: number) => {
                         const isCurrentLesson = l.id === lessonId;
                         const isFreeTier = l.is_preview;
-                        const isLocked = !hasVideoAccess && !isFreeTier;
+                        const isLocked = !isFreeTier && !(user && isPro);
+
 
                         return (
                           <Link
