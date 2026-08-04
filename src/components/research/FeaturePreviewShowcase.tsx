@@ -443,7 +443,7 @@ export function FeaturePreviewShowcase() {
         )}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:items-center px-3 sm:px-5 pb-5">
+      <div className="grid gap-3 sm:gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:items-center px-3 sm:px-5 pb-4 sm:pb-5">
         {/* Copy side */}
         <div className="order-2 lg:order-1 flex flex-col justify-center gap-2.5 sm:gap-3 pt-1">
           <h3 className={cn("font-display text-[15px] sm:text-xl font-semibold", tab.accent)}>
@@ -476,7 +476,7 @@ export function FeaturePreviewShowcase() {
                   onClick={() => setMode(m)}
                   aria-pressed={mode === m}
                   className={cn(
-                    "rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors",
+                    "rounded-full border px-3 py-1.5 sm:py-1 text-[11px] sm:text-[10px] font-medium transition-colors",
                     mode === m
                       ? cn("border-border bg-muted/60 text-foreground ring-1", tab.ring)
                       : "border-border/50 bg-muted/20 text-muted-foreground hover:text-foreground",
