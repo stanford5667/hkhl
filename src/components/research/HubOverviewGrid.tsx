@@ -512,7 +512,14 @@ function BacktesterCard() {
           ? `${latest.theme_category || "Strategy"}${returnPct !== null ? ` · ${returnPct >= 0 ? "+" : ""}${returnPct.toFixed(1)}%` : ""}`
           : undefined
       }
-      visual={series.length >= 2 ? <Sparkline points={series} positive={(returnPct ?? 0) >= 0} /> : null}
+      visual={
+        series.length >= 2 ? (
+          <Sparkline points={series} positive={(returnPct ?? 0) >= 0} />
+        ) : (
+          <Sparkline points={[8, 6, 9, 7, 11, 10, 14, 13, 17]} positive />
+        )
+      }
+
     />
   );
 }
