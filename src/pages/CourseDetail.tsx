@@ -1,4 +1,4 @@
-import { getFreeLessonCount, isFreeLessonIndex } from '@/lib/coursePreview';
+import { getPreviewLabel } from '@/lib/coursePreview';
 import { useState, useEffect } from 'react';
 import { PRICING } from '@/config/pricing';
 import { useParams, Link, useNavigate } from 'react-router-dom';
