@@ -415,118 +415,68 @@ export default function CourseDetail() {
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-3 sm:space-y-6">
           {/* Hero */}
-          <Card className="overflow-hidden">
-            {/* CSS Thumbnail */}
-            <div className="relative aspect-[16/9] sm:aspect-video bg-[#0B0E14] flex items-center justify-center overflow-hidden">
-              {/* Watermark text - responsive sizing */}
-              <span className="absolute select-none text-[clamp(2rem,12vw,6rem)] lg:text-[5rem] font-extrabold tracking-tighter uppercase text-gray-800/30 leading-none pointer-events-none whitespace-nowrap">
-                MASTERCLASS
-              </span>
-              {/* Overlay label - two lines */}
-              <div className="relative z-10 flex flex-col items-center gap-0.5">
-                <span className="text-xs sm:text-sm md:text-base font-semibold tracking-[0.25em] sm:tracking-[0.35em] uppercase text-white/90">
-                  INVESTMENT
-                </span>
-                <span className="text-xs sm:text-sm md:text-base font-semibold tracking-[0.25em] sm:tracking-[0.35em] uppercase text-white/90">
-                  MASTERCLASS
-                </span>
-              </div>
-              {course.is_free && (
-                <Badge className="absolute top-2 left-2 sm:top-4 sm:left-4 bg-green-500 text-white text-xs">Free Course</Badge>
-              )}
-              {!course.is_free && !isPro && (
-                <Badge className="absolute top-2 right-2 sm:top-4 sm:right-4 bg-primary/90 text-primary-foreground text-xs flex items-center gap-1">
-                  <Lock className="w-3 h-3" />
-                  <span className="hidden sm:inline">Premium</span>
-                </Badge>
-              )}
-            </div>
-            <CardHeader className="p-3 sm:p-6">
-              <div className="flex flex-wrap gap-2 mb-2">
-                <Badge variant="outline" className={`text-xs ${getLevelColor(course.level)}`}>
-                  {course.level || 'All Levels'}
-                </Badge>
-                <Badge variant="outline" className="text-xs">{course.category}</Badge>
-              </div>
-              <CardTitle className="text-lg sm:text-2xl md:text-3xl leading-tight">{course.title}</CardTitle>
-              <CardDescription className={`text-sm sm:text-base ${!descExpanded ? 'line-clamp-5' : ''}`}>
-                {course.description}
-              </CardDescription>
-              {course.description && course.description.length > 150 && (
-                  <button
-                    onClick={() => setDescExpanded(!descExpanded)}
-                    className="text-xs text-primary hover:text-primary/80 font-medium mt-1 transition-colors"
-                  >
-                  {descExpanded ? 'Show less' : 'Read more'}
-                </button>
-              )}
-            </CardHeader>
-            <CardContent className="p-3 sm:p-6 pt-0">
-              <div className="flex items-center gap-3 text-xs sm:text-sm text-muted-foreground">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                  CS
-                </div>
-                <span className="text-foreground/80">Led by <span className="font-medium text-foreground">Chris Stanford</span>, Hedge Fund Manager</span>
-              </div>
-            </CardContent>
-          </Card>
+          <CourseHero
+            title={course.title}
+            headline={parsedContent.headline}
+            intro={parsedContent.intro}
+            level={course.level}
+            category={course.category}
+            moduleCount={modules?.length || 0}
+            lessonCount={totalLessons}
+            durationLabel={durationLabel}
+            isFree={!!course.is_free}
+            hasAccess={!!hasAccess}
+            progressPercentage={progressPercentage}
+            primaryLoading={isCheckoutLoading || enrollMutation.isPending}
+            primaryLabel={
+              hasAccess
+                ? completedCount > 0
+                  ? 'Continue learning'
+                  : 'Start lesson 1'
+                : course.is_free
+                  ? 'Start free course'
+                  : `Unlock all ${totalLessons} lessons — from $${PRICING.annualPerMonth}/mo`
+            }
+            onPrimary={() => {
+              if (hasAccess) {
+                const next = modules
+                  ?.flatMap((m: any) => m.lessons || [])
+                  .find((l: any) => !completedLessons.has(l.id));
+                if (next) navigate(`/academy/lesson/${next.id}`);
+                return;
+              }
+              if (!user) { setShowAuthSheet(true); return; }
+              handleStartLearning();
+            }}
+            instructorName="Chris Stanford"
+            instructorRole="Hedge Fund Manager · Family Office Associate"
+          />
 
-          {/* Value Prop Stats Bar — non-pro only */}
+          {/* Trust strip — non-members only */}
           {!hasAccess && (
-            <Card className="overflow-hidden border-border/50">
-              <CardContent className="p-3 sm:p-4">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <BarChart3 className="w-4 h-4 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-foreground">{totalLessons}+ Lessons</p>
-                      <p className="text-[10px] text-muted-foreground">Step-by-step</p>
-                    </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+              {[
+                { icon: BarChart3, label: `${totalLessons} lessons`, sub: 'Step-by-step' },
+                { icon: TrendingUp, label: 'Real strategies', sub: 'Institutional-grade' },
+                { icon: Brain, label: 'AI-powered', sub: 'Smart insights' },
+                { icon: Award, label: 'Certificate', sub: 'On completion' },
+              ].map(({ icon: Icon, label, sub }) => (
+                <div
+                  key={label}
+                  className="flex items-center gap-2 rounded-xl border border-border/50 bg-card/60 p-2.5 sm:p-3"
+                >
+                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                    <Icon className="h-4 w-4 text-primary" />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
-                      <TrendingUp className="w-4 h-4 text-emerald-400" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-foreground">Real Strategies</p>
-                      <p className="text-[10px] text-muted-foreground">PE-grade tools</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <Brain className="w-4 h-4 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-foreground">AI-Powered</p>
-                      <p className="text-[10px] text-muted-foreground">Smart insights</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <Award className="w-4 h-4 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-foreground">Certificate</p>
-                      <p className="text-[10px] text-muted-foreground">On completion</p>
-                    </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-semibold text-foreground">{label}</p>
+                    <p className="truncate text-[10px] text-muted-foreground">{sub}</p>
                   </div>
                 </div>
-                <Button
-                  className="w-full mt-3 bg-primary hover:bg-primary/90 text-primary-foreground text-xs sm:text-sm h-9 sm:h-10"
-                  onClick={() => {
-                    if (!user) { setShowAuthSheet(true); return; }
-                    handleSubscribe();
-                  }}
-                  disabled={isCheckoutLoading}
-                >
-                  <Zap className="w-3.5 h-3.5 mr-1.5" />
-                  {isCheckoutLoading ? 'Loading...' : `Start Your Investing Journey — from $${PRICING.annualPerMonth}/mo`}
-                </Button>
-              </CardContent>
-            </Card>
+              ))}
+            </div>
           )}
+
 
           {/* Tabs */}
           <Tabs defaultValue="curriculum">
