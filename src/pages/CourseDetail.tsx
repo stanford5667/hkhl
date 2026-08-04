@@ -547,8 +547,8 @@ export default function CourseDetail() {
                                 const isCompleted = completedLessons.has(lesson.id);
                                 const thumbnail = getYouTubeThumbnail(lesson.video_url, lesson.video_provider);
                                 const globalIndex = modules!.slice(0, moduleIndex).reduce((s: number, m: any) => s + (m.lessons?.length || 0), 0) + lessonIndex;
-                                const isFreeLesson = lesson.is_preview || isFreeLessonIndex(globalIndex, totalLessons);
-                                const canAccess = hasAccess || isFreeLesson;
+                                const isFreeLesson = false;
+                                const canAccess = true;
 
                                 return (
                                   <div
