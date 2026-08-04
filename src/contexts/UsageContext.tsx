@@ -149,11 +149,26 @@ export function UsageProvider({ children, onUpgradeRequest }: UsageProviderProps
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const subscriptionStatus = urlParams.get('subscription');
-    
+    if (!subscriptionStatus) return;
+
+    // Clean only the checkout params so deep-link state (tabs, tickers) survives
+    urlParams.delete('subscription');
+    urlParams.delete('session_id');
+    const query = urlParams.toString();
+    window.history.replaceState({}, '', window.location.pathname + (query ? `?${query}` : ''));
+
+    if (subscriptionStatus === 'cancelled') {
+      toast('Checkout cancelled — your access is unchanged.', {
+        description: 'You can upgrade any time; nothing was charged.',
+      });
+      return;
+    }
+
     if (subscriptionStatus === 'success') {
-      const newUrl = window.location.pathname;
-      window.history.replaceState({}, '', newUrl);
-      
+      toast.success("You're in! Pro access is unlocked.", {
+        description: 'Everything premium is available right away.',
+      });
+
       // Mark onboarding as complete for users returning from Stripe checkout
       if (user) {
         supabase
@@ -167,11 +182,15 @@ export function UsageProvider({ children, onUpgradeRequest }: UsageProviderProps
           .then(() => {
             fetchUsage();
           });
-      } else {
-        fetchUsage();
+        // Stripe's webhook can land a moment after the redirect — re-check once.
+        const retry = setTimeout(() => fetchUsage(), 4000);
+        return () => clearTimeout(retry);
       }
+
+      fetchUsage();
     }
   }, [fetchUsage, user]);
+
 
   const canUse = useCallback((feature: keyof UsageLimits): boolean => {
     if (isPro) return true;
