@@ -122,9 +122,10 @@ export function ResearchHero({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
           >
-            AI-powered analysis · backtesting · screening
+            Type any ticker — get AI analysis, backtests and setups in seconds
           </motion.p>
         </div>
+
 
         {/* Search Section - Command palette style with glow */}
         <motion.div
