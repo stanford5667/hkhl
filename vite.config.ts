@@ -7,6 +7,15 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    // Lovable's preview server can restart while a browser tab remains open.
+    // Never let that tab reuse immutable dependency chunks from an older Vite
+    // optimization graph, or React and ReactDOM can load from different graphs
+    // and leave React's hook dispatcher null.
+    headers: {
+      "Cache-Control": "no-store, no-cache, must-revalidate",
+      Pragma: "no-cache",
+      Expires: "0",
+    },
   },
   plugins: [
     react(),
