@@ -16,6 +16,7 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { AuthGateDialog } from '@/components/auth/AuthGateDialog';
+import { MobileAuthSheet } from '@/components/auth/MobileAuthSheet';
 import { useUsage } from '@/contexts/UsageContext';
 import { useUpgrade } from '@/hooks/useUpgrade';
 import { Button } from '@/components/ui/button';
@@ -220,7 +221,7 @@ export function ProfessionalBacktester() {
   // Portfolio state
   const { requireAuth, showAuthDialog, closeAuthDialog } = useRequireAuth();
   const { isPro } = useUsage();
-  const { promptUpgrade, showUpgradeDialog, setShowUpgradeDialog, showAuthSheet, setShowAuthSheet, startCheckout } = useUpgrade();
+  const { promptUpgrade, showUpgradeDialog, setShowUpgradeDialog, showAuthSheet, setShowAuthSheet, startCheckout, resumeCheckout } = useUpgrade();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<{ symbol: string; name: string }[]>([]);
@@ -1944,6 +1945,13 @@ export function ProfessionalBacktester() {
         </div>
       )}
     </div>
+    <MobileAuthSheet
+      open={showAuthSheet}
+      onOpenChange={setShowAuthSheet}
+      title="Create your account"
+      description="Sign up first, then continue to checkout to unlock Pro backtesting."
+      onSuccess={resumeCheckout}
+    />
     <AuthGateDialog
       open={showAuthDialog}
       onOpenChange={closeAuthDialog}

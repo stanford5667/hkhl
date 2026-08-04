@@ -28,6 +28,7 @@ async function handleStripeCheckout(
     const { data: { session } } = await supabase.auth.getSession();
     
     if (!session) {
+      setLoading(false);
       setShowAuth(true);
       return;
     }
@@ -48,7 +49,9 @@ async function handleStripeCheckout(
     }
     
     if (data?.url) {
-      window.open(data.url, '_blank');
+      // Popup blockers silently kill new tabs on mobile — fall back to same-tab
+      const w = window.open(data.url, '_blank');
+      if (!w) window.location.href = data.url;
     }
   } catch (err) {
     toast.error('Something went wrong');
@@ -76,8 +79,13 @@ export function PremiumBadge({ className, variant = 'badge', onUpgrade }: Premiu
       onOpenChange={setShowAuthSheet}
       title="Sign up to access Pro"
       description="Create a free account, then upgrade to unlock premium features."
+      onSuccess={() => {
+        setShowAuthSheet(false);
+        handleStripeCheckout(setIsLoading, setShowAuthSheet);
+      }}
     />
   );
+
 
   if (variant === 'overlay') {
     return (
@@ -213,7 +221,12 @@ export function PremiumDataPlaceholder({
         onOpenChange={setShowAuthSheet}
         title="Sign up to access Pro"
         description="Create a free account, then upgrade to unlock premium features."
+        onSuccess={() => {
+          setShowAuthSheet(false);
+          handleStripeCheckout(setIsLoading, setShowAuthSheet);
+        }}
       />
+
     </>
   );
 }

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getAffiliateRef } from "@/hooks/useAffiliateTracking";
@@ -8,6 +8,7 @@ export function useUpgrade() {
   const [showAuthSheet, setShowAuthSheet] = useState(false);
   const [upgradeFeature, setUpgradeFeature] = useState<string>("default");
   const [isLoading, setIsLoading] = useState(false);
+  const pendingCheckout = useRef<{ plan: string; billingInterval?: string; returnPath?: string } | null>(null);
 
   const startCheckout = useCallback(async (plan: string = 'research_education', billingInterval?: string, returnPath?: string) => {
     setIsLoading(true);
@@ -15,6 +16,9 @@ export function useUpgrade() {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
+        // Remember what they were buying so we can resume right after signup
+        pendingCheckout.current = { plan, billingInterval, returnPath };
+        setIsLoading(false);
         setShowAuthSheet(true);
         return;
       }
@@ -48,6 +52,14 @@ export function useUpgrade() {
     }
   }, []);
 
+  /** Call after a successful sign-in/sign-up to continue the interrupted checkout */
+  const resumeCheckout = useCallback(async () => {
+    const pending = pendingCheckout.current ?? { plan: 'research_education' };
+    pendingCheckout.current = null;
+    setShowAuthSheet(false);
+    await startCheckout(pending.plan, pending.billingInterval, pending.returnPath);
+  }, [startCheckout]);
+
   const promptUpgrade = useCallback((feature?: string) => {
     setUpgradeFeature(feature || "default");
     setShowUpgradeDialog(true);
@@ -56,6 +68,7 @@ export function useUpgrade() {
   return {
     promptUpgrade,
     startCheckout,
+    resumeCheckout,
     isLoading,
     showUpgradeDialog,
     setShowUpgradeDialog,

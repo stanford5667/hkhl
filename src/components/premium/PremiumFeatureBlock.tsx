@@ -28,6 +28,7 @@ export function PremiumFeatureBlock({
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
+        setIsLoading(false);
         setShowAuthSheet(true);
         return;
       }
@@ -48,7 +49,8 @@ export function PremiumFeatureBlock({
       }
       
       if (data?.url) {
-        window.open(data.url, '_blank');
+        const w = window.open(data.url, '_blank');
+        if (!w) window.location.href = data.url;
       }
     } catch (err) {
       toast.error('Something went wrong');
@@ -57,6 +59,7 @@ export function PremiumFeatureBlock({
       setIsLoading(false);
     }
   };
+
 
   const iconSize = size === 'sm' ? 'h-5 w-5' : size === 'lg' ? 'h-12 w-12' : 'h-8 w-8';
   const textSize = size === 'sm' ? 'text-xs' : size === 'lg' ? 'text-lg' : 'text-sm';
@@ -98,7 +101,12 @@ export function PremiumFeatureBlock({
         onOpenChange={setShowAuthSheet}
         title="Sign up to access Pro"
         description="Create a free account, then upgrade to unlock premium features."
+        onSuccess={() => {
+          setShowAuthSheet(false);
+          handleUpgrade();
+        }}
       />
+
     </>
   );
 }
@@ -114,9 +122,11 @@ export function PremiumFeatureInline({ className }: { className?: string }) {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
+        setIsLoading(false);
         setShowAuthSheet(true);
         return;
       }
+
 
       const affiliateCode = getAffiliateRef();
       const { data, error } = await supabase.functions.invoke('create-checkout', {
@@ -133,8 +143,10 @@ export function PremiumFeatureInline({ className }: { className?: string }) {
       }
       
       if (data?.url) {
-        window.open(data.url, '_blank');
+        const w = window.open(data.url, '_blank');
+        if (!w) window.location.href = data.url;
       }
+
     } catch (err) {
       toast.error('Something went wrong');
     } finally {
@@ -167,7 +179,12 @@ export function PremiumFeatureInline({ className }: { className?: string }) {
         onOpenChange={setShowAuthSheet}
         title="Sign up to access Pro"
         description="Create a free account, then upgrade to unlock premium features."
+        onSuccess={() => {
+          setShowAuthSheet(false);
+          handleUpgrade();
+        }}
       />
+
     </>
   );
 }
