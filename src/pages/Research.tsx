@@ -74,7 +74,10 @@ export default function ResearchPage() {
 
         <HubOverviewGrid />
 
+        <FeaturePreviewShowcase />
+
         <StockOfTheDay />
+
 
         <DiscoveryFeed />
 
