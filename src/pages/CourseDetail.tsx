@@ -503,6 +503,9 @@ export default function CourseDetail() {
                     {modules?.length || 0} modules · {totalLessons} lessons
                     {durationLabel ? ` · ${durationLabel} of video` : ''}
                     {hasAccess ? ` · ${completedCount} completed` : ''}
+                    {!hasAccess && totalLessons > 0
+                      ? ` · first ${getFreeLessonCount(totalLessons)} free`
+                      : ''}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
