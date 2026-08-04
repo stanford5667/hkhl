@@ -317,7 +317,23 @@ export default function CourseDetail() {
   );
 
   const totalLessons = modules?.reduce((sum, m) => sum + (m.lessons?.length || 0), 0) || 0;
-  const firstLesson = modules?.flatMap((m: any) => m.lessons || [])[0] as any | undefined;
+  const allLessons = (modules?.flatMap((m: any) => m.lessons || []) || []) as any[];
+  // Prefer a top-down portfolio construction lesson as the headline preview
+  const previewLesson =
+    allLessons.find((l: any) => {
+      const t = (l?.title || '').toLowerCase();
+      return (
+        !!l?.video_url &&
+        (t.includes('top down') ||
+          t.includes('top-down') ||
+          (t.includes('portfolio') &&
+            (t.includes('build') || t.includes('construct') || t.includes('creating'))))
+      );
+    }) ||
+    allLessons.find((l: any) => !!l?.video_url && (l?.title || '').toLowerCase().includes('portfolio')) ||
+    allLessons.find((l: any) => !!l?.video_url);
+  const firstLesson = previewLesson;
+  const previewLessonIndex = firstLesson ? allLessons.indexOf(firstLesson) : -1;
   const completedCount = completedLessons.size;
   const progressPercentage = totalLessons > 0 ? (completedCount / totalLessons) * 100 : 0;
 
@@ -488,21 +504,25 @@ export default function CourseDetail() {
             </div>
           )}
 
-          {/* Auto-playing preview of the first lesson */}
+          {/* Auto-playing preview — sticks to the top while scrolling the tabs */}
           {firstLesson?.video_url && (
-            <CoursePreviewPlayer
-              lessonTitle={firstLesson.title}
-              lessonNumberLabel="Lesson 1"
-              videoUrl={firstLesson.video_url}
-              videoProvider={firstLesson.video_provider}
-              videoDuration={firstLesson.video_duration}
-              hasAccess={!!hasAccess}
-              onOpenLesson={() => navigate(`/academy/lesson/${firstLesson.id}`)}
-              onUpgrade={() => {
-                if (!user) { setShowAuthSheet(true); return; }
-                handleStartLearning();
-              }}
-            />
+            <div className="z-30 lg:sticky lg:top-4">
+              <CoursePreviewPlayer
+                lessonTitle={firstLesson.title}
+                lessonNumberLabel={
+                  previewLessonIndex >= 0 ? `Lesson ${previewLessonIndex + 1}` : 'Lesson 1'
+                }
+                videoUrl={firstLesson.video_url}
+                videoProvider={firstLesson.video_provider}
+                videoDuration={firstLesson.video_duration}
+                hasAccess={!!hasAccess}
+                onOpenLesson={() => navigate(`/academy/lesson/${firstLesson.id}`)}
+                onUpgrade={() => {
+                  if (!user) { setShowAuthSheet(true); return; }
+                  handleStartLearning();
+                }}
+              />
+            </div>
           )}
 
           {/* Tabs */}

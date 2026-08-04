@@ -2,12 +2,12 @@
 // 1. Only the first 30% of the course's lessons are previewable at all. The
 //    remaining lessons are fully locked behind Pro.
 // 2. Previewable lessons play as a capped window:
-//    - Videos 30 minutes or shorter: 15% of runtime, hard-capped at 2 minutes.
+//    - Videos 30 minutes or shorter: 15% of runtime, hard-capped at 3 min 30 sec.
 //    - Longer videos: 30% of runtime, hard-capped at 10 minutes.
 export const SHORT_VIDEO_THRESHOLD_SECONDS = 30 * 60; // 30 minutes
 export const SHORT_PREVIEW_RATIO = 0.15;
 export const LONG_PREVIEW_RATIO = 0.3;
-export const SHORT_PREVIEW_MAX_SECONDS = 120; // 2 minutes
+export const SHORT_PREVIEW_MAX_SECONDS = 210; // 3 min 30 sec
 export const PREVIEW_MIN_SECONDS = 30;
 export const PREVIEW_MAX_SECONDS = 600; // 10 minutes
 
@@ -50,5 +50,7 @@ export function getPreviewLabel(videoDuration?: number | null): string | null {
   if (!videoDuration || videoDuration <= 0) return null;
   const seconds = getPreviewLimitSeconds(videoDuration);
   if (seconds < 60) return `${seconds} sec`;
-  return `${Math.max(1, Math.round(seconds / 60))} min`;
+  const mins = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  return rest === 0 ? `${mins} min` : `${mins} min ${rest} sec`;
 }
