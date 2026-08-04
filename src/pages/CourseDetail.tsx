@@ -649,40 +649,17 @@ export default function CourseDetail() {
             </TabsContent>
 
             <TabsContent value="overview" className="mt-4 sm:mt-6">
-              <Card>
-                <CardHeader className="p-4 sm:p-6">
-                  <CardTitle className="text-base sm:text-lg">About This Course</CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 sm:p-6 pt-0 prose prose-invert prose-sm max-w-none">
-                  <p>{course.description}</p>
-                  <Separator className="my-4 sm:my-6" />
-                  <h3 className="text-sm sm:text-base">What You'll Learn</h3>
-                  <ul className="text-sm">
-                    <li>Master fundamental concepts and techniques</li>
-                    <li>Apply strategies in real-world scenarios</li>
-                    <li>Build confidence in your trading decisions</li>
-                    <li>Access practical tools and templates</li>
-                  </ul>
-                  {!hasAccess && (
-                    <>
-                      <Separator className="my-4" />
-                      <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
-                        <Sparkles className="w-4 h-4 text-primary flex-shrink-0" />
-                        <p className="text-xs sm:text-sm text-muted-foreground flex-1">Ready to start learning?</p>
-                        <Button
-                          size="sm"
-                          className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs h-8 shrink-0"
-                          onClick={() => handleSubscribe()}
-                          disabled={isCheckoutLoading}
-                        >
-                          {isCheckoutLoading ? 'Loading...' : 'Subscribe'}
-                        </Button>
-                      </div>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
+              <CourseOverview
+                content={parsedContent}
+                hasAccess={!!hasAccess}
+                isLoading={isCheckoutLoading}
+                onSubscribe={() => {
+                  if (!user) { setShowAuthSheet(true); return; }
+                  handleSubscribe();
+                }}
+              />
             </TabsContent>
+
 
             <TabsContent value="reviews" className="mt-4 sm:mt-6">
               <Card>
