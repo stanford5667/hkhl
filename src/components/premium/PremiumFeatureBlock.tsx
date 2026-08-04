@@ -101,7 +101,12 @@ export function PremiumFeatureBlock({
         onOpenChange={setShowAuthSheet}
         title="Sign up to access Pro"
         description="Create a free account, then upgrade to unlock premium features."
+        onSuccess={() => {
+          setShowAuthSheet(false);
+          handleUpgrade();
+        }}
       />
+
     </>
   );
 }
