@@ -166,8 +166,11 @@ export default function PublicStockView() {
   const [apiError, setApiError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [activeTab, setActiveTab] = useState(
-    (location.state as { tab?: string })?.tab || 'overview'
+    (location.state as { tab?: string })?.tab ||
+      new URLSearchParams(location.search).get('tab') ||
+      'overview'
   );
+
 
   // Get asset-specific tabs - Must be before any early returns
   const assetTabs = useMemo(() => {
