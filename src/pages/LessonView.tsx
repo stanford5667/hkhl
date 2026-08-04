@@ -18,7 +18,10 @@ import {
   Lock,
   Sparkles,
   LogIn,
-  X
+  X,
+  BarChart3,
+  Search,
+  MessageCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
