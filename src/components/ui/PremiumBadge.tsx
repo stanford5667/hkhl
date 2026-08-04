@@ -8,10 +8,8 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { launchCheckout } from "@/lib/checkout";
 import { MobileAuthSheet } from "@/components/auth/MobileAuthSheet";
-import { getAffiliateRef } from "@/hooks/useAffiliateTracking";
 
 interface PremiumBadgeProps {
   className?: string;
@@ -25,37 +23,10 @@ async function handleStripeCheckout(
 ) {
   setLoading(true);
   try {
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session) {
-      setLoading(false);
-      setShowAuth(true);
-      return;
-    }
-
-    const affiliateCode = getAffiliateRef();
-    const { data, error } = await supabase.functions.invoke('create-checkout', {
-      body: { 
-        plan: 'research_education', 
-        billing_interval: 'annual',
-        ...(affiliateCode && { affiliate_code: affiliateCode }),
-      },
-    });
-    
-    if (error) {
-      toast.error('Failed to start checkout');
-      console.error('Checkout error:', error);
-      return;
-    }
-    
-    if (data?.url) {
-      // Popup blockers silently kill new tabs on mobile — fall back to same-tab
-      const w = window.open(data.url, '_blank');
-      if (!w) window.location.href = data.url;
-    }
-  } catch (err) {
-    toast.error('Something went wrong');
-    console.error('Checkout error:', err);
+    await launchCheckout(
+      { plan: 'research_education', billingInterval: 'annual', source: 'premium_badge' },
+      { onNeedsAuth: () => setShowAuth(true) }
+    );
   } finally {
     setLoading(false);
   }
