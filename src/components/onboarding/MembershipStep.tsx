@@ -26,7 +26,8 @@ export function MembershipStep({ onComplete, onBack, isStandalone = false }: Mem
   const [isLoading, setIsLoading] = useState(false);
   const [selectedInterval, setSelectedInterval] = useState<'annual' | 'monthly'>('annual');
 
-  const handleSelectPlan = async (plan: PlanType) => {
+  const handleSelectPlan = async (plan: PlanType, interval?: 'annual' | 'monthly') => {
+    const billingInterval = interval ?? selectedInterval;
     if (!user) {
       // Logged-out visitors (e.g. course page paywall): send them to auth first
       sessionStorage.setItem('post_auth_redirect', location.pathname + location.search);
@@ -54,7 +55,7 @@ export function MembershipStep({ onComplete, onBack, isStandalone = false }: Mem
         const { data, error } = await supabase.functions.invoke('create-checkout', {
           body: { 
             plan: 'research_education', 
-            billing_interval: selectedInterval,
+            billing_interval: billingInterval,
             ...(affiliateCode && { affiliate_code: affiliateCode }),
           },
         });
@@ -154,7 +155,10 @@ export function MembershipStep({ onComplete, onBack, isStandalone = false }: Mem
                 ? 'border-primary ring-1 ring-primary/30'
                 : 'border-border hover:border-primary/30'
             )}
-            onClick={() => setSelectedInterval('annual')}
+            onClick={() => {
+              setSelectedInterval('annual');
+              handleSelectPlan('research_education', 'annual');
+            }}
           >
             <Badge className="absolute -top-2.5 left-4 bg-primary text-primary-foreground text-[10px] font-semibold px-2">
               Best Value
@@ -180,7 +184,10 @@ export function MembershipStep({ onComplete, onBack, isStandalone = false }: Mem
                 ? 'border-primary ring-1 ring-primary/30'
                 : 'border-border hover:border-primary/30'
             )}
-            onClick={() => setSelectedInterval('monthly')}
+            onClick={() => {
+              setSelectedInterval('monthly');
+              handleSelectPlan('research_education', 'monthly');
+            }}
           >
             <div className="flex items-center justify-between">
               <div>
