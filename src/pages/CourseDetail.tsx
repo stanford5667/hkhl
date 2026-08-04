@@ -519,7 +519,7 @@ export default function CourseDetail() {
                                   {module.title}
                                 </span>
                                 <span className="mt-0.5 block text-[11px] text-muted-foreground">
-                                  {lessons.length} lessons
+                                  {`${lessons.length} lessons`}
                                   {hasAccess && moduleDone > 0 ? ` · ${moduleDone} done` : ''}
                                 </span>
                               </div>
