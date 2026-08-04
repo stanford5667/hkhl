@@ -368,7 +368,9 @@ function BacktesterCard() {
       icon={LineChart}
       title="Backtester"
       accent="teal"
+      blurb={BLURBS.backtester}
       loading={isLoading}
+
       primary={latest ? latest.theme_title : "Run your first"}
       secondary={
         latest
