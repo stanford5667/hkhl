@@ -23,7 +23,6 @@ import {
   Award,
   FileText,
   Sparkles,
-  Shield,
   Zap,
   ArrowRight,
   TrendingUp,
@@ -652,10 +651,6 @@ export default function CourseDetail() {
                           {isCheckoutLoading ? 'Loading...' : 'Get Access'}
                         </Button>
                       </div>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground text-center mt-2 flex items-center justify-center gap-1.5">
-                        <Shield className="w-3 h-3 text-emerald-400" />
-                        7-day money-back guarantee • Cancel anytime
-                      </p>
                     </div>
                   )}
                 </CardContent>

@@ -162,11 +162,6 @@ export function CourseHero({
               {hasAccess ? <Play className="mr-2 h-4 w-4" /> : <Sparkles className="mr-2 h-4 w-4" />}
               {primaryLoading ? 'Loading…' : primaryLabel}
             </Button>
-            {!hasAccess && (
-              <p className="text-[11px] sm:text-xs text-muted-foreground">
-                7-day money-back guarantee · Cancel anytime
-              </p>
-            )}
           </div>
         </div>
       </div>
