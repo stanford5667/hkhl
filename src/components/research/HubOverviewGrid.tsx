@@ -249,6 +249,7 @@ function PortfolioCard() {
       icon={Briefcase}
       title="Portfolio"
       accent="emerald"
+      blurb={BLURBS.portfolio}
       loading={isLoading}
       primary={data ? fmtCurrency(data.totalValue) : "—"}
       secondary={data ? `${gain >= 0 ? "+" : ""}${gain.toFixed(2)}% total return` : undefined}
@@ -259,24 +260,47 @@ function PortfolioCard() {
   );
 }
 
-function PipelineCard() {
-  const { data, isLoading } = useDealPipeline();
-  const count = data?.length ?? 0;
-  const next = (data?.[0] as any) || null;
-  const nextName = next?.company_name || next?.name || next?.deal_name || null;
+function ChatroomCard() {
+  const { data, isLoading } = useQuery({
+    queryKey: ["hub-chatrooms-latest"],
+    queryFn: async () => {
+      const [{ data: rooms }, { count }] = await Promise.all([
+        supabase
+          .from("chat_rooms")
+          .select("name, member_count, is_live")
+          .eq("is_admin_only", false)
+          .order("member_count", { ascending: false })
+          .limit(3),
+        supabase
+          .from("chat_messages")
+          .select("id", { count: "exact", head: true })
+          .gte("created_at", new Date(Date.now() - 86_400_000).toISOString()),
+      ]);
+      return { rooms: rooms || [], todayMessages: count ?? 0 };
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+  const top = data?.rooms?.[0] as any;
+  const others = (data?.rooms || []).slice(1, 3) as any[];
   return (
     <HubCard
-      to="/pipeline"
-      icon={GitBranch}
-      title="Pipeline"
+      to="/community"
+      icon={MessagesSquare}
+      title="Chatroom"
       accent="violet"
+      blurb={BLURBS.chatroom}
       loading={isLoading}
-      primary={`${count}`}
-      secondary={count === 1 ? "active deal" : "active deals"}
-      extra={nextName ? `Next up: ${nextName}` : undefined}
+      primary={top ? top.name : "Join the room"}
+      secondary={
+        data
+          ? `${data.todayMessages} messages in the last 24h`
+          : "Live rooms, ideas & analyst chat"
+      }
+      extra={others.length ? others.map((r) => r.name).join(" · ") : undefined}
     />
   );
 }
+
 
 function WatchlistCard() {
   const { itemsWithQuotes, isLoading } = useWatchlistWithQuotes() as any;
