@@ -75,6 +75,7 @@ interface HubCardProps {
   icon: React.ElementType;
   title: string;
   accent: Accent;
+  blurb: string;
   loading?: boolean;
   primary?: React.ReactNode;
   secondary?: React.ReactNode;
@@ -88,6 +89,7 @@ function HubCard({
   icon: Icon,
   title,
   accent,
+  blurb,
   loading,
   primary,
   secondary,
@@ -101,7 +103,7 @@ function HubCard({
       to={to}
       className={cn(
         "group relative rounded-lg border border-border/60 bg-card/50 backdrop-blur-sm",
-        "p-3 sm:p-4 pt-4 sm:pt-5 flex flex-col gap-2 min-h-[130px] overflow-hidden",
+        "p-3 sm:p-4 pt-4 sm:pt-5 flex flex-col gap-2 min-h-[190px] overflow-hidden",
         "transition-all duration-200 will-change-transform",
         "hover:-translate-y-0.5 hover:bg-card/70 hover:shadow-lg",
         a.ring,
@@ -127,6 +129,8 @@ function HubCard({
         </div>
         <ArrowUpRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
       </div>
+
+      <p className="text-[11px] sm:text-xs leading-relaxed text-muted-foreground">{blurb}</p>
 
       <div className="flex-1 flex flex-col justify-end gap-1">
         {loading ? (
@@ -169,6 +173,22 @@ function HubCard({
     </Link>
   );
 }
+
+const BLURBS = {
+  academy:
+    "Go from beginner to confident investor with guided courses on valuation, technicals, options and risk — bite-sized lessons that track your progress.",
+  chatroom:
+    "Trade ideas in real time with the community: live ticker rooms, analyst commentary, shared research notes and livestreamed market sessions.",
+  backtester:
+    "Build strategies with a no-code node builder and prove them against years of real market data — slippage-adjusted returns, drawdowns and equity curves.",
+  portfolio:
+    "One live view of everything you own: real-time values, total return, IRR and MOIC, so you always know exactly how your capital is performing.",
+  watchlist:
+    "Your personal market radar — live quotes, daily movers and instant one-click access to full AI research on any ticker you follow.",
+  smartMoney:
+    "Follow the institutions: 13F holdings, insider buys and sells and block trades, decoded into signals you can act on before the crowd.",
+} as const;
+
 
 function fmtCurrency(n: number) {
   if (!isFinite(n)) return "—";
