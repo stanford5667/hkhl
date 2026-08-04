@@ -213,11 +213,11 @@ function generateMockForex(base: string, quote: string): ForexResponse {
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
 
   // Require an authenticated user (prevents abuse of paid upstream APIs)
   const { user, error: authError } = await getAuthenticatedUser(req);
   if (!user) return unauthorizedResponse(authError || "Authentication required");
-  }
 
   try {
     const ALPHA_VANTAGE_API_KEY = Deno.env.get("ALPHA_VANTAGE_API_KEY") || Deno.env.get("VITE_ALPHA_VANTAGE_API_KEY");

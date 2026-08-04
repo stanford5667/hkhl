@@ -430,11 +430,11 @@ Be conversational but informative. Help users understand markets deeply, not jus
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
 
   // Require an authenticated user (prevents abuse of paid upstream APIs)
   const { user, error: authError } = await getAuthenticatedUser(req);
   if (!user) return unauthorizedResponse(authError || "Authentication required");
-  }
 
   try {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
