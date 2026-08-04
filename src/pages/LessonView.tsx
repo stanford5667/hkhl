@@ -428,7 +428,7 @@ export default function LessonView() {
                     <div className="space-y-1">
                       <p className="text-base md:text-lg font-semibold">Preview ended</p>
                       <p className="text-sm text-muted-foreground max-w-sm">
-                        You've watched the free {previewMinutes}-minute preview. Unlock the full lesson and the entire Academy with Pro.
+                        You've watched the free {previewLabel ?? '2 min'} preview. Unlock the full lesson and the entire Academy with Pro.
                       </p>
                     </div>
                     <div className="flex flex-wrap items-center justify-center gap-2">
