@@ -143,8 +143,10 @@ export function PremiumFeatureInline({ className }: { className?: string }) {
       }
       
       if (data?.url) {
-        window.open(data.url, '_blank');
+        const w = window.open(data.url, '_blank');
+        if (!w) window.location.href = data.url;
       }
+
     } catch (err) {
       toast.error('Something went wrong');
     } finally {
