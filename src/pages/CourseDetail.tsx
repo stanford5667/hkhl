@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
+import { CoursePreviewPlayer } from '@/components/academy/CoursePreviewPlayer';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import {
   Clock,
@@ -316,6 +317,7 @@ export default function CourseDetail() {
   );
 
   const totalLessons = modules?.reduce((sum, m) => sum + (m.lessons?.length || 0), 0) || 0;
+  const firstLesson = modules?.flatMap((m: any) => m.lessons || [])[0] as any | undefined;
   const completedCount = completedLessons.size;
   const progressPercentage = totalLessons > 0 ? (completedCount / totalLessons) * 100 : 0;
 
@@ -486,6 +488,17 @@ export default function CourseDetail() {
             </div>
           )}
 
+          {/* Auto-playing preview of the first lesson */}
+          {firstLesson?.video_url && (
+            <CoursePreviewPlayer
+              lessonTitle={firstLesson.title}
+              videoUrl={firstLesson.video_url}
+              videoProvider={firstLesson.video_provider}
+              videoDuration={firstLesson.video_duration}
+              hasAccess={!!hasAccess}
+              onOpenLesson={() => navigate(`/academy/lesson/${firstLesson.id}`)}
+            />
+          )}
 
           {/* Tabs */}
           <Tabs defaultValue="curriculum">
