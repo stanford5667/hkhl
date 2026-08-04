@@ -309,6 +309,16 @@ export default function CourseDetail() {
   const completedCount = completedLessons.size;
   const progressPercentage = totalLessons > 0 ? (completedCount / totalLessons) * 100 : 0;
 
+  const totalVideoSeconds =
+    modules?.reduce(
+      (sum, m) =>
+        sum + (m.lessons?.reduce((s: number, l: any) => s + (l.video_duration || 0), 0) || 0),
+      0,
+    ) || 0;
+  const courseHours = resolveCourseHours(course?.duration_hours, totalVideoSeconds);
+  const durationLabel = formatHours(courseHours);
+  const parsedContent = parseCourseDescription(course?.description);
+
   const getLevelColor = (level: string | null) => {
     switch (level) {
       case 'beginner': return 'bg-green-500/20 text-green-400 border-green-500/30';
