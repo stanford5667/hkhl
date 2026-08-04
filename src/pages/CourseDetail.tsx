@@ -458,7 +458,7 @@ export default function CourseDetail() {
               handleStartLearning();
             }}
             instructorName="Chris Stanford"
-            instructorRole="Hedge Fund Manager · Family Office Associate"
+            instructorRole="Hedge Fund Manager"
           />
 
           {/* Trust strip — non-members only */}
