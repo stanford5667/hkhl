@@ -18,7 +18,14 @@ import {
   Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { MiniBacktesterDemo } from "@/components/research/MiniBacktesterDemo";
+import {
+  AiMiniDemo,
+  BacktestMiniDemo,
+  ScreenerMiniDemo,
+  SmartMoneyMiniDemo,
+  AcademyMiniDemo,
+  CommunityMiniDemo,
+} from "@/components/research/FeatureMiniDemos";
 
 type TabKey = "ai" | "backtest" | "screener" | "smart" | "academy" | "community";
 
@@ -323,21 +330,17 @@ function CommunityPreview() {
 function PreviewFor({ tab }: { tab: TabKey }) {
   switch (tab) {
     case "ai":
-      return <AiPreview />;
+      return <AiMiniDemo />;
     case "backtest":
-      return (
-        <div className="rounded-lg border border-border/60 bg-background/60 overflow-hidden">
-          <MiniBacktesterDemo />
-        </div>
-      );
+      return <BacktestMiniDemo />;
     case "screener":
-      return <ScreenerPreview />;
+      return <ScreenerMiniDemo />;
     case "smart":
-      return <SmartMoneyPreview />;
+      return <SmartMoneyMiniDemo />;
     case "academy":
-      return <AcademyPreview />;
+      return <AcademyMiniDemo />;
     case "community":
-      return <CommunityPreview />;
+      return <CommunityMiniDemo />;
   }
 }
 
@@ -399,7 +402,7 @@ export function FeaturePreviewShowcase() {
           </Link>
           <p className="flex items-center gap-1.5 text-[10px] text-muted-foreground/70">
             <Info className="h-3 w-3" />
-            Illustrative preview — live data loads inside the feature
+            Interactive sample — try it here, then open the feature for live data
           </p>
         </div>
 
