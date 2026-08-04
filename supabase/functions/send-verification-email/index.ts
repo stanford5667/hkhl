@@ -12,10 +12,11 @@ const logStep = (step: string, details?: unknown) => {
 };
 
 interface VerificationRequest {
-  userId: string;
+  userId?: string;
   email: string;
   fullName?: string;
 }
+
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
