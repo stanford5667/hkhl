@@ -896,7 +896,12 @@ function SubscriptionManagement() {
       }
       
       if (data?.url) {
-        window.open(data.url, '_blank');
+        const w = window.open(data.url, '_blank');
+        if (!w) {
+          window.location.href = data.url;
+          return;
+        }
+
         toast({
           title: "Opening billing portal",
           description: "Manage your subscription in the new tab.",
