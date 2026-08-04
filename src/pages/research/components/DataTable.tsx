@@ -11,6 +11,15 @@ import {
 import { ChevronLeft, ChevronRight, ChevronsUpDown, ChevronUp, ChevronDown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
+
+declare module "@tanstack/react-table" {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface ColumnMeta<TData extends unknown, TValue> {
+    /** Drop this column on small screens to keep the table readable */
+    hideOnMobile?: boolean;
+  }
+}
 
 export interface DataTableProps<TData> {
   columns: ColumnDef<TData, any>[];
@@ -58,9 +67,15 @@ export function DataTable<TData>({
   stickyHeader = true,
   maxHeight,
 }: DataTableProps<TData>) {
+  const isMobile = useIsMobile();
+  const visibleColumns = useMemo(
+    () => (isMobile ? columns.filter((c) => !c.meta?.hideOnMobile) : columns),
+    [columns, isMobile],
+  );
+
   const table = useReactTable({
     data,
-    columns,
+    columns: visibleColumns,
     state: { sorting },
     onSortingChange,
     manualSorting,
@@ -136,7 +151,7 @@ export function DataTable<TData>({
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={columns.length} className="h-32 text-center">
+                <td colSpan={visibleColumns.length} className="h-32 text-center">
                   <div className="inline-flex items-center gap-2 text-muted-foreground font-mono text-xs">
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     Loading…
@@ -145,7 +160,7 @@ export function DataTable<TData>({
               </tr>
             ) : table.getRowModel().rows.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="h-32 text-center">
+                <td colSpan={visibleColumns.length} className="h-32 text-center">
                   <span className="text-muted-foreground font-mono text-xs">{emptyMessage}</span>
                 </td>
               </tr>

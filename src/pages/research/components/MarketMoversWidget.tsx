@@ -89,6 +89,7 @@ export function MarketMoversWidget() {
       },
       {
         accessorKey: "volume",
+        meta: { hideOnMobile: true },
         header: "Volume",
         cell: ({ row }) => (
           <span className="font-mono text-xs tabular-nums text-muted-foreground">
@@ -98,6 +99,7 @@ export function MarketMoversWidget() {
       },
       {
         accessorKey: "marketCap",
+        meta: { hideOnMobile: true },
         header: "Mkt Cap",
         cell: ({ row }) => (
           <span className="font-mono text-xs tabular-nums text-muted-foreground">
