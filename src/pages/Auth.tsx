@@ -1,22 +1,17 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, TrendingUp, Shield, Zap, Sparkles, BarChart3, Brain } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
+import { TrendingUp, Shield, Zap, Sparkles, BarChart3, Brain } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { AssetLabsLogo } from "@/components/brand/AssetLabsLogo";
-import { AgeVerificationInput, AgeRatingBadge } from "@/components/auth/AgeVerificationInput";
+import { AuthForm, type AuthMode } from "@/components/auth/AuthForm";
+import { AUTH_COPY } from "@/lib/authCopy";
 import {
   launchCheckout,
   readCheckoutIntent,
   clearCheckoutIntent,
   type CheckoutOptions,
 } from "@/lib/checkout";
+
 
 const signInSchema = z.object({
   email: z.string().trim().email("Please enter a valid email address"),
