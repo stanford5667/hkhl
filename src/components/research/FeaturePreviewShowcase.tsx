@@ -26,6 +26,11 @@ import {
   AcademyMiniDemo,
   CommunityMiniDemo,
 } from "@/components/research/FeatureMiniDemos";
+import {
+  FEATURE_VIDEOS,
+  FeatureVideoPreview,
+  type FeatureVideoKey,
+} from "@/components/research/FeatureVideoPreview";
 
 type TabKey = "ai" | "backtest" | "screener" | "smart" | "academy" | "community";
 
@@ -369,8 +374,13 @@ function PreviewFor({ tab }: { tab: TabKey }) {
 export function FeaturePreviewShowcase() {
   const [active, setActive] = useState<TabKey>("ai");
   const [peek, setPeek] = useState<TabKey | null>(null);
+  const [mode, setMode] = useState<"clip" | "demo">("clip");
   const tab = TABS.find((t) => t.key === active)!;
   const peekTab = peek ? TABS.find((t) => t.key === peek)! : null;
+  const clip = FEATURE_VIDEOS[active as FeatureVideoKey] as
+    | (typeof FEATURE_VIDEOS)[FeatureVideoKey]
+    | undefined;
+  const showClip = Boolean(clip) && mode === "clip";
 
   // Click selects the tab and pins the peek briefly (the touch path); hover
   // just reveals the peek without switching the demo underneath.
@@ -378,6 +388,7 @@ export function FeaturePreviewShowcase() {
     setPeek(key);
     if (select) {
       setActive(key);
+      setMode("clip");
       window.setTimeout(() => setPeek((p) => (p === key ? null : p)), 2200);
     }
   };
@@ -448,13 +459,39 @@ export function FeaturePreviewShowcase() {
           </Link>
           <p className="flex items-center gap-1.5 text-[10px] text-muted-foreground/70">
             <Info className="h-3 w-3" />
-            Interactive sample — try it here, then open the feature for live data
+            {showClip
+              ? "13-second silent preview clip — switch to the interactive sample to try it"
+              : "Interactive sample — try it here, then open the feature for live data"}
           </p>
         </div>
 
         {/* Visual preview side */}
         <div className="min-w-0">
-          <PreviewFor tab={active} />
+          {clip && (
+            <div className="mb-2 flex items-center gap-1">
+              {(["clip", "demo"] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setMode(m)}
+                  aria-pressed={mode === m}
+                  className={cn(
+                    "rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors",
+                    mode === m
+                      ? cn("border-border bg-muted/60 text-foreground ring-1", tab.ring)
+                      : "border-border/50 bg-muted/20 text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {m === "clip" ? "Watch preview" : "Try it yourself"}
+                </button>
+              ))}
+            </div>
+          )}
+          {showClip && clip ? (
+            <FeatureVideoPreview video={clip} accent={tab.accent} />
+          ) : (
+            <PreviewFor tab={active} />
+          )}
         </div>
       </div>
     </section>
