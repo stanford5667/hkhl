@@ -266,7 +266,7 @@ export default function LessonView() {
   const isPreviewOnly = hasVideoAccess && !hasFullAccess;
   const previewLimit = Math.min(
     PREVIEW_LIMIT_SECONDS,
-    lesson.video_duration ? Math.max(60, Math.floor(lesson.video_duration * 0.5)) : PREVIEW_LIMIT_SECONDS
+    lesson.video_duration ? Math.max(60, Math.floor(lesson.video_duration * 0.3)) : PREVIEW_LIMIT_SECONDS
   );
   const previewMinutes = Math.max(1, Math.round(previewLimit / 60));
   const courseProgress = 45;
