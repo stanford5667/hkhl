@@ -18,7 +18,14 @@ import {
   Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { MiniBacktesterDemo } from "@/components/research/MiniBacktesterDemo";
+import {
+  AiMiniDemo,
+  BacktestMiniDemo,
+  ScreenerMiniDemo,
+  SmartMoneyMiniDemo,
+  AcademyMiniDemo,
+  CommunityMiniDemo,
+} from "@/components/research/FeatureMiniDemos";
 
 type TabKey = "ai" | "backtest" | "screener" | "smart" | "academy" | "community";
 
@@ -109,235 +116,20 @@ const TABS: TabDef[] = [
   },
 ];
 
-/* ─────────────── Illustrative mini previews (pure UI, no live claims) ─────────────── */
-
-function PreviewFrame({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="relative rounded-lg border border-border/60 bg-background/60 overflow-hidden">
-      <div className="flex items-center gap-1.5 px-3 h-7 border-b border-border/50 bg-muted/20">
-        <span className="h-2 w-2 rounded-full bg-muted-foreground/30" />
-        <span className="h-2 w-2 rounded-full bg-muted-foreground/20" />
-        <span className="h-2 w-2 rounded-full bg-muted-foreground/10" />
-      </div>
-      <div className="p-3 sm:p-4">{children}</div>
-    </div>
-  );
-}
-
-function Bar({ w, tone = "muted" }: { w: string; tone?: "muted" | "accent" | "strong" }) {
-  return (
-    <span
-      className={cn(
-        "block h-2 rounded-full",
-        tone === "muted" && "bg-muted-foreground/15",
-        tone === "strong" && "bg-muted-foreground/30",
-        tone === "accent" && "bg-primary/40",
-      )}
-      style={{ width: w }}
-    />
-  );
-}
-
-function AiPreview() {
-  return (
-    <PreviewFrame>
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <div className="h-7 w-7 rounded-md bg-primary/15 border border-primary/25 flex items-center justify-center">
-            <Sparkles className="h-3.5 w-3.5 text-primary" />
-          </div>
-          <div className="flex-1 space-y-1.5">
-            <Bar w="45%" tone="strong" />
-            <Bar w="28%" />
-          </div>
-        </div>
-        <div className="grid grid-cols-3 gap-2">
-          {["Valuation", "Catalysts", "Risks"].map((t) => (
-            <div key={t} className="rounded-md border border-border/50 bg-muted/20 p-2 space-y-1.5">
-              <p className="text-[10px] font-medium text-muted-foreground">{t}</p>
-              <Bar w="80%" tone="accent" />
-              <Bar w="60%" />
-            </div>
-          ))}
-        </div>
-        <div className="space-y-1.5">
-          <Bar w="95%" />
-          <Bar w="88%" />
-          <Bar w="70%" />
-        </div>
-      </div>
-    </PreviewFrame>
-  );
-}
-
-function ScreenerPreview() {
-  return (
-    <PreviewFrame>
-      <div className="space-y-2">
-        <div className="flex gap-1.5 flex-wrap">
-          {["Price > $2", "Vol > 500k", "Momentum", "Quality 7+"].map((f) => (
-            <span
-              key={f}
-              className="text-[10px] px-2 py-0.5 rounded-full border border-primary/25 bg-primary/10 text-primary"
-            >
-              {f}
-            </span>
-          ))}
-        </div>
-        <div className="rounded-md border border-border/50 overflow-hidden">
-          {[0, 1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className={cn(
-                "flex items-center gap-3 px-2.5 py-2 border-b border-border/40 last:border-0",
-                i === 1 && "bg-primary/5",
-              )}
-            >
-              <span className="h-2 w-10 rounded bg-muted-foreground/30" />
-              <Bar w="18%" />
-              <Bar w="14%" />
-              <span className="ml-auto">
-                <svg width="54" height="16" viewBox="0 0 54 16" className="opacity-80">
-                  <path
-                    d="M1 12 L10 9 L18 11 L27 5 L36 7 L45 3 L53 4"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    className={i % 2 === 0 ? "text-emerald-400" : "text-cyan-400"}
-                  />
-                </svg>
-              </span>
-            </div>
-          ))}
-        </div>
-        <p className="text-[10px] text-muted-foreground">Hover a row for an instant chart + key stats</p>
-      </div>
-    </PreviewFrame>
-  );
-}
-
-function SmartMoneyPreview() {
-  return (
-    <PreviewFrame>
-      <div className="space-y-2.5">
-        {["13F accumulation", "Insider cluster buy", "Unusual block prints"].map((t, i) => (
-          <div
-            key={t}
-            className="flex items-center gap-3 rounded-md border border-border/50 bg-muted/15 p-2.5"
-          >
-            <div className="h-7 w-7 rounded-md bg-indigo-400/15 border border-indigo-400/25 flex items-center justify-center">
-              <Landmark className="h-3.5 w-3.5 text-indigo-400" />
-            </div>
-            <div className="flex-1 space-y-1.5">
-              <p className="text-[11px] font-medium text-foreground/80">{t}</p>
-              <Bar w={`${70 - i * 12}%`} />
-            </div>
-            <div className="flex items-end gap-0.5 h-6">
-              {[3, 5, 4, 6, 5, 7].map((h, k) => (
-                <span
-                  key={k}
-                  className="w-1 rounded-sm bg-indigo-400/50"
-                  style={{ height: `${h * 3}px` }}
-                />
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    </PreviewFrame>
-  );
-}
-
-function AcademyPreview() {
-  return (
-    <PreviewFrame>
-      <div className="space-y-3">
-        <div className="flex items-center gap-3">
-          <div className="relative h-12 w-12">
-            <svg viewBox="0 0 36 36" className="h-12 w-12 -rotate-90">
-              <circle cx="18" cy="18" r="15" fill="none" strokeWidth="3" className="stroke-muted-foreground/15" />
-              <circle
-                cx="18"
-                cy="18"
-                r="15"
-                fill="none"
-                strokeWidth="3"
-                strokeLinecap="round"
-                strokeDasharray="94"
-                strokeDashoffset="38"
-                className="stroke-violet-400"
-              />
-            </svg>
-          </div>
-          <div className="flex-1 space-y-1.5">
-            <Bar w="55%" tone="strong" />
-            <Bar w="35%" />
-          </div>
-        </div>
-        <div className="space-y-1.5">
-          {["Module 1 · Valuation", "Module 2 · Risk sizing", "Module 3 · Strategy design"].map((m, i) => (
-            <div
-              key={m}
-              className="flex items-center gap-2 rounded-md border border-border/50 bg-muted/15 px-2.5 py-2"
-            >
-              <span
-                className={cn(
-                  "h-2 w-2 rounded-full",
-                  i === 0 ? "bg-violet-400" : "bg-muted-foreground/25",
-                )}
-              />
-              <p className="text-[11px] text-foreground/75">{m}</p>
-              <span className="ml-auto text-[10px] text-muted-foreground">
-                {i === 0 ? "In progress" : "Locked"}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </PreviewFrame>
-  );
-}
-
-function CommunityPreview() {
-  return (
-    <PreviewFrame>
-      <div className="space-y-2.5">
-        {[0, 1, 2].map((i) => (
-          <div key={i} className={cn("flex gap-2.5", i === 1 && "flex-row-reverse text-right")}>
-            <div className="h-7 w-7 rounded-full bg-teal-400/15 border border-teal-400/25 shrink-0" />
-            <div className={cn("space-y-1.5 max-w-[75%] rounded-lg border border-border/50 bg-muted/20 p-2.5")}>
-              <Bar w={i === 1 ? "70%" : "90%"} tone={i === 1 ? "accent" : "muted"} />
-              <Bar w="55%" />
-            </div>
-          </div>
-        ))}
-        <div className="flex items-center gap-2 rounded-md border border-border/50 bg-muted/15 px-2.5 py-2">
-          <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
-          <p className="text-[11px] text-foreground/75">Livestream · market open recap</p>
-        </div>
-      </div>
-    </PreviewFrame>
-  );
-}
-
 function PreviewFor({ tab }: { tab: TabKey }) {
   switch (tab) {
     case "ai":
-      return <AiPreview />;
+      return <AiMiniDemo />;
     case "backtest":
-      return (
-        <div className="rounded-lg border border-border/60 bg-background/60 overflow-hidden">
-          <MiniBacktesterDemo />
-        </div>
-      );
+      return <BacktestMiniDemo />;
     case "screener":
-      return <ScreenerPreview />;
+      return <ScreenerMiniDemo />;
     case "smart":
-      return <SmartMoneyPreview />;
+      return <SmartMoneyMiniDemo />;
     case "academy":
-      return <AcademyPreview />;
+      return <AcademyMiniDemo />;
     case "community":
-      return <CommunityPreview />;
+      return <CommunityMiniDemo />;
   }
 }
 
@@ -399,7 +191,7 @@ export function FeaturePreviewShowcase() {
           </Link>
           <p className="flex items-center gap-1.5 text-[10px] text-muted-foreground/70">
             <Info className="h-3 w-3" />
-            Illustrative preview — live data loads inside the feature
+            Interactive sample — try it here, then open the feature for live data
           </p>
         </div>
 
