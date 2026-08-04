@@ -183,7 +183,6 @@ export function Layout({ children }: LayoutProps) {
       />
       <FloatingHelpWidget />
       <FloatingChatBubble />
-      {!user && <BacktestPromoToast />}
       
       {/* Auth gate dialog */}
       <AuthGateDialog 
