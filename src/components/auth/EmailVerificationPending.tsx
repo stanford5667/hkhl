@@ -26,31 +26,26 @@ export function EmailVerificationPending({
   // Check if user has verified via our custom Loops verification
   const checkVerification = useCallback(async () => {
     try {
-      // Check our custom email_verifications table for verified status
-      const { data, error } = await supabase
-        .from('email_verifications')
-        .select('verified')
-        .eq('email', email)
-        .eq('verified', true)
-        .limit(1);
-      
+      // Safe RPC — returns only a boolean, never the verification token
+      const { data, error } = await supabase.rpc('is_email_verified', { _email: email });
+
       if (error) {
         console.error("Error checking verification:", error);
         return false;
       }
 
-      if (data && data.length > 0) {
-        // User has verified via Loops email
+      if (data === true) {
         onVerified?.();
         return true;
       }
-      
+
       return false;
     } catch (err) {
       console.error("Verification check error:", err);
       return false;
     }
   }, [email, onVerified]);
+
 
   // Polling loop to check for email verification
   useEffect(() => {
