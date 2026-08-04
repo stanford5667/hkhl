@@ -145,7 +145,7 @@ function HubCard({
       {/* Icon badge — left rail on mobile, top on desktop */}
       <div
         className={cn(
-          "relative z-10 flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl border transition-transform duration-200 group-hover:scale-105",
+          "relative z-10 flex h-9 w-9 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl border transition-transform duration-200 group-hover:scale-105",
           a.badge,
         )}
       >
@@ -697,7 +697,7 @@ export function HubOverviewGrid() {
           </Link>
         </div>
       )}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3 p-3 sm:p-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 p-3 sm:p-4">
         {isGuest ? (
           <>
             <TeaserCard to="/academy" icon={GraduationCap} title="Academy" accent="indigo" blurb={BLURBS.academy} />
