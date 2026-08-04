@@ -28,6 +28,7 @@ export function PremiumFeatureBlock({
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
+        setIsLoading(false);
         setShowAuthSheet(true);
         return;
       }
@@ -48,7 +49,8 @@ export function PremiumFeatureBlock({
       }
       
       if (data?.url) {
-        window.open(data.url, '_blank');
+        const w = window.open(data.url, '_blank');
+        if (!w) window.location.href = data.url;
       }
     } catch (err) {
       toast.error('Something went wrong');
@@ -57,6 +59,7 @@ export function PremiumFeatureBlock({
       setIsLoading(false);
     }
   };
+
 
   const iconSize = size === 'sm' ? 'h-5 w-5' : size === 'lg' ? 'h-12 w-12' : 'h-8 w-8';
   const textSize = size === 'sm' ? 'text-xs' : size === 'lg' ? 'text-lg' : 'text-sm';
