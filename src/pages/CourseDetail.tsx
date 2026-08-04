@@ -342,13 +342,31 @@ export default function CourseDetail() {
 
   return (
     <div className="container mx-auto px-3 py-3 sm:p-6 max-w-6xl space-y-3 sm:space-y-6">
-      <Link
-        to="/academy"
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Back to Academy
-      </Link>
+      {/* Navigation hierarchy */}
+      <nav aria-label="Breadcrumb" className="flex flex-col gap-2">
+        <ol className="flex flex-wrap items-center gap-1.5 text-xs sm:text-sm text-muted-foreground">
+          <li>
+            <Link to="/" className="hover:text-foreground transition-colors">Home</Link>
+          </li>
+          <li aria-hidden="true"><ChevronRight className="w-3.5 h-3.5" /></li>
+          <li>
+            <Link to="/academy" className="hover:text-foreground transition-colors">Academy</Link>
+          </li>
+          <li aria-hidden="true"><ChevronRight className="w-3.5 h-3.5" /></li>
+          <li aria-current="page" className="font-medium text-foreground truncate max-w-[16rem] sm:max-w-none">
+            {course.title}
+          </li>
+        </ol>
+        <Link
+          to="/academy"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors w-fit"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Academy
+        </Link>
+      </nav>
+
+
 
 
 
