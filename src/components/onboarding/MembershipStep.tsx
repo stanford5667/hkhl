@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,12 +20,20 @@ type PlanType = 'free' | 'research_education';
 
 export function MembershipStep({ onComplete, onBack, isStandalone = false }: MembershipStepProps) {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [selectedPlan, setSelectedPlan] = useState<PlanType | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedInterval, setSelectedInterval] = useState<'annual' | 'monthly'>('annual');
 
   const handleSelectPlan = async (plan: PlanType) => {
-    if (!user) return;
+    if (!user) {
+      // Logged-out visitors (e.g. course page paywall): send them to auth first
+      sessionStorage.setItem('post_auth_redirect', location.pathname + location.search);
+      toast.info('Sign in to continue');
+      navigate('/auth');
+      return;
+    }
     
     setSelectedPlan(plan);
     setIsLoading(true);
@@ -201,6 +210,7 @@ export function MembershipStep({ onComplete, onBack, isStandalone = false }: Mem
             )}
           </Button>
 
+          {!isStandalone && (
           <Button
             variant="outline"
             className="w-full"
@@ -213,6 +223,7 @@ export function MembershipStep({ onComplete, onBack, isStandalone = false }: Mem
               'Continue with Free'
             )}
           </Button>
+          )}
         </div>
 
         {/* Coming Soon */}
@@ -233,7 +244,7 @@ export function MembershipStep({ onComplete, onBack, isStandalone = false }: Mem
         <div className="mt-6 text-center">
           <button
             type="button"
-            onClick={onBack}
+            onClick={() => (isStandalone ? navigate(-1) : onBack())}
             className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             disabled={isLoading}
           >
