@@ -394,7 +394,7 @@ export function FeaturePreviewShowcase() {
       </header>
 
       {/* Tab rail — hover (desktop) or tap (mobile) reveals a peek card */}
-      <div className="relative px-3 sm:px-5">
+      <div className="relative z-20 px-3 sm:px-5">
         <div className="flex gap-1.5 overflow-x-auto pb-3 -mx-1 px-1 scrollbar-none">
           {TABS.map((t) => {
             const Icon = t.icon;
