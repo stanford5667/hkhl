@@ -777,16 +777,10 @@ export default function CourseDetail() {
                         <p className="text-xs text-muted-foreground">Great work — you finished every lesson.</p>
                       </div>
                       <div className="flex flex-col gap-2">
-                        <Link to="/academy" className="w-full">
-                          <Button variant="outline" className="w-full">
-                            <ArrowLeft className="w-4 h-4 mr-2" />
-                            Return to Academy
-                          </Button>
-                        </Link>
                         <Link to="/" className="w-full">
                           <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
                             <TrendingUp className="w-4 h-4 mr-2" />
-                            Go to dashboard
+                            Back to dashboard
                           </Button>
                         </Link>
                       </div>
