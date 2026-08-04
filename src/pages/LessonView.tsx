@@ -27,6 +27,8 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MobileAuthSheet } from '@/components/auth/MobileAuthSheet';
 import { UpgradeModal } from '@/components/premium/UpgradeModal';
+import { launchCheckout } from '@/lib/checkout';
+
 import { getPreviewLimitSeconds, getPreviewLabel, isLessonPreviewable, getPreviewableLessonCount } from '@/lib/coursePreview';
 
 // Premium dark thumbnail gradients
@@ -285,6 +287,22 @@ export default function LessonView() {
   const previewLimit = getPreviewLimitSeconds(effectiveDuration);
   const previewLabel = getPreviewLabel(effectiveDuration);
   const courseProgress = 45;
+  const previewSecondsLeft = Math.max(0, Math.round(previewLimit - videoProgress));
+  const showPreviewWarning =
+    isPreviewOnly && !previewEnded && videoProgress > 5 && previewSecondsLeft <= 45;
+
+  // One-click upgrade: skip the extra modal step and go straight to Stripe.
+  const startCheckout = () =>
+    launchCheckout(
+      {
+        plan: 'research_education',
+        billingInterval: 'annual',
+        source: 'lesson_preview_paywall',
+        returnPath: `/academy/lesson/${lessonId}`,
+      },
+      { onNeedsAuth: () => setShowAuthSheet(true) },
+    );
+
 
 
   const gradientIndex = (lesson.module?.order_index || 0) % THUMB_GRADIENTS.length;
@@ -425,6 +443,31 @@ export default function LessonView() {
                 </div>
               )}
 
+              {/* Preview running out — nudge before the hard stop */}
+              <AnimatePresence>
+                {showPreviewWarning && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 12 }}
+                    className="absolute bottom-3 left-3 right-3 z-10 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-primary/30 bg-background/85 backdrop-blur-md px-3 py-2"
+                  >
+                    <p className="text-xs md:text-sm text-foreground">
+                      <span className="font-semibold text-primary">
+                        {previewSecondsLeft}s
+                      </span>{' '}
+                      of preview left — unlock the full lesson and the rest of the Academy.
+                    </p>
+                    <Button size="sm" onClick={startCheckout}>
+                      <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                      Unlock now
+                    </Button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+
+
               {/* Preview limit reached — paywall overlay */}
               <AnimatePresence>
                 {isPreviewOnly && previewEnded && (
@@ -456,9 +499,12 @@ export default function LessonView() {
                       </div>
                     </div>
                     <div className="flex flex-wrap items-center justify-center gap-2">
-                      <Button size="lg" onClick={() => setShowUpgradeModal(true)}>
+                      <Button size="lg" onClick={startCheckout}>
                         <Sparkles className="w-4 h-4 mr-2" />
-                        Continue this lesson with Pro
+                        Unlock the full lesson
+                      </Button>
+                      <Button variant="outline" onClick={() => setShowUpgradeModal(true)}>
+                        See what Pro includes
                       </Button>
                       <Button
                         variant="ghost"
@@ -471,6 +517,7 @@ export default function LessonView() {
                         Rewatch preview
                       </Button>
                     </div>
+
                     <div className="flex flex-wrap justify-center gap-3 pt-2 text-xs text-muted-foreground">
                       <span className="inline-flex items-center gap-1.5">
                         <BarChart3 className="w-3.5 h-3.5 text-primary" />
