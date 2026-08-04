@@ -357,14 +357,24 @@ export default function CourseDetail() {
             {course.title}
           </li>
         </ol>
-        <Link
-          to="/academy"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors w-fit"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Academy
-        </Link>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+          <Link
+            to="/academy"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors w-fit"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Academy
+          </Link>
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 text-sm text-primary hover:text-primary/80 transition-colors w-fit"
+          >
+            <TrendingUp className="w-4 h-4" />
+            Go to dashboard
+          </Link>
+        </div>
       </nav>
+
 
 
 
