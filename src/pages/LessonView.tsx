@@ -190,6 +190,15 @@ export default function LessonView() {
     return () => clearInterval(interval);
   }, [videoProgress, user, lesson]);
 
+  // Reset per-lesson playback state when navigating between lessons —
+  // otherwise a finished preview leaves the "Preview ended" overlay stuck on
+  // the next lesson the user opens.
+  useEffect(() => {
+    setPreviewEnded(false);
+    setVideoProgress(0);
+    setMeasuredDuration(null);
+  }, [lessonId]);
+
   const handleMarkComplete = () => {
     completeLessonMutation.mutate();
   };
