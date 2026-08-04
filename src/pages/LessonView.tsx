@@ -518,7 +518,8 @@ export default function LessonView() {
                       {module.lessons?.map((l: any, lessonIndex: number) => {
                         const isCurrentLesson = l.id === lessonId;
                         const isFreeTier = l.is_preview;
-                        const isLocked = !hasVideoAccess && !isFreeTier;
+                        const isLocked = !isFreeTier && !(user && isPro);
+
 
                         return (
                           <Link
