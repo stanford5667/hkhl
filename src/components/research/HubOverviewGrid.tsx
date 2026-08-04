@@ -444,7 +444,9 @@ function SmartMoneyCard() {
       icon={Radar}
       title="Smart Money"
       accent="rose"
+      blurb={BLURBS.smartMoney}
       loading={isLoading}
+
       primary={d ? d.ticker : "Latest signals"}
       secondary={
         d
