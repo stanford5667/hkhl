@@ -137,15 +137,14 @@ export function ResearchHero({
           transition={{ duration: 0.5, delay: 0.2 }}
         >
           <div className={cn(
-            "relative rounded-xl",
-            "bg-card border-2 border-[hsl(175_80%_40%/0.4)]",
-            "shadow-[0_0_20px_-3px_hsl(175_80%_40%/0.25),0_0_40px_-8px_hsl(175_80%_40%/0.1)]",
+            "relative rounded-2xl",
+            "bg-card border border-primary/35",
+            "shadow-[0_0_24px_-6px_hsl(var(--primary)/0.3)]",
             "transition-all duration-300",
-            "animate-[pulse-glow-cyan_3s_ease-in-out_infinite]",
-            isFocused && "border-[hsl(175_80%_40%/0.7)] shadow-[0_0_30px_-3px_hsl(175_80%_40%/0.4),0_0_60px_-8px_hsl(175_80%_40%/0.15)] ring-2 ring-[hsl(175_80%_40%/0.3)] animate-none"
+            isFocused && "border-primary/70 shadow-[0_0_34px_-6px_hsl(var(--primary)/0.45)] ring-2 ring-primary/25"
           )}>
             {/* Input row */}
-            <div className="flex items-center gap-2 px-3 sm:px-4 h-11 sm:h-13">
+            <div className="flex items-center gap-2.5 px-3.5 sm:px-4 h-12 sm:h-14">
               <Search className="h-4 w-4 text-primary shrink-0" />
               <input
                 ref={inputRef}
@@ -154,10 +153,11 @@ export function ResearchHero({
                 onKeyDown={handleKeyDown}
                 onFocus={() => setIsFocused(true)}
                 onBlur={handleBlur}
-                placeholder="Search tickers or company names... (e.g., AAPL, Microsoft)"
-                className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
+                placeholder="Search a ticker or company…"
+                className="flex-1 bg-transparent text-[15px] sm:text-sm text-foreground placeholder:text-muted-foreground/80 outline-none"
                 autoFocus={false}
               />
+
               {isSearching && (
                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />
               )}
