@@ -40,7 +40,17 @@ import { TestimonialsSection } from '@/components/academy/TestimonialsSection';
 import { BillingIntervalSheet } from '@/components/academy/BillingIntervalSheet';
 import { MembershipStep } from '@/components/onboarding/MembershipStep';
 import { FeatureComparisonPanel } from '@/components/auth/FeatureComparisonPanel';
-import { Check, X, ArrowLeft, ChevronRight } from 'lucide-react';
+import { Check, X, ArrowLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import { CourseHero } from '@/components/academy/CourseHero';
+import { CourseOverview } from '@/components/academy/CourseOverview';
+import {
+  parseCourseDescription,
+  prettyLabel,
+  resolveCourseHours,
+  formatHours,
+} from '@/lib/courseContent';
+
+const LESSON_PREVIEW_COUNT = 6;
 
 function getYouTubeThumbnail(url: string | null, provider: string | null): string | null {
   if (!url) return null;
