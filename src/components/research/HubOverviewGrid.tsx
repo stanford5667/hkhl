@@ -198,9 +198,29 @@ function HubCard({
           </>
         )}
       </div>
+
+      {/* Clear call to action */}
+      <div
+        className={cn(
+          "relative z-10 mt-1 flex items-center gap-1 text-[11px] font-mono font-semibold uppercase tracking-wide",
+          a.text,
+        )}
+      >
+        <span>{CTAS[title] ?? `Open ${title}`}</span>
+        <ArrowUpRight className="h-3 w-3 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+      </div>
     </Link>
   );
 }
+
+const CTAS: Record<string, string> = {
+  Academy: "Start learning free",
+  Chatroom: "Join the conversation",
+  Backtester: "Test a strategy now",
+  Portfolio: "Track my portfolio",
+  Watchlist: "Build my watchlist",
+  "Smart Money": "See what funds bought",
+};
 
 const BLURBS = {
   academy:
@@ -216,6 +236,7 @@ const BLURBS = {
   smartMoney:
     "Follow the institutions: 13F holdings, insider buys and sells and block trades, decoded into signals you can act on before the crowd.",
 } as const;
+
 
 
 function fmtCurrency(n: number) {
