@@ -262,7 +262,7 @@ export default function LessonView() {
   // and each of those plays as a short capped window.
   const flatLessonIds = allLessons?.flatMap((m: any) => (m.lessons || []).map((l: any) => l.id)) || [];
   const lessonIndex = flatLessonIds.indexOf(lesson.id);
-  const totalLessons = flatLessonIds.length;
+  const lessonCount = flatLessonIds.length || totalLessons;
   const previewableCount = getPreviewableLessonCount(totalLessons);
   const hasFullAccess = Boolean(user && isPro);
   const canPreviewThisLesson = totalLessons === 0 || isLessonPreviewable(lessonIndex, totalLessons);
