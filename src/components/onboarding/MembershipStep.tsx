@@ -248,16 +248,18 @@ export function MembershipStep({ onComplete, onBack, isStandalone = false }: Mem
           </div>
         </div>
 
-        <div className="mt-6 text-center">
-          <button
-            type="button"
-            onClick={() => (isStandalone ? navigate(-1) : onBack())}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-            disabled={isLoading}
-          >
-            {isStandalone ? '← Back' : '← Back to profile'}
-          </button>
-        </div>
+        {!isStandalone && (
+          <div className="mt-6 text-center">
+            <button
+              type="button"
+              onClick={() => onBack()}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              disabled={isLoading}
+            >
+              ← Back to profile
+            </button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

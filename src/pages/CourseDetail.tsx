@@ -31,6 +31,7 @@ import {
   Brain,
   Target,
   Flame,
+  Layers,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { MobileAuthSheet } from '@/components/auth/MobileAuthSheet';
@@ -40,7 +41,17 @@ import { TestimonialsSection } from '@/components/academy/TestimonialsSection';
 import { BillingIntervalSheet } from '@/components/academy/BillingIntervalSheet';
 import { MembershipStep } from '@/components/onboarding/MembershipStep';
 import { FeatureComparisonPanel } from '@/components/auth/FeatureComparisonPanel';
-import { Check, X, ArrowLeft, ChevronRight } from 'lucide-react';
+import { Check, X, ArrowLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import { CourseHero } from '@/components/academy/CourseHero';
+import { CourseOverview } from '@/components/academy/CourseOverview';
+import {
+  parseCourseDescription,
+  prettyLabel,
+  resolveCourseHours,
+  formatHours,
+} from '@/lib/courseContent';
+
+const LESSON_PREVIEW_COUNT = 6;
 
 function getYouTubeThumbnail(url: string | null, provider: string | null): string | null {
   if (!url) return null;
@@ -114,6 +125,8 @@ export default function CourseDetail() {
   const [descExpanded, setDescExpanded] = useState(false);
   const [showAuthSheet, setShowAuthSheet] = useState(false);
   const [showBillingSheet, setShowBillingSheet] = useState(false);
+  const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({});
+  const [openModules, setOpenModules] = useState<string[]>([]);
 
   // Social proof toasts — show for guests/non-members
   useSocialProofToasts(!isPro);
@@ -291,6 +304,13 @@ export default function CourseDetail() {
     enrollMutation.mutate();
   };
 
+  // Open the first module once the curriculum loads
+  useEffect(() => {
+    if (modules?.length && openModules.length === 0) {
+      setOpenModules([modules[0].id]);
+    }
+  }, [modules]);
+
   const completedLessons = new Set(
     lessonProgress?.filter(p => p.completed).map(p => p.lesson_id) || []
   );
@@ -298,6 +318,16 @@ export default function CourseDetail() {
   const totalLessons = modules?.reduce((sum, m) => sum + (m.lessons?.length || 0), 0) || 0;
   const completedCount = completedLessons.size;
   const progressPercentage = totalLessons > 0 ? (completedCount / totalLessons) * 100 : 0;
+
+  const totalVideoSeconds =
+    modules?.reduce(
+      (sum, m) =>
+        sum + (m.lessons?.reduce((s: number, l: any) => s + (l.video_duration || 0), 0) || 0),
+      0,
+    ) || 0;
+  const courseHours = resolveCourseHours(course?.duration_hours, totalVideoSeconds);
+  const durationLabel = formatHours(courseHours);
+  const parsedContent = parseCourseDescription(course?.description);
 
   const getLevelColor = (level: string | null) => {
     switch (level) {
@@ -394,118 +424,68 @@ export default function CourseDetail() {
         {/* Main Content */}
         <div className="lg:col-span-2 space-y-3 sm:space-y-6">
           {/* Hero */}
-          <Card className="overflow-hidden">
-            {/* CSS Thumbnail */}
-            <div className="relative aspect-[16/9] sm:aspect-video bg-[#0B0E14] flex items-center justify-center overflow-hidden">
-              {/* Watermark text - responsive sizing */}
-              <span className="absolute select-none text-[clamp(2rem,12vw,6rem)] lg:text-[5rem] font-extrabold tracking-tighter uppercase text-gray-800/30 leading-none pointer-events-none whitespace-nowrap">
-                MASTERCLASS
-              </span>
-              {/* Overlay label - two lines */}
-              <div className="relative z-10 flex flex-col items-center gap-0.5">
-                <span className="text-xs sm:text-sm md:text-base font-semibold tracking-[0.25em] sm:tracking-[0.35em] uppercase text-white/90">
-                  INVESTMENT
-                </span>
-                <span className="text-xs sm:text-sm md:text-base font-semibold tracking-[0.25em] sm:tracking-[0.35em] uppercase text-white/90">
-                  MASTERCLASS
-                </span>
-              </div>
-              {course.is_free && (
-                <Badge className="absolute top-2 left-2 sm:top-4 sm:left-4 bg-green-500 text-white text-xs">Free Course</Badge>
-              )}
-              {!course.is_free && !isPro && (
-                <Badge className="absolute top-2 right-2 sm:top-4 sm:right-4 bg-primary/90 text-primary-foreground text-xs flex items-center gap-1">
-                  <Lock className="w-3 h-3" />
-                  <span className="hidden sm:inline">Premium</span>
-                </Badge>
-              )}
-            </div>
-            <CardHeader className="p-3 sm:p-6">
-              <div className="flex flex-wrap gap-2 mb-2">
-                <Badge variant="outline" className={`text-xs ${getLevelColor(course.level)}`}>
-                  {course.level || 'All Levels'}
-                </Badge>
-                <Badge variant="outline" className="text-xs">{course.category}</Badge>
-              </div>
-              <CardTitle className="text-lg sm:text-2xl md:text-3xl leading-tight">{course.title}</CardTitle>
-              <CardDescription className={`text-sm sm:text-base ${!descExpanded ? 'line-clamp-5' : ''}`}>
-                {course.description}
-              </CardDescription>
-              {course.description && course.description.length > 150 && (
-                  <button
-                    onClick={() => setDescExpanded(!descExpanded)}
-                    className="text-xs text-primary hover:text-primary/80 font-medium mt-1 transition-colors"
-                  >
-                  {descExpanded ? 'Show less' : 'Read more'}
-                </button>
-              )}
-            </CardHeader>
-            <CardContent className="p-3 sm:p-6 pt-0">
-              <div className="flex items-center gap-3 text-xs sm:text-sm text-muted-foreground">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                  CS
-                </div>
-                <span className="text-foreground/80">Led by <span className="font-medium text-foreground">Chris Stanford</span>, Hedge Fund Manager</span>
-              </div>
-            </CardContent>
-          </Card>
+          <CourseHero
+            title={course.title}
+            headline={parsedContent.headline}
+            intro={parsedContent.intro}
+            level={course.level}
+            category={course.category}
+            moduleCount={modules?.length || 0}
+            lessonCount={totalLessons}
+            durationLabel={durationLabel}
+            isFree={!!course.is_free}
+            hasAccess={!!hasAccess}
+            progressPercentage={progressPercentage}
+            primaryLoading={isCheckoutLoading || enrollMutation.isPending}
+            primaryLabel={
+              hasAccess
+                ? completedCount > 0
+                  ? 'Continue learning'
+                  : 'Start lesson 1'
+                : course.is_free
+                  ? 'Start free course'
+                  : `Unlock all ${totalLessons} lessons — from $${PRICING.annualPerMonth}/mo`
+            }
+            onPrimary={() => {
+              if (hasAccess) {
+                const next = modules
+                  ?.flatMap((m: any) => m.lessons || [])
+                  .find((l: any) => !completedLessons.has(l.id));
+                if (next) navigate(`/academy/lesson/${next.id}`);
+                return;
+              }
+              if (!user) { setShowAuthSheet(true); return; }
+              handleStartLearning();
+            }}
+            instructorName="Chris Stanford"
+            instructorRole="Hedge Fund Manager · Family Office Associate"
+          />
 
-          {/* Value Prop Stats Bar — non-pro only */}
+          {/* Trust strip — non-members only */}
           {!hasAccess && (
-            <Card className="overflow-hidden border-border/50">
-              <CardContent className="p-3 sm:p-4">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <BarChart3 className="w-4 h-4 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-foreground">{totalLessons}+ Lessons</p>
-                      <p className="text-[10px] text-muted-foreground">Step-by-step</p>
-                    </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+              {[
+                { icon: BarChart3, label: `${totalLessons} lessons`, sub: 'Step-by-step' },
+                { icon: TrendingUp, label: 'Real strategies', sub: 'Institutional-grade' },
+                { icon: Brain, label: 'AI-powered', sub: 'Smart insights' },
+                { icon: Award, label: 'Certificate', sub: 'On completion' },
+              ].map(({ icon: Icon, label, sub }) => (
+                <div
+                  key={label}
+                  className="flex items-center gap-2 rounded-xl border border-border/50 bg-card/60 p-2.5 sm:p-3"
+                >
+                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                    <Icon className="h-4 w-4 text-primary" />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
-                      <TrendingUp className="w-4 h-4 text-emerald-400" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-foreground">Real Strategies</p>
-                      <p className="text-[10px] text-muted-foreground">PE-grade tools</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <Brain className="w-4 h-4 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-foreground">AI-Powered</p>
-                      <p className="text-[10px] text-muted-foreground">Smart insights</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <Award className="w-4 h-4 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-foreground">Certificate</p>
-                      <p className="text-[10px] text-muted-foreground">On completion</p>
-                    </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-semibold text-foreground">{label}</p>
+                    <p className="truncate text-[10px] text-muted-foreground">{sub}</p>
                   </div>
                 </div>
-                <Button
-                  className="w-full mt-3 bg-primary hover:bg-primary/90 text-primary-foreground text-xs sm:text-sm h-9 sm:h-10"
-                  onClick={() => {
-                    if (!user) { setShowAuthSheet(true); return; }
-                    handleSubscribe();
-                  }}
-                  disabled={isCheckoutLoading}
-                >
-                  <Zap className="w-3.5 h-3.5 mr-1.5" />
-                  {isCheckoutLoading ? 'Loading...' : `Start Your Investing Journey — from $${PRICING.annualPerMonth}/mo`}
-                </Button>
-              </CardContent>
-            </Card>
+              ))}
+            </div>
           )}
+
 
           {/* Tabs */}
           <Tabs defaultValue="curriculum">
@@ -518,30 +498,49 @@ export default function CourseDetail() {
             <TabsContent value="curriculum" className="mt-4 sm:mt-6">
               <Card>
                 <CardHeader className="p-4 sm:p-6">
-                  <CardTitle className="text-base sm:text-lg">Course Content</CardTitle>
+                  <CardTitle className="font-heading text-base sm:text-lg">Course content</CardTitle>
                   <CardDescription className="text-xs sm:text-sm">
-                    {modules?.length || 0} modules • {totalLessons} lessons
+                    {modules?.length || 0} modules · {totalLessons} lessons
+                    {durationLabel ? ` · ${durationLabel} of video` : ''}
+                    {hasAccess ? ` · ${completedCount} completed` : ''}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <Accordion type="multiple" defaultValue={modules?.[0] ? [modules[0].id] : []} className="w-full">
-                    {modules?.map((module: any, moduleIndex: number) => (
+                  <Accordion
+                    type="multiple"
+                    value={openModules}
+                    onValueChange={setOpenModules}
+                    className="w-full"
+                  >
+                    {modules?.map((module: any, moduleIndex: number) => {
+                      const lessons: any[] = module.lessons || [];
+                      const moduleDone = lessons.filter((l) => completedLessons.has(l.id)).length;
+                      const isExpanded = !!expandedModules[module.id];
+                      const visibleLessons = isExpanded ? lessons : lessons.slice(0, LESSON_PREVIEW_COUNT);
+                      const hiddenCount = lessons.length - visibleLessons.length;
+
+                      return (
                       <div key={module.id}>
-                        <AccordionItem value={module.id}>
+                        <AccordionItem value={module.id} className="border-border/50">
                           <AccordionTrigger className="px-4 sm:px-6 hover:no-underline">
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-left">
-                              <span className="text-xs text-muted-foreground">
-                                Module {moduleIndex + 1}
+                            <div className="flex items-center gap-3 text-left min-w-0">
+                              <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/40 text-[11px] font-semibold text-muted-foreground">
+                                {moduleIndex + 1}
                               </span>
-                              <span className="font-semibold text-sm sm:text-base">{module.title}</span>
-                              <Badge variant="outline" className="text-xs w-fit">
-                                {module.lessons?.length || 0} lessons
-                              </Badge>
+                              <div className="min-w-0">
+                                <span className="block font-semibold text-sm sm:text-base leading-tight">
+                                  {module.title}
+                                </span>
+                                <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                                  {`${lessons.length} lessons`}
+                                  {hasAccess && moduleDone > 0 ? ` · ${moduleDone} done` : ''}
+                                </span>
+                              </div>
                             </div>
                           </AccordionTrigger>
                           <AccordionContent>
-                            <div className="px-4 sm:px-6 pb-4 space-y-2">
-                              {module.lessons?.map((lesson: any, lessonIndex: number) => {
+                            <div className="px-4 sm:px-6 pb-4 space-y-1.5">
+                              {visibleLessons.map((lesson: any, lessonIndex: number) => {
                                 const isCompleted = completedLessons.has(lesson.id);
                                 const canAccess = hasAccess || lesson.is_preview;
                                 const thumbnail = getYouTubeThumbnail(lesson.video_url, lesson.video_provider);
@@ -550,7 +549,11 @@ export default function CourseDetail() {
                                 return (
                                   <div
                                     key={lesson.id}
-                                    className="flex items-center justify-between p-2 sm:p-3 rounded-lg border hover:bg-muted/50 cursor-pointer"
+                                    className={`group flex items-center justify-between gap-2 rounded-xl border p-2 sm:p-2.5 cursor-pointer transition-colors ${
+                                      canAccess
+                                        ? 'border-border/50 hover:border-primary/40 hover:bg-primary/[0.04]'
+                                        : 'border-border/40 hover:bg-muted/40'
+                                    }`}
                                     onClick={() => {
                                       navigate(`/academy/lesson/${lesson.id}`);
                                     }}
@@ -565,33 +568,46 @@ export default function CourseDetail() {
                                       />
                                       <div className="xs:hidden flex-shrink-0">
                                         {isCompleted ? (
-                                          <CheckCircle2 className="w-4 h-4 text-green-400" />
+                                          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                                         ) : !canAccess ? (
-                                          <Lock className="w-4 h-4 text-muted-foreground" />
+                                          <Lock className="w-3.5 h-3.5 text-muted-foreground/70" />
                                         ) : (
-                                          <Play className="w-4 h-4 text-muted-foreground" />
+                                          <Play className="w-3.5 h-3.5 text-primary" />
                                         )}
                                       </div>
                                       <div className="min-w-0 flex-1">
-                                        <p className="font-medium text-xs sm:text-sm truncate">
-                                          {moduleIndex + 1}.{lessonIndex + 1} {lesson.title}
+                                        <p className={`font-medium text-xs sm:text-sm truncate ${canAccess ? 'text-foreground' : 'text-muted-foreground'}`}>
+                                          <span className="text-muted-foreground/70 mr-1.5">
+                                            {moduleIndex + 1}.{lessonIndex + 1}
+                                          </span>
+                                          {lesson.title}
                                         </p>
                                         {lesson.description && (
-                                          <p className="text-xs text-muted-foreground line-clamp-1 hidden sm:block">{lesson.description}</p>
+                                          <p className="text-[11px] text-muted-foreground line-clamp-1 hidden sm:block">{lesson.description}</p>
                                         )}
                                       </div>
                                     </div>
-                                    {lesson.is_preview && !hasAccess && lessonIndex === 0 ? (
-                                      <Badge className="text-[10px] sm:text-xs flex-shrink-0 ml-2 bg-primary/15 text-primary border-primary/30 gap-1">
+                                    {lesson.is_preview && !hasAccess ? (
+                                      <Badge className="text-[10px] flex-shrink-0 bg-primary/15 text-primary border-primary/30 gap-1">
                                         <Play className="w-2.5 h-2.5" />
-                                        Free Preview
+                                        Free preview
                                       </Badge>
-                                    ) : lesson.is_preview && !hasAccess ? (
-                                      <Badge variant="outline" className="text-[10px] sm:text-xs flex-shrink-0 ml-2">Preview</Badge>
                                     ) : null}
                                   </div>
                                 );
                               })}
+                              {hiddenCount > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setExpandedModules((prev) => ({ ...prev, [module.id]: true }))
+                                  }
+                                  className="mt-1 flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-border/60 py-2 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+                                >
+                                  Show {hiddenCount} more {hiddenCount === 1 ? 'lesson' : 'lessons'}
+                                  <ChevronDown className="h-3.5 w-3.5" />
+                                </button>
+                              )}
                             </div>
                           </AccordionContent>
                         </AccordionItem>
@@ -616,7 +632,8 @@ export default function CourseDetail() {
                           </div>
                         )}
                       </div>
-                    ))}
+                      );
+                    })}
                   </Accordion>
                   {/* Mid-curriculum CTA */}
                   {!hasAccess && (
@@ -646,40 +663,17 @@ export default function CourseDetail() {
             </TabsContent>
 
             <TabsContent value="overview" className="mt-4 sm:mt-6">
-              <Card>
-                <CardHeader className="p-4 sm:p-6">
-                  <CardTitle className="text-base sm:text-lg">About This Course</CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 sm:p-6 pt-0 prose prose-invert prose-sm max-w-none">
-                  <p>{course.description}</p>
-                  <Separator className="my-4 sm:my-6" />
-                  <h3 className="text-sm sm:text-base">What You'll Learn</h3>
-                  <ul className="text-sm">
-                    <li>Master fundamental concepts and techniques</li>
-                    <li>Apply strategies in real-world scenarios</li>
-                    <li>Build confidence in your trading decisions</li>
-                    <li>Access practical tools and templates</li>
-                  </ul>
-                  {!hasAccess && (
-                    <>
-                      <Separator className="my-4" />
-                      <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
-                        <Sparkles className="w-4 h-4 text-primary flex-shrink-0" />
-                        <p className="text-xs sm:text-sm text-muted-foreground flex-1">Ready to start learning?</p>
-                        <Button
-                          size="sm"
-                          className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs h-8 shrink-0"
-                          onClick={() => handleSubscribe()}
-                          disabled={isCheckoutLoading}
-                        >
-                          {isCheckoutLoading ? 'Loading...' : 'Subscribe'}
-                        </Button>
-                      </div>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
+              <CourseOverview
+                content={parsedContent}
+                hasAccess={!!hasAccess}
+                isLoading={isCheckoutLoading}
+                onSubscribe={() => {
+                  if (!user) { setShowAuthSheet(true); return; }
+                  handleSubscribe();
+                }}
+              />
             </TabsContent>
+
 
             <TabsContent value="reviews" className="mt-4 sm:mt-6">
               <Card>
@@ -884,9 +878,15 @@ export default function CourseDetail() {
               <Separator />
 
               <div className="space-y-2 sm:space-y-3 text-xs sm:text-sm">
+                {durationLabel && (
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
+                    <span>{durationLabel} of video content</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
-                  <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
-                  <span>{course.duration_hours} hours of content</span>
+                  <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
+                  <span>{modules?.length || 0} modules</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
