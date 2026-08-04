@@ -498,7 +498,12 @@ export default function CourseDetail() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <Accordion type="multiple" defaultValue={modules?.[0] ? [modules[0].id] : []} className="w-full">
+                  <Accordion
+                    type="multiple"
+                    value={openModules}
+                    onValueChange={setOpenModules}
+                    className="w-full"
+                  >
                     {modules?.map((module: any, moduleIndex: number) => {
                       const lessons: any[] = module.lessons || [];
                       const moduleDone = lessons.filter((l) => completedLessons.has(l.id)).length;
