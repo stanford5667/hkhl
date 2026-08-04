@@ -116,6 +116,237 @@ const TABS: TabDef[] = [
   },
 ];
 
+/* ───────── Hover / tap peek cards ───────── */
+
+interface PeekDef {
+  metrics: { label: string; value: string }[];
+  hint: string;
+  stroke: string; // tailwind text-* used as currentColor for the thumb
+  wash: string;
+}
+
+const PEEKS: Record<TabKey, PeekDef> = {
+  ai: {
+    metrics: [
+      { label: "Sections", value: "6" },
+      { label: "Avg. time", value: "~8s" },
+      { label: "Coverage", value: "10k+" },
+    ],
+    hint: "Valuation, catalysts and risks in one memo",
+    stroke: "text-primary",
+    wash: "from-primary/15",
+  },
+  backtest: {
+    metrics: [
+      { label: "History", value: "20 yrs" },
+      { label: "Metrics", value: "18+" },
+      { label: "Code", value: "None" },
+    ],
+    hint: "CAGR, Sharpe and drawdown vs. benchmark",
+    stroke: "text-sky-400",
+    wash: "from-sky-400/15",
+  },
+  screener: {
+    metrics: [
+      { label: "Universe", value: "10k+" },
+      { label: "Filters", value: "25+" },
+      { label: "Row peek", value: "Instant" },
+    ],
+    hint: "Hover any row for a chart plus key stats",
+    stroke: "text-cyan-400",
+    wash: "from-cyan-400/15",
+  },
+  smart: {
+    metrics: [
+      { label: "13F funds", value: "500+" },
+      { label: "Insiders", value: "Daily" },
+      { label: "Blocks", value: "Live" },
+    ],
+    hint: "See who is accumulating before the headline",
+    stroke: "text-indigo-400",
+    wash: "from-indigo-400/15",
+  },
+  academy: {
+    metrics: [
+      { label: "Lessons", value: "92" },
+      { label: "Tracks", value: "6" },
+      { label: "Start", value: "Free" },
+    ],
+    hint: "Structured path from beginner to confident",
+    stroke: "text-violet-400",
+    wash: "from-violet-400/15",
+  },
+  community: {
+    metrics: [
+      { label: "Rooms", value: "Live" },
+      { label: "Streams", value: "Weekly" },
+      { label: "Notes", value: "Shared" },
+    ],
+    hint: "Pressure-test a thesis with real investors",
+    stroke: "text-teal-400",
+    wash: "from-teal-400/15",
+  },
+};
+
+/** Tiny schematic thumbnail per feature — pure SVG, no network cost. */
+function PeekThumb({ tab, className }: { tab: TabKey; className?: string }) {
+  const stroke = PEEKS[tab].stroke;
+  return (
+    <svg
+      viewBox="0 0 96 56"
+      className={cn("h-full w-full", stroke, className)}
+      aria-hidden="true"
+    >
+      <rect x="0" y="0" width="96" height="56" rx="6" className="fill-current opacity-[0.06]" />
+      {tab === "ai" && (
+        <g>
+          <rect x="8" y="10" width="34" height="4" rx="2" className="fill-current opacity-70" />
+          <rect x="8" y="20" width="24" height="3" rx="1.5" className="fill-current opacity-30" />
+          {[0, 1, 2].map((i) => (
+            <rect
+              key={i}
+              x={8 + i * 27}
+              y={30}
+              width="22"
+              height="16"
+              rx="3"
+              className="fill-current opacity-20"
+            />
+          ))}
+        </g>
+      )}
+      {tab === "backtest" && (
+        <g fill="none" strokeLinecap="round">
+          <path
+            d="M8 44 L20 38 L30 41 L42 28 L54 32 L68 20 L88 12"
+            stroke="currentColor"
+            strokeWidth="2"
+          />
+          <path
+            d="M8 47 L24 44 L40 45 L58 38 L74 36 L88 30"
+            stroke="currentColor"
+            strokeWidth="1.2"
+            className="opacity-35"
+          />
+        </g>
+      )}
+      {tab === "screener" && (
+        <g>
+          {[0, 1, 2, 3].map((i) => (
+            <g key={i}>
+              <rect x="8" y={12 + i * 10} width="18" height="4" rx="2" className="fill-current opacity-55" />
+              <rect x="31" y={12 + i * 10} width="12" height="4" rx="2" className="fill-current opacity-25" />
+              <path
+                d={`M52 ${16 + i * 10} L62 ${13 + i * 10} L72 ${17 + i * 10} L88 ${11 + i * 10}`}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.3"
+                className="opacity-70"
+              />
+            </g>
+          ))}
+        </g>
+      )}
+      {tab === "smart" && (
+        <g>
+          {[0, 1, 2].map((i) => (
+            <g key={i}>
+              <circle cx="15" cy={16 + i * 14} r="5" className="fill-current opacity-30" />
+              <rect x="26" y={13 + i * 14} width={44 - i * 10} height="5" rx="2.5" className="fill-current opacity-45" />
+            </g>
+          ))}
+          {[4, 7, 5, 9, 6, 11].map((h, i) => (
+            <rect
+              key={i}
+              x={76 + i * 3.4}
+              y={48 - h * 2.6}
+              width="2.2"
+              height={h * 2.6}
+              rx="1"
+              className="fill-current opacity-60"
+            />
+          ))}
+        </g>
+      )}
+      {tab === "academy" && (
+        <g>
+          <circle cx="22" cy="28" r="12" fill="none" stroke="currentColor" strokeWidth="3" className="opacity-20" />
+          <circle
+            cx="22"
+            cy="28"
+            r="12"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeDasharray="75"
+            strokeDashoffset="30"
+            transform="rotate(-90 22 28)"
+          />
+          {[0, 1, 2].map((i) => (
+            <rect key={i} x="44" y={16 + i * 11} width={44 - i * 8} height="5" rx="2.5" className="fill-current opacity-35" />
+          ))}
+        </g>
+      )}
+      {tab === "community" && (
+        <g>
+          <rect x="8" y="12" width="52" height="14" rx="6" className="fill-current opacity-25" />
+          <rect x="36" y="30" width="52" height="14" rx="6" className="fill-current opacity-45" />
+          <circle cx="86" cy="14" r="3" className="fill-current" />
+        </g>
+      )}
+    </svg>
+  );
+}
+
+function PeekCard({ tab }: { tab: TabDef }) {
+  const peek = PEEKS[tab.key];
+  const Icon = tab.icon;
+  return (
+    <div
+      role="tooltip"
+      className="pointer-events-none absolute left-0 right-0 top-full z-30 mt-2 sm:right-auto sm:w-[320px] animate-in fade-in-0 zoom-in-95 slide-in-from-top-1 duration-150"
+    >
+      <div
+        className={cn(
+          "rounded-xl border border-border/70 bg-popover/95 p-3 shadow-2xl backdrop-blur-md",
+          "bg-gradient-to-br to-transparent",
+          peek.wash,
+        )}
+      >
+        <div className="flex items-start gap-3">
+          <div className="h-14 w-20 shrink-0 overflow-hidden rounded-lg border border-border/60 bg-background/70">
+            <PeekThumb tab={tab.key} />
+          </div>
+          <div className="min-w-0">
+            <p className={cn("flex items-center gap-1.5 text-xs font-semibold", tab.accent)}>
+              <Icon className="h-3.5 w-3.5" />
+              {tab.label}
+            </p>
+            <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground line-clamp-2">
+              {peek.hint}
+            </p>
+          </div>
+        </div>
+        <div className="mt-2.5 grid grid-cols-3 gap-px overflow-hidden rounded-md bg-border/50">
+          {peek.metrics.map((m) => (
+            <div key={m.label} className="bg-background/80 px-2 py-1.5">
+              <p className="truncate text-[9px] uppercase tracking-wider text-muted-foreground">
+                {m.label}
+              </p>
+              <p className={cn("text-xs font-semibold tabular-nums", tab.accent)}>{m.value}</p>
+            </div>
+          ))}
+        </div>
+        <p className="mt-2 flex items-center gap-1 text-[10px] font-medium text-foreground/70">
+          {tab.cta}
+          <ArrowRight className="h-3 w-3" />
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function PreviewFor({ tab }: { tab: TabKey }) {
   switch (tab) {
     case "ai":
@@ -135,7 +366,18 @@ function PreviewFor({ tab }: { tab: TabKey }) {
 
 export function FeaturePreviewShowcase() {
   const [active, setActive] = useState<TabKey>("ai");
+  const [peek, setPeek] = useState<TabKey | null>(null);
   const tab = TABS.find((t) => t.key === active)!;
+
+  // Click selects the tab and pins the peek briefly (the touch path); hover
+  // just reveals the peek without switching the demo underneath.
+  const showPeek = (key: TabKey, select: boolean) => {
+    setPeek(key);
+    if (select) {
+      setActive(key);
+      window.setTimeout(() => setPeek((p) => (p === key ? null : p)), 2200);
+    }
+  };
 
   return (
     <section className="rounded-xl border border-border/60 bg-card/40 backdrop-blur-sm overflow-hidden">
@@ -148,28 +390,40 @@ export function FeaturePreviewShowcase() {
         </h2>
       </header>
 
-      {/* Tab rail — horizontally scrollable on mobile */}
+      {/* Tab rail — hover (desktop) or tap (mobile) reveals a peek card */}
       <div className="px-3 sm:px-5">
-        <div className="flex gap-1.5 overflow-x-auto pb-3 -mx-1 px-1 scrollbar-none">
+        <div className="relative flex gap-1.5 overflow-x-auto pb-3 -mx-1 px-1 scrollbar-none">
           {TABS.map((t) => {
             const Icon = t.icon;
             const isActive = t.key === active;
+            const isPeeking = t.key === peek;
             return (
-              <button
-                key={t.key}
-                type="button"
-                onClick={() => setActive(t.key)}
-                aria-pressed={isActive}
-                className={cn(
-                  "shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all",
-                  isActive
-                    ? cn("border-border bg-muted/60 text-foreground ring-1", t.ring)
-                    : "border-border/50 bg-muted/20 text-muted-foreground hover:text-foreground hover:bg-muted/40",
+              <div key={t.key} className="relative shrink-0">
+                <button
+                  type="button"
+                  onClick={() => showPeek(t.key, true)}
+                  onMouseEnter={() => showPeek(t.key, false)}
+                  onMouseLeave={() => setPeek((p) => (p === t.key ? null : p))}
+                  onFocus={() => setPeek(t.key)}
+                  onBlur={() => setPeek((p) => (p === t.key ? null : p))}
+                  aria-pressed={isActive}
+                  aria-describedby={isPeeking ? `peek-${t.key}` : undefined}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all",
+                    isActive
+                      ? cn("border-border bg-muted/60 text-foreground ring-1", t.ring)
+                      : "border-border/50 bg-muted/20 text-muted-foreground hover:text-foreground hover:bg-muted/40",
+                  )}
+                >
+                  <Icon className={cn("h-3.5 w-3.5", isActive ? t.accent : "")} />
+                  {t.label}
+                </button>
+                {isPeeking && (
+                  <div id={`peek-${t.key}`}>
+                    <PeekCard tab={t} />
+                  </div>
                 )}
-              >
-                <Icon className={cn("h-3.5 w-3.5", isActive ? t.accent : "")} />
-                {t.label}
-              </button>
+              </div>
             );
           })}
         </div>
