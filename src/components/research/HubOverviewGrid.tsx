@@ -408,6 +408,15 @@ function ChatroomCard() {
           : "Live rooms, ideas & analyst chat"
       }
       extra={others.length ? others.map((r) => r.name).join(" · ") : undefined}
+      visual={
+        data ? (
+          <div className="flex items-center gap-2 text-violet-400">
+            <MiniBars values={(data.rooms || []).map((r: any) => r.member_count || 1)} />
+            <LiveDots count={(data.rooms || []).filter((r: any) => r.is_live).length || 1} />
+          </div>
+        ) : null
+      }
+
     />
   );
 }
