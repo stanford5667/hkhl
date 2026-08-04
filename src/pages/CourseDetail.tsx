@@ -357,14 +357,24 @@ export default function CourseDetail() {
             {course.title}
           </li>
         </ol>
-        <Link
-          to="/academy"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors w-fit"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Academy
-        </Link>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+          <Link
+            to="/academy"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors w-fit"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Academy
+          </Link>
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 text-sm text-primary hover:text-primary/80 transition-colors w-fit"
+          >
+            <TrendingUp className="w-4 h-4" />
+            Go to dashboard
+          </Link>
+        </div>
       </nav>
+
 
 
 
@@ -748,10 +758,29 @@ export default function CourseDetail() {
                     Continue Learning
                   </Button>
                   {progressPercentage >= 100 && (
-                    <Button variant="outline" className="w-full" onClick={() => toast.success('Congratulations! Your certificate is ready. 🎉')}>
-                      <Award className="w-4 h-4 mr-2" />
-                      Get Certificate
-                    </Button>
+                    <div className="rounded-xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 to-primary/5 p-4 text-center space-y-3">
+                      <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto">
+                        <Award className="w-5 h-5 text-emerald-400" />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm font-semibold text-foreground">Course completed!</p>
+                        <p className="text-xs text-muted-foreground">Great work — you finished every lesson.</p>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <Link to="/academy" className="w-full">
+                          <Button variant="outline" className="w-full">
+                            <ArrowLeft className="w-4 h-4 mr-2" />
+                            Return to Academy
+                          </Button>
+                        </Link>
+                        <Link to="/" className="w-full">
+                          <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
+                            <TrendingUp className="w-4 h-4 mr-2" />
+                            Go to dashboard
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
                   )}
                 </>
               ) : enrollment && !isPro ? (
