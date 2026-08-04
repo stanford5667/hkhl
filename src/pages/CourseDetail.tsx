@@ -541,9 +541,10 @@ export default function CourseDetail() {
                             <div className="px-4 sm:px-6 pb-4 space-y-1.5">
                               {visibleLessons.map((lesson: any, lessonIndex: number) => {
                                 const isCompleted = completedLessons.has(lesson.id);
-                                const canAccess = hasAccess || lesson.is_preview;
                                 const thumbnail = getYouTubeThumbnail(lesson.video_url, lesson.video_provider);
                                 const globalIndex = modules!.slice(0, moduleIndex).reduce((s: number, m: any) => s + (m.lessons?.length || 0), 0) + lessonIndex;
+                                const isFreeLesson = lesson.is_preview || isFreeLessonIndex(globalIndex, totalLessons);
+                                const canAccess = hasAccess || isFreeLesson;
 
                                 return (
                                   <div
