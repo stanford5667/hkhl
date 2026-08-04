@@ -106,18 +106,18 @@ export function ResearchHero({
         {/* Hero Text — Terminal style */}
         <div className="text-left sm:text-center mb-5 sm:mb-8">
           <motion.h1
-            className="text-2xl sm:text-3xl lg:text-5xl font-bold mb-1.5 sm:mb-2.5 tracking-tight font-mono leading-tight"
+            className="font-display text-[30px] leading-[1.08] sm:text-4xl lg:text-5xl font-bold mb-2 sm:mb-3 tracking-tight"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <span className="text-foreground">Find Your Next</span>{' '}
-            <span className="bg-gradient-to-r from-[hsl(175_80%_45%)] to-[hsl(190_90%_55%)] bg-clip-text text-transparent">Big</span>
-            <br />
-            <span className="bg-gradient-to-r from-[hsl(190_90%_55%)] to-[hsl(175_80%_45%)] bg-clip-text text-transparent">Investment Idea</span>
+            <span className="text-foreground">Find your next</span>{' '}
+            <span className="bg-gradient-to-r from-[hsl(220_90%_62%)] via-[hsl(200_95%_58%)] to-[hsl(188_92%_55%)] bg-clip-text text-transparent">
+              big investment idea
+            </span>
           </motion.h1>
           <motion.p
-            className="text-muted-foreground text-[11px] sm:text-xs lg:text-sm max-w-lg sm:mx-auto font-mono font-semibold"
+            className="text-muted-foreground text-[13px] sm:text-sm lg:text-base max-w-lg sm:mx-auto leading-relaxed"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
@@ -125,6 +125,7 @@ export function ResearchHero({
             Type any ticker — get AI analysis, backtests and setups in seconds
           </motion.p>
         </div>
+
 
 
         {/* Search Section - Command palette style with glow */}
