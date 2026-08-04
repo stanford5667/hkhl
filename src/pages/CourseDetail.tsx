@@ -398,7 +398,7 @@ export default function CourseDetail() {
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                   CS
                 </div>
-                <span className="text-foreground/80">Led by <span className="font-medium text-foreground">Chris Stanford</span>, Private Equity Investor</span>
+                <span className="text-foreground/80">Led by <span className="font-medium text-foreground">Chris Stanford</span>, Hedge Fund Manager</span>
               </div>
             </CardContent>
           </Card>
