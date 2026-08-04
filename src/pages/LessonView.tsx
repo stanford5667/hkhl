@@ -601,8 +601,7 @@ export default function LessonView() {
                       {module.lessons?.map((l: any, lessonIndex: number) => {
                         const isCurrentLesson = l.id === lessonId;
                         const globalIndex = flatLessonIds.indexOf(l.id);
-                        const isFreeTier = l.is_preview || isFreeLessonIndex(globalIndex, flatLessonIds.length);
-                        const isLocked = !isFreeTier && !(user && isPro);
+                        const isLocked = false;
 
 
                         return (
