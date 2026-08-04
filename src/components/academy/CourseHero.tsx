@@ -21,7 +21,9 @@ interface CourseHeroProps {
   primaryLoading?: boolean;
   instructorName: string;
   instructorRole: string;
+  preview?: React.ReactNode;
 }
+
 
 const levelStyles: Record<string, string> = {
   beginner: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
@@ -55,7 +57,9 @@ export function CourseHero({
   primaryLoading,
   instructorName,
   instructorRole,
+  preview,
 }: CourseHeroProps) {
+
   const initials = instructorName
     .split(' ')
     .map((p) => p[0])
