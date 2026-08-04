@@ -35,6 +35,10 @@ const THUMB_GRADIENTS = [
   'from-[hsl(210,50%,10%)] via-[hsl(230,45%,14%)] to-[hsl(250,30%,6%)]',
 ];
 
+// Free preview viewers only get the first slice of the lesson video
+const PREVIEW_LIMIT_SECONDS = 120;
+
+
 export default function LessonView() {
   const { lessonId } = useParams();
   const navigate = useNavigate();
@@ -45,6 +49,8 @@ export default function LessonView() {
   const [videoProgress, setVideoProgress] = useState(0);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showAuthSheet, setShowAuthSheet] = useState(false);
+  const [previewEnded, setPreviewEnded] = useState(false);
+
 
   // Fetch lesson details
   const { data: lesson } = useQuery({
@@ -193,10 +199,11 @@ export default function LessonView() {
     return clean.endsWith('.mp4') || clean.endsWith('.mov') || clean.endsWith('.webm') || clean.endsWith('.m4v');
   };
 
-  const getVideoEmbedUrl = (url: string, provider: string) => {
+  const getVideoEmbedUrl = (url: string, provider: string, limitSeconds?: number) => {
     if (provider === 'youtube') {
       const videoId = url.includes('v=') ? url.split('v=')[1]?.split('&')[0] : url.split('/').pop();
-      return `https://www.youtube.com/embed/${videoId}?enablejsapi=1`;
+      const endParam = limitSeconds ? `&start=0&end=${limitSeconds}` : '';
+      return `https://www.youtube.com/embed/${videoId}?enablejsapi=1&rel=0${endParam}`;
     }
     if (provider === 'vimeo') {
       const videoId = url.split('/').pop();
@@ -204,6 +211,7 @@ export default function LessonView() {
     }
     return url;
   };
+
 
   const getCurrentLessonIndex = () => {
     if (!allLessons) return -1;
@@ -252,9 +260,17 @@ export default function LessonView() {
   }
 
   const isFreeLesson = Boolean(lesson?.is_preview);
-  // Free preview lessons play for everyone (including guests); paid lessons need Pro.
-  const hasVideoAccess = isFreeLesson || Boolean(user && isPro);
+  const hasFullAccess = Boolean(user && isPro);
+  // Free preview lessons play for everyone (including guests) — but only a short teaser slice.
+  const hasVideoAccess = isFreeLesson || hasFullAccess;
+  const isPreviewOnly = hasVideoAccess && !hasFullAccess;
+  const previewLimit = Math.min(
+    PREVIEW_LIMIT_SECONDS,
+    lesson.video_duration ? Math.max(30, Math.floor(lesson.video_duration * 0.2)) : PREVIEW_LIMIT_SECONDS
+  );
+  const previewMinutes = Math.max(1, Math.round(previewLimit / 60));
   const courseProgress = 45;
+
   const gradientIndex = (lesson.module?.order_index || 0) % THUMB_GRADIENTS.length;
 
   return (
@@ -291,12 +307,30 @@ export default function LessonView() {
                     src={lesson.video_url}
                     controls
                     preload="metadata"
-                    onTimeUpdate={(e) => setVideoProgress(Math.floor((e.currentTarget as HTMLVideoElement).currentTime))}
+                    onTimeUpdate={(e) => {
+                      const el = e.currentTarget as HTMLVideoElement;
+                      setVideoProgress(Math.floor(el.currentTime));
+                      if (isPreviewOnly && el.currentTime >= previewLimit) {
+                        el.pause();
+                        el.currentTime = previewLimit;
+                        setPreviewEnded(true);
+                      }
+                    }}
+                    onSeeking={(e) => {
+                      const el = e.currentTarget as HTMLVideoElement;
+                      if (isPreviewOnly && el.currentTime > previewLimit) {
+                        el.currentTime = previewLimit;
+                      }
+                    }}
                   />
                 ) : (
                   <iframe
                     ref={videoRef as React.RefObject<HTMLIFrameElement>}
-                    src={getVideoEmbedUrl(lesson.video_url, lesson.video_provider || 'youtube')}
+                    src={getVideoEmbedUrl(
+                      lesson.video_url,
+                      lesson.video_provider || 'youtube',
+                      isPreviewOnly ? previewLimit : undefined
+                    )}
                     title={lesson.title}
                     className="w-full h-full"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -304,6 +338,7 @@ export default function LessonView() {
                   />
                 )
               ) : (
+
                 /* Premium Thumbnail Tease — visible to everyone without access */
                 <div
                   className="w-full h-full cursor-pointer group relative select-none"
@@ -357,8 +392,57 @@ export default function LessonView() {
                   </div>
                 </div>
               )}
+
+              {/* Free preview badge */}
+              {isPreviewOnly && !previewEnded && (
+                <div className="absolute top-3 left-3 z-10 pointer-events-none">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-md border border-white/10 text-[11px] font-medium text-white/80 tracking-wide uppercase">
+                    <Sparkles className="w-3 h-3" />
+                    Free preview · {previewMinutes} min
+                  </span>
+                </div>
+              )}
+
+              {/* Preview limit reached — paywall overlay */}
+              <AnimatePresence>
+                {isPreviewOnly && previewEnded && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-background/85 backdrop-blur-md px-6 text-center"
+                  >
+                    <div className="w-12 h-12 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center">
+                      <Lock className="w-5 h-5 text-primary" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-base md:text-lg font-semibold">Preview ended</p>
+                      <p className="text-sm text-muted-foreground max-w-sm">
+                        You've watched the free {previewMinutes}-minute preview. Unlock the full lesson and the entire Academy with Pro.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center justify-center gap-2">
+                      <Button onClick={() => setShowUpgradeModal(true)}>
+                        <Sparkles className="w-4 h-4 mr-2" />
+                        Unlock full lesson
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setPreviewEnded(false);
+                          const el = videoRef.current as HTMLVideoElement | null;
+                          if (el && 'currentTime' in el) el.currentTime = 0;
+                        }}
+                      >
+                        Rewatch preview
+                      </Button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
+
 
           {/* ─── Upgrade Modal ─── */}
           <UpgradeModal
