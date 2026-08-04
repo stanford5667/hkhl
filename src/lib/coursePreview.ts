@@ -22,8 +22,13 @@ export function getPreviewLimitSeconds(videoDuration?: number | null): number {
   );
 }
 
-/** Human label for the preview window, e.g. "3 min". */
-export function getPreviewLabel(videoDuration?: number | null): string {
+/**
+ * Human label for the preview window, e.g. "3 min".
+ * Returns null when the video length is unknown, so callers can fall back to a
+ * generic "Free preview" label instead of implying a 10-minute window.
+ */
+export function getPreviewLabel(videoDuration?: number | null): string | null {
+  if (!videoDuration || videoDuration <= 0) return null;
   const seconds = getPreviewLimitSeconds(videoDuration);
   return `${Math.max(1, Math.round(seconds / 60))} min`;
 }

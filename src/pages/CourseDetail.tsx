@@ -594,7 +594,7 @@ export default function CourseDetail() {
                                     {!hasAccess ? (
                                       <Badge className="text-[10px] flex-shrink-0 bg-primary/15 text-primary border-primary/30 gap-1">
                                         <Play className="w-2.5 h-2.5" />
-                                        {getPreviewLabel(lesson.video_duration)} preview
+                                        {getPreviewLabel(lesson.video_duration) ? `${getPreviewLabel(lesson.video_duration)} preview` : 'Free preview'}
                                       </Badge>
                                     ) : null}
                                   </div>
