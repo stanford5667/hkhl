@@ -221,7 +221,12 @@ export function PremiumDataPlaceholder({
         onOpenChange={setShowAuthSheet}
         title="Sign up to access Pro"
         description="Create a free account, then upgrade to unlock premium features."
+        onSuccess={() => {
+          setShowAuthSheet(false);
+          handleStripeCheckout(setIsLoading, setShowAuthSheet);
+        }}
       />
+
     </>
   );
 }
