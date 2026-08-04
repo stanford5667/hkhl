@@ -11,7 +11,12 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { AssetLabsLogo } from "@/components/brand/AssetLabsLogo";
 import { AgeVerificationInput, AgeRatingBadge } from "@/components/auth/AgeVerificationInput";
-import { getAffiliateRef } from "@/hooks/useAffiliateTracking";
+import {
+  launchCheckout,
+  readCheckoutIntent,
+  clearCheckoutIntent,
+  type CheckoutOptions,
+} from "@/lib/checkout";
 
 const signInSchema = z.object({
   email: z.string().trim().email("Please enter a valid email address"),
@@ -50,36 +55,45 @@ export default function Auth() {
 
   // Get the redirect path and optional checkout intent from state
   const locationState = location.state as { from?: string; checkoutPlan?: string; checkoutReturnPath?: string } | null;
-  const from = locationState?.from || "/research";
+  const storedRedirect = typeof window !== "undefined" ? sessionStorage.getItem("post_auth_redirect") : null;
+  const from = locationState?.from || storedRedirect || "/research";
   const checkoutPlan = locationState?.checkoutPlan;
   const checkoutReturnPath = locationState?.checkoutReturnPath;
 
   useEffect(() => {
-    if (user) {
-      if (checkoutPlan) {
-        // Trigger checkout immediately after login/signup
-        import('@/integrations/supabase/client').then(({ supabase }) => {
-          const affiliateCode = getAffiliateRef();
-          supabase.functions.invoke('create-checkout', {
-            body: { 
-              plan: checkoutPlan, 
-              billing_interval: 'annual', 
-              return_path: checkoutReturnPath || from,
-              ...(affiliateCode && { affiliate_code: affiliateCode }),
-            },
-          }).then(({ data, error }) => {
-            if (!error && data?.url) {
-              window.location.href = data.url;
-            } else {
-              navigate(from, { replace: true });
+    if (!user) return;
+
+    let cancelled = false;
+
+    (async () => {
+      // A purchase started before signing in? Resume it instead of dumping the
+      // user back on the page they came from.
+      const storedIntent = readCheckoutIntent();
+      const intent: CheckoutOptions | null = storedIntent
+        ?? (checkoutPlan
+          ? {
+              plan: checkoutPlan as CheckoutOptions["plan"],
+              billingInterval: "annual",
+              returnPath: checkoutReturnPath || from,
             }
-          });
-        });
-      } else {
-        navigate(from, { replace: true });
+          : null);
+
+      if (intent) {
+        clearCheckoutIntent();
+        const result = await launchCheckout(intent);
+        if (result === "redirecting" || result === "already_subscribed") return;
       }
-    }
+
+      if (cancelled) return;
+      sessionStorage.removeItem("post_auth_redirect");
+      navigate(from, { replace: true });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [user, navigate, from, checkoutPlan, checkoutReturnPath]);
+
 
   const signInForm = useForm<SignInFormData>({
     resolver: zodResolver(signInSchema),

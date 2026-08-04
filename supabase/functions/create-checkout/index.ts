@@ -140,35 +140,62 @@ serve(async (req) => {
     logStep("User authenticated", { userId: user.id, email: user.email });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
-    
+
+    // Redirect back to wherever the user actually is (preview, custom domain, prod)
+    const productionUrl = "https://assetlabs.ai";
+    const origin = req.headers.get("origin") ?? "";
+    const baseUrl = /^https?:\/\/[^\s]+$/.test(origin) ? origin.replace(/\/$/, "") : productionUrl;
+    const returnSeparator = returnPath.includes("?") ? "&" : "?";
+
+    const allPlanPriceIds = new Set(
+      Object.values(PLAN_PRICES).flatMap((intervals) => Object.values(intervals))
+    );
+
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     let customerId;
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
       logStep("Existing customer found", { customerId });
-      
+
       const subscriptions = await stripe.subscriptions.list({
         customer: customerId,
-        status: "active",
         limit: 100,
       });
-      
-      const hasActiveSubscription = subscriptions.data.some(
-        (sub: { items: { data: Array<{ price: { id: string } }> } }) => 
-          sub.items.data.some((item: { price: { id: string } }) => item.price.id === priceId)
+
+      // Any live subscription to one of our plans means they shouldn't hit a
+      // second checkout — send them to the billing portal to change plans.
+      const liveSubscription = subscriptions.data.find(
+        (sub: { status: string; items: { data: Array<{ price: { id: string } }> } }) =>
+          (sub.status === "active" || sub.status === "trialing" || sub.status === "past_due") &&
+          sub.items.data.some((item: { price: { id: string } }) => allPlanPriceIds.has(item.price.id))
       );
-      
-      if (hasActiveSubscription) {
-        logStep("User already has active subscription to this plan");
+
+      if (liveSubscription) {
+        logStep("User already has a live subscription, returning billing portal", {
+          subscriptionId: liveSubscription.id,
+          status: liveSubscription.status,
+        });
+        let portalUrl: string | null = null;
+        try {
+          const portal = await stripe.billingPortal.sessions.create({
+            customer: customerId,
+            return_url: `${baseUrl}/settings`,
+          });
+          portalUrl = portal.url;
+        } catch (err) {
+          logStep("Failed to create billing portal session", { error: String(err) });
+        }
         return new Response(
-          JSON.stringify({ error: "You already have an active subscription to this plan" }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+          JSON.stringify({
+            already_subscribed: true,
+            url: portalUrl,
+            error: portalUrl ? undefined : "You already have an active subscription.",
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
         );
       }
     }
 
-    const productionUrl = "https://assetlabs.ai";
-    
     const planDescriptions: Record<string, string> = {
       pro: "Your Pro subscription includes:\n• Unlimited portfolio analysis\n• Advanced risk metrics & correlations\n• AI-powered insights & recommendations\n• Real-time market data\n• Priority support\n\nSubscription auto-renews monthly. Cancel anytime from your account settings.",
       research_education: "Elite education, proprietary trade ideas, and the tools to execute them. Unlock our comprehensive AI and investment video course, join the exclusive community chat for real-time trade setups, and get your all-access pass to our AI-powered backtester and 30+ years of institutional data.\n\nSubscription auto-renews monthly. Cancel anytime from your account settings.",
@@ -177,10 +204,11 @@ serve(async (req) => {
     const sessionParams: any = {
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
+      client_reference_id: user.id,
       line_items: [{ price: priceId, quantity: 1 }],
       mode: "subscription",
-      success_url: `${productionUrl}${returnPath}?subscription=success`,
-      cancel_url: `${productionUrl}${returnPath}?subscription=cancelled`,
+      success_url: `${baseUrl}${returnPath}${returnSeparator}subscription=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}${returnPath}${returnSeparator}subscription=cancelled`,
       custom_text: {
         submit: {
           message: enableTrial
@@ -188,12 +216,20 @@ serve(async (req) => {
             : planDescriptions[selectedPlan],
         },
       },
-      billing_address_collection: "required",
+      // Keep the form as short as possible; Stripe still collects what tax needs.
+      billing_address_collection: "auto",
+      phone_number_collection: { enabled: false },
       tax_id_collection: { enabled: true },
+      // Let returning customers pay with a saved card in one click.
+      saved_payment_method_options: { payment_method_save: "enabled" },
+      metadata: { user_id: user.id, plan: selectedPlan, billing_interval: billingInterval },
+      subscription_data: {
+        metadata: { user_id: user.id, plan: selectedPlan, billing_interval: billingInterval },
+      },
     };
 
     if (enableTrial) {
-      sessionParams.subscription_data = { trial_period_days: 7 };
+      sessionParams.subscription_data.trial_period_days = 7;
       logStep("Free trial enabled", { days: 7 });
     }
 
@@ -222,6 +258,12 @@ serve(async (req) => {
           if (validPromoId) {
             sessionParams.discounts = [{ promotion_code: validPromoId }];
             sessionParams.metadata = {
+              ...sessionParams.metadata,
+              affiliate_id: affiliateData.id,
+              affiliate_code: affiliateCode,
+            };
+            sessionParams.subscription_data.metadata = {
+              ...sessionParams.subscription_data.metadata,
               affiliate_id: affiliateData.id,
               affiliate_code: affiliateCode,
             };

@@ -17,7 +17,7 @@ import { useMediaQuery } from '@/hooks/use-media-query';
 import { MobileAuthSheet } from '@/components/auth/MobileAuthSheet';
 import { cn } from '@/lib/utils';
 import { PRICING, COMPARISON_FEATURES, COMING_SOON } from '@/config/pricing';
-import { getAffiliateRef } from '@/hooks/useAffiliateTracking';
+import { launchCheckout } from '@/lib/checkout';
 
 interface UpgradeModalProps {
   isOpen: boolean;
@@ -118,38 +118,14 @@ export function UpgradeModal({ isOpen, feature, onClose, onUpgrade }: UpgradeMod
   const handleUpgrade = async () => {
     setIsLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        setIsLoading(false);
-        setShowAuthSheet(true);
-        return;
-      }
-
-      const affiliateCode = getAffiliateRef();
-      const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { 
-          plan: 'research_education', 
-          billing_interval: selected,
-          ...(affiliateCode && { affiliate_code: affiliateCode }),
-        },
-      });
-      
-      if (error) {
-        toast.error('Failed to start checkout');
-        console.error('Checkout error:', error);
-        return;
-      }
-      
-      if (data?.url) {
-        const w = window.open(data.url, '_blank');
-        if (!w) window.location.href = data.url;
+      const result = await launchCheckout(
+        { plan: 'research_education', billingInterval: selected, source: `upgrade_modal:${feature}` },
+        { onNeedsAuth: () => setShowAuthSheet(true) }
+      );
+      if (result === 'redirecting' || result === 'already_subscribed') {
         onUpgrade?.();
         onClose();
       }
-    } catch (err) {
-      toast.error('Something went wrong');
-      console.error('Checkout error:', err);
     } finally {
       setIsLoading(false);
     }

@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useUsage } from '@/contexts/UsageContext';
 import { toast } from 'sonner';
 import { PRICING, COMPARISON_FEATURES } from '@/config/pricing';
-import { getAffiliateRef } from '@/hooks/useAffiliateTracking';
+import { launchCheckout } from '@/lib/checkout';
 
 function PriceIncreaseCountdown() {
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
@@ -104,19 +104,12 @@ export function BillingIntervalSheet({ open, onOpenChange, returnPath }: Billing
         onOpenChange(false);
         window.location.reload();
       } else {
-        const affiliateCode = getAffiliateRef();
-        const { data, error } = await supabase.functions.invoke('create-checkout', {
-          body: { 
-            plan: 'research_education', 
-            billing_interval: selected, 
-            return_path: returnPath,
-            ...(affiliateCode && { affiliate_code: affiliateCode }),
-          },
+        await launchCheckout({
+          plan: 'research_education',
+          billingInterval: selected,
+          returnPath,
+          source: 'billing_interval_sheet',
         });
-        if (error) throw error;
-        if (data?.url) {
-          window.open(data.url, '_blank') || (window.location.href = data.url);
-        }
       }
     } catch (err: any) {
       toast.error(err.message || 'Failed to process subscription');
