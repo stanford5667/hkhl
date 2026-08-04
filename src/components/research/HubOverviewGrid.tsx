@@ -317,7 +317,9 @@ function WatchlistCard() {
       icon={Eye}
       title="Watchlist"
       accent="amber"
+      blurb={BLURBS.watchlist}
       loading={isLoading}
+
       primary={top ? top.item_id : "Empty"}
       secondary={top ? `${changePct >= 0 ? "+" : ""}${changePct.toFixed(2)}% today` : "Add tickers to track"}
       extra={
