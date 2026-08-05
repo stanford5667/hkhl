@@ -120,11 +120,11 @@ export function ResearchHero({
 
   return (
     <div className="relative">
-      <div className="relative max-w-6xl mx-auto px-3 sm:px-6 pt-3 sm:pt-12 pb-4 sm:pb-8">
+      <div className="relative max-w-6xl mx-auto px-3 sm:px-6 pt-4 sm:pt-10 pb-5 sm:pb-8">
         {/* Hero Text — Terminal style */}
-        <div className="text-left sm:text-center mb-4 sm:mb-8">
+        <div className="text-left sm:text-center mb-5 sm:mb-10">
           <motion.h1
-            className="font-display text-[22px] leading-[1.1] tracking-tighter whitespace-nowrap sm:text-5xl sm:tracking-tight lg:text-6xl font-bold mb-2 sm:mb-3"
+            className="font-display text-[clamp(1.1rem,2.8vw+0.5rem,3.25rem)] leading-[1.05] tracking-tight whitespace-nowrap font-bold mb-2 sm:mb-4"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
@@ -135,7 +135,7 @@ export function ResearchHero({
             </span>
           </motion.h1>
           <motion.p
-            className="text-muted-foreground text-[14px] sm:text-base lg:text-lg max-w-lg sm:mx-auto leading-relaxed"
+            className="text-muted-foreground text-[15px] sm:text-base lg:text-lg max-w-lg sm:mx-auto leading-relaxed mb-3 sm:mb-4"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
@@ -144,7 +144,7 @@ export function ResearchHero({
             Learn the craft, trade ideas with the room, and automate strategies built to outlast the cycle — not chase it.
           </motion.p>
           <motion.div
-            className="flex justify-start sm:justify-center mt-2"
+            className="flex justify-start sm:justify-center mt-4"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.18 }}
@@ -179,7 +179,7 @@ export function ResearchHero({
         {/* Search Section - Command palette style with glow */}
         <motion.div
           ref={containerRef}
-          className="max-w-xl mx-auto mb-4 sm:mb-6 relative"
+          className="max-w-xl mx-auto mb-5 sm:mb-7 relative"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
@@ -398,7 +398,7 @@ export function ResearchHero({
 
         {/* Stats Bar — compact tiles on mobile, inline row on desktop */}
         <motion.div
-          className="grid grid-cols-3 gap-2 sm:flex sm:items-center sm:justify-center sm:gap-8 mt-3 sm:mt-4 max-w-xl mx-auto"
+          className="grid grid-cols-3 gap-2 sm:flex sm:items-center sm:justify-center sm:gap-8 mt-5 sm:mt-6 max-w-xl mx-auto"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.35 }}
