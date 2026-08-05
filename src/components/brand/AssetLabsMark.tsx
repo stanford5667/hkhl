@@ -1,4 +1,3 @@
-import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 interface AssetLabsMarkProps {
@@ -21,52 +20,47 @@ export function AssetLabsMark({
   strokeWidth = 2.25,
   animated = false,
 }: AssetLabsMarkProps) {
-  const reduceMotion = useReducedMotion();
-  const play = animated && !reduceMotion;
-
-  const shared = {
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth,
-    strokeLinecap: "round" as const,
-    strokeLinejoin: "round" as const,
-  };
-
   // 1) the A itself, 2) the trend-line extension past the apex, 3) the crossbar
-  const paths = [
-    "M5 27 L13 11 L21 27",
-    "M13 11 L25.5 6",
-    "M8.5 21 H17.5",
+  const paths: Array<{ d: string; duration: number }> = [
+    { d: "M5 27 L13 11 L21 27", duration: 0.6 },
+    { d: "M13 11 L25.5 6", duration: 0.35 },
+    { d: "M8.5 21 H17.5", duration: 0.25 },
   ];
 
-  const durations = [0.55, 0.35, 0.25];
+  let elapsed = 0;
 
   return (
     <svg
       viewBox="0 0 32 32"
-      className={cn("h-full w-full", className)}
+      className={cn("h-full w-full", animated && "al-mark-draw", className)}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
       role="img"
       aria-label="Asset Labs AI"
       shapeRendering="geometricPrecision"
     >
-      {paths.map((d, i) =>
-        play ? (
-          <motion.path
+      {paths.map(({ d, duration }) => {
+        const delay = elapsed;
+        elapsed += duration;
+        return (
+          <path
             key={d}
             d={d}
-            {...shared}
-            initial={{ pathLength: 0, opacity: 0 }}
-            animate={{ pathLength: 1, opacity: 1 }}
-            transition={{
-              duration: durations[i],
-              delay: durations.slice(0, i).reduce((a, b) => a + b, 0),
-              ease: "easeInOut",
-            }}
+            pathLength={1}
+            style={
+              animated
+                ? ({
+                    "--al-draw-duration": `${duration}s`,
+                    "--al-draw-delay": `${delay}s`,
+                  } as React.CSSProperties)
+                : undefined
+            }
           />
-        ) : (
-          <path key={d} d={d} {...shared} />
-        )
-      )}
+        );
+      })}
     </svg>
   );
 }

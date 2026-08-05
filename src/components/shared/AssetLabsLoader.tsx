@@ -1,4 +1,3 @@
-import { motion, useReducedMotion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { AssetLabsMark } from '@/components/brand/AssetLabsMark';
 
@@ -17,8 +16,6 @@ export const AssetLabsLoader = ({
   size = 'md',
   className,
 }: AssetLabsLoaderProps) => {
-  const reduceMotion = useReducedMotion();
-
   const sizeConfig = {
     sm: { logo: 'h-10 w-10', text: 'text-lg', container: 'gap-3' },
     md: { logo: 'h-14 w-14', text: 'text-xl', container: 'gap-4' },
@@ -29,18 +26,10 @@ export const AssetLabsLoader = ({
 
   return (
     <div className={cn('flex flex-col items-center justify-center', config.container, className)}>
-      {/* Mark plots itself in, then breathes */}
-      <motion.div
-        className={cn('text-primary', config.logo)}
-        animate={reduceMotion ? undefined : { opacity: [1, 0.6, 1] }}
-        transition={
-          reduceMotion
-            ? undefined
-            : { duration: 2.4, repeat: Infinity, ease: 'easeInOut', delay: 1.2 }
-        }
-      >
-        <AssetLabsMark animated strokeWidth={2.25} />
-      </motion.div>
+      {/* The mark plots itself in, then holds with a subtle breath */}
+      <div className={cn('al-mark-breathe text-primary', config.logo)}>
+        <AssetLabsMark animated />
+      </div>
 
       {/* Brand name */}
       <div className="text-center">
