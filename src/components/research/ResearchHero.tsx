@@ -391,26 +391,6 @@ export function ResearchHero({
           </div>
         )}
 
-        {/* Stats Bar — compact tiles on mobile, inline row on desktop */}
-        <motion.div
-          className="grid grid-cols-3 gap-2 sm:flex sm:items-center sm:justify-center sm:gap-8 mt-5 sm:mt-6 max-w-xl mx-auto"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.35 }}
-        >
-          {STATS.map((stat, i) => (
-            <div
-              key={stat.label}
-              className="flex flex-col items-center gap-0.5 rounded-xl border border-border/50 bg-card/40 px-2 py-2 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:flex-row sm:gap-2"
-            >
-              {i > 0 && <span className="hidden sm:inline text-border text-xs">│</span>}
-              <div className="flex flex-col items-center gap-0">
-                <span className="text-[13px] sm:text-sm font-mono font-bold text-foreground tabular-nums">{stat.value}</span>
-                <span className="text-[8px] sm:text-[9px] text-muted-foreground uppercase tracking-wider text-center leading-tight">{stat.label}</span>
-              </div>
-            </div>
-          ))}
-        </motion.div>
 
       </div>
     </div>
