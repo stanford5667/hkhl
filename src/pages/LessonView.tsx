@@ -30,6 +30,8 @@ import { UpgradeModal } from '@/components/premium/UpgradeModal';
 import { launchCheckout } from '@/lib/checkout';
 
 import { getPreviewLimitSeconds, getPreviewLabel, isLessonPreviewable, getPreviewableLessonCount } from '@/lib/coursePreview';
+import { getTopicThumbnail } from '@/lib/lessonThumbnails';
+
 
 // Premium dark thumbnail gradients
 const THUMB_GRADIENTS = [
@@ -385,7 +387,14 @@ export default function LessonView() {
                   onClick={handlePlayClick}
                 >
                   {/* Dark premium gradient background */}
-                  <div className={`absolute inset-0 bg-gradient-to-br ${THUMB_GRADIENTS[gradientIndex]}`} />
+                  {/* Relevant real-world photo for the lesson topic */}
+                  <img
+                    src={getTopicThumbnail(lesson.title, lesson.module?.title, lesson.module?.course?.title)}
+                    alt={lesson.title}
+                    loading="lazy"
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                  <div className={`absolute inset-0 bg-gradient-to-br ${THUMB_GRADIENTS[gradientIndex]} opacity-60`} />
 
                   {/* Subtle noise texture overlay */}
                   <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\' opacity=\'0.5\'/%3E%3C/svg%3E")' }} />
