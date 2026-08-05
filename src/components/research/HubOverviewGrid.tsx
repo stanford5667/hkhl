@@ -6,7 +6,7 @@ import {
   Eye,
   LineChart,
   GraduationCap,
-  Radar,
+  Activity,
   ArrowUpRight,
   TrendingUp,
   TrendingDown,
@@ -24,7 +24,8 @@ import {
 import { useWatchlistWithQuotes } from "@/hooks/useWatchlistWithQuotes";
 import { useSavedReports } from "@/hooks/useSavedReports";
 
-type Accent = "emerald" | "violet" | "amber" | "teal" | "indigo" | "rose";
+type Accent = "emerald" | "violet" | "amber" | "teal" | "indigo";
+
 
 /**
  * Cohesive "Slate Electric" accent family — everything sits in the
@@ -72,14 +73,6 @@ const ACCENTS: Record<Accent, { bar: string; badge: string; ring: string; text: 
     glow: "hover:shadow-blue-500/10",
     wash: "from-blue-500/[0.07]",
   },
-  rose: {
-    bar: "bg-teal-400/60",
-    badge: "bg-teal-500/10 border-teal-400/25 text-teal-300",
-    ring: "hover:border-teal-400/40",
-    text: "text-teal-300",
-    glow: "hover:shadow-teal-500/10",
-    wash: "from-teal-500/[0.07]",
-  },
 };
 
 interface HubCardProps {
@@ -114,7 +107,7 @@ function HubCard({
     <Link
       to={to}
       className={cn(
-        "group relative rounded-2xl border border-border/50 bg-card/40 backdrop-blur-sm overflow-hidden",
+        "group relative h-full rounded-2xl border border-border/50 bg-card/40 backdrop-blur-sm overflow-hidden",
         "p-3.5 sm:p-5 flex flex-col gap-2.5 sm:gap-4 min-h-[152px] sm:min-h-[180px]",
         "transition-all duration-200 will-change-transform",
         "active:scale-[0.985] hover:-translate-y-0.5 hover:bg-card/70 hover:shadow-xl",
@@ -160,11 +153,11 @@ function HubCard({
           <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground/60 transition-all duration-200 group-hover:text-foreground group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
         </div>
 
-        <p className="mt-1 text-[12px] sm:text-[13px] leading-relaxed text-muted-foreground line-clamp-2 sm:line-clamp-3">
+        <p className="mt-1 text-[12px] sm:text-[13px] leading-relaxed text-muted-foreground line-clamp-2">
           {blurb}
         </p>
 
-        <div className="mt-2.5 sm:mt-auto sm:pt-3 flex flex-col gap-1.5">
+        <div className="mt-auto pt-2.5 sm:pt-3 flex flex-col gap-1.5">
           {loading ? (
             <>
               <Skeleton className="h-5 w-24 rounded-md" />
@@ -189,18 +182,16 @@ function HubCard({
                 {visual && <div className="ml-auto shrink-0 opacity-80">{visual}</div>}
               </div>
 
-
-              {extra && (
-                <div
-                  className={cn(
-                    "text-[11px] truncate overflow-hidden transition-all duration-200",
-                    "max-h-0 opacity-0 group-hover:max-h-6 group-hover:opacity-100 group-focus-visible:max-h-6 group-focus-visible:opacity-100",
-                    a.text,
-                  )}
-                >
-                  {extra}
-                </div>
-              )}
+              {/* Space is always reserved so hover never changes card height */}
+              <div
+                className={cn(
+                  "h-4 text-[11px] leading-4 truncate overflow-hidden opacity-0 transition-opacity duration-200",
+                  "group-hover:opacity-100 group-focus-visible:opacity-100",
+                  a.text,
+                )}
+              >
+                {extra}
+              </div>
             </>
           ) : null}
 
@@ -224,25 +215,20 @@ const CTAS: Record<string, string> = {
   Academy: "Start learning free",
   Chatroom: "Join the conversation",
   Backtester: "Test a strategy now",
+  "Sim Trading": "Practice a trade risk-free",
   Portfolio: "Track my portfolio",
   Watchlist: "Build my watchlist",
-  "Smart Money": "See what funds bought",
 };
 
 const BLURBS = {
-  academy:
-    "Go from beginner to confident investor with guided courses on valuation, technicals, options and risk — bite-sized lessons that track your progress.",
-  chatroom:
-    "Trade ideas in real time with the community: live ticker rooms, analyst commentary, shared research notes and livestreamed market sessions.",
-  backtester:
-    "Build strategies with a no-code node builder and prove them against years of real market data — slippage-adjusted returns, drawdowns and equity curves.",
-  portfolio:
-    "One live view of everything you own: real-time values, total return, IRR and MOIC, so you always know exactly how your capital is performing.",
-  watchlist:
-    "Your personal market radar — live quotes, daily movers and instant one-click access to full AI research on any ticker you follow.",
-  smartMoney:
-    "Follow the institutions: 13F holdings, insider buys and sells and block trades, decoded into signals you can act on before the crowd.",
+  academy: "Guided courses on valuation, technicals, options and risk.",
+  chatroom: "Live rooms where members swap ideas and analyst commentary.",
+  backtester: "Build no-code strategies and test them against real market history.",
+  simTrading: "Paper trade with virtual capital before risking real money.",
+  portfolio: "One live view of what you own, your return and your risk.",
+  watchlist: "Track your tickers with live quotes and one-click AI research.",
 } as const;
+
 
 
 
@@ -522,7 +508,7 @@ function BacktesterCard() {
   })();
   return (
     <HubCard
-      to="/stock/SPY?tab=backtest"
+      to="/backtester"
       icon={LineChart}
       title="Backtester"
       accent="teal"
@@ -595,62 +581,6 @@ function AcademyCard() {
   );
 }
 
-function SmartMoneyCard() {
-  const { data, isLoading } = useQuery({
-    queryKey: ["hub-smart-money-latest"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("smart_money_insider_trades")
-        .select("ticker, insider_name, transaction_type, total_value, filing_date")
-        .order("filing_date", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      return data;
-    },
-    staleTime: 5 * 60 * 1000,
-  });
-  const d: any = data;
-  const isBuy = d?.transaction_type?.toLowerCase() === "buy";
-  return (
-    <HubCard
-      to="/smart-money"
-      icon={Radar}
-      title="Smart Money"
-      accent="rose"
-      blurb={BLURBS.smartMoney}
-      loading={isLoading}
-
-      primary={d ? d.ticker : "Latest signals"}
-      secondary={
-        d
-          ? `${(d.transaction_type || "").toUpperCase()} · ${d.insider_name ?? ""}`.slice(0, 44)
-          : "Track 13F & insider trades"
-      }
-      extra={
-        d?.total_value
-          ? `${fmtCurrency(Number(d.total_value))} · ${new Date(d.filing_date).toLocaleDateString()}`
-          : undefined
-      }
-      tone={d ? (isBuy ? "positive" : "negative") : "default"}
-      visual={
-        d ? (
-          <div
-            className={cn(
-              "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-mono font-semibold",
-              isBuy ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400",
-            )}
-          >
-            {isBuy ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-            {d.total_value ? fmtCurrency(Number(d.total_value)) : isBuy ? "BUY" : "SELL"}
-          </div>
-        ) : (
-          <LiveDots count={3} />
-        )
-      }
-
-    />
-  );
-}
 
 function TeaserCard({
   to,
@@ -682,7 +612,7 @@ function HubSection({ label, children }: { label: string; children: React.ReactN
       <h3 className="mb-2 px-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
         {label}
       </h3>
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">{children}</div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 auto-rows-fr gap-2 sm:gap-3">{children}</div>
     </section>
   );
 }
@@ -726,10 +656,11 @@ export function HubOverviewGrid() {
 
         <HubSection label="Test">
           {isGuest ? (
-            <TeaserCard to="/stock/SPY?tab=backtest" icon={LineChart} title="Backtester" accent="teal" blurb={BLURBS.backtester} />
+            <TeaserCard to="/backtester" icon={LineChart} title="Backtester" accent="teal" blurb={BLURBS.backtester} />
           ) : (
             <BacktesterCard />
           )}
+          <TeaserCard to="/sim-trading" icon={Activity} title="Sim Trading" accent="violet" blurb={BLURBS.simTrading} />
         </HubSection>
 
         <HubSection label="Track">
@@ -737,13 +668,11 @@ export function HubOverviewGrid() {
             <>
               <TeaserCard to="/auth" icon={Briefcase} title="Portfolio" accent="emerald" blurb={BLURBS.portfolio} />
               <TeaserCard to="/auth" icon={Eye} title="Watchlist" accent="amber" blurb={BLURBS.watchlist} />
-              <TeaserCard to="/smart-money" icon={Radar} title="Smart Money" accent="rose" blurb={BLURBS.smartMoney} />
             </>
           ) : (
             <>
               <PortfolioCard />
               <WatchlistCard />
-              <SmartMoneyCard />
             </>
           )}
         </HubSection>
