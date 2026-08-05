@@ -36,12 +36,13 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { MobileAuthSheet } from '@/components/auth/MobileAuthSheet';
-import { ExitIntentPopup } from '@/components/academy/ExitIntentPopup';
+import { CourseReviewForm } from '@/components/academy/CourseReviewForm';
+import { Input } from '@/components/ui/input';
 import { TestimonialsSection } from '@/components/academy/TestimonialsSection';
 import { BillingIntervalSheet } from '@/components/academy/BillingIntervalSheet';
 import { MembershipStep } from '@/components/onboarding/MembershipStep';
 import { FeatureComparisonPanel } from '@/components/auth/FeatureComparisonPanel';
-import { Check, X, ArrowLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import { Check, X, ArrowLeft, ChevronRight, ChevronDown, Search } from 'lucide-react';
 import { CourseHero } from '@/components/academy/CourseHero';
 import { CourseOverview } from '@/components/academy/CourseOverview';
 import {
@@ -127,6 +128,7 @@ export default function CourseDetail() {
   const [showBillingSheet, setShowBillingSheet] = useState(false);
   const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({});
   const [openModules, setOpenModules] = useState<string[]>([]);
+  const [curriculumQuery, setCurriculumQuery] = useState('');
 
   // Social proof toasts — show for guests/non-members
 
@@ -345,6 +347,19 @@ export default function CourseDetail() {
   const durationLabel = formatHours(courseHours);
   const parsedContent = parseCourseDescription(course?.description);
 
+  // Curriculum search
+  const searchQuery = curriculumQuery.trim().toLowerCase();
+  const isSearching = searchQuery.length > 0;
+  const lessonMatchesQuery = (lesson: any) =>
+    `${lesson?.title || ''} ${lesson?.description || ''}`.toLowerCase().includes(searchQuery);
+  const matchingModuleIds = isSearching
+    ? (modules || [])
+        .filter((m: any) => (m.lessons || []).some(lessonMatchesQuery))
+        .map((m: any) => m.id as string)
+    : [];
+
+
+
   const getLevelColor = (level: string | null) => {
     switch (level) {
       case 'beginner': return 'bg-green-500/20 text-green-400 border-green-500/30';
@@ -356,6 +371,11 @@ export default function CourseDetail() {
 
   // Check if user has access (enrolled + subscribed, or free course)
   const hasAccess = enrollment && (isPro || course?.is_free);
+
+  const myReview = (reviews || []).find((r: any) => r.user_id === user?.id) || null;
+  const canReview = !!hasAccess && !!user;
+  // Own review is surfaced in the form, so keep it out of the list to avoid duplicates
+  const otherReviews = (reviews || []).filter((r: any) => !(canReview && r.id === myReview?.id));
 
   if (isLoading) {
     return (
@@ -521,18 +541,63 @@ export default function CourseDetail() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="p-0">
+                  {/* Curriculum search */}
+                  <div className="px-4 sm:px-6 pb-3">
+                    <div className="relative">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        type="search"
+                        value={curriculumQuery}
+                        onChange={(e) => setCurriculumQuery(e.target.value)}
+                        placeholder="Search lessons..."
+                        aria-label="Search lessons"
+                        className="h-9 pl-9 pr-9 text-sm"
+                      />
+                      {isSearching && (
+                        <button
+                          type="button"
+                          onClick={() => setCurriculumQuery('')}
+                          aria-label="Clear lesson search"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-muted-foreground hover:text-foreground"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {isSearching && matchingModuleIds.length === 0 ? (
+                    <p className="px-4 sm:px-6 pb-6 text-center text-sm text-muted-foreground">
+                      No lessons match “{curriculumQuery.trim()}”.
+                    </p>
+                  ) : (
                   <Accordion
                     type="multiple"
-                    value={openModules}
-                    onValueChange={setOpenModules}
+                    value={isSearching ? matchingModuleIds : openModules}
+                    onValueChange={(value) => {
+                      if (!isSearching) setOpenModules(value);
+                    }}
                     className="w-full"
                   >
                     {modules?.map((module: any, moduleIndex: number) => {
                       const lessons: any[] = module.lessons || [];
                       const moduleDone = lessons.filter((l) => completedLessons.has(l.id)).length;
                       const isExpanded = !!expandedModules[module.id];
-                      const visibleLessons = isExpanded ? lessons : lessons.slice(0, LESSON_PREVIEW_COUNT);
-                      const hiddenCount = lessons.length - visibleLessons.length;
+                      // While searching, show every match and bypass truncation
+                      const matchedLessons = isSearching
+                        ? lessons
+                            .map((lesson, lessonIndex) => ({ lesson, lessonIndex }))
+                            .filter(({ lesson }) => lessonMatchesQuery(lesson))
+                        : lessons.map((lesson, lessonIndex) => ({ lesson, lessonIndex }));
+                      const visibleLessons =
+                        isSearching || isExpanded
+                          ? matchedLessons
+                          : matchedLessons.slice(0, LESSON_PREVIEW_COUNT);
+                      const hiddenCount = isSearching
+                        ? 0
+                        : matchedLessons.length - visibleLessons.length;
+
+                      if (isSearching && matchedLessons.length === 0) return null;
 
                       return (
                       <div key={module.id}>
@@ -547,15 +612,17 @@ export default function CourseDetail() {
                                   {module.title}
                                 </span>
                                 <span className="mt-0.5 block text-[11px] text-muted-foreground">
-                                  {`${lessons.length} lessons`}
-                                  {hasAccess && moduleDone > 0 ? ` · ${moduleDone} done` : ''}
+                                  {isSearching
+                                    ? `${matchedLessons.length} matching ${matchedLessons.length === 1 ? 'lesson' : 'lessons'}`
+                                    : `${lessons.length} lessons`}
+                                  {!isSearching && hasAccess && moduleDone > 0 ? ` · ${moduleDone} done` : ''}
                                 </span>
                               </div>
                             </div>
                           </AccordionTrigger>
                           <AccordionContent>
                             <div className="px-4 sm:px-6 pb-4 space-y-1.5">
-                              {visibleLessons.map((lesson: any, lessonIndex: number) => {
+                              {visibleLessons.map(({ lesson, lessonIndex }) => {
                                 const isCompleted = completedLessons.has(lesson.id);
                                 const thumbnail = getYouTubeThumbnail(lesson.video_url, lesson.video_provider);
                                 const globalIndex = modules!.slice(0, moduleIndex).reduce((s: number, m: any) => s + (m.lessons?.length || 0), 0) + lessonIndex;
@@ -563,14 +630,23 @@ export default function CourseDetail() {
                                 const canAccess = hasAccess || isPreviewable;
 
                                 return (
-                                  <div
+                                  <button
                                     key={lesson.id}
-                                    className={`group flex items-center justify-between gap-2 rounded-xl border p-2 sm:p-2.5 cursor-pointer transition-colors ${
+                                    type="button"
+                                    aria-label={`Lesson ${moduleIndex + 1}.${lessonIndex + 1}: ${lesson.title}${
+                                      canAccess ? '' : ' — locked, upgrade required'
+                                    }`}
+                                    className={`group flex w-full text-left items-center justify-between gap-2 rounded-xl border p-2 sm:p-2.5 cursor-pointer transition-colors ${
                                       canAccess
                                         ? 'border-border/50 hover:border-primary/40 hover:bg-primary/[0.04]'
                                         : 'border-border/40 hover:bg-muted/40'
                                     }`}
                                     onClick={() => {
+                                      if (!canAccess) {
+                                        if (!user) { setShowAuthSheet(true); return; }
+                                        handleSubscribe();
+                                        return;
+                                      }
                                       navigate(`/academy/lesson/${lesson.id}`);
                                     }}
                                   >
@@ -618,7 +694,7 @@ export default function CourseDetail() {
                                         </Badge>
                                       )
                                     ) : null}
-                                  </div>
+                                  </button>
                                 );
                               })}
                               {hiddenCount > 0 && (
@@ -636,30 +712,11 @@ export default function CourseDetail() {
                             </div>
                           </AccordionContent>
                         </AccordionItem>
-                        {/* Inline CTA after every 2nd module for non-pro */}
-                        {!hasAccess && moduleIndex > 0 && moduleIndex % 2 === 1 && moduleIndex < (modules?.length || 0) - 1 && (
-                          <div className="mx-4 sm:mx-6 my-2 p-3 rounded-lg bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/20 flex items-center gap-3">
-                            <Flame className="w-4 h-4 text-primary flex-shrink-0" />
-                            <p className="text-xs text-muted-foreground flex-1">
-                              <span className="text-foreground font-medium">Don't stop here.</span> Unlock the full curriculum and accelerate your growth.
-                            </p>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="text-primary hover:text-primary/80 text-xs h-7 px-2 shrink-0"
-                              onClick={() => {
-                                if (!user) { setShowAuthSheet(true); return; }
-                                handleSubscribe();
-                              }}
-                            >
-                              Unlock <ArrowRight className="w-3 h-3 ml-1" />
-                            </Button>
-                          </div>
-                        )}
                       </div>
                       );
                     })}
                   </Accordion>
+                  )}
                   {/* Mid-curriculum CTA */}
                   {!hasAccess && (
                     <div className="px-4 sm:px-6 py-4 border-t border-border/50 bg-muted/30">
@@ -701,10 +758,18 @@ export default function CourseDetail() {
                 <CardHeader className="p-4 sm:p-6">
                   <CardTitle className="text-base sm:text-lg">Student Reviews</CardTitle>
                 </CardHeader>
-                <CardContent className="p-4 sm:p-6 pt-0">
-                  {reviews && reviews.length > 0 ? (
+                <CardContent className="p-4 sm:p-6 pt-0 space-y-4">
+                  {/* Only members with access can review */}
+                  {hasAccess && user && courseId && (
+                    <CourseReviewForm
+                      courseId={courseId}
+                      userId={user.id}
+                      existingReview={myReview as any}
+                    />
+                  )}
+                  {otherReviews.length > 0 ? (
                     <div className="space-y-4">
-                      {reviews.map((review: any) => (
+                      {otherReviews.map((review: any) => (
                         <div key={review.id} className="border-b pb-4 last:border-0">
                           <div className="flex items-center gap-2 mb-2">
                             <div className="flex">
@@ -727,7 +792,7 @@ export default function CourseDetail() {
                     </div>
                   ) : (
                     <p className="text-center text-muted-foreground py-6 sm:py-8 text-sm">
-                      No reviews yet. Be the first to review!
+                      {hasAccess ? 'No reviews yet — share yours above.' : 'No reviews yet.'}
                     </p>
                   )}
                 </CardContent>
@@ -972,7 +1037,6 @@ export default function CourseDetail() {
         returnPath={`/academy/course/${courseId}`}
       />
 
-      <ExitIntentPopup isLoggedIn={!!user} />
     </div>
   );
 }
