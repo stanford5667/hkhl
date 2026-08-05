@@ -130,7 +130,7 @@ export function ResearchHero({
             transition={{ duration: 0.5 }}
           >
             <span className="text-foreground">Find your next</span>{' '}
-            <span className="bg-gradient-to-r from-[hsl(220_90%_62%)] via-[hsl(200_95%_58%)] to-[hsl(188_92%_55%)] bg-clip-text text-transparent">
+            <span className="text-primary">
               big investment idea
             </span>
           </motion.h1>
@@ -343,7 +343,7 @@ export function ResearchHero({
               <span className="text-[10px] text-muted-foreground flex items-center gap-1 shrink-0">
                 <Clock className="h-3 w-3" /> Recent:
               </span>
-              {recentSearches.slice(0, 4).map(ticker => (
+              {recentSearches.map(ticker => (
                 <Button
                   key={ticker}
                   variant="outline"
