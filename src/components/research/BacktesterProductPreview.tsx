@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
-import { LineChart, ArrowRight, Sparkles } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { LineChart, ArrowRight } from "lucide-react";
 import { BacktestDemo } from "@/components/demos/BacktestDemo";
 
 export function BacktesterProductPreview() {
