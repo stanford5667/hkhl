@@ -9,8 +9,9 @@ import { useTickerSearch } from '@/hooks/useTickerSearch';
 const STATS = [
   { label: 'Stocks & ETFs', value: '10,000+' },
   { label: 'Financial Metrics', value: '18+' },
-  { label: 'AI-Powered Insights', value: 'Real-time' },
+  { label: 'Years of History', value: '30+' },
 ];
+
 
 interface ResearchHeroProps {
   searchQuery: string;
@@ -55,6 +56,23 @@ export function ResearchHero({
   useEffect(() => {
     setQuery(searchQuery);
   }, [searchQuery, setQuery]);
+
+  // ⌘K / Ctrl+K focuses this search box. Captured before the global palette
+  // listener on window so the page's own search wins while it's mounted.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        e.stopPropagation();
+        inputRef.current?.focus();
+        inputRef.current?.select();
+        setIsFocused(true);
+      }
+    };
+    document.addEventListener('keydown', onKeyDown, true);
+    return () => document.removeEventListener('keydown', onKeyDown, true);
+  }, []);
+
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -112,7 +130,7 @@ export function ResearchHero({
             transition={{ duration: 0.5 }}
           >
             <span className="text-foreground">Find your next</span>{' '}
-            <span className="bg-gradient-to-r from-[hsl(220_90%_62%)] via-[hsl(200_95%_58%)] to-[hsl(188_92%_55%)] bg-clip-text text-transparent">
+            <span className="text-primary">
               big investment idea
             </span>
           </motion.h1>
@@ -325,7 +343,7 @@ export function ResearchHero({
               <span className="text-[10px] text-muted-foreground flex items-center gap-1 shrink-0">
                 <Clock className="h-3 w-3" /> Recent:
               </span>
-              {recentSearches.slice(0, 4).map(ticker => (
+              {recentSearches.map(ticker => (
                 <Button
                   key={ticker}
                   variant="outline"
