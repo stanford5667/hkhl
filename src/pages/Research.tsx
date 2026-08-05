@@ -75,15 +75,6 @@ export default function ResearchPage() {
 
         <HubOverviewGrid />
 
-        <section>
-          <div className="mb-3">
-            <h2 className="text-lg sm:text-xl font-bold text-foreground">Tools you haven't tried yet</h2>
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              Quick, interactive samples — swipe through and see what each module does.
-            </p>
-          </div>
-          <DemoCarousel />
-        </section>
 
 
         <FeaturePreviewShowcase />
