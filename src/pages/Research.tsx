@@ -57,8 +57,6 @@ export default function ResearchPage() {
             searchQuery={searchQuery}
             onSearchQueryChange={setSearchQuery}
             onSearch={handleSearch}
-            recentSearches={recentSearches}
-            onClearRecent={handleClearRecent}
           />
         </section>
 
