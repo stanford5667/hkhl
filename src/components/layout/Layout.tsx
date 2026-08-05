@@ -181,8 +181,10 @@ export function Layout({ children }: LayoutProps) {
         open={searchOpen}
         onOpenChange={setSearchOpen}
       />
-      <FloatingHelpWidget />
-      <FloatingChatBubble />
+      {/* Floating widgets are hidden on mobile course/academy pages so they can't
+          cover the sticky conversion CTA. Chat stays reachable from the bottom nav. */}
+      {!hideFloatingWidgets && <FloatingHelpWidget />}
+      {!hideFloatingWidgets && <FloatingChatBubble />}
       
       {/* Auth gate dialog */}
       <AuthGateDialog 
