@@ -34,6 +34,24 @@ export default function ResearchPage() {
       return [];
     }
   });
+  const [hubVariant, setHubVariant] = useState<HubVariant>(() => {
+    try {
+      return localStorage.getItem(HUB_VARIANT_KEY) === "terminal" ? "terminal" : "cards";
+    } catch {
+      return "cards";
+    }
+  });
+
+  const toggleHubVariant = useCallback(() => {
+    setHubVariant((prev) => {
+      const next: HubVariant = prev === "cards" ? "terminal" : "cards";
+      try {
+        localStorage.setItem(HUB_VARIANT_KEY, next);
+      } catch {}
+      return next;
+    });
+  }, []);
+
 
   const handleRefresh = () => {
     setLastUpdated(new Date());
