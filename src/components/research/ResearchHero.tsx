@@ -1,27 +1,20 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Search, Clock, X, TrendingUp, TrendingDown, Loader2 } from 'lucide-react';
+import { Search, X, TrendingUp, TrendingDown, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTickerSearch } from '@/hooks/useTickerSearch';
-
-
 
 interface ResearchHeroProps {
   searchQuery: string;
   onSearchQueryChange: (q: string) => void;
   onSearch: (ticker: string) => void;
-  recentSearches: string[];
-  onClearRecent: () => void;
 }
 
 export function ResearchHero({
   searchQuery,
   onSearchQueryChange,
   onSearch,
-  recentSearches,
-  onClearRecent,
 }: ResearchHeroProps) {
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -359,37 +352,6 @@ export function ResearchHero({
             )}
           </AnimatePresence>
         </motion.div>
-
-
-        {/* Recent Searches */}
-        {recentSearches.length > 0 && (
-          <div className="max-w-xl mx-auto overflow-x-auto scrollbar-hide mb-2 sm:mb-3">
-            <div className="flex items-center gap-1.5 min-w-max px-1">
-              <span className="text-[10px] text-muted-foreground flex items-center gap-1 shrink-0">
-                <Clock className="h-3 w-3" /> Recent:
-              </span>
-              {recentSearches.map(ticker => (
-                <Button
-                  key={ticker}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onSearch(ticker)}
-                  className="h-6 px-2 text-[10px] border-border/60 shrink-0"
-                >
-                  {ticker}
-                </Button>
-              ))}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onClearRecent}
-                className="h-6 w-6 text-muted-foreground shrink-0"
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            </div>
-          </div>
-        )}
 
 
       </div>

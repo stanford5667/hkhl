@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { GraduationCap, Play, Pause, Volume2, Maximize, Clock } from 'lucide-react';
-import { DEMO_LESSON, DEMO_LESSON_INSIGHT } from './demoData';
-import { AiInsight, DemoCard, DemoCardHeader, DemoVisual } from './DemoCard';
+import { DEMO_LESSON } from './demoData';
+import { DemoCard, DemoCardHeader, DemoVisual } from './DemoCard';
 import { useCountUp, usePrefersReducedMotion } from './useCountUp';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
@@ -114,8 +114,6 @@ export function AcademyDemo() {
           <span className="h-3 w-px bg-slate-800" />
           <span>Resume where you left off</span>
         </div>
-
-        <AiInsight text={DEMO_LESSON_INSIGHT} />
       </div>
     </DemoCard>
   );
