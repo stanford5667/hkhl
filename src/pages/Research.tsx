@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { ResearchTopBar } from "@/pages/research/components/ResearchTopBar";
 import { ResearchBottomBar } from "@/pages/research/components/ResearchBottomBar";
 import { ResearchHero } from "@/components/research/ResearchHero";
@@ -10,36 +11,51 @@ import { FeaturePreviewShowcase } from "@/components/research/FeaturePreviewShow
 import { DemoCarousel } from "@/components/demos/DemoCarousel";
 
 const RECENT_KEY = "research:recent-searches";
+const RECENT_LIMIT = 6;
 
 export default function ResearchPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
-  const [date, setDate] = useState<Date>(new Date());
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [recentSearches, setRecentSearches] = useState<string[]>(() => {
     try {
       const raw = localStorage.getItem(RECENT_KEY);
-      return raw ? JSON.parse(raw) : [];
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed.slice(0, RECENT_LIMIT) : [];
     } catch {
       return [];
     }
   });
 
-  const handleRefresh = () => {
-    setLastUpdated(new Date());
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    // Keep the legacy event for any widget still listening
     window.dispatchEvent(new CustomEvent("research:refresh"));
-  };
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["hub-chatrooms-latest"] }),
+        queryClient.invalidateQueries({ queryKey: ["hub-academy-progress"] }),
+        queryClient.invalidateQueries({ queryKey: ["hub-smart-money-latest"] }),
+        queryClient.invalidateQueries({ refetchType: "active" }),
+      ]);
+    } finally {
+      setLastUpdated(new Date());
+      setIsRefreshing(false);
+    }
+  }, [queryClient]);
 
   const handleSearch = useCallback(
     (ticker: string) => {
       const t = ticker.trim().toUpperCase();
       if (!t) return;
-      const next = [t, ...recentSearches.filter((r) => r !== t)].slice(0, 8);
+      const next = [t, ...recentSearches.filter((r) => r !== t)].slice(0, RECENT_LIMIT);
       setRecentSearches(next);
       try {
         localStorage.setItem(RECENT_KEY, JSON.stringify(next));
       } catch {}
-      navigate(`/research?ticker=${encodeURIComponent(t)}`);
+      navigate(`/stock/${encodeURIComponent(t)}`);
     },
     [recentSearches, navigate]
   );
@@ -50,6 +66,7 @@ export default function ResearchPage() {
       localStorage.removeItem(RECENT_KEY);
     } catch {}
   }, []);
+
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
