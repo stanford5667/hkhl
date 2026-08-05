@@ -21,7 +21,7 @@ export function DevModeToggle() {
 
   return (
     <motion.div
-      className="fixed bottom-44 left-3 right-auto sm:bottom-20 sm:left-auto sm:right-20 z-30 opacity-80"
+      className="fixed bottom-40 left-3 right-auto scale-90 origin-bottom-left opacity-60 hover:opacity-100 sm:bottom-20 sm:left-auto sm:right-20 sm:scale-100 sm:opacity-100 z-30"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.5 }}
