@@ -1,10 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
-import { Activity, TrendingUp } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { Activity, Sparkles, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DEMO_STRATEGIES, DEMO_INITIAL_CAPITAL } from './demoData';
 import { useCountUp, usePrefersReducedMotion } from './useCountUp';
-import { DemoCard, DemoCardHeader, LivePulse } from './DemoCard';
+import {
+  AiInsight,
+  ConvictionMeter,
+  DemoCard,
+  DemoCardHeader,
+  DemoVisual,
+  SampleBadge,
+  DEMO_SPRING,
+} from './DemoCard';
 
 const W = 320;
 const H = 120;
@@ -21,8 +30,17 @@ function toPath(values: number[], min: number, max: number) {
     .join(' ');
 }
 
-/** rAF tween between two equal-length numeric arrays. */
-function useMorph(target: number[], enabled: boolean, duration = 550) {
+function pointAt(values: number[], i: number, min: number, max: number) {
+  const span = max - min || 1;
+  const idx = Math.max(0, Math.min(values.length - 1, i));
+  return {
+    xPct: ((PAD + (idx / (values.length - 1)) * (W - PAD * 2)) / W) * 100,
+    yPct: ((H - PAD - ((values[idx] - min) / span) * (H - PAD * 2)) / H) * 100,
+  };
+}
+
+/** Spring-ish tween between two equal-length numeric arrays. */
+function useMorph(target: number[], enabled: boolean, duration = 620) {
   const [values, setValues] = useState<number[]>(target);
   const fromRef = useRef<number[]>(target);
   const rafRef = useRef<number>();
@@ -42,8 +60,9 @@ function useMorph(target: number[], enabled: boolean, duration = 550) {
     const start = performance.now();
     const tick = (now: number) => {
       const t = Math.min(1, (now - start) / duration);
-      const eased = 1 - Math.pow(1 - t, 3);
-      setValues(from.map((v, i) => v + (target[i] - v) * eased));
+      // critically damped spring-like settle
+      const eased = 1 - Math.exp(-6 * t) * (1 + 6 * t * 0.35);
+      setValues(from.map((v, i) => v + (target[i] - v) * Math.min(1, eased)));
       if (t < 1) rafRef.current = requestAnimationFrame(tick);
       else fromRef.current = target;
     };
@@ -59,6 +78,7 @@ function useMorph(target: number[], enabled: boolean, duration = 550) {
 
 export function BacktestDemo() {
   const reduced = usePrefersReducedMotion();
+  const navigate = useNavigate();
   const [activeId, setActiveId] = useState(DEMO_STRATEGIES[0].id);
   const strategy = DEMO_STRATEGIES.find((s) => s.id === activeId) ?? DEMO_STRATEGIES[0];
 
@@ -72,13 +92,26 @@ export function BacktestDemo() {
   const ret = useCountUp(strategy.totalReturn, true);
   const sharpe = useCountUp(strategy.sharpe, true);
 
+  // Annotations land only after the curve has finished drawing.
+  const [showAnnotations, setShowAnnotations] = useState(reduced);
+  useEffect(() => {
+    if (reduced) {
+      setShowAnnotations(true);
+      return;
+    }
+    setShowAnnotations(false);
+    const t = window.setTimeout(() => setShowAnnotations(true), 1250);
+    return () => window.clearTimeout(t);
+  }, [activeId, reduced]);
+
   return (
     <DemoCard accent>
       <DemoCardHeader
         icon={<Activity className="h-4 w-4 text-cyan-400" />}
-        title="Backtester"
+        category="Backtester"
+        title={strategy.name}
         subtitle={`${strategy.ticker} · 2020–2024 · weekly`}
-        right={<LivePulse />}
+        right={<SampleBadge />}
       />
 
       {/* Strategy chips — 44px tap targets */}
@@ -88,6 +121,7 @@ export function BacktestDemo() {
             key={s.id}
             type="button"
             whileTap={{ scale: 0.95 }}
+            transition={DEMO_SPRING}
             onClick={() => setActiveId(s.id)}
             aria-pressed={s.id === activeId}
             className={cn(
@@ -103,38 +137,78 @@ export function BacktestDemo() {
       </div>
 
       {/* Chart — fixed aspect ratio, zero layout shift */}
-      <div className="mt-3 w-full" style={{ aspectRatio: `${W} / ${H}` }}>
-        <svg viewBox={`0 0 ${W} ${H}`} className="h-full w-full" preserveAspectRatio="none" role="img" aria-label="Equity curve versus buy and hold benchmark">
-          <defs>
-            <linearGradient id="demo-eq-fill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="hsl(185 80% 50%)" stopOpacity="0.28" />
-              <stop offset="100%" stopColor="hsl(185 80% 50%)" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          <path
-            d={`${toPath(values, min, max)} L${W - PAD},${H} L${PAD},${H} Z`}
-            fill="url(#demo-eq-fill)"
-          />
-          <path
-            d={toPath(buyHold, min, max)}
-            fill="none"
-            stroke="rgb(100 116 139)"
-            strokeWidth="1.25"
-            strokeDasharray="4 4"
-          />
-          <motion.path
-            d={toPath(values, min, max)}
-            fill="none"
-            stroke="hsl(185 80% 50%)"
-            strokeWidth="2"
-            strokeLinecap="round"
-            initial={reduced ? { pathLength: 1 } : { pathLength: 0 }}
-            whileInView={{ pathLength: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: reduced ? 0 : 1.3, ease: 'easeOut' }}
-          />
-        </svg>
-      </div>
+      <DemoVisual className="mt-3 w-full">
+        <div className="relative w-full" style={{ aspectRatio: `${W} / ${H}` }}>
+          <svg
+            viewBox={`0 0 ${W} ${H}`}
+            className="h-full w-full"
+            preserveAspectRatio="none"
+            role="img"
+            aria-label="Equity curve versus buy and hold benchmark"
+          >
+            <defs>
+              <linearGradient id="demo-eq-fill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="hsl(185 80% 50%)" stopOpacity="0.28" />
+                <stop offset="100%" stopColor="hsl(185 80% 50%)" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            <path
+              d={`${toPath(values, min, max)} L${W - PAD},${H} L${PAD},${H} Z`}
+              fill="url(#demo-eq-fill)"
+            />
+            <path
+              d={toPath(buyHold, min, max)}
+              fill="none"
+              stroke="rgb(100 116 139)"
+              strokeWidth="1.25"
+              strokeDasharray="4 4"
+            />
+            <motion.path
+              d={toPath(values, min, max)}
+              fill="none"
+              stroke="hsl(185 80% 50%)"
+              strokeWidth="2"
+              strokeLinecap="round"
+              initial={reduced ? { pathLength: 1 } : { pathLength: 0 }}
+              whileInView={{ pathLength: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: reduced ? 0 : 1.15, ease: 'easeOut' }}
+            />
+          </svg>
+
+          {/* AI annotations, overlaid so the labels stay undistorted */}
+          <AnimatePresence>
+            {showAnnotations &&
+              strategy.annotations.map((a) => {
+                const { xPct, yPct } = pointAt(values, a.index, min, max);
+                const below = a.dir === 1;
+                const flipX = xPct > 60;
+                return (
+                  <motion.div
+                    key={`${strategy.id}-${a.index}`}
+                    initial={reduced ? false : { opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={reduced ? { duration: 0 } : { ...DEMO_SPRING, delay: 0.12 }}
+                    className="pointer-events-none absolute"
+                    style={{ left: `${xPct}%`, top: `${yPct}%` }}
+                  >
+                    <span className="absolute -left-[3px] -top-[3px] block h-1.5 w-1.5 rounded-full bg-cyan-300 ring-2 ring-cyan-400/25" />
+                    <span
+                      className={cn(
+                        'absolute whitespace-nowrap rounded-md border border-cyan-500/25 bg-slate-950/90 px-1.5 py-0.5 text-[9px] font-medium text-cyan-200/90',
+                        below ? 'top-2.5' : 'bottom-2.5',
+                        flipX ? 'right-1' : 'left-1'
+                      )}
+                    >
+                      {a.label}
+                    </span>
+                  </motion.div>
+                );
+              })}
+          </AnimatePresence>
+        </div>
+      </DemoVisual>
 
       <div className="mt-3 grid grid-cols-2 gap-2">
         <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-2.5">
@@ -151,10 +225,29 @@ export function BacktestDemo() {
         </div>
       </div>
 
+      <ConvictionMeter filled={strategy.conviction} value={strategy.convictionLabel} />
+
+      <AiInsight text={strategy.insight} />
+
       <p className="mt-2.5 flex items-center gap-1.5 text-[10px] text-gray-500">
         <span className="h-1.5 w-4 rounded-full bg-cyan-400" /> Strategy
         <span className="ml-2 h-px w-4 border-t border-dashed border-slate-500" /> Buy &amp; hold
       </p>
+
+      {/* Prompt-bar styled button — clearly an action, not a dead input */}
+      <motion.button
+        type="button"
+        whileTap={{ scale: 0.98 }}
+        transition={DEMO_SPRING}
+        onClick={() => navigate('/auth', { state: { mode: 'signup' } })}
+        className="mt-3 flex min-h-[44px] w-full cursor-pointer items-center gap-2 rounded-xl border border-slate-700 bg-slate-900/70 px-3 text-left text-[11px] text-gray-400 transition-colors hover:border-cyan-500/40 hover:text-gray-200"
+      >
+        <Sparkles className="h-3.5 w-3.5 flex-shrink-0 text-cyan-400" />
+        <span className="truncate">Ask anything about this backtest</span>
+        <span className="ml-auto flex-shrink-0 rounded-md border border-cyan-500/30 bg-cyan-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-cyan-300">
+          Start free
+        </span>
+      </motion.button>
     </DemoCard>
   );
 }
