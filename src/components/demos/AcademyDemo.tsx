@@ -114,8 +114,6 @@ export function AcademyDemo() {
           <span className="h-3 w-px bg-slate-800" />
           <span>Resume where you left off</span>
         </div>
-
-        <AiInsight text={DEMO_LESSON_INSIGHT} />
       </div>
     </DemoCard>
   );
