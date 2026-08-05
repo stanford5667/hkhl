@@ -372,7 +372,7 @@ function PreviewFor({ tab }: { tab: TabKey }) {
 }
 
 export function FeaturePreviewShowcase() {
-  const [active, setActive] = useState<TabKey>("ai");
+  const [active, setActive] = useState<TabKey>("backtest");
   const [peek, setPeek] = useState<TabKey | null>(null);
   const [mode, setMode] = useState<"clip" | "demo">("clip");
   const tab = TABS.find((t) => t.key === active)!;
