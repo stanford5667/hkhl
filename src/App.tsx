@@ -15,6 +15,7 @@ import { DevModeToggle } from "@/components/dev/DevModeToggle";
 import { DevModeSyncWrapper } from "@/components/dev/DevModeSyncWrapper";
 import { CompanyRedirect } from "./components/shared/CompanyRedirect";
 import { PageLoader } from "@/components/shared/PageLoader";
+import HomeRoute from "@/components/routing/HomeRoute";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 // ScrollToTop removed - using useGlobalScrollPersistence in Layout instead
 import { UpgradeModal } from "@/components/premium/UpgradeModal";
@@ -127,7 +128,7 @@ const App = () => {
                         <Layout>
                           <Suspense fallback={<PageLoader />}>
                             <Routes>
-                              <Route path="/" element={<Research />} />
+                              <Route path="/" element={<HomeRoute />} />
                               <Route path="/news" element={<NewsIntelligence />} />
                               <Route path="/auth" element={<Auth />} />
                               <Route path="/reset-password" element={<ResetPassword />} />
