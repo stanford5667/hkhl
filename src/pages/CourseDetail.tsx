@@ -358,7 +358,7 @@ export default function CourseDetail() {
         .map((m: any) => m.id as string)
     : [];
 
-  // The current user's own review, if any
+
 
   const getLevelColor = (level: string | null) => {
     switch (level) {
