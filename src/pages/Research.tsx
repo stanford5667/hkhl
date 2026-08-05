@@ -12,10 +12,14 @@ import { ResearchHero } from "@/components/research/ResearchHero";
 import { StockOfTheDay } from "@/components/research/StockOfTheDay";
 import { DiscoveryFeed } from "@/components/research/DiscoveryFeed";
 import { HubOverviewGrid } from "@/components/research/HubOverviewGrid";
+import { HubTerminalGrid } from "@/components/research/HubTerminalGrid";
 import { FeaturePreviewShowcase } from "@/components/research/FeaturePreviewShowcase";
 
 
 const RECENT_KEY = "research:recent-searches";
+const HUB_VARIANT_KEY = "research:hub-variant";
+type HubVariant = "cards" | "terminal";
+
 
 export default function ResearchPage() {
   const navigate = useNavigate();
