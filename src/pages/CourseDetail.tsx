@@ -36,7 +36,6 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { MobileAuthSheet } from '@/components/auth/MobileAuthSheet';
-import { useSocialProofToasts } from '@/components/academy/SocialProofToast';
 import { ExitIntentPopup } from '@/components/academy/ExitIntentPopup';
 import { TestimonialsSection } from '@/components/academy/TestimonialsSection';
 import { BillingIntervalSheet } from '@/components/academy/BillingIntervalSheet';
@@ -130,7 +129,6 @@ export default function CourseDetail() {
   const [openModules, setOpenModules] = useState<string[]>([]);
 
   // Social proof toasts — show for guests/non-members
-  useSocialProofToasts(!isPro);
 
   // Check for successful subscription and auto-enroll
   useEffect(() => {
@@ -737,7 +735,7 @@ export default function CourseDetail() {
             </TabsContent>
           </Tabs>
 
-          <TestimonialsSection />
+          <TestimonialsSection reviews={reviews as any} />
 
           {/* Full pricing comparison — non-pro only */}
           {!hasAccess && (
@@ -865,7 +863,7 @@ export default function CourseDetail() {
                     ) : (
                       <>
                         <Sparkles className="w-4 h-4 mr-2" />
-                        Unlock all 92 lessons
+                        Unlock all {totalLessons} lessons
                       </>
                     )}
                   </Button>
@@ -915,10 +913,6 @@ export default function CourseDetail() {
                   <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
                   <span>{totalLessons} lessons</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Award className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
-                  <span>Certificate of completion</span>
-                </div>
               </div>
             </CardContent>
           </Card>
@@ -947,7 +941,7 @@ export default function CourseDetail() {
               <>
                 <span className="text-sm">Unlock Full Masterclass</span>
                 <span className="text-[11px] font-medium opacity-90">
-                  from ${PRICING.annualPerMonth}/mo · cancel anytime
+                  from ${PRICING.annualPerMonth}/mo
                 </span>
               </>
             )}
