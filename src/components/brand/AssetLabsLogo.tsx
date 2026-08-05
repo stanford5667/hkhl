@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { TrendingUp } from "lucide-react";
+import { AssetLabsMark } from "./AssetLabsMark";
 
 interface AssetLabsLogoProps {
   size?: "sm" | "md" | "lg" | "xl";
@@ -8,56 +8,60 @@ interface AssetLabsLogoProps {
   className?: string;
 }
 
-export function AssetLabsLogo({ 
-  size = "md", 
+export function AssetLabsLogo({
+  size = "md",
   showText = true,
   showTagline = false,
-  className 
+  className,
 }: AssetLabsLogoProps) {
   const sizeClasses = {
     sm: "w-8 h-8",
     md: "w-10 h-10",
     lg: "w-12 h-12",
-    xl: "w-14 h-14"
-  };
-
-  const iconSizes = {
-    sm: "h-4 w-4",
-    md: "h-5 w-5",
-    lg: "h-6 w-6",
-    xl: "h-7 w-7"
+    xl: "w-14 h-14",
   };
 
   const textSizes = {
     sm: "text-base",
     md: "text-lg",
     lg: "text-xl",
-    xl: "text-2xl"
+    xl: "text-2xl",
   };
 
   return (
     <div className={cn("flex items-center gap-3", className)}>
-      <div className={cn(
-        "rounded-xl bg-gradient-to-br from-primary via-primary/90 to-primary/70 flex items-center justify-center shadow-lg shadow-primary/25",
-        sizeClasses[size]
-      )}>
-        <TrendingUp className={cn("text-primary-foreground", iconSizes[size])} />
+      <div
+        className={cn(
+          "flex items-center justify-center rounded-lg border border-primary/20 text-primary",
+          sizeClasses[size]
+        )}
+      >
+        <AssetLabsMark className="h-[72%] w-[72%]" />
       </div>
       {showText && (
         <div className="flex flex-col">
           <div className="flex items-center gap-1.5">
-            <span className={cn("font-bold tracking-tight leading-none", textSizes[size])}>
+            <span
+              className={cn(
+                "font-bold leading-none tracking-[-0.02em]",
+                textSizes[size]
+              )}
+            >
               Asset Labs
             </span>
-            <span className={cn(
-              "font-bold tracking-tight leading-none bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent",
-              textSizes[size]
-            )}>
+            <span
+              className={cn(
+                "font-bold leading-none tracking-[-0.02em] text-primary",
+                textSizes[size]
+              )}
+            >
               AI
             </span>
           </div>
           {(showTagline || size === "xl") && (
-            <span className="text-xs text-muted-foreground mt-0.5">Intelligent Investing</span>
+            <span className="mt-0.5 text-xs text-muted-foreground">
+              Intelligent Investing
+            </span>
           )}
         </div>
       )}

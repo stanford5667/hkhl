@@ -1,3 +1,4 @@
+import { AssetLabsMark } from "@/components/brand/AssetLabsMark";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -327,13 +328,8 @@ export function Sidebar() {
       {/* Logo */}
       <div className="relative flex items-center justify-between h-16 px-4 border-b border-sidebar-border">
         <Link to="/" className="flex items-center gap-3 group">
-          <div className="relative">
-            <img 
-              src="/favicon.png" 
-              alt="Asset Labs AI" 
-              className="w-9 h-9 rounded-xl shadow-sm transition-transform duration-300 group-hover:scale-105" 
-            />
-            <div className="absolute inset-0 rounded-xl ring-1 ring-inset ring-white/10" />
+          <div className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-primary/20 text-primary transition-transform duration-300 group-hover:scale-105">
+            <AssetLabsMark className="h-[72%] w-[72%]" />
           </div>
           {!collapsed && (
             <motion.div
@@ -342,8 +338,8 @@ export function Sidebar() {
               className="flex flex-col"
             >
               <div className="flex items-center gap-1">
-                <span className="font-bold text-foreground text-sm tracking-tight">Asset Labs</span>
-                <span className="font-bold text-sm tracking-tight bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">AI</span>
+                <span className="font-bold text-foreground text-sm tracking-[-0.02em]">Asset Labs</span>
+                <span className="font-bold text-sm tracking-[-0.02em] text-primary">AI</span>
               </div>
               <span className="text-[10px] text-muted-foreground font-medium">Intelligent Investing</span>
             </motion.div>
