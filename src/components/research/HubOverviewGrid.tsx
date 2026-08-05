@@ -73,14 +73,6 @@ const ACCENTS: Record<Accent, { bar: string; badge: string; ring: string; text: 
     glow: "hover:shadow-blue-500/10",
     wash: "from-blue-500/[0.07]",
   },
-  rose: {
-    bar: "bg-teal-400/60",
-    badge: "bg-teal-500/10 border-teal-400/25 text-teal-300",
-    ring: "hover:border-teal-400/40",
-    text: "text-teal-300",
-    glow: "hover:shadow-teal-500/10",
-    wash: "from-teal-500/[0.07]",
-  },
 };
 
 interface HubCardProps {
