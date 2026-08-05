@@ -34,9 +34,9 @@ export function AssetLabsMark({
 
   // 1) the A itself, 2) the trend-line extension past the apex, 3) the crossbar
   const paths = [
-    "M4 27 L12 11 L20 27",
-    "M12 11 L28 4",
-    "M7.5 21 H16.5",
+    "M5 27 L13 11 L21 27",
+    "M13 11 L25.5 6",
+    "M8.5 21 H17.5",
   ];
 
   const durations = [0.55, 0.35, 0.25];
