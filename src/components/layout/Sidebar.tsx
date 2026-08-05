@@ -75,7 +75,14 @@ interface NavItem {
   isPremium?: boolean;
 }
 
+interface NavGroup {
+  id: string;
+  label: string;
+  items: NavItem[];
+}
+
 const STORAGE_KEY = "sidebar-hidden-tabs";
+
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
@@ -107,115 +114,156 @@ export function Sidebar() {
     );
   };
 
-  // Build navigation based on enabled asset types
-  const allNavigation = useMemo<NavItem[]>(() => {
-    const items: NavItem[] = [
-      { 
-        label: "Research", 
+  // Build navigation grouped along the LEARN → TEST → TRACK ladder
+  const navStructure = useMemo(() => {
+    const top: NavItem[] = [
+      {
+        label: "Research",
         subtitle: "Search & Analyze",
-        href: "/research", 
+        href: "/research",
         icon: Search,
         isPremium: false,
       },
-      ...(isAdmin ? [{ 
-        label: "My Research", 
-        subtitle: "Notes & Saved Work",
-        href: "/my-research", 
-        icon: ClipboardList,
-      }] : []),
-      { 
-        label: "Chat Room", 
-        subtitle: "Trade Ideas & Chat",
-        href: "/community", 
-        icon: Users 
+    ];
+
+    const groups: NavGroup[] = [
+      {
+        id: "learn",
+        label: "Learn",
+        items: [
+          {
+            label: "Academy",
+            subtitle: "Learn & Grow",
+            href: "/academy",
+            icon: BookOpen,
+          },
+          {
+            label: "Chat Room",
+            subtitle: "Trade Ideas & Chat",
+            href: "/community",
+            icon: Users,
+          },
+        ],
       },
-      { 
-        label: "Academy", 
-        subtitle: "Learn & Grow",
-        href: "/academy", 
-        icon: BookOpen 
+      {
+        id: "test",
+        label: "Test",
+        items: [
+          {
+            label: "Backtester",
+            subtitle: "Prove Your Strategy",
+            href: "/backtester",
+            icon: FlaskConical,
+          },
+          {
+            label: "Sim Trading",
+            subtitle: "Paper Trade",
+            href: "/sim-trading",
+            icon: Activity,
+          },
+          {
+            label: "Options Analyzer",
+            subtitle: "Strike & Strategy",
+            href: "/options-analyzer",
+            icon: SlidersHorizontal,
+          },
+          {
+            label: "Portfolio Builder",
+            subtitle: "Build & Analyze",
+            href: "/portfolio-visualizer",
+            icon: PieChart,
+            isPremium: true,
+          },
+        ],
       },
-      ...(isAdmin ? [{
-        label: "Smart Money",
-        subtitle: "Insiders & Block Trades",
-        href: "/smart-money",
-        icon: Fish,
-      }] : []),
-      // { 
-      //   label: "Swipe Stocks", 
-      //   subtitle: "Discover & Like",
-      //   href: "/stock-swipe", 
-      //   icon: Flame,
-      // },
-      { 
-        label: "Portfolio Builder", 
-        subtitle: "Build & Analyze",
-        href: "/portfolio-visualizer", 
-        icon: PieChart,
-        isPremium: true,
-      },
-      { 
-        label: "Sim Trading", 
-        subtitle: "Paper Trade",
-        href: "/sim-trading", 
-        icon: Activity,
-      },
-      { 
-        label: "Options Analyzer", 
-        subtitle: "Strike & Strategy",
-        href: "/options-analyzer", 
-        icon: SlidersHorizontal,
-      },
-      { 
-        label: "Themes Map", 
-        subtitle: "Global Heat Map",
-        href: "/investment-heatmap", 
-        icon: Globe,
-      },
-      // { 
-      //   label: "AI Assistant", 
-      //   subtitle: "Chat & Signals",
-      //   href: "/prediction-ai", 
-      //   icon: Sparkles,
-      //   isPremium: true,
-      // },
-      // { 
-      //   label: "Strategy Explorer", 
-      //   subtitle: "Educational Tools",
-      //   href: "/investment-plan", 
-      //   icon: ClipboardList 
-      // },
-      // { 
-      //   label: "Glossary", 
-      //   subtitle: "Terms & Definitions",
-      //   href: "/glossary", 
-      //   icon: BookOpen 
-      // },
-      { 
-        label: "Support", 
-        subtitle: "Help & Tickets",
-        href: "/support", 
-        icon: Headphones 
+      {
+        id: "track",
+        label: "Track",
+        items: [
+          {
+            label: "Watchlist",
+            subtitle: "Your Market Radar",
+            href: "/watchlist",
+            icon: Eye,
+          },
+          {
+            label: "Themes Map",
+            subtitle: "Global Heat Map",
+            href: "/investment-heatmap",
+            icon: Globe,
+          },
+          ...(isElite
+            ? [{
+                label: "Portfolio",
+                subtitle: "Elite Portfolio",
+                href: "/elite-portfolio",
+                icon: Briefcase,
+              }]
+            : []),
+          ...(isAdmin
+            ? [
+                {
+                  label: "Smart Money",
+                  subtitle: "Insiders & Block Trades",
+                  href: "/smart-money",
+                  icon: Fish,
+                },
+                {
+                  label: "My Research",
+                  subtitle: "Notes & Saved Work",
+                  href: "/my-research",
+                  icon: ClipboardList,
+                },
+              ]
+            : []),
+        ],
       },
     ];
 
-    if (isElite) {
-      items.splice(1, 0, {
-        label: "Portfolio",
-        subtitle: "Elite Portfolio",
-        href: "/elite-portfolio",
-        icon: Briefcase,
-      });
-    }
+    const bottom: NavItem[] = [
+      {
+        label: "Support",
+        subtitle: "Help & Tickets",
+        href: "/support",
+        icon: Headphones,
+      },
+    ];
 
-    return items;
+    return { top, groups, bottom };
   }, [isAdmin, isElite]);
 
-  // Filter out hidden tabs for display
-  const navigation = useMemo(() => 
-    allNavigation.filter(item => !hiddenTabs.includes(item.href)),
-    [allNavigation, hiddenTabs]
+  // Flat list (stable href keys) — powers the Customize popover
+  const allNavigation = useMemo<NavItem[]>(
+    () => [
+      ...navStructure.top,
+      ...navStructure.groups.flatMap((g) => g.items),
+      ...navStructure.bottom,
+    ],
+    [navStructure]
   );
+
+  const isVisibleItem = useCallback(
+    (item: NavItem) => !hiddenTabs.includes(item.href),
+    [hiddenTabs]
+  );
+
+  // Visible items, keeping group structure. Empty groups (all items hidden) drop out.
+  const visibleTop = useMemo(
+    () => navStructure.top.filter(isVisibleItem),
+    [navStructure, isVisibleItem]
+  );
+  const visibleGroups = useMemo(
+    () =>
+      navStructure.groups
+        .map((g) => ({ ...g, items: g.items.filter(isVisibleItem) }))
+        .filter((g) => g.items.length > 0),
+    [navStructure, isVisibleItem]
+  );
+  const visibleBottom = useMemo(
+    () => navStructure.bottom.filter(isVisibleItem),
+    [navStructure, isVisibleItem]
+  );
+
 
   const NavLink = ({ item, index }: { item: NavItem; index: number }) => {
     const isActive = location.pathname === item.href || 
@@ -385,20 +433,46 @@ export function Sidebar() {
         )}
       </div>
 
-      {/* Main Navigation */}
+      {/* Main Navigation — grouped: Research, then Learn / Test / Track */}
       <nav className="relative flex-1 overflow-y-auto py-4 px-3 custom-scrollbar">
         <ul className="space-y-1">
-          {navigation.map((item, index) => (
+          {visibleTop.map((item, index) => (
             <li key={item.href}>
               <NavLink item={item} index={index} />
             </li>
           ))}
         </ul>
+
+        {visibleGroups.map((group, gi) => (
+          <div key={group.id} className={cn(collapsed ? "mt-3" : "mt-5")}>
+            {collapsed ? (
+              <div className="mx-auto mb-3 h-px w-6 bg-sidebar-border" />
+            ) : (
+              <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                {group.label}
+              </p>
+            )}
+            <ul className="space-y-1">
+              {group.items.map((item, index) => (
+                <li key={item.href}>
+                  <NavLink item={item} index={visibleTop.length + gi + index} />
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
       </nav>
+
 
       {/* Bottom Section */}
       <div className="relative border-t border-sidebar-border p-3 space-y-1">
+        {/* Support (ungrouped) */}
+        {visibleBottom.map((item, index) => (
+          <NavLink key={item.href} item={item} index={index} />
+        ))}
+
         {/* Tab Visibility Control */}
+
         <Popover>
           <PopoverTrigger asChild>
             <button
@@ -425,28 +499,42 @@ export function Sidebar() {
             </div>
             <ScrollArea className="h-[280px]">
               <div className="p-2 space-y-1">
-                {allNavigation.map((item) => {
-                  const Icon = item.icon;
-                  const isVisible = !hiddenTabs.includes(item.href);
-                  return (
-                    <div
-                      key={item.href}
-                      className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-accent/50 transition-colors"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <Icon className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm text-foreground">{item.label}</span>
-                      </div>
-                      <Switch
-                        checked={isVisible}
-                        onCheckedChange={() => toggleTab(item.href)}
-                        className="data-[state=checked]:bg-primary"
-                      />
-                    </div>
-                  );
-                })}
+                {[
+                  { id: "top", label: null as string | null, items: navStructure.top },
+                  ...navStructure.groups.map((g) => ({ id: g.id, label: g.label as string | null, items: g.items })),
+                  { id: "support", label: "Support" as string | null, items: navStructure.bottom },
+                ].map((section) => (
+                  <div key={section.id}>
+                    {section.label && (
+                      <p className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                        {section.label}
+                      </p>
+                    )}
+                    {section.items.map((item) => {
+                      const Icon = item.icon;
+                      const isVisible = !hiddenTabs.includes(item.href);
+                      return (
+                        <div
+                          key={item.href}
+                          className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-accent/50 transition-colors"
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <Icon className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm text-foreground">{item.label}</span>
+                          </div>
+                          <Switch
+                            checked={isVisible}
+                            onCheckedChange={() => toggleTab(item.href)}
+                            className="data-[state=checked]:bg-primary"
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
               </div>
             </ScrollArea>
+
             {hiddenTabs.length > 0 && (
               <div className="p-2 border-t border-border">
                 <Button

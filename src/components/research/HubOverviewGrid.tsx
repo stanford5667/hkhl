@@ -676,7 +676,19 @@ function TeaserCard({
   );
 }
 
+function HubSection({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <section>
+      <h3 className="mb-2 px-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+        {label}
+      </h3>
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">{children}</div>
+    </section>
+  );
+}
+
 export function HubOverviewGrid() {
+
   const { isAuthenticated, loading } = useAuth();
 
   const isGuest = !isAuthenticated && !loading;
@@ -697,27 +709,46 @@ export function HubOverviewGrid() {
           </Link>
         </div>
       )}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 p-3 sm:p-4">
-        {isGuest ? (
-          <>
-            <TeaserCard to="/academy" icon={GraduationCap} title="Academy" accent="indigo" blurb={BLURBS.academy} />
-            <TeaserCard to="/community" icon={MessagesSquare} title="Chatroom" accent="violet" blurb={BLURBS.chatroom} />
+      <div className="space-y-4 p-3 sm:p-4">
+        <HubSection label="Learn">
+          {isGuest ? (
+            <>
+              <TeaserCard to="/academy" icon={GraduationCap} title="Academy" accent="indigo" blurb={BLURBS.academy} />
+              <TeaserCard to="/community" icon={MessagesSquare} title="Chatroom" accent="violet" blurb={BLURBS.chatroom} />
+            </>
+          ) : (
+            <>
+              <AcademyCard />
+              <ChatroomCard />
+            </>
+          )}
+        </HubSection>
+
+        <HubSection label="Test">
+          {isGuest ? (
             <TeaserCard to="/stock/SPY?tab=backtest" icon={LineChart} title="Backtester" accent="teal" blurb={BLURBS.backtester} />
-            <TeaserCard to="/auth" icon={Briefcase} title="Portfolio" accent="emerald" blurb={BLURBS.portfolio} />
-            <TeaserCard to="/auth" icon={Eye} title="Watchlist" accent="amber" blurb={BLURBS.watchlist} />
-            <TeaserCard to="/smart-money" icon={Radar} title="Smart Money" accent="rose" blurb={BLURBS.smartMoney} />
-          </>
-        ) : (
-          <>
-            <AcademyCard />
-            <ChatroomCard />
+          ) : (
             <BacktesterCard />
-            <PortfolioCard />
-            <WatchlistCard />
-            <SmartMoneyCard />
-          </>
-        )}
+          )}
+        </HubSection>
+
+        <HubSection label="Track">
+          {isGuest ? (
+            <>
+              <TeaserCard to="/auth" icon={Briefcase} title="Portfolio" accent="emerald" blurb={BLURBS.portfolio} />
+              <TeaserCard to="/auth" icon={Eye} title="Watchlist" accent="amber" blurb={BLURBS.watchlist} />
+              <TeaserCard to="/smart-money" icon={Radar} title="Smart Money" accent="rose" blurb={BLURBS.smartMoney} />
+            </>
+          ) : (
+            <>
+              <PortfolioCard />
+              <WatchlistCard />
+              <SmartMoneyCard />
+            </>
+          )}
+        </HubSection>
       </div>
+
     </WidgetCard>
   );
 }
