@@ -926,9 +926,12 @@ export default function CourseDetail() {
       </div>
       {/* Sticky Bottom CTA - mobile */}
       {!hasAccess && (
-        <div className="fixed bottom-16 md:bottom-0 left-0 right-0 z-40 bg-[#0B0E14]/90 backdrop-blur-md border-t border-border/40 p-3 sm:p-4 lg:hidden">
+        <div
+          className="fixed bottom-16 md:bottom-0 left-0 right-0 z-[60] bg-[#0B0E14]/95 backdrop-blur-md border-t border-border/40 px-3 pt-3 pb-3 sm:px-4 lg:hidden"
+          style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }}
+        >
           <Button
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm h-11"
+            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold h-12 flex-col gap-0 leading-tight"
             onClick={() => {
               if (!user) {
                 setShowAuthSheet(true);
@@ -938,13 +941,22 @@ export default function CourseDetail() {
             }}
             disabled={isCheckoutLoading}
           >
-            {isCheckoutLoading ? 'Loading...' : `Unlock Full Masterclass — from $${PRICING.annualPerMonth}/mo`}
+            {isCheckoutLoading ? (
+              'Loading...'
+            ) : (
+              <>
+                <span className="text-sm">Unlock Full Masterclass</span>
+                <span className="text-[11px] font-medium opacity-90">
+                  from ${PRICING.annualPerMonth}/mo · cancel anytime
+                </span>
+              </>
+            )}
           </Button>
         </div>
       )}
 
       {/* Bottom padding to prevent content from hiding behind sticky CTA */}
-      {!hasAccess && <div className="h-20 lg:hidden" />}
+      {!hasAccess && <div className="h-24 lg:hidden" />}
 
       {/* Auth Sheet — shows inline sign-up then proceeds to billing selection */}
       <MobileAuthSheet
