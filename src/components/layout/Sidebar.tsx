@@ -623,7 +623,7 @@ export function Sidebar() {
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
-          <SidebarAuthPrompt collapsed={collapsed} />
+          <SidebarAuthPrompt />
         )}
       </div>
     </aside>
