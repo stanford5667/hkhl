@@ -1,9 +1,12 @@
 import { useState, useCallback } from 'react';
 
 import { motion, type Easing } from 'framer-motion';
-import { Zap, ChevronRight, Loader2, TrendingUp, GraduationCap, Globe, Play, Clock, Video, Activity, Target, Shield, DollarSign, Award, BarChart3, Flame, Sparkles } from 'lucide-react';
+import { Zap, ChevronRight, Loader2, TrendingUp, GraduationCap, Globe, Play, Clock, Video, Activity, Target, Shield, DollarSign, Award, BarChart3, Flame, Sparkles, Menu, X } from 'lucide-react';
 import { LandingHeatmapPreview } from './LandingHeatmapPreview';
 import { LandingMarketThemes } from './LandingMarketThemes';
+import { LandingPricing } from './LandingPricing';
+import { LandingFAQ } from './LandingFAQ';
+import { LandingStickyMobileCTA } from './LandingStickyMobileCTA';
 import modIntroImg from '@/assets/modules/mod-intro-investing.jpg';
 import modFundImg from '@/assets/modules/mod-fundamental-analysis.jpg';
 import modTechImg from '@/assets/modules/mod-technical-analysis.jpg';
@@ -313,6 +316,8 @@ export function MarketingLandingPage() {
       setIsRunning(false);
     }
   }, [selectedTicker, selectedStrategy]);
+
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navLinks: { label: string; href: string }[] = [
     { label: 'Features', href: '#features' },
