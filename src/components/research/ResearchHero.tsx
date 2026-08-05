@@ -140,7 +140,7 @@ export function ResearchHero({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
           >
-            <span className="text-foreground font-medium">Quant investing, without the code.</span>{' '}
+            <span className="text-foreground font-medium">Quant investing, without a line of code.</span>{' '}
             Learn the craft, trade ideas with the room, and automate strategies built to outlast the cycle — not chase it.
           </motion.p>
           <motion.div
