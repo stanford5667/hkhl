@@ -70,7 +70,7 @@ export default function ResearchPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <ResearchTopBar onRefresh={handleRefresh} date={date} onDateChange={setDate} />
+      <ResearchTopBar onRefresh={handleRefresh} isRefreshing={isRefreshing} />
 
       <main className="flex-1 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 space-y-3 sm:space-y-4 max-w-[1800px] w-full mx-auto">
         {/* Restored landing-style sections - moved to top */}

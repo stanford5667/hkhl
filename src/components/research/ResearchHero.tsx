@@ -9,8 +9,9 @@ import { useTickerSearch } from '@/hooks/useTickerSearch';
 const STATS = [
   { label: 'Stocks & ETFs', value: '10,000+' },
   { label: 'Financial Metrics', value: '18+' },
-  { label: 'AI-Powered Insights', value: 'Real-time' },
+  { label: 'Years of History', value: '30+' },
 ];
+
 
 interface ResearchHeroProps {
   searchQuery: string;
