@@ -6,11 +6,6 @@ import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTickerSearch } from '@/hooks/useTickerSearch';
 
-const STATS = [
-  { label: 'Video Lessons', value: '92' },
-  { label: 'Trade Ideas', value: 'Live' },
-  { label: 'Lines of Code', value: '0' },
-];
 
 
 interface ResearchHeroProps {
