@@ -140,8 +140,8 @@ export function ResearchHero({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
           >
-            <span className="text-foreground font-medium">Then find out if it actually works.</span>{' '}
-            Backtest any thesis against 30 years of market history — before you risk a dollar.
+            <span className="text-foreground font-medium">Quant investing, without the code.</span>{' '}
+            Build, backtest, and automate strategies designed to outlast the cycle — not chase it.
           </motion.p>
           <motion.div
             className="flex justify-start sm:justify-center mt-2"
