@@ -314,7 +314,16 @@ export function MarketingLandingPage() {
     }
   }, [selectedTicker, selectedStrategy]);
 
-  const navLinks: { label: string; href: string }[] = [];
+  const navLinks: { label: string; href: string }[] = [
+    { label: 'Features', href: '#features' },
+    { label: 'Academy', href: '#academy' },
+    { label: 'Pricing', href: '#pricing' },
+    { label: 'FAQ', href: '#faq' },
+  ];
+
+  const scrollToId = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
@@ -341,8 +350,58 @@ export function MarketingLandingPage() {
               Sign up free
             </Button>
           </div>
+
+          {/* Mobile menu toggle */}
+          <button
+            onClick={() => setMobileMenuOpen((v) => !v)}
+            aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={mobileMenuOpen}
+            className="rounded-lg p-2 text-gray-300 transition hover:bg-white/5 hover:text-white md:hidden"
+          >
+            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
         </div>
+
+        {/* Mobile menu panel */}
+        {mobileMenuOpen && (
+          <div className="border-t border-white/[0.06] bg-slate-950/98 px-4 pb-5 pt-3 md:hidden">
+            <div className="flex flex-col gap-1">
+              {navLinks.map((l) => (
+                <a
+                  key={l.label}
+                  href={l.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="rounded-lg px-2 py-2.5 text-sm text-gray-300 transition hover:bg-white/5 hover:text-white"
+                >
+                  {l.label}
+                </a>
+              ))}
+            </div>
+            <div className="mt-4 flex flex-col gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  navigate('/auth', { state: { mode: 'signin' } });
+                }}
+                className="w-full border-slate-700 text-white hover:bg-white/5"
+              >
+                Log In
+              </Button>
+              <Button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  navigate('/auth', { state: { mode: 'signup' } });
+                }}
+                className="w-full bg-cyan-400 font-semibold text-black hover:bg-cyan-300"
+              >
+                Sign up free
+              </Button>
+            </div>
+          </div>
+        )}
       </nav>
+
 
       {/* ─── Hero Section (Backtest Sandbox) ─── */}
       <section className="mx-auto grid max-w-7xl gap-12 px-4 py-16 sm:px-8 lg:grid-cols-2 lg:py-24">
