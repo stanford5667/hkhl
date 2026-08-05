@@ -124,7 +124,7 @@ export function ResearchHero({
         {/* Hero Text — Terminal style */}
         <div className="text-left sm:text-center mb-4 sm:mb-8">
           <motion.h1
-            className="font-display text-[26px] leading-[1.1] sm:text-4xl lg:text-5xl font-bold mb-2 sm:mb-3 tracking-tight"
+            className="font-display text-[19px] leading-[1.1] tracking-tighter whitespace-nowrap sm:text-4xl sm:tracking-tight lg:text-5xl font-bold mb-2 sm:mb-3"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
