@@ -18,15 +18,6 @@ export function BacktesterProductPreview() {
           className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/15 to-transparent"
         />
 
-        <header className="px-3 sm:px-5 pt-3 sm:pt-4 pb-2.5 sm:pb-3">
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-cyan-500/25 bg-cyan-500/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-cyan-400">
-            <Sparkles className="h-3 w-3" />
-            Product Preview
-          </div>
-          <h2 className="font-display text-lg sm:text-2xl font-semibold text-foreground mt-2">
-            See the platform before you commit
-          </h2>
-        </header>
 
         <div className="grid gap-3 sm:gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:items-center px-3 sm:px-5 pb-4 sm:pb-5">
           {/* Copy side */}
