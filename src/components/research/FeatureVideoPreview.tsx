@@ -10,8 +10,10 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { Play, ImageIcon } from "lucide-react";
+import { Play, ImageIcon, Maximize2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+
 
 export interface FeatureVideo {
   src: string;
