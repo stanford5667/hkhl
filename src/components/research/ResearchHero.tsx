@@ -363,7 +363,7 @@ export function ResearchHero({
 
         {/* Recent Searches */}
         {recentSearches.length > 0 && (
-          <div className="max-w-xl mx-auto overflow-x-auto scrollbar-hide mb-2 sm:mb-3">
+          <div className="max-w-xl mx-auto overflow-x-auto scrollbar-hide mb-1.5 sm:mb-2">
             <div className="flex items-center gap-1.5 min-w-max px-1">
               <span className="text-[10px] text-muted-foreground flex items-center gap-1 shrink-0">
                 <Clock className="h-3 w-3" /> Recent:
