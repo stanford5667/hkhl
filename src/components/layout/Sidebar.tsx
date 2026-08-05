@@ -623,63 +623,14 @@ export function Sidebar() {
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
-          <SidebarAuthPrompt collapsed={collapsed} />
+          <SidebarAuthPrompt />
         )}
       </div>
     </aside>
   );
 }
 
-// Separate component for auth prompt in sidebar
-function SidebarAuthPrompt({ collapsed }: { collapsed: boolean }) {
-  const [showAuthDialog, setShowAuthDialog] = useState(false);
-
-  if (collapsed) {
-    return (
-      <>
-        <Tooltip delayDuration={0}>
-          <TooltipTrigger asChild>
-            <button
-              onClick={() => setShowAuthDialog(true)}
-              className="w-full flex justify-center px-2 py-2.5 rounded-xl bg-primary/20 hover:bg-primary/30 transition-colors"
-            >
-              <User className="h-5 w-5 text-primary" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="right" className="bg-popover border-border">
-            <span className="font-medium">Sign in or sign up</span>
-          </TooltipContent>
-        </Tooltip>
-        <AuthGateDialog
-          open={showAuthDialog}
-          onOpenChange={setShowAuthDialog}
-          title="Join Asset Labs AI"
-          description="Create a free account to save your portfolios and access all features."
-        />
-      </>
-    );
-  }
-
-  return (
-    <>
-      <button
-        onClick={() => setShowAuthDialog(true)}
-        className="w-full flex items-center gap-3 px-3 py-3 rounded-xl bg-gradient-to-r from-primary/20 to-primary/10 border border-primary/30 hover:from-primary/30 hover:to-primary/20 transition-all group"
-      >
-        <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-primary/30 group-hover:bg-primary/40 transition-colors">
-          <Sparkles className="h-4 w-4 text-primary" />
-        </div>
-        <div className="flex-1 text-left">
-          <p className="text-sm font-semibold text-foreground">Create free account</p>
-          <p className="text-xs text-muted-foreground">Save your research and portfolios</p>
-        </div>
-      </button>
-      <AuthGateDialog
-        open={showAuthDialog}
-        onOpenChange={setShowAuthDialog}
-        title="Join Asset Labs AI"
-        description="Create a free account to save your portfolios and access all features."
-      />
-    </>
-  );
+// Separate component for auth prompt in sidebar — currently hidden to keep the UI clean
+function SidebarAuthPrompt() {
+  return null;
 }
