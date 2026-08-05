@@ -174,20 +174,20 @@ export function ResearchHero({
         {/* Search Section - Command palette style with glow */}
         <motion.div
           ref={containerRef}
-          className="max-w-xl mx-auto mb-5 sm:mb-7 relative"
+          className="max-w-xl mx-auto mb-3 sm:mb-4 relative"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
           <div className={cn(
-            "relative rounded-2xl",
+            "relative rounded-xl",
             "bg-card border border-primary/35",
-            "shadow-[0_0_24px_-6px_hsl(var(--primary)/0.3)]",
+            "shadow-[0_0_20px_-6px_hsl(var(--primary)/0.3)]",
             "transition-all duration-300",
-            isFocused && "border-primary/70 shadow-[0_0_34px_-6px_hsl(var(--primary)/0.45)] ring-2 ring-primary/25"
+            isFocused && "border-primary/70 shadow-[0_0_28px_-6px_hsl(var(--primary)/0.45)] ring-2 ring-primary/25"
           )}>
             {/* Input row */}
-            <div className="flex items-center gap-2.5 px-3.5 sm:px-4 h-12 sm:h-14">
+            <div className="flex items-center gap-2 px-3 sm:px-3.5 h-10 sm:h-12">
               <Search className="h-4 w-4 text-primary shrink-0" />
               <input
                 ref={inputRef}
@@ -197,7 +197,7 @@ export function ResearchHero({
                 onFocus={() => setIsFocused(true)}
                 onBlur={handleBlur}
                 placeholder="Search a ticker or company…"
-                className="flex-1 bg-transparent text-[15px] sm:text-sm text-foreground placeholder:text-muted-foreground/80 outline-none"
+                className="flex-1 bg-transparent text-sm sm:text-[15px] text-foreground placeholder:text-muted-foreground/80 outline-none"
                 autoFocus={false}
               />
 
