@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Sparkles, TrendingUp, TrendingDown, ArrowRight, 
-  Brain, Lightbulb, Target, Zap 
+  Brain, Lightbulb, Target 
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
