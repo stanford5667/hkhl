@@ -95,7 +95,19 @@ export default function ResearchPage() {
           />
         </section>
 
-        <HubOverviewGrid />
+        <div>
+          <div className="mb-1 flex justify-end">
+            <button
+              type="button"
+              onClick={toggleHubVariant}
+              className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/70 underline-offset-4 transition-colors hover:text-foreground hover:underline"
+            >
+              hub: {hubVariant} · switch to {hubVariant === "cards" ? "terminal" : "cards"}
+            </button>
+          </div>
+          {hubVariant === "terminal" ? <HubTerminalGrid /> : <HubOverviewGrid />}
+        </div>
+
 
 
 
