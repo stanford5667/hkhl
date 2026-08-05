@@ -581,62 +581,6 @@ function AcademyCard() {
   );
 }
 
-function SmartMoneyCard() {
-  const { data, isLoading } = useQuery({
-    queryKey: ["hub-smart-money-latest"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("smart_money_insider_trades")
-        .select("ticker, insider_name, transaction_type, total_value, filing_date")
-        .order("filing_date", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      return data;
-    },
-    staleTime: 5 * 60 * 1000,
-  });
-  const d: any = data;
-  const isBuy = d?.transaction_type?.toLowerCase() === "buy";
-  return (
-    <HubCard
-      to="/smart-money"
-      icon={Radar}
-      title="Smart Money"
-      accent="rose"
-      blurb={BLURBS.smartMoney}
-      loading={isLoading}
-
-      primary={d ? d.ticker : "Latest signals"}
-      secondary={
-        d
-          ? `${(d.transaction_type || "").toUpperCase()} · ${d.insider_name ?? ""}`.slice(0, 44)
-          : "Track 13F & insider trades"
-      }
-      extra={
-        d?.total_value
-          ? `${fmtCurrency(Number(d.total_value))} · ${new Date(d.filing_date).toLocaleDateString()}`
-          : undefined
-      }
-      tone={d ? (isBuy ? "positive" : "negative") : "default"}
-      visual={
-        d ? (
-          <div
-            className={cn(
-              "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-mono font-semibold",
-              isBuy ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400",
-            )}
-          >
-            {isBuy ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-            {d.total_value ? fmtCurrency(Number(d.total_value)) : isBuy ? "BUY" : "SELL"}
-          </div>
-        ) : (
-          <LiveDots count={3} />
-        )
-      }
-
-    />
-  );
-}
 
 function TeaserCard({
   to,
