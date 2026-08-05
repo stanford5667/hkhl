@@ -656,10 +656,11 @@ export function HubOverviewGrid() {
 
         <HubSection label="Test">
           {isGuest ? (
-            <TeaserCard to="/stock/SPY?tab=backtest" icon={LineChart} title="Backtester" accent="teal" blurb={BLURBS.backtester} />
+            <TeaserCard to="/backtester" icon={LineChart} title="Backtester" accent="teal" blurb={BLURBS.backtester} />
           ) : (
             <BacktesterCard />
           )}
+          <TeaserCard to="/sim-trading" icon={Activity} title="Sim Trading" accent="violet" blurb={BLURBS.simTrading} />
         </HubSection>
 
         <HubSection label="Track">
@@ -667,13 +668,11 @@ export function HubOverviewGrid() {
             <>
               <TeaserCard to="/auth" icon={Briefcase} title="Portfolio" accent="emerald" blurb={BLURBS.portfolio} />
               <TeaserCard to="/auth" icon={Eye} title="Watchlist" accent="amber" blurb={BLURBS.watchlist} />
-              <TeaserCard to="/smart-money" icon={Radar} title="Smart Money" accent="rose" blurb={BLURBS.smartMoney} />
             </>
           ) : (
             <>
               <PortfolioCard />
               <WatchlistCard />
-              <SmartMoneyCard />
             </>
           )}
         </HubSection>
