@@ -41,7 +41,7 @@ export interface DemoAnnotation {
   index: number;
   label: string;
   /** Push the callout above (-1) or below (1) the point. */
-  dir?: -1 | 1;
+  dir?: number;
 }
 
 export interface DemoStrategy {
