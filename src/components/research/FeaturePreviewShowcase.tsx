@@ -501,13 +501,14 @@ export function FeaturePreviewShowcase() {
                 ))}
               </div>
             )}
-            <div className="rounded-xl border border-cyan-500/15 bg-slate-900/50 p-2 shadow-inner">
+            <div className="-mx-3 rounded-none border-y border-cyan-500/15 bg-slate-900/50 p-1.5 shadow-inner sm:mx-0 sm:rounded-xl sm:border sm:p-2">
               {showClip && clip ? (
                 <FeatureVideoPreview video={clip} accent={tab.accent} />
               ) : (
                 <PreviewFor tab={active} />
               )}
             </div>
+
           </div>
         </div>
 
