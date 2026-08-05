@@ -57,8 +57,6 @@ export default function ResearchPage() {
           />
         </section>
 
-        <BacktesterProductPreview />
-
         <section>
           <div className="mb-3">
             <h2 className="text-lg sm:text-xl font-bold text-foreground">Tools you haven't tried yet</h2>
@@ -68,8 +66,6 @@ export default function ResearchPage() {
           </div>
           <DemoCarousel />
         </section>
-
-        <AcademyProductPreview />
 
         <HubOverviewGrid />
 
