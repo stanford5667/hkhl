@@ -423,7 +423,7 @@ export function MarketingLandingPage() {
             AI-powered analysis, backtesting across 30+ years of data, and real trade ideas — no coding required.
           </motion.p>
 
-          <motion.div variants={fadeUp} custom={2} className="mt-10">
+          <motion.div variants={fadeUp} custom={2} className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
             <Button
               onClick={() => requireAuth(runBacktest, 'backtest')}
               disabled={isRunning}
@@ -439,7 +439,16 @@ export function MarketingLandingPage() {
                 '🚀 GET STARTED FREE'
               )}
             </Button>
+            <Button
+              onClick={() => scrollToId('features')}
+              variant="outline"
+              size="lg"
+              className="border-slate-700 px-8 font-semibold text-white hover:bg-white/5"
+            >
+              See how it works
+            </Button>
           </motion.div>
+
         </motion.div>
 
         {/* Right column — Results card (mirrors real BacktestResultsDashboard) */}
