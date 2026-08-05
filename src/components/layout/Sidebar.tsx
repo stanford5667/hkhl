@@ -466,7 +466,13 @@ export function Sidebar() {
 
       {/* Bottom Section */}
       <div className="relative border-t border-sidebar-border p-3 space-y-1">
+        {/* Support (ungrouped) */}
+        {visibleBottom.map((item, index) => (
+          <NavLink key={item.href} item={item} index={index} />
+        ))}
+
         {/* Tab Visibility Control */}
+
         <Popover>
           <PopoverTrigger asChild>
             <button
