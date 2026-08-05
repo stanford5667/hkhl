@@ -360,6 +360,9 @@ export default function CourseDetail() {
 
   // The current user's own review, if any
   const myReview = (reviews || []).find((r: any) => r.user_id === user?.id) || null;
+  const canReview = !!hasAccess && !!user;
+  // Own review is surfaced in the form, so keep it out of the list to avoid duplicates
+  const otherReviews = (reviews || []).filter((r: any) => !(canReview && r.id === myReview?.id));
 
   const getLevelColor = (level: string | null) => {
     switch (level) {
@@ -763,9 +766,9 @@ export default function CourseDetail() {
                       existingReview={myReview as any}
                     />
                   )}
-                  {reviews && reviews.length > 0 ? (
+                  {otherReviews.length > 0 ? (
                     <div className="space-y-4">
-                      {reviews.map((review: any) => (
+                      {otherReviews.map((review: any) => (
                         <div key={review.id} className="border-b pb-4 last:border-0">
                           <div className="flex items-center gap-2 mb-2">
                             <div className="flex">
