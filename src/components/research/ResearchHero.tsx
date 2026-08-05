@@ -57,6 +57,23 @@ export function ResearchHero({
     setQuery(searchQuery);
   }, [searchQuery, setQuery]);
 
+  // ⌘K / Ctrl+K focuses this search box. Captured before the global palette
+  // listener on window so the page's own search wins while it's mounted.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        e.stopPropagation();
+        inputRef.current?.focus();
+        inputRef.current?.select();
+        setIsFocused(true);
+      }
+    };
+    document.addEventListener('keydown', onKeyDown, true);
+    return () => document.removeEventListener('keydown', onKeyDown, true);
+  }, []);
+
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     onSearchQueryChange(val);
