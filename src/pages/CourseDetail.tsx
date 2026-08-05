@@ -359,10 +359,6 @@ export default function CourseDetail() {
     : [];
 
   // The current user's own review, if any
-  const myReview = (reviews || []).find((r: any) => r.user_id === user?.id) || null;
-  const canReview = !!hasAccess && !!user;
-  // Own review is surfaced in the form, so keep it out of the list to avoid duplicates
-  const otherReviews = (reviews || []).filter((r: any) => !(canReview && r.id === myReview?.id));
 
   const getLevelColor = (level: string | null) => {
     switch (level) {
@@ -375,6 +371,11 @@ export default function CourseDetail() {
 
   // Check if user has access (enrolled + subscribed, or free course)
   const hasAccess = enrollment && (isPro || course?.is_free);
+
+  const myReview = (reviews || []).find((r: any) => r.user_id === user?.id) || null;
+  const canReview = !!hasAccess && !!user;
+  // Own review is surfaced in the form, so keep it out of the list to avoid duplicates
+  const otherReviews = (reviews || []).filter((r: any) => !(canReview && r.id === myReview?.id));
 
   if (isLoading) {
     return (
