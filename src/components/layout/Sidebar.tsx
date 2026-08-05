@@ -107,115 +107,156 @@ export function Sidebar() {
     );
   };
 
-  // Build navigation based on enabled asset types
-  const allNavigation = useMemo<NavItem[]>(() => {
-    const items: NavItem[] = [
-      { 
-        label: "Research", 
+  // Build navigation grouped along the LEARN → TEST → TRACK ladder
+  const navStructure = useMemo(() => {
+    const top: NavItem[] = [
+      {
+        label: "Research",
         subtitle: "Search & Analyze",
-        href: "/research", 
+        href: "/research",
         icon: Search,
         isPremium: false,
       },
-      ...(isAdmin ? [{ 
-        label: "My Research", 
-        subtitle: "Notes & Saved Work",
-        href: "/my-research", 
-        icon: ClipboardList,
-      }] : []),
-      { 
-        label: "Chat Room", 
-        subtitle: "Trade Ideas & Chat",
-        href: "/community", 
-        icon: Users 
+    ];
+
+    const groups: NavGroup[] = [
+      {
+        id: "learn",
+        label: "Learn",
+        items: [
+          {
+            label: "Academy",
+            subtitle: "Learn & Grow",
+            href: "/academy",
+            icon: BookOpen,
+          },
+          {
+            label: "Chat Room",
+            subtitle: "Trade Ideas & Chat",
+            href: "/community",
+            icon: Users,
+          },
+        ],
       },
-      { 
-        label: "Academy", 
-        subtitle: "Learn & Grow",
-        href: "/academy", 
-        icon: BookOpen 
+      {
+        id: "test",
+        label: "Test",
+        items: [
+          {
+            label: "Backtester",
+            subtitle: "Prove Your Strategy",
+            href: "/backtester",
+            icon: FlaskConical,
+          },
+          {
+            label: "Sim Trading",
+            subtitle: "Paper Trade",
+            href: "/sim-trading",
+            icon: Activity,
+          },
+          {
+            label: "Options Analyzer",
+            subtitle: "Strike & Strategy",
+            href: "/options-analyzer",
+            icon: SlidersHorizontal,
+          },
+          {
+            label: "Portfolio Builder",
+            subtitle: "Build & Analyze",
+            href: "/portfolio-visualizer",
+            icon: PieChart,
+            isPremium: true,
+          },
+        ],
       },
-      ...(isAdmin ? [{
-        label: "Smart Money",
-        subtitle: "Insiders & Block Trades",
-        href: "/smart-money",
-        icon: Fish,
-      }] : []),
-      // { 
-      //   label: "Swipe Stocks", 
-      //   subtitle: "Discover & Like",
-      //   href: "/stock-swipe", 
-      //   icon: Flame,
-      // },
-      { 
-        label: "Portfolio Builder", 
-        subtitle: "Build & Analyze",
-        href: "/portfolio-visualizer", 
-        icon: PieChart,
-        isPremium: true,
-      },
-      { 
-        label: "Sim Trading", 
-        subtitle: "Paper Trade",
-        href: "/sim-trading", 
-        icon: Activity,
-      },
-      { 
-        label: "Options Analyzer", 
-        subtitle: "Strike & Strategy",
-        href: "/options-analyzer", 
-        icon: SlidersHorizontal,
-      },
-      { 
-        label: "Themes Map", 
-        subtitle: "Global Heat Map",
-        href: "/investment-heatmap", 
-        icon: Globe,
-      },
-      // { 
-      //   label: "AI Assistant", 
-      //   subtitle: "Chat & Signals",
-      //   href: "/prediction-ai", 
-      //   icon: Sparkles,
-      //   isPremium: true,
-      // },
-      // { 
-      //   label: "Strategy Explorer", 
-      //   subtitle: "Educational Tools",
-      //   href: "/investment-plan", 
-      //   icon: ClipboardList 
-      // },
-      // { 
-      //   label: "Glossary", 
-      //   subtitle: "Terms & Definitions",
-      //   href: "/glossary", 
-      //   icon: BookOpen 
-      // },
-      { 
-        label: "Support", 
-        subtitle: "Help & Tickets",
-        href: "/support", 
-        icon: Headphones 
+      {
+        id: "track",
+        label: "Track",
+        items: [
+          {
+            label: "Watchlist",
+            subtitle: "Your Market Radar",
+            href: "/watchlist",
+            icon: Eye,
+          },
+          {
+            label: "Themes Map",
+            subtitle: "Global Heat Map",
+            href: "/investment-heatmap",
+            icon: Globe,
+          },
+          ...(isElite
+            ? [{
+                label: "Portfolio",
+                subtitle: "Elite Portfolio",
+                href: "/elite-portfolio",
+                icon: Briefcase,
+              }]
+            : []),
+          ...(isAdmin
+            ? [
+                {
+                  label: "Smart Money",
+                  subtitle: "Insiders & Block Trades",
+                  href: "/smart-money",
+                  icon: Fish,
+                },
+                {
+                  label: "My Research",
+                  subtitle: "Notes & Saved Work",
+                  href: "/my-research",
+                  icon: ClipboardList,
+                },
+              ]
+            : []),
+        ],
       },
     ];
 
-    if (isElite) {
-      items.splice(1, 0, {
-        label: "Portfolio",
-        subtitle: "Elite Portfolio",
-        href: "/elite-portfolio",
-        icon: Briefcase,
-      });
-    }
+    const bottom: NavItem[] = [
+      {
+        label: "Support",
+        subtitle: "Help & Tickets",
+        href: "/support",
+        icon: Headphones,
+      },
+    ];
 
-    return items;
+    return { top, groups, bottom };
   }, [isAdmin, isElite]);
 
-  // Filter out hidden tabs for display
-  const navigation = useMemo(() => 
-    allNavigation.filter(item => !hiddenTabs.includes(item.href)),
-    [allNavigation, hiddenTabs]
+  // Flat list (stable href keys) — powers the Customize popover
+  const allNavigation = useMemo<NavItem[]>(
+    () => [
+      ...navStructure.top,
+      ...navStructure.groups.flatMap((g) => g.items),
+      ...navStructure.bottom,
+    ],
+    [navStructure]
   );
+
+  const isVisibleItem = useCallback(
+    (item: NavItem) => !hiddenTabs.includes(item.href),
+    [hiddenTabs]
+  );
+
+  // Visible items, keeping group structure. Empty groups (all items hidden) drop out.
+  const visibleTop = useMemo(
+    () => navStructure.top.filter(isVisibleItem),
+    [navStructure, isVisibleItem]
+  );
+  const visibleGroups = useMemo(
+    () =>
+      navStructure.groups
+        .map((g) => ({ ...g, items: g.items.filter(isVisibleItem) }))
+        .filter((g) => g.items.length > 0),
+    [navStructure, isVisibleItem]
+  );
+  const visibleBottom = useMemo(
+    () => navStructure.bottom.filter(isVisibleItem),
+    [navStructure, isVisibleItem]
+  );
+
 
   const NavLink = ({ item, index }: { item: NavItem; index: number }) => {
     const isActive = location.pathname === item.href || 
