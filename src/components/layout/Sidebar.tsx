@@ -426,16 +426,36 @@ export function Sidebar() {
         )}
       </div>
 
-      {/* Main Navigation */}
+      {/* Main Navigation — grouped: Research, then Learn / Test / Track */}
       <nav className="relative flex-1 overflow-y-auto py-4 px-3 custom-scrollbar">
         <ul className="space-y-1">
-          {navigation.map((item, index) => (
+          {visibleTop.map((item, index) => (
             <li key={item.href}>
               <NavLink item={item} index={index} />
             </li>
           ))}
         </ul>
+
+        {visibleGroups.map((group, gi) => (
+          <div key={group.id} className={cn(collapsed ? "mt-3" : "mt-5")}>
+            {collapsed ? (
+              <div className="mx-auto mb-3 h-px w-6 bg-sidebar-border" />
+            ) : (
+              <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                {group.label}
+              </p>
+            )}
+            <ul className="space-y-1">
+              {group.items.map((item, index) => (
+                <li key={item.href}>
+                  <NavLink item={item} index={visibleTop.length + gi + index} />
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
       </nav>
+
 
       {/* Bottom Section */}
       <div className="relative border-t border-sidebar-border p-3 space-y-1">
