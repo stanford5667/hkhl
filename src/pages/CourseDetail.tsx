@@ -36,7 +36,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { MobileAuthSheet } from '@/components/auth/MobileAuthSheet';
-import { ExitIntentPopup } from '@/components/academy/ExitIntentPopup';
+import { CourseReviewForm } from '@/components/academy/CourseReviewForm';
+import { Input } from '@/components/ui/input';
 import { TestimonialsSection } from '@/components/academy/TestimonialsSection';
 import { BillingIntervalSheet } from '@/components/academy/BillingIntervalSheet';
 import { MembershipStep } from '@/components/onboarding/MembershipStep';
@@ -127,6 +128,7 @@ export default function CourseDetail() {
   const [showBillingSheet, setShowBillingSheet] = useState(false);
   const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({});
   const [openModules, setOpenModules] = useState<string[]>([]);
+  const [curriculumQuery, setCurriculumQuery] = useState('');
 
   // Social proof toasts — show for guests/non-members
 
@@ -344,6 +346,20 @@ export default function CourseDetail() {
   const courseHours = resolveCourseHours(course?.duration_hours, totalVideoSeconds);
   const durationLabel = formatHours(courseHours);
   const parsedContent = parseCourseDescription(course?.description);
+
+  // Curriculum search
+  const searchQuery = curriculumQuery.trim().toLowerCase();
+  const isSearching = searchQuery.length > 0;
+  const lessonMatchesQuery = (lesson: any) =>
+    `${lesson?.title || ''} ${lesson?.description || ''}`.toLowerCase().includes(searchQuery);
+  const matchingModuleIds = isSearching
+    ? (modules || [])
+        .filter((m: any) => (m.lessons || []).some(lessonMatchesQuery))
+        .map((m: any) => m.id as string)
+    : [];
+
+  // The current user's own review, if any
+  const myReview = (reviews || []).find((r: any) => r.user_id === user?.id) || null;
 
   const getLevelColor = (level: string | null) => {
     switch (level) {
