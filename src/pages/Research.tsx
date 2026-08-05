@@ -11,24 +11,12 @@ import { BacktesterProductPreview } from "@/components/research/BacktesterProduc
 import { AcademyProductPreview } from "@/components/research/AcademyProductPreview";
 import { DemoCarousel } from "@/components/demos/DemoCarousel";
 
-const RECENT_KEY = "research:recent-searches";
-const RECENT_LIMIT = 6;
-
 export default function ResearchPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [recentSearches, setRecentSearches] = useState<string[]>(() => {
-    try {
-      const raw = localStorage.getItem(RECENT_KEY);
-      const parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed.slice(0, RECENT_LIMIT) : [];
-    } catch {
-      return [];
-    }
-  });
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
@@ -51,22 +39,10 @@ export default function ResearchPage() {
     (ticker: string) => {
       const t = ticker.trim().toUpperCase();
       if (!t) return;
-      const next = [t, ...recentSearches.filter((r) => r !== t)].slice(0, RECENT_LIMIT);
-      setRecentSearches(next);
-      try {
-        localStorage.setItem(RECENT_KEY, JSON.stringify(next));
-      } catch {}
       navigate(`/stock/${encodeURIComponent(t)}`);
     },
-    [recentSearches, navigate]
+    [navigate]
   );
-
-  const handleClearRecent = useCallback(() => {
-    setRecentSearches([]);
-    try {
-      localStorage.removeItem(RECENT_KEY);
-    } catch {}
-  }, []);
 
 
   return (
