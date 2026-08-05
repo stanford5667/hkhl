@@ -115,11 +115,11 @@ export function ResearchHero({
 
   return (
     <div className="relative">
-      <div className="relative max-w-6xl mx-auto px-3 sm:px-6 pt-4 sm:pt-10 pb-5 sm:pb-8">
+      <div className="relative max-w-6xl mx-auto px-3 sm:px-6 pt-3 sm:pt-5 pb-3 sm:pb-5">
         {/* Hero Text — Terminal style */}
-        <div className="text-left sm:text-center mb-5 sm:mb-10">
+        <div className="text-left sm:text-center mb-3 sm:mb-5">
           <motion.h1
-            className="font-display text-[clamp(1.1rem,2.8vw+0.5rem,3.25rem)] leading-[1.05] tracking-tight whitespace-nowrap font-bold mb-2 sm:mb-4"
+            className="font-display text-[clamp(1.05rem,2.5vw+0.5rem,2.75rem)] leading-[1.05] tracking-tight whitespace-nowrap font-bold mb-1.5 sm:mb-2"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
@@ -130,7 +130,7 @@ export function ResearchHero({
             </span>
           </motion.h1>
           <motion.p
-            className="text-muted-foreground text-[15px] sm:text-base lg:text-lg max-w-lg sm:mx-auto leading-relaxed mb-3 sm:mb-4"
+            className="text-muted-foreground text-[13px] sm:text-[15px] max-w-md sm:mx-auto leading-snug mb-2 sm:mb-3"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
@@ -139,7 +139,7 @@ export function ResearchHero({
             Learn from a hedge fund manager, get live trade ideas in the chatroom, and automate the strategies that hold up.
           </motion.p>
           <motion.div
-            className="flex justify-start sm:justify-center mt-4"
+            className="flex justify-start sm:justify-center"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.18 }}
@@ -147,21 +147,21 @@ export function ResearchHero({
             <div className="inline-flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground">
               <Link
                 to="/academy"
-                className="flex items-center min-h-[44px] py-3 px-1 hover:text-foreground underline-offset-4 hover:underline transition-colors"
+                className="flex items-center min-h-[36px] py-2 px-1 hover:text-foreground underline-offset-4 hover:underline transition-colors"
               >
                 Learn
               </Link>
               <span aria-hidden="true">·</span>
               <Link
                 to="/backtester"
-                className="flex items-center min-h-[44px] py-3 px-1 hover:text-foreground underline-offset-4 hover:underline transition-colors"
+                className="flex items-center min-h-[36px] py-2 px-1 hover:text-foreground underline-offset-4 hover:underline transition-colors"
               >
                 Test
               </Link>
               <span aria-hidden="true">·</span>
               <Link
                 to="/watchlist"
-                className="flex items-center min-h-[44px] py-3 px-1 hover:text-foreground underline-offset-4 hover:underline transition-colors"
+                className="flex items-center min-h-[36px] py-2 px-1 hover:text-foreground underline-offset-4 hover:underline transition-colors"
               >
                 Track
               </Link>
@@ -174,20 +174,20 @@ export function ResearchHero({
         {/* Search Section - Command palette style with glow */}
         <motion.div
           ref={containerRef}
-          className="max-w-xl mx-auto mb-5 sm:mb-7 relative"
+          className="max-w-xl mx-auto mb-3 sm:mb-4 relative"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
           <div className={cn(
-            "relative rounded-2xl",
+            "relative rounded-xl",
             "bg-card border border-primary/35",
-            "shadow-[0_0_24px_-6px_hsl(var(--primary)/0.3)]",
+            "shadow-[0_0_20px_-6px_hsl(var(--primary)/0.3)]",
             "transition-all duration-300",
-            isFocused && "border-primary/70 shadow-[0_0_34px_-6px_hsl(var(--primary)/0.45)] ring-2 ring-primary/25"
+            isFocused && "border-primary/70 shadow-[0_0_28px_-6px_hsl(var(--primary)/0.45)] ring-2 ring-primary/25"
           )}>
             {/* Input row */}
-            <div className="flex items-center gap-2.5 px-3.5 sm:px-4 h-12 sm:h-14">
+            <div className="flex items-center gap-2 px-3 sm:px-3.5 h-10 sm:h-12">
               <Search className="h-4 w-4 text-primary shrink-0" />
               <input
                 ref={inputRef}
@@ -197,7 +197,7 @@ export function ResearchHero({
                 onFocus={() => setIsFocused(true)}
                 onBlur={handleBlur}
                 placeholder="Search a ticker or company…"
-                className="flex-1 bg-transparent text-[15px] sm:text-sm text-foreground placeholder:text-muted-foreground/80 outline-none"
+                className="flex-1 bg-transparent text-sm sm:text-[15px] text-foreground placeholder:text-muted-foreground/80 outline-none"
                 autoFocus={false}
               />
 
@@ -363,7 +363,7 @@ export function ResearchHero({
 
         {/* Recent Searches */}
         {recentSearches.length > 0 && (
-          <div className="max-w-xl mx-auto overflow-x-auto scrollbar-hide mb-2 sm:mb-3">
+          <div className="max-w-xl mx-auto overflow-x-auto scrollbar-hide mb-1.5 sm:mb-2">
             <div className="flex items-center gap-1.5 min-w-max px-1">
               <span className="text-[10px] text-muted-foreground flex items-center gap-1 shrink-0">
                 <Clock className="h-3 w-3" /> Recent:
