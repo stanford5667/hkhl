@@ -40,7 +40,7 @@ export function BacktesterProductPreview() {
             </p>
           </div>
 
-        {/* Visual preview side — hidden on small screens to keep the page condensed */}
+          {/* Visual preview side — hidden on small screens to keep the page condensed */}
           <div className="order-1 lg:order-2 min-w-0 hidden lg:block">
             <div className="-mx-2.5 rounded-none border-y border-cyan-500/15 bg-slate-900/50 p-1 shadow-inner sm:mx-0 sm:rounded-xl sm:border sm:p-1.5">
               <BacktestDemo />
