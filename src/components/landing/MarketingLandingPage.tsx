@@ -995,9 +995,15 @@ export function MarketingLandingPage() {
         </div>
       </section>
 
+      {/* ─── Pricing ─── */}
+      <LandingPricing />
+
+      {/* ─── FAQ ─── */}
+      <LandingFAQ />
 
       {/* ─── Bottom CTA ─── */}
-      <section className="bg-slate-950 py-24 px-4 sm:px-8">
+      <section id="landing-bottom-cta" className="bg-slate-950 py-24 px-4 sm:px-8">
+
         <motion.div
           initial="hidden"
           whileInView="visible"
@@ -1029,6 +1035,8 @@ export function MarketingLandingPage() {
           </Card>
         </motion.div>
       </section>
+
+      <LandingStickyMobileCTA />
 
       <AuthGateDialog open={showAuthDialog} onOpenChange={closeAuthDialog} />
     </div>
