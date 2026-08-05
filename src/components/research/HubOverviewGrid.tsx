@@ -6,7 +6,7 @@ import {
   Eye,
   LineChart,
   GraduationCap,
-  Radar,
+  Activity,
   ArrowUpRight,
   TrendingUp,
   TrendingDown,
@@ -24,7 +24,8 @@ import {
 import { useWatchlistWithQuotes } from "@/hooks/useWatchlistWithQuotes";
 import { useSavedReports } from "@/hooks/useSavedReports";
 
-type Accent = "emerald" | "violet" | "amber" | "teal" | "indigo" | "rose";
+type Accent = "emerald" | "violet" | "amber" | "teal" | "indigo";
+
 
 /**
  * Cohesive "Slate Electric" accent family — everything sits in the
