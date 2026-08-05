@@ -394,106 +394,128 @@ export function FeaturePreviewShowcase() {
   };
 
   return (
-    <section className="rounded-xl border border-border/60 bg-card/40 backdrop-blur-sm overflow-hidden">
-      <header className="px-3 sm:px-5 pt-3 sm:pt-4 pb-2.5 sm:pb-3">
-        <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-          Look inside
-        </p>
-        <h2 className="font-display text-lg sm:text-2xl font-semibold text-foreground mt-1">
-          See the platform before you commit
-        </h2>
-      </header>
+    <div className="relative group">
+      {/* Ambient neon glow behind the demo section */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute -inset-1 rounded-2xl bg-gradient-to-r from-cyan-600 to-blue-600 opacity-20 blur-lg transition duration-1000 group-hover:opacity-35"
+      />
 
-      {/* Tab rail — hover (desktop) or tap (mobile) reveals a peek card */}
-      <div className="relative z-20 px-3 sm:px-5">
-        <div className="flex gap-1.5 overflow-x-auto snap-x pb-3 -mx-1 px-1 scrollbar-none [-webkit-overflow-scrolling:touch]">
-          {TABS.map((t) => {
-            const Icon = t.icon;
-            const isActive = t.key === active;
-            const isPeeking = t.key === peek;
-            return (
-              <div key={t.key} className="relative shrink-0">
-                <button
-                  type="button"
-                  onClick={() => showPeek(t.key, true)}
-                  onMouseEnter={() => showPeek(t.key, false)}
-                  onMouseLeave={() => setPeek((p) => (p === t.key ? null : p))}
-                  onFocus={() => setPeek(t.key)}
-                  onBlur={() => setPeek((p) => (p === t.key ? null : p))}
-                  aria-pressed={isActive}
-                  aria-describedby={isPeeking ? `peek-${t.key}` : undefined}
-                  className={cn(
-                    "inline-flex snap-start items-center gap-1.5 rounded-full border px-3 py-2 sm:py-1.5 text-xs font-medium transition-all active:scale-[0.97]",
-                    isActive
-                      ? cn("border-border bg-muted/60 text-foreground ring-1", t.ring)
-                      : "border-border/50 bg-muted/20 text-muted-foreground hover:text-foreground hover:bg-muted/40",
-                  )}
-                >
-                  <Icon className={cn("h-3.5 w-3.5", isActive ? t.accent : "")} />
-                  {t.label}
-                </button>
-              </div>
-            );
-          })}
-        </div>
-        {peekTab && (
-          <div id={`peek-${peekTab.key}`}>
-            <PeekCard tab={peekTab} />
+      <section className="relative overflow-hidden rounded-xl border border-cyan-500/30 bg-slate-950/85 shadow-[0_24px_60px_-24px_rgb(2_6_23/0.9),0_2px_10px_-4px_rgb(2_6_23/0.6)] backdrop-blur-sm transition-colors hover:border-cyan-500/45">
+        {/* Top inner highlight — the surface catching light */}
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/15 to-transparent"
+        />
+
+        <header className="px-3 sm:px-5 pt-3 sm:pt-4 pb-2.5 sm:pb-3">
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-cyan-500/25 bg-cyan-500/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-cyan-400">
+            <Sparkles className="h-3 w-3" />
+            Product Preview
           </div>
-        )}
-      </div>
+          <h2 className="font-display text-lg sm:text-2xl font-semibold text-foreground mt-2">
+            See the platform before you commit
+          </h2>
+        </header>
 
-      <div className="grid gap-3 sm:gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:items-center px-3 sm:px-5 pb-4 sm:pb-5">
-        {/* Copy side */}
-        <div className="order-2 lg:order-1 flex flex-col justify-center gap-2.5 sm:gap-3 pt-1">
-          <h3 className={cn("font-display text-[15px] sm:text-xl font-semibold", tab.accent)}>
-            {tab.headline}
-          </h3>
-          <p className="text-[13px] sm:text-sm text-muted-foreground leading-relaxed">{tab.blurb}</p>
-          <Link
-            to={tab.to}
-            className="inline-flex w-full sm:w-fit items-center justify-center sm:justify-start gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-3.5 py-2.5 sm:py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/20 active:scale-[0.99]"
-          >
-            {tab.cta}
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-          <p className="flex items-center gap-1.5 text-[10px] text-muted-foreground/70">
-            <Info className="h-3 w-3" />
-            {showClip
-              ? "13-second silent preview clip — switch to the interactive sample to try it"
-              : "Interactive sample — try it here, then open the feature for live data"}
-          </p>
-        </div>
-
-        {/* Visual preview side */}
-        <div className="order-1 lg:order-2 min-w-0">
-          {clip && (
-            <div className="mb-2 flex items-center gap-1">
-              {(["clip", "demo"] as const).map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setMode(m)}
-                  aria-pressed={mode === m}
-                  className={cn(
-                    "rounded-full border px-3 py-1.5 sm:py-1 text-[11px] sm:text-[10px] font-medium transition-colors",
-                    mode === m
-                      ? cn("border-border bg-muted/60 text-foreground ring-1", tab.ring)
-                      : "border-border/50 bg-muted/20 text-muted-foreground hover:text-foreground",
-                  )}
-                >
-                  {m === "clip" ? "Watch preview" : "Try it yourself"}
-                </button>
-              ))}
+        {/* Tab rail — hover (desktop) or tap (mobile) reveals a peek card */}
+        <div className="relative z-20 px-3 sm:px-5">
+          <div className="flex gap-1.5 overflow-x-auto snap-x pb-3 -mx-1 px-1 scrollbar-none [-webkit-overflow-scrolling:touch]">
+            {TABS.map((t) => {
+              const Icon = t.icon;
+              const isActive = t.key === active;
+              const isPeeking = t.key === peek;
+              return (
+                <div key={t.key} className="relative shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => showPeek(t.key, true)}
+                    onMouseEnter={() => showPeek(t.key, false)}
+                    onMouseLeave={() => setPeek((p) => (p === t.key ? null : p))}
+                    onFocus={() => setPeek(t.key)}
+                    onBlur={() => setPeek((p) => (p === t.key ? null : p))}
+                    aria-pressed={isActive}
+                    aria-describedby={isPeeking ? `peek-${t.key}` : undefined}
+                    className={cn(
+                      "inline-flex snap-start items-center gap-1.5 rounded-full border px-3 py-2 sm:py-1.5 text-xs font-medium transition-all active:scale-[0.97]",
+                      isActive
+                        ? cn("border-cyan-500/35 bg-cyan-500/10 text-foreground ring-1 ring-cyan-500/30 shadow-[0_0_20px_-6px_rgba(6,182,212,0.25)]", t.accent)
+                        : "border-border/50 bg-muted/20 text-muted-foreground hover:text-foreground hover:bg-muted/40",
+                    )}
+                  >
+                    <Icon className={cn("h-3.5 w-3.5", isActive ? t.accent : "")} />
+                    {t.label}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+          {peekTab && (
+            <div id={`peek-${peekTab.key}`}>
+              <PeekCard tab={peekTab} />
             </div>
           )}
-          {showClip && clip ? (
-            <FeatureVideoPreview video={clip} accent={tab.accent} />
-          ) : (
-            <PreviewFor tab={active} />
-          )}
         </div>
-      </div>
-    </section>
+
+        <div className="grid gap-3 sm:gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:items-center px-3 sm:px-5 pb-4 sm:pb-5">
+          {/* Copy side */}
+          <div className="order-2 lg:order-1 flex flex-col justify-center gap-2.5 sm:gap-3 pt-1">
+            <h3 className={cn("font-display text-[15px] sm:text-xl font-semibold", tab.accent)}>
+              {tab.headline}
+            </h3>
+            <p className="text-[13px] sm:text-sm text-muted-foreground leading-relaxed">{tab.blurb}</p>
+            <Link
+              to={tab.to}
+              className="inline-flex w-full sm:w-fit items-center justify-center sm:justify-start gap-1.5 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3.5 py-2.5 sm:py-2 text-sm font-medium text-cyan-300 transition-colors hover:bg-cyan-500/20 active:scale-[0.99]"
+            >
+              {tab.cta}
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+            <p className="flex items-center gap-1.5 text-[10px] text-muted-foreground/70">
+              <Info className="h-3 w-3" />
+              {showClip
+                ? "13-second silent preview clip — switch to the interactive sample to try it"
+                : "Interactive sample — try it here, then open the feature for live data"}
+            </p>
+          </div>
+
+          {/* Visual preview side */}
+          <div className="order-1 lg:order-2 min-w-0">
+            {clip && (
+              <div className="mb-2 flex items-center gap-1">
+                {(["clip", "demo"] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setMode(m)}
+                    aria-pressed={mode === m}
+                    className={cn(
+                      "rounded-full border px-3 py-1.5 sm:py-1 text-[11px] sm:text-[10px] font-medium transition-colors",
+                      mode === m
+                        ? cn("border-cyan-500/35 bg-cyan-500/10 text-foreground ring-1 ring-cyan-500/30", tab.accent)
+                        : "border-border/50 bg-muted/20 text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {m === "clip" ? "Watch preview" : "Try it yourself"}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="rounded-xl border border-cyan-500/15 bg-slate-900/50 p-2 shadow-inner">
+              {showClip && clip ? (
+                <FeatureVideoPreview video={clip} accent={tab.accent} />
+              ) : (
+                <PreviewFor tab={active} />
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom progress bar accent */}
+        <div className="absolute bottom-0 left-0 w-full h-1 bg-slate-900">
+          <div className="h-full w-1/3 bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.6)]" />
+        </div>
+      </section>
+    </div>
   );
 }
