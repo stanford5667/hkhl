@@ -42,6 +42,7 @@ const AssetResearch = lazy(() => import('./pages/AssetResearch'));
 const Watchlist = lazy(() => import('./pages/Watchlist'));
 const StockScreenerPage = lazy(() => import('./pages/StockScreenerPage'));
 const EarningsCalendarPage = lazy(() => import('./pages/EarningsCalendarPage'));
+const MarketMoversPage = lazy(() => import('./pages/MarketMoversPage'));
 const TickerDetail = lazy(() => import('./pages/TickerDetail'));
 const PortfolioVisualizer = lazy(() => import('./pages/PortfolioVisualizer'));
 const PredictionMarketsAI = lazy(() => import('./pages/PredictionMarketsAI'));
@@ -155,6 +156,7 @@ const App = () => {
                               <Route path="/watchlist" element={<Watchlist />} />
                               <Route path="/screener" element={<StockScreenerPage />} />
                               <Route path="/earnings-calendar" element={<EarningsCalendarPage />} />
+                              <Route path="/market-movers" element={<MarketMoversPage />} />
                               <Route path="/stock/:ticker" element={<TickerDetail />} />
                               <Route path="/portfolio-visualizer" element={<PortfolioVisualizer />} />
                               <Route path="/prediction-ai" element={<PredictionMarketsAI />} />

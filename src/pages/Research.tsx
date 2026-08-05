@@ -2,8 +2,6 @@ import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { ResearchTopBar } from "@/pages/research/components/ResearchTopBar";
 import { ResearchBottomBar } from "@/pages/research/components/ResearchBottomBar";
-import { MarketMoversWidget } from "@/pages/research/components/MarketMoversWidget";
-import { NewsAnalysisWidget } from "@/pages/research/components/NewsAnalysisWidget";
 import { ResearchHero } from "@/components/research/ResearchHero";
 import { StockOfTheDay } from "@/components/research/StockOfTheDay";
 import { DiscoveryFeed } from "@/components/research/DiscoveryFeed";
@@ -89,8 +87,6 @@ export default function ResearchPage() {
 
         <DiscoveryFeed />
 
-        <MarketMoversWidget />
-        <NewsAnalysisWidget />
       </main>
 
 
