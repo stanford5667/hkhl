@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Sparkles, TrendingUp, TrendingDown, ArrowRight, 
-  Brain, Lightbulb, Target 
+  Brain, Lightbulb, Target, Zap 
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -76,9 +76,9 @@ export function StockOfTheDay() {
 
   if (isLoading) {
     return (
-      <div className="bg-gradient-to-br from-primary/5 via-card/80 to-card/60 backdrop-blur-sm rounded-xl border border-primary/20 p-3">
-        <Skeleton className="h-4 w-32 mb-2" />
-        <Skeleton className="h-16 w-full rounded-lg" />
+      <div className="bg-gradient-to-br from-primary/5 via-card/80 to-card/60 backdrop-blur-sm rounded-xl border border-primary/20 p-4">
+        <Skeleton className="h-5 w-40 mb-3" />
+        <Skeleton className="h-20 w-full rounded-lg" />
       </div>
     );
   }
@@ -91,57 +91,57 @@ export function StockOfTheDay() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="relative bg-gradient-to-br from-primary/10 via-card/80 to-card/60 backdrop-blur-sm rounded-xl border border-primary/30 p-3 overflow-hidden group"
+      className="relative bg-gradient-to-br from-primary/10 via-card/80 to-card/60 backdrop-blur-sm rounded-xl border border-primary/30 p-4 overflow-hidden group"
     >
       {/* Animated background glow */}
       <motion.div
-        className="absolute top-0 right-0 w-24 h-24 bg-primary/20 rounded-full blur-3xl"
+        className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-3xl"
         animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
         transition={{ duration: 4, repeat: Infinity }}
       />
 
       {/* Header */}
-      <div className="relative flex items-center justify-between mb-2">
+      <div className="relative flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <div className="p-1 rounded-lg bg-primary/20 border border-primary/30">
-            <Sparkles className="h-3.5 w-3.5 text-primary" />
+          <div className="p-1.5 rounded-lg bg-primary/20 border border-primary/30">
+            <Sparkles className="h-4 w-4 text-primary" />
           </div>
           <div>
             <h3 className="text-sm font-semibold text-foreground">Stock of the Day</h3>
-            <p className="text-[9px] text-muted-foreground">AI-powered spotlight</p>
+            <p className="text-[9px] text-muted-foreground">AI-powered spotlight pick</p>
           </div>
         </div>
         <Badge 
           variant="outline" 
           className={cn(
-            "text-[9px] border py-0 px-1.5 h-5",
+            "text-[9px] border",
             pick.sentiment === 'bullish' ? "border-emerald-500/50 text-emerald-500" :
             pick.sentiment === 'bearish' ? "border-red-500/50 text-red-500" :
             "border-yellow-500/50 text-yellow-500"
           )}
         >
           <Brain className="h-2.5 w-2.5 mr-1" />
-          {pick.confidence}%
+          {pick.confidence}% confidence
         </Badge>
       </div>
 
       {/* Stock Info */}
-      <div className="relative flex items-start justify-between mb-2">
+      <div className="relative flex items-start justify-between mb-3">
         <div>
           <button
             onClick={() => navigate(`/stock/${pick.ticker}`)}
-            className="text-base font-bold text-foreground hover:text-primary transition-colors"
+            className="text-lg font-bold text-foreground hover:text-primary transition-colors"
           >
             {pick.ticker}
           </button>
-          <p className="text-[11px] text-muted-foreground">{pick.name}</p>
+          <p className="text-xs text-muted-foreground">{pick.name}</p>
         </div>
         <div className="text-right">
-          <div className="text-base font-bold font-mono text-foreground">
+          <div className="text-lg font-bold font-mono text-foreground">
             ${pick.price > 0 ? pick.price.toFixed(2) : '—'}
           </div>
           <div className={cn(
-            "flex items-center justify-end gap-0.5 text-[11px] font-medium",
+            "flex items-center justify-end gap-0.5 text-xs font-medium",
             isPositive ? "text-emerald-500" : "text-red-500"
           )}>
             {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
@@ -151,14 +151,14 @@ export function StockOfTheDay() {
       </div>
 
       {/* AI Reasoning */}
-      <div className="relative space-y-1.5 mb-3">
-        <div className="flex items-start gap-2 text-[11px] text-muted-foreground">
+      <div className="relative space-y-2 mb-4">
+        <div className="flex items-start gap-2 text-xs text-muted-foreground">
           <Lightbulb className="h-3.5 w-3.5 mt-0.5 text-yellow-500 shrink-0" />
-          <p className="leading-snug">{pick.reason}</p>
+          <p className="leading-relaxed">{pick.reason}</p>
         </div>
-        <div className="flex items-start gap-2 text-[11px] text-primary/80">
+        <div className="flex items-start gap-2 text-xs text-primary/80">
           <Target className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-          <p className="font-medium leading-snug">{pick.catalyst}</p>
+          <p className="font-medium">{pick.catalyst}</p>
         </div>
       </div>
 
@@ -171,6 +171,11 @@ export function StockOfTheDay() {
         <span>View Full Analysis</span>
         <ArrowRight className="h-3.5 w-3.5 ml-1.5 group-hover:translate-x-0.5 transition-transform" />
       </Button>
+
+      {/* Decorative elements */}
+      <div className="absolute bottom-2 right-2 opacity-10">
+        <Zap className="h-16 w-16 text-primary" />
+      </div>
     </motion.div>
   );
 }

@@ -74,7 +74,7 @@ export default function ResearchPage() {
       <ResearchTopBar />
 
 
-      <main className="flex-1 px-3 sm:px-4 lg:px-6 py-2 sm:py-3 space-y-2 sm:space-y-3 max-w-[1800px] w-full mx-auto">
+      <main className="flex-1 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 space-y-3 sm:space-y-4 max-w-[1800px] w-full mx-auto">
         {/* Restored landing-style sections - moved to top */}
         <section>
           <ResearchHero
@@ -86,17 +86,16 @@ export default function ResearchPage() {
           />
         </section>
 
-        <section className="grid gap-2 sm:gap-3 lg:grid-cols-2">
-          <BacktesterProductPreview />
-          <AcademyProductPreview />
-        </section>
+        <BacktesterProductPreview />
+
+        <AcademyProductPreview />
 
         <HubOverviewGrid />
 
         <section>
-          <div className="mb-2 sm:mb-3">
-            <h2 className="text-sm sm:text-base font-bold text-foreground">Tools you haven't tried yet</h2>
-            <p className="text-[10px] sm:text-xs text-muted-foreground">
+          <div className="mb-3">
+            <h2 className="text-lg sm:text-xl font-bold text-foreground">Tools you haven't tried yet</h2>
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Quick, interactive samples — swipe through and see what each module does.
             </p>
           </div>
