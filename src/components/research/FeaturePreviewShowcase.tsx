@@ -48,18 +48,6 @@ interface TabDef {
 
 const TABS: TabDef[] = [
   {
-    key: "ai",
-    label: "AI Analysis",
-    icon: Sparkles,
-    headline: "Institutional-grade research in one search",
-    blurb:
-      "Type any ticker and get a structured thesis: valuation, catalysts, risks and the numbers behind them — written like a senior analyst memo, not a chatbot answer.",
-    cta: "Analyse a ticker",
-    to: "/stock/AAPL",
-    accent: "text-primary",
-    ring: "ring-primary/30",
-  },
-  {
     key: "backtest",
     label: "Backtester",
     icon: LineChart,
@@ -70,6 +58,18 @@ const TABS: TabDef[] = [
     to: "/stock/SPY?tab=backtest",
     accent: "text-sky-400",
     ring: "ring-sky-400/30",
+  },
+  {
+    key: "ai",
+    label: "AI Analysis",
+    icon: Sparkles,
+    headline: "Institutional-grade research in one search",
+    blurb:
+      "Type any ticker and get a structured thesis: valuation, catalysts, risks and the numbers behind them — written like a senior analyst memo, not a chatbot answer.",
+    cta: "Analyse a ticker",
+    to: "/stock/AAPL",
+    accent: "text-primary",
+    ring: "ring-primary/30",
   },
   {
     key: "screener",
