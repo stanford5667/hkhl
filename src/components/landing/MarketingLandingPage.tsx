@@ -354,29 +354,18 @@ export function MarketingLandingPage() {
           animate="visible"
         >
           <motion.h1 variants={fadeUp} custom={0} className="text-3xl font-bold leading-tight tracking-tight sm:text-4xl lg:text-5xl">
-            Learn to invest, test your ideas, and track your portfolio
-            <span className="mt-2 block bg-gradient-to-r from-cyan-400 to-cyan-200 bg-clip-text text-transparent">
-              with the tools professionals actually use.
-            </span>
+            Build AI Investment Strategies in Mins.
           </motion.h1>
           <motion.p variants={fadeUp} custom={1} className="mt-6 max-w-lg text-lg text-gray-400">
             AI-powered analysis, backtesting across 30+ years of data, and real trade ideas — no coding required.
           </motion.p>
 
-          <motion.div variants={fadeUp} custom={2} className="mt-10 flex flex-wrap items-center gap-3">
-            <Button
-              onClick={() => navigate('/auth', { state: { mode: 'signup' } })}
-              size="lg"
-              className="min-h-[44px] bg-cyan-500 px-10 font-bold text-black shadow-[0_0_30px_hsl(185_80%_50%/0.4)] transition-all hover:bg-cyan-400 hover:shadow-[0_0_40px_hsl(185_80%_50%/0.5)]"
-            >
-              Start free
-            </Button>
+          <motion.div variants={fadeUp} custom={2} className="mt-10">
             <Button
               onClick={() => requireAuth(runBacktest, 'backtest')}
               disabled={isRunning}
               size="lg"
-              variant="outline"
-              className="min-h-[44px] border-cyan-500/40 bg-transparent px-6 font-semibold text-cyan-300 hover:bg-cyan-500/10 hover:text-cyan-200 disabled:opacity-40"
+              className="bg-cyan-500 px-10 font-bold text-black shadow-[0_0_30px_hsl(185_80%_50%/0.4)] transition-all hover:bg-cyan-400 hover:shadow-[0_0_40px_hsl(185_80%_50%/0.5)] disabled:opacity-40"
             >
               {isRunning ? (
                 <>
@@ -384,11 +373,10 @@ export function MarketingLandingPage() {
                   Running…
                 </>
               ) : (
-                'Run a sample backtest'
+                '🚀 GET STARTED FREE'
               )}
             </Button>
           </motion.div>
-
         </motion.div>
 
         {/* Right column — Results card (mirrors real BacktestResultsDashboard) */}
