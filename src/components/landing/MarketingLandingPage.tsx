@@ -4,6 +4,7 @@ import { motion, type Easing } from 'framer-motion';
 import { Zap, ChevronRight, Loader2, TrendingUp, GraduationCap, Globe, Play, Clock, Video, Activity, Target, Shield, DollarSign, Award, BarChart3, Flame, Sparkles } from 'lucide-react';
 import { LandingHeatmapPreview } from './LandingHeatmapPreview';
 import { LandingMarketThemes } from './LandingMarketThemes';
+import { DemoCarousel } from '@/components/demos/DemoCarousel';
 import modIntroImg from '@/assets/modules/mod-intro-investing.jpg';
 import modFundImg from '@/assets/modules/mod-fundamental-analysis.jpg';
 import modTechImg from '@/assets/modules/mod-technical-analysis.jpg';
@@ -657,6 +658,24 @@ export function MarketingLandingPage() {
           </div>
         </div>
       </section>
+
+      {/* ─── See It In Action ─── */}
+      <section className="border-b border-white/[0.06] bg-slate-950 py-12 px-4 sm:px-8">
+        <div className="mx-auto max-w-7xl">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} className="mb-6">
+            <motion.div variants={fadeUp} custom={0} className="flex items-center gap-3 mb-1">
+              <Sparkles className="h-5 w-5 text-cyan-400" />
+              <h2 className="text-2xl font-bold sm:text-3xl">See It In Action</h2>
+            </motion.div>
+            <motion.p variants={fadeUp} custom={1} className="text-gray-400 text-sm">
+              Tap through live samples of the backtester, screener, market themes, and academy — no signup needed.
+            </motion.p>
+          </motion.div>
+          <DemoCarousel />
+        </div>
+      </section>
+
+
 
       {/* ─── Market Themes ─── */}
       <LandingMarketThemes openTeaser={openTeaser} />
