@@ -136,7 +136,7 @@ export function ResearchHero({
             transition={{ duration: 0.5, delay: 0.1 }}
           >
             <span className="text-foreground font-medium">Quant investing, without a line of code.</span>{' '}
-            Learn the craft, trade ideas with the room, and automate strategies built to outlast the cycle — not chase it.
+            Learn from a hedge fund manager, get live trade ideas in the chatroom, and automate the strategies that hold up.
           </motion.p>
           <motion.div
             className="flex justify-start sm:justify-center mt-4"
