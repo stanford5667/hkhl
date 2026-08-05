@@ -1,42 +1,103 @@
-import { motion } from 'framer-motion';
-import { GraduationCap, Play, Pause, Volume2, Maximize, Clock } from 'lucide-react';
-import { DEMO_LESSON } from './demoData';
-import { DemoCard, DemoCardHeader, DemoVisual } from './DemoCard';
-import { useCountUp, usePrefersReducedMotion } from './useCountUp';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { GraduationCap, Play, Pause, Volume2, Maximize, Clock, ArrowRight, Crown } from 'lucide-react';
+import { DEMO_LESSON } from './demoData';
+import { DemoCard } from './DemoCard';
+import { useCountUp, usePrefersReducedMotion } from './useCountUp';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import modThumb from '@/assets/modules/mod-portfolio-construction-v2.jpg';
 
 const R = 26;
 const CIRC = 2 * Math.PI * R;
 
 export function AcademyDemo() {
+  const navigate = useNavigate();
   const reduced = usePrefersReducedMotion();
   const [playing, setPlaying] = useState(false);
   const pct = Math.round(DEMO_LESSON.progress * 100);
   const shown = useCountUp(pct, true);
 
   return (
-    <DemoCard>
-      <DemoCardHeader
-        icon={<GraduationCap className="h-4 w-4 text-cyan-400" />}
-        category="Academy"
-        title="Your learning path"
-        subtitle={`${DEMO_LESSON.totalLessons} lessons · self-paced`}
-      />
+    <DemoCard className="overflow-hidden">
+      <div className="flex flex-col gap-4">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-cyan-500/20 bg-cyan-500/10">
+              <GraduationCap className="h-4 w-4 text-cyan-400" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-cyan-400/70">
+                Academy
+              </p>
+              <h3 className="truncate text-sm font-semibold tracking-[-0.01em] text-white">
+                Investment Masterclass
+              </h3>
+            </div>
+          </div>
+        </div>
 
-      <div className="mt-3 flex flex-1 flex-col justify-between gap-3">
-        {/* Video player mockup — makes the lesson feel like a real video preview */}
-        <DemoVisual className="relative overflow-hidden rounded-xl border border-slate-800 bg-black shadow-lg">
-          {/* Thumbnail */}
+        {/* Course hero copy */}
+        <div className="space-y-2">
+          <p className="text-[11px] font-medium leading-relaxed text-cyan-300/90">
+            Find the Next Big Trade Before Everyone Else
+          </p>
+          <p className="text-[11px] leading-relaxed text-muted-foreground">
+            Get early access to proprietary trade setups and institutional-grade investment research
+            — the kind of ideas the crowd only sees after the move is made.
+          </p>
+        </div>
+
+        {/* Meta + instructor */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white">
+              CS
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-[11px] font-semibold text-foreground">Chris Stanford</p>
+              <p className="truncate text-[10px] text-muted-foreground">Hedge Fund Manager</p>
+            </div>
+          </div>
+          <div className="ml-auto flex items-center gap-1.5 text-[10px] text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              4 modules
+            </span>
+            <span className="h-3 w-px bg-slate-800" />
+            <span>92 lessons</span>
+          </div>
+        </div>
+
+        {/* Video preview player */}
+        <div className="relative overflow-hidden rounded-xl border border-slate-800 bg-black shadow-lg">
           <div className="relative aspect-video w-full">
             <img
               src={modThumb}
               alt={`${DEMO_LESSON.title} preview thumbnail`}
               className="absolute inset-0 h-full w-full object-cover"
             />
-            {/* dark vignette for readability */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+            {/* FREE PREVIEW badge */}
+            <div className="absolute left-3 top-3">
+              <span className="inline-flex items-center gap-1.5 rounded-md bg-cyan-500/90 px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-slate-950 shadow-lg">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-70" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-white" />
+                </span>
+                Free Preview
+              </span>
+            </div>
+
+            {/* Remaining counter */}
+            <div className="absolute right-3 top-3">
+              <span className="inline-flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[10px] font-medium text-white backdrop-blur-sm">
+                258 remaining
+              </span>
+            </div>
 
             {/* Play overlay */}
             <button
@@ -54,37 +115,7 @@ export function AcademyDemo() {
               </span>
             </button>
 
-            {/* Top metadata overlay */}
-            <div className="absolute left-0 top-0 w-full p-3">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-[10px] uppercase tracking-wider text-cyan-400">{DEMO_LESSON.module}</p>
-                  <p className="mt-0.5 truncate text-sm font-semibold text-white">{DEMO_LESSON.title}</p>
-                </div>
-                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center">
-                  <svg viewBox="0 0 68 68" className="h-full w-full -rotate-90">
-                    <circle cx="34" cy="34" r={R} fill="none" stroke="rgb(255 255 255 / 0.15)" strokeWidth="5" />
-                    <motion.circle
-                      cx="34"
-                      cy="34"
-                      r={R}
-                      fill="none"
-                      stroke="hsl(185 80% 50%)"
-                      strokeWidth="5"
-                      strokeLinecap="round"
-                      strokeDasharray={CIRC}
-                      initial={reduced ? { strokeDashoffset: CIRC * (1 - DEMO_LESSON.progress) } : { strokeDashoffset: CIRC }}
-                      whileInView={{ strokeDashoffset: CIRC * (1 - DEMO_LESSON.progress) }}
-                      viewport={{ once: true }}
-                      transition={{ duration: reduced ? 0 : 1.1, ease: 'easeOut' }}
-                    />
-                  </svg>
-                  <span className="absolute text-[9px] font-bold text-white">{Math.round(shown)}%</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom controls overlay */}
+            {/* Bottom progress overlay */}
             <div className="absolute bottom-0 left-0 w-full p-3">
               <div className="flex items-center gap-2">
                 <span className="text-[10px] tabular-nums text-white/80">2:18</span>
@@ -96,7 +127,6 @@ export function AcademyDemo() {
                     viewport={{ once: true }}
                     transition={{ duration: reduced ? 0 : 1.1, ease: 'easeOut' }}
                   />
-                  <div className="absolute top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full bg-white shadow" style={{ left: `${pct}%` }} />
                 </div>
                 <span className="text-[10px] tabular-nums text-white/60">{DEMO_LESSON.duration}</span>
                 <Volume2 className="h-3.5 w-3.5 text-white/60" />
@@ -104,18 +134,69 @@ export function AcademyDemo() {
               </div>
             </div>
           </div>
-        </DemoVisual>
+        </div>
 
-        <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-          <span className={cn("flex items-center gap-1.5", playing && "text-cyan-400")}>
-            <Clock className="h-3 w-3" />
-            Lesson {DEMO_LESSON.lessonIndex} of {DEMO_LESSON.totalLessons}
-          </span>
-          <span className="h-3 w-px bg-slate-800" />
-          <span>Resume where you left off</span>
+        {/* Current lesson */}
+        <div className="flex items-center gap-3 rounded-xl border border-slate-800/80 bg-slate-900/50 p-2.5">
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center">
+            <svg viewBox="0 0 68 68" className="h-full w-full -rotate-90">
+              <circle cx="34" cy="34" r={R} fill="none" stroke="rgb(255 255 255 / 0.15)" strokeWidth="5" />
+              <motion.circle
+                cx="34"
+                cy="34"
+                r={R}
+                fill="none"
+                stroke="hsl(185 80% 50%)"
+                strokeWidth="5"
+                strokeLinecap="round"
+                strokeDasharray={CIRC}
+                initial={reduced ? { strokeDashoffset: CIRC * (1 - DEMO_LESSON.progress) } : { strokeDashoffset: CIRC }}
+                whileInView={{ strokeDashoffset: CIRC * (1 - DEMO_LESSON.progress) }}
+                viewport={{ once: true }}
+                transition={{ duration: reduced ? 0 : 1.1, ease: 'easeOut' }}
+              />
+            </svg>
+            <span className="absolute text-[9px] font-bold text-white">{Math.round(shown)}%</span>
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[9px] uppercase tracking-wider text-muted-foreground">
+              Lesson {DEMO_LESSON.lessonIndex} of {DEMO_LESSON.totalLessons}
+            </p>
+            <p className="truncate text-[12px] font-semibold text-foreground">{DEMO_LESSON.title}</p>
+          </div>
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex flex-col gap-2">
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 border-slate-700 bg-slate-900/50 text-[11px] font-medium hover:bg-slate-800 hover:text-foreground"
+              onClick={() => navigate('/academy')}
+            >
+              Watch in player
+              <ArrowRight className="h-3 w-3" />
+            </Button>
+            <Button
+              size="sm"
+              className="h-9 bg-gradient-to-r from-cyan-500 to-blue-600 text-[11px] font-semibold text-white hover:from-cyan-400 hover:to-blue-500"
+              onClick={() => navigate('/academy')}
+            >
+              <Crown className="h-3 w-3" />
+              Upgrade to Pro
+            </Button>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 w-full text-[11px] font-medium text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300"
+            onClick={() => navigate('/academy')}
+          >
+            Unlock all 92 lessons — from $83/mo
+          </Button>
         </div>
       </div>
     </DemoCard>
   );
 }
-
