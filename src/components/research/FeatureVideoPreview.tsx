@@ -98,60 +98,92 @@ export function FeatureVideoPreview({
 
   const showVideo = inView && !staticOnly && !failed;
 
-  return (
-    <div
-      ref={wrapRef}
-      className={cn(
-        "relative aspect-[16/10] w-full overflow-hidden rounded-xl border border-border/60 bg-muted/20",
-        className,
-      )}
-    >
-      {/* Static fallback — always painted underneath the clip */}
+  const media = (big: boolean) => (
+    <>
       <img
         src={video.poster}
         alt={video.label}
-        loading="lazy"
+        loading={big ? "eager" : "lazy"}
         decoding="async"
-        className="absolute inset-0 h-full w-full object-cover"
+        className="absolute inset-0 h-full w-full object-contain"
       />
-
-      {showVideo && (
+      {(big || showVideo) && (
         <video
-          ref={videoRef}
+          ref={big ? undefined : videoRef}
           poster={video.poster}
           muted
           loop
           autoPlay
           playsInline
-          preload="none"
+          preload={big ? "auto" : "none"}
           aria-label={video.label}
           onError={() => setFailed(true)}
-          className="absolute inset-0 h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full object-contain"
         >
           {video.webm && <source src={video.webm} type="video/webm" />}
           <source src={video.src} type="video/mp4" />
         </video>
       )}
+    </>
+  );
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-gradient-to-t from-background/90 to-transparent px-2.5 py-2">
-        <span
-          className={cn(
-            "inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/70 px-2 py-0.5 text-[10px] font-medium",
-            accent ?? "text-foreground/80",
-          )}
-        >
-          {showVideo ? (
-            <>
-              <Play className="h-2.5 w-2.5" /> Preview clip
-            </>
-          ) : (
-            <>
-              <ImageIcon className="h-2.5 w-2.5" /> Static preview
-            </>
-          )}
+  return (
+    <>
+      <button
+        type="button"
+        ref={wrapRef as unknown as React.Ref<HTMLButtonElement>}
+        onClick={() => setExpanded(true)}
+        aria-label={`Expand preview: ${video.label}`}
+        className={cn(
+          "group/clip relative block aspect-[16/10] w-full cursor-zoom-in overflow-hidden rounded-xl border border-border/60 bg-muted/20 text-left",
+          className,
+        )}
+      >
+        {media(false)}
+
+        {/* Tap-to-expand affordance — the clip is a desktop UI, so on phones
+            the only way to read it is full screen. */}
+        <span className="pointer-events-none absolute right-2 top-2 inline-flex items-center gap-1 rounded-full border border-cyan-500/30 bg-background/80 px-2 py-1 text-[10px] font-medium text-cyan-300 backdrop-blur-sm sm:opacity-0 sm:transition-opacity sm:group-hover/clip:opacity-100">
+          <Maximize2 className="h-3 w-3" />
+          <span className="sm:hidden">Tap to enlarge</span>
+          <span className="hidden sm:inline">Enlarge</span>
         </span>
-        <span className="truncate text-[10px] text-muted-foreground">{video.label}</span>
-      </div>
-    </div>
+
+        <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-gradient-to-t from-background/90 to-transparent px-2.5 py-2">
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/70 px-2 py-0.5 text-[10px] font-medium",
+              accent ?? "text-foreground/80",
+            )}
+          >
+            {showVideo ? (
+              <>
+                <Play className="h-2.5 w-2.5" /> Preview clip
+              </>
+            ) : (
+              <>
+                <ImageIcon className="h-2.5 w-2.5" /> Static preview
+              </>
+            )}
+          </span>
+          <span className="truncate text-[10px] text-muted-foreground">{video.label}</span>
+        </span>
+      </button>
+
+      <Dialog open={expanded} onOpenChange={setExpanded}>
+        <DialogContent
+          className="w-[100vw] max-w-[100vw] gap-0 border-cyan-500/25 bg-slate-950/95 p-0 sm:w-[92vw] sm:max-w-5xl sm:rounded-xl"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
+          <DialogHeader className="px-4 pb-2 pt-4 text-left">
+            <DialogTitle className="text-sm font-medium text-foreground">{video.label}</DialogTitle>
+          </DialogHeader>
+          <div className="relative aspect-[16/10] w-full overflow-hidden bg-black sm:rounded-b-xl">
+            {media(true)}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
+
