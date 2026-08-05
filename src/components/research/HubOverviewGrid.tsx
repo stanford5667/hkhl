@@ -107,7 +107,7 @@ function HubCard({
     <Link
       to={to}
       className={cn(
-        "group relative rounded-2xl border border-border/50 bg-card/40 backdrop-blur-sm overflow-hidden",
+        "group relative h-full rounded-2xl border border-border/50 bg-card/40 backdrop-blur-sm overflow-hidden",
         "p-3.5 sm:p-5 flex flex-col gap-2.5 sm:gap-4 min-h-[152px] sm:min-h-[180px]",
         "transition-all duration-200 will-change-transform",
         "active:scale-[0.985] hover:-translate-y-0.5 hover:bg-card/70 hover:shadow-xl",
