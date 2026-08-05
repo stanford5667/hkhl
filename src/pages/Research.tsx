@@ -2,10 +2,6 @@ import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { ResearchTopBar } from "@/pages/research/components/ResearchTopBar";
 import { ResearchBottomBar } from "@/pages/research/components/ResearchBottomBar";
-import { MarketThemesWidget } from "@/pages/research/components/MarketThemesWidget";
-import { GlobalThemesWidget } from "@/pages/research/components/GlobalThemesRegionWidget";
-import { UnifiedDiscoveryScreener } from "@/components/research/UnifiedDiscoveryScreener";
-import { EarningsCalendarWidget } from "@/pages/research/components/EarningsCalendarWidget";
 import { MarketMoversWidget } from "@/pages/research/components/MarketMoversWidget";
 import { NewsAnalysisWidget } from "@/pages/research/components/NewsAnalysisWidget";
 import { ResearchHero } from "@/components/research/ResearchHero";
@@ -93,13 +89,6 @@ export default function ResearchPage() {
 
         <DiscoveryFeed />
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
-          <MarketThemesWidget />
-          <GlobalThemesWidget />
-        </div>
-
-        <UnifiedDiscoveryScreener />
-        <EarningsCalendarWidget />
         <MarketMoversWidget />
         <NewsAnalysisWidget />
       </main>
