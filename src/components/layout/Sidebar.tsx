@@ -75,7 +75,14 @@ interface NavItem {
   isPremium?: boolean;
 }
 
+interface NavGroup {
+  id: string;
+  label: string;
+  items: NavItem[];
+}
+
 const STORAGE_KEY = "sidebar-hidden-tabs";
+
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
