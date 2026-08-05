@@ -493,28 +493,42 @@ export function Sidebar() {
             </div>
             <ScrollArea className="h-[280px]">
               <div className="p-2 space-y-1">
-                {allNavigation.map((item) => {
-                  const Icon = item.icon;
-                  const isVisible = !hiddenTabs.includes(item.href);
-                  return (
-                    <div
-                      key={item.href}
-                      className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-accent/50 transition-colors"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <Icon className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm text-foreground">{item.label}</span>
-                      </div>
-                      <Switch
-                        checked={isVisible}
-                        onCheckedChange={() => toggleTab(item.href)}
-                        className="data-[state=checked]:bg-primary"
-                      />
-                    </div>
-                  );
-                })}
+                {[
+                  { id: "top", label: null as string | null, items: navStructure.top },
+                  ...navStructure.groups.map((g) => ({ id: g.id, label: g.label as string | null, items: g.items })),
+                  { id: "support", label: "Support" as string | null, items: navStructure.bottom },
+                ].map((section) => (
+                  <div key={section.id}>
+                    {section.label && (
+                      <p className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                        {section.label}
+                      </p>
+                    )}
+                    {section.items.map((item) => {
+                      const Icon = item.icon;
+                      const isVisible = !hiddenTabs.includes(item.href);
+                      return (
+                        <div
+                          key={item.href}
+                          className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-accent/50 transition-colors"
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <Icon className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm text-foreground">{item.label}</span>
+                          </div>
+                          <Switch
+                            checked={isVisible}
+                            onCheckedChange={() => toggleTab(item.href)}
+                            className="data-[state=checked]:bg-primary"
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
               </div>
             </ScrollArea>
+
             {hiddenTabs.length > 0 && (
               <div className="p-2 border-t border-border">
                 <Button
