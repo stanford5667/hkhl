@@ -7,9 +7,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTickerSearch } from '@/hooks/useTickerSearch';
 
 const STATS = [
-  { label: 'Stocks & ETFs', value: '10,000+' },
-  { label: 'Financial Metrics', value: '18+' },
-  { label: 'Years of History', value: '30+' },
+  { label: 'Video Lessons', value: '92' },
+  { label: 'Trade Ideas', value: 'Live' },
+  { label: 'Lines of Code', value: '0' },
 ];
 
 
@@ -141,7 +141,7 @@ export function ResearchHero({
             transition={{ duration: 0.5, delay: 0.1 }}
           >
             <span className="text-foreground font-medium">Quant investing, without the code.</span>{' '}
-            Build, backtest, and automate strategies designed to outlast the cycle — not chase it.
+            Learn the craft, trade ideas with the room, and automate strategies built to outlast the cycle — not chase it.
           </motion.p>
           <motion.div
             className="flex justify-start sm:justify-center mt-2"
