@@ -45,6 +45,7 @@ import { FeatureComparisonPanel } from '@/components/auth/FeatureComparisonPanel
 import { Check, X, ArrowLeft, ChevronRight, ChevronDown, Search } from 'lucide-react';
 import { CourseHero } from '@/components/academy/CourseHero';
 import { CourseOverview } from '@/components/academy/CourseOverview';
+import { getTopicThumbnail } from '@/lib/lessonThumbnails';
 import {
   parseCourseDescription,
   prettyLabel,
