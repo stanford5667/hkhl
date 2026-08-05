@@ -123,7 +123,7 @@ export function Layout({ children }: LayoutProps) {
 
   // Allow legal/public pages through without layout
   if (!user) {
-    const publicPaths = ["/", "/terms", "/privacy", "/disclosures", "/landing", "/management-fee", "/sms-consent"];
+    const publicPaths = ["/terms", "/privacy", "/disclosures", "/landing", "/management-fee", "/sms-consent"];
     const isPublicPath = publicPaths.includes(location.pathname) || location.pathname.startsWith("/academy");
     if (isPublicPath) {
       return <>{children}</>;
