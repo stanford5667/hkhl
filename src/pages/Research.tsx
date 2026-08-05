@@ -7,8 +7,6 @@ import { ResearchHero } from "@/components/research/ResearchHero";
 import { StockOfTheDay } from "@/components/research/StockOfTheDay";
 import { DiscoveryFeed } from "@/components/research/DiscoveryFeed";
 import { HubOverviewGrid } from "@/components/research/HubOverviewGrid";
-import { BacktesterProductPreview } from "@/components/research/BacktesterProductPreview";
-import { AcademyProductPreview } from "@/components/research/AcademyProductPreview";
 import { DemoCarousel } from "@/components/demos/DemoCarousel";
 
 export default function ResearchPage() {
@@ -59,8 +57,6 @@ export default function ResearchPage() {
           />
         </section>
 
-        <BacktesterProductPreview />
-
         <section>
           <div className="mb-3">
             <h2 className="text-lg sm:text-xl font-bold text-foreground">Tools you haven't tried yet</h2>
@@ -70,8 +66,6 @@ export default function ResearchPage() {
           </div>
           <DemoCarousel />
         </section>
-
-        <AcademyProductPreview />
 
         <HubOverviewGrid />
 
