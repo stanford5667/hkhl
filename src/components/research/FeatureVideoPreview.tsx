@@ -71,6 +71,8 @@ export function FeatureVideoPreview({
   const [inView, setInView] = useState(false);
   const [staticOnly, setStaticOnly] = useState(true);
   const [failed, setFailed] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+
 
   useEffect(() => {
     setStaticOnly(prefersLightweight());
