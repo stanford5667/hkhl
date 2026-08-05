@@ -95,7 +95,7 @@ export default function ResearchPage() {
               Quick, interactive samples — swipe through and see what each module does.
             </p>
           </div>
-          <DemoCarousel />
+          <BacktesterProductPreview />
         </section>
 
         <StockOfTheDay />
