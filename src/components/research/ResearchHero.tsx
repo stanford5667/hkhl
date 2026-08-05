@@ -124,7 +124,7 @@ export function ResearchHero({
         {/* Hero Text — Terminal style */}
         <div className="text-left sm:text-center mb-4 sm:mb-8">
           <motion.h1
-            className="font-display text-[19px] leading-[1.1] tracking-tighter whitespace-nowrap sm:text-4xl sm:tracking-tight lg:text-5xl font-bold mb-2 sm:mb-3"
+            className="font-display text-[22px] leading-[1.1] tracking-tighter whitespace-nowrap sm:text-5xl sm:tracking-tight lg:text-6xl font-bold mb-2 sm:mb-3"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
@@ -135,7 +135,7 @@ export function ResearchHero({
             </span>
           </motion.h1>
           <motion.p
-            className="text-muted-foreground text-[13px] sm:text-sm lg:text-base max-w-lg sm:mx-auto leading-relaxed"
+            className="text-muted-foreground text-[14px] sm:text-base lg:text-lg max-w-lg sm:mx-auto leading-relaxed"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
