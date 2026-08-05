@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { BookOpen, Clock, Layers, Play } from 'lucide-react';
 import { resolveCourseHours, formatHours } from '@/lib/courseContent';
+import { getTopicThumbnail } from '@/lib/lessonThumbnails';
 
 type CourseSummary = {
   id: string;
