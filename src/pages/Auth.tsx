@@ -13,18 +13,23 @@ import {
 } from "@/lib/checkout";
 
 export default function Auth() {
-  const [mode, setMode] = useState<AuthMode>("signup");
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
 
-
-  // Get the redirect path and optional checkout intent from state
-  const locationState = location.state as { from?: string; checkoutPlan?: string; checkoutReturnPath?: string } | null;
+  // Get the redirect path, requested mode and optional checkout intent from state
+  const locationState = location.state as { from?: string; mode?: AuthMode; checkoutPlan?: string; checkoutReturnPath?: string } | null;
+  const [mode, setMode] = useState<AuthMode>(locationState?.mode ?? "signup");
   const storedRedirect = typeof window !== "undefined" ? sessionStorage.getItem("post_auth_redirect") : null;
   const from = locationState?.from || storedRedirect || "/research";
   const checkoutPlan = locationState?.checkoutPlan;
   const checkoutReturnPath = locationState?.checkoutReturnPath;
+
+  // Honor mode changes coming from navigation (e.g. Log In vs Sign up free).
+  useEffect(() => {
+    if (locationState?.mode) setMode(locationState.mode);
+  }, [locationState?.mode]);
+
 
   useEffect(() => {
     if (!user) return;
