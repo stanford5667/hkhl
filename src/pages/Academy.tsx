@@ -132,18 +132,18 @@ export default function Academy() {
             >
               <Card className="h-full overflow-hidden transition-colors group-hover:border-primary/40">
                 <div className="aspect-video bg-muted relative overflow-hidden">
-                  {course.thumbnail_url ? (
-                    <img
-                      src={course.thumbnail_url}
-                      alt={course.title}
-                      loading="lazy"
-                      className="size-full object-cover"
-                    />
-                  ) : (
-                    <div className="size-full flex items-center justify-center bg-gradient-to-br from-cyan-900/70 to-slate-900">
-                      <Play className="w-8 h-8 text-white/70" />
-                    </div>
-                  )}
+                  <img
+                    src={course.thumbnail_url || getTopicThumbnail(course.title, course.category)}
+                    alt={course.title}
+                    loading="lazy"
+                    className="size-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-background/70 via-transparent to-transparent" />
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
+                    <span className="flex size-12 items-center justify-center rounded-full border border-white/20 bg-black/40 backdrop-blur-sm">
+                      <Play className="w-5 h-5 ml-0.5 text-white" />
+                    </span>
+                  </div>
                 </div>
                 <CardContent className="p-4 space-y-3">
                   <div className="flex flex-wrap items-center gap-2">
