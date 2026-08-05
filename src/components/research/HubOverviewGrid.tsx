@@ -114,10 +114,10 @@ function HubCard({
     <Link
       to={to}
       className={cn(
-        "group relative rounded-2xl border border-border/50 bg-card/40 backdrop-blur-sm overflow-hidden",
-        "p-3.5 sm:p-5 flex flex-col gap-2.5 sm:gap-4 min-h-[152px] sm:min-h-[180px]",
+        "group relative rounded-xl border border-border/50 bg-card/40 backdrop-blur-sm overflow-hidden",
+        "p-3 sm:p-3.5 flex flex-col gap-2 sm:gap-2.5 min-h-[120px] sm:min-h-[140px]",
         "transition-all duration-200 will-change-transform",
-        "active:scale-[0.985] hover:-translate-y-0.5 hover:bg-card/70 hover:shadow-xl",
+        "active:scale-[0.985] hover:-translate-y-0.5 hover:bg-card/70 hover:shadow-lg",
         a.ring,
         a.glow,
       )}
@@ -136,7 +136,7 @@ function HubCard({
       <Icon
         aria-hidden
         className={cn(
-          "pointer-events-none absolute -bottom-5 -right-4 h-24 w-24 opacity-[0.05] transition-all duration-300 group-hover:opacity-[0.1] group-hover:scale-105",
+          "pointer-events-none absolute -bottom-4 -right-3 h-20 w-20 opacity-[0.04] transition-all duration-300 group-hover:opacity-[0.08] group-hover:scale-105",
           a.text,
         )}
         strokeWidth={1}
@@ -145,37 +145,37 @@ function HubCard({
       {/* Icon badge — left rail on mobile, top on desktop */}
       <div
         className={cn(
-          "relative z-10 flex h-9 w-9 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl border transition-transform duration-200 group-hover:scale-105",
+          "relative z-10 flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-lg border transition-transform duration-200 group-hover:scale-105",
           a.badge,
         )}
       >
-        <Icon className="h-5 w-5 sm:h-6 sm:w-6" strokeWidth={1.9} />
+        <Icon className="h-4 w-4 sm:h-5 sm:w-5" strokeWidth={1.9} />
       </div>
 
       <div className="relative z-10 min-w-0 flex-1 flex flex-col">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="font-display text-[15px] sm:text-base font-semibold tracking-tight text-foreground truncate">
+          <h3 className="font-display text-sm sm:text-[15px] font-semibold tracking-tight text-foreground truncate">
             {title}
           </h3>
           <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground/60 transition-all duration-200 group-hover:text-foreground group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
         </div>
 
-        <p className="mt-1 text-[12px] sm:text-[13px] leading-relaxed text-muted-foreground line-clamp-2 sm:line-clamp-3">
+        <p className="mt-0.5 text-[11px] sm:text-xs leading-relaxed text-muted-foreground line-clamp-2 sm:line-clamp-2">
           {blurb}
         </p>
 
-        <div className="mt-2.5 sm:mt-auto sm:pt-3 flex flex-col gap-1.5">
+        <div className="mt-2 sm:mt-auto sm:pt-2 flex flex-col gap-1">
           {loading ? (
             <>
-              <Skeleton className="h-5 w-24 rounded-md" />
-              <Skeleton className="h-3 w-32 rounded-md" />
+              <Skeleton className="h-4 w-20 rounded-md" />
+              <Skeleton className="h-3 w-28 rounded-md" />
             </>
           ) : primary ? (
             <>
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <span
                   className={cn(
-                    "inline-flex max-w-full items-center rounded-md border px-2 py-0.5 text-[11px] font-mono font-semibold uppercase tracking-tight truncate",
+                    "inline-flex max-w-full items-center rounded-md border px-1.5 py-0.5 text-[10px] font-mono font-semibold uppercase tracking-tight truncate",
                     tone === "positive" && "border-emerald-400/25 bg-emerald-500/10 text-emerald-300",
                     tone === "negative" && "border-red-400/25 bg-red-500/10 text-red-300",
                     tone === "default" && a.badge,
@@ -184,17 +184,16 @@ function HubCard({
                   {primary}
                 </span>
                 {secondary && (
-                  <span className="text-[11px] text-muted-foreground/80 truncate">{secondary}</span>
+                  <span className="text-[10px] text-muted-foreground/80 truncate">{secondary}</span>
                 )}
                 {visual && <div className="ml-auto shrink-0 opacity-80">{visual}</div>}
               </div>
 
-
               {extra && (
                 <div
                   className={cn(
-                    "text-[11px] truncate overflow-hidden transition-all duration-200",
-                    "max-h-0 opacity-0 group-hover:max-h-6 group-hover:opacity-100 group-focus-visible:max-h-6 group-focus-visible:opacity-100",
+                    "text-[10px] truncate overflow-hidden transition-all duration-200",
+                    "max-h-0 opacity-0 group-hover:max-h-5 group-hover:opacity-100 group-focus-visible:max-h-5 group-focus-visible:opacity-100",
                     a.text,
                   )}
                 >
@@ -206,7 +205,7 @@ function HubCard({
 
           <div
             className={cn(
-              "flex items-center gap-1 text-[11px] font-semibold tracking-tight",
+              "flex items-center gap-1 text-[10px] font-semibold tracking-tight",
               a.text,
             )}
           >
