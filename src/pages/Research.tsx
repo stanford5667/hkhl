@@ -12,10 +12,14 @@ import { ResearchHero } from "@/components/research/ResearchHero";
 import { StockOfTheDay } from "@/components/research/StockOfTheDay";
 import { DiscoveryFeed } from "@/components/research/DiscoveryFeed";
 import { HubOverviewGrid } from "@/components/research/HubOverviewGrid";
+import { HubTerminalGrid } from "@/components/research/HubTerminalGrid";
 import { FeaturePreviewShowcase } from "@/components/research/FeaturePreviewShowcase";
 
 
 const RECENT_KEY = "research:recent-searches";
+const HUB_VARIANT_KEY = "research:hub-variant";
+type HubVariant = "cards" | "terminal";
+
 
 export default function ResearchPage() {
   const navigate = useNavigate();
@@ -30,6 +34,24 @@ export default function ResearchPage() {
       return [];
     }
   });
+  const [hubVariant, setHubVariant] = useState<HubVariant>(() => {
+    try {
+      return localStorage.getItem(HUB_VARIANT_KEY) === "terminal" ? "terminal" : "cards";
+    } catch {
+      return "cards";
+    }
+  });
+
+  const toggleHubVariant = useCallback(() => {
+    setHubVariant((prev) => {
+      const next: HubVariant = prev === "cards" ? "terminal" : "cards";
+      try {
+        localStorage.setItem(HUB_VARIANT_KEY, next);
+      } catch {}
+      return next;
+    });
+  }, []);
+
 
   const handleRefresh = () => {
     setLastUpdated(new Date());
@@ -73,7 +95,19 @@ export default function ResearchPage() {
           />
         </section>
 
-        <HubOverviewGrid />
+        <div>
+          <div className="mb-1 flex justify-end">
+            <button
+              type="button"
+              onClick={toggleHubVariant}
+              className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground/70 underline-offset-4 transition-colors hover:text-foreground hover:underline"
+            >
+              hub: {hubVariant} · switch to {hubVariant === "cards" ? "terminal" : "cards"}
+            </button>
+          </div>
+          {hubVariant === "terminal" ? <HubTerminalGrid /> : <HubOverviewGrid />}
+        </div>
+
 
 
 
