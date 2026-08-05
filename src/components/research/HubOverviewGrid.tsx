@@ -508,7 +508,7 @@ function BacktesterCard() {
   })();
   return (
     <HubCard
-      to="/stock/SPY?tab=backtest"
+      to="/backtester"
       icon={LineChart}
       title="Backtester"
       accent="teal"
