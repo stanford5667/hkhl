@@ -140,7 +140,8 @@ export function ResearchHero({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
           >
-            Start with any ticker — AI analysis, 30+ years of backtesting, and portfolio tracking in one place.
+            <span className="text-foreground font-medium">Then find out if it actually works.</span>{' '}
+            Backtest any thesis against 30 years of market history — before you risk a dollar.
           </motion.p>
           <motion.div
             className="flex justify-start sm:justify-center mt-2"
