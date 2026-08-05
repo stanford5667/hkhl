@@ -84,7 +84,7 @@ export default function ResearchPage() {
           />
         </section>
 
-        <FeaturePreviewShowcase />
+        <BacktesterProductPreview />
 
         <HubOverviewGrid />
 
@@ -95,7 +95,7 @@ export default function ResearchPage() {
               Quick, interactive samples — swipe through and see what each module does.
             </p>
           </div>
-          <BacktesterProductPreview />
+          <DemoCarousel />
         </section>
 
         <StockOfTheDay />
