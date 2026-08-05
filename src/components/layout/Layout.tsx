@@ -36,6 +36,8 @@ export function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const isSplitScrollRoute = (location.pathname === "/" && !!user) || location.pathname === "/quant-lab";
+  // On mobile, academy/course pages own the bottom of the screen with a sticky CTA.
+  const hideFloatingWidgets = isMobile && location.pathname.startsWith("/academy");
   // Onboarding state (we only use the banner; all modals/popups are disabled)
   const { 
     shouldShowBanner,
