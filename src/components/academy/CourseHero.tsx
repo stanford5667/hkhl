@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Award, BookOpen, Clock, Layers, Lock, Play, Sparkles } from 'lucide-react';
+import { BookOpen, Clock, Layers, Lock, Play, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -133,7 +133,7 @@ export function CourseHero({
           <MetaItem icon={Layers} label={`${moduleCount} modules`} />
           <MetaItem icon={BookOpen} label={`${lessonCount} lessons`} />
           {durationLabel && <MetaItem icon={Clock} label={`${durationLabel} of video`} />}
-          <MetaItem icon={Award} label="Certificate" />
+          
         </div>
 
         {/* Instructor */}
