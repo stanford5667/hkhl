@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { BacktestDemo } from './BacktestDemo';
-import { ScreenerDemo } from './ScreenerDemo';
 import { AcademyDemo } from './AcademyDemo';
 import { useInViewOnce } from './useCountUp';
 
@@ -25,7 +24,6 @@ function LazyDemo({ children, minHeight }: { children: ReactNode; minHeight: num
 
 const DEMOS = [
   { id: 'backtest', node: <BacktestDemo />, minHeight: 620 },
-  { id: 'screener', node: <ScreenerDemo />, minHeight: 520 },
   { id: 'academy', node: <AcademyDemo />, minHeight: 400 },
 ];
 
