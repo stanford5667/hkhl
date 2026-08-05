@@ -676,7 +676,19 @@ function TeaserCard({
   );
 }
 
+function HubSection({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <section>
+      <h3 className="mb-2 px-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+        {label}
+      </h3>
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">{children}</div>
+    </section>
+  );
+}
+
 export function HubOverviewGrid() {
+
   const { isAuthenticated, loading } = useAuth();
 
   const isGuest = !isAuthenticated && !loading;
