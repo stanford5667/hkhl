@@ -241,23 +241,23 @@ export function CoursePreviewPlayer({
             showOverlay || !playing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
           }`}
         >
-          <span className="flex h-16 w-16 items-center justify-center rounded-full border border-white/20 bg-background/80 text-foreground shadow-xl backdrop-blur-md transition-transform hover:scale-105 active:scale-95 sm:h-20 sm:w-20">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full border border-white/20 sm:h-16 sm:w-16 bg-background/80 text-foreground shadow-xl backdrop-blur-md transition-transform hover:scale-105 active:scale-95 sm:h-20 sm:w-20">
             {playing ? (
-              <Pause className="h-7 w-7 fill-current sm:h-8 sm:w-8" />
+              <Pause className="h-5 w-5 fill-current sm:h-8 sm:w-8" />
             ) : (
-              <Play className="h-7 w-7 fill-current pl-1 sm:h-8 sm:w-8" />
+              <Play className="h-5 w-5 fill-current pl-0.5 sm:h-8 sm:w-8" />
             )}
           </span>
         </button>
 
         {/* Persistent bottom control bar */}
-        <div className="absolute inset-x-0 bottom-0 z-30 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-4 pt-10 sm:p-5 sm:pt-12">
-          <div className="flex items-center gap-3 text-foreground/90 sm:gap-4">
+        <div className="absolute inset-x-0 bottom-0 z-30 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-2.5 pt-8 sm:p-5 sm:pt-12">
+          <div className="flex items-center gap-2 text-foreground/90 sm:gap-4">
             <button
               type="button"
               onClick={togglePlay}
               aria-label={playing ? 'Pause preview' : 'Play preview'}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-background/90 text-foreground shadow-lg backdrop-blur-md transition-colors hover:bg-accent hover:text-accent-foreground sm:h-11 sm:w-11"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-background/90 text-foreground shadow-lg backdrop-blur-md transition-colors hover:bg-accent hover:text-accent-foreground sm:h-11 sm:w-11"
             >
               {playing ? (
                 <Pause className="h-5 w-5 fill-current" />
@@ -270,7 +270,7 @@ export function CoursePreviewPlayer({
               type="button"
               onClick={toggleMute}
               aria-label={muted ? 'Unmute preview' : 'Mute preview'}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-background/90 text-foreground shadow-lg backdrop-blur-md transition-colors hover:bg-accent hover:text-accent-foreground sm:h-11 sm:w-11"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-background/90 text-foreground shadow-lg backdrop-blur-md transition-colors hover:bg-accent hover:text-accent-foreground sm:h-11 sm:w-11"
             >
               {muted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
             </button>
