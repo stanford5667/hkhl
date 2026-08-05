@@ -241,7 +241,7 @@ export function CoursePreviewPlayer({
             showOverlay || !playing ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
           }`}
         >
-          <span className="flex h-12 w-12 items-center justify-center rounded-full border border-white/20 sm:h-16 sm:w-16 bg-background/80 text-foreground shadow-xl backdrop-blur-md transition-transform hover:scale-105 active:scale-95 sm:h-20 sm:w-20">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-background/80 text-foreground shadow-xl backdrop-blur-md transition-transform hover:scale-105 active:scale-95 sm:h-20 sm:w-20">
             {playing ? (
               <Pause className="h-5 w-5 fill-current sm:h-8 sm:w-8" />
             ) : (
