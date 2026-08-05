@@ -88,6 +88,8 @@ export default function ResearchPage() {
 
         <BacktesterProductPreview />
 
+        <AcademyProductPreview />
+
         <HubOverviewGrid />
 
         <section>
