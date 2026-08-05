@@ -4,6 +4,8 @@ import { BacktestDemo } from './BacktestDemo';
 import { AcademyDemo } from './AcademyDemo';
 import { useInViewOnce } from './useCountUp';
 
+const AUTO_ADVANCE_MS = 5000;
+
 /** Lazily mounts its child once scrolled near the viewport, reserving height meanwhile. */
 function LazyDemo({ children, minHeight }: { children: ReactNode; minHeight: number }) {
   const { ref, inView } = useInViewOnce<HTMLDivElement>('300px');
@@ -30,6 +32,9 @@ const DEMOS = [
 export function DemoCarousel() {
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const userInteractedRef = useRef(false);
 
   useEffect(() => {
     const el = scrollerRef.current;
@@ -67,8 +72,44 @@ export function DemoCarousel() {
     el.scrollTo({ left: child.offsetLeft - (el.clientWidth - child.offsetWidth) / 2, behavior: 'smooth' });
   };
 
+  // Auto-advance through demos with a smooth progress bar.
+  useEffect(() => {
+    let start = performance.now();
+    let raf = 0;
+    const tick = (now: number) => {
+      if (isPaused || userInteractedRef.current) {
+        start = now - progress * AUTO_ADVANCE_MS;
+        raf = requestAnimationFrame(tick);
+        return;
+      }
+      const elapsed = now - start;
+      const p = Math.min(elapsed / AUTO_ADVANCE_MS, 1);
+      setProgress(p);
+      if (p >= 1) {
+        const next = (activeIndex + 1) % DEMOS.length;
+        setActiveIndex(next);
+        scrollTo(next);
+        start = now;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [activeIndex, isPaused, progress]);
+
+  const handleDotClick = (i: number) => {
+    userInteractedRef.current = true;
+    setActiveIndex(i);
+    scrollTo(i);
+  };
+
   return (
-    <div>
+    <div
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+      onTouchStart={() => setIsPaused(true)}
+      onTouchEnd={() => setIsPaused(false)}
+    >
       {/* Mobile: scroll-snap carousel · md+: 2x2 grid */}
       <div
         ref={scrollerRef}
@@ -77,12 +118,25 @@ export function DemoCarousel() {
           'md:grid md:grid-cols-2 md:gap-4 md:overflow-visible md:pb-0'
         )}
       >
-        {DEMOS.map((d) => (
+        {DEMOS.map((d, i) => (
           <div
             key={d.id}
-            className="w-[85%] flex-shrink-0 snap-center md:w-auto md:flex-shrink"
+            className={cn(
+              'w-[85%] flex-shrink-0 snap-center md:w-auto md:flex-shrink transition-all duration-500',
+              i === activeIndex && 'md:ring-1 md:ring-cyan-400/30 md:rounded-2xl'
+            )}
           >
-            <LazyDemo minHeight={d.minHeight}>{d.node}</LazyDemo>
+            <div className="relative overflow-hidden rounded-2xl">
+              {/* Progress bar across the top of the active card */}
+              <div
+                className={cn(
+                  'absolute left-0 right-0 top-0 z-20 h-0.5 bg-cyan-400/80 transition-transform duration-100 ease-linear',
+                  i === activeIndex ? 'opacity-100' : 'opacity-0'
+                )}
+                style={{ transform: `scaleX(${i === activeIndex ? progress : 0})`, transformOrigin: 'left' }}
+              />
+              <LazyDemo minHeight={d.minHeight}>{d.node}</LazyDemo>
+            </div>
           </div>
         ))}
       </div>
@@ -94,7 +148,7 @@ export function DemoCarousel() {
             key={d.id}
             type="button"
             aria-label={`Go to demo ${i + 1}`}
-            onClick={() => scrollTo(i)}
+            onClick={() => handleDotClick(i)}
             className="flex h-11 w-6 items-center justify-center"
           >
             <span
@@ -109,3 +163,4 @@ export function DemoCarousel() {
     </div>
   );
 }
+
