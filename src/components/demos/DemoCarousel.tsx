@@ -25,10 +25,10 @@ function LazyDemo({ children, minHeight }: { children: ReactNode; minHeight: num
 }
 
 const DEMOS = [
-  { id: 'backtest', node: <BacktestDemo />, minHeight: 620 },
-  { id: 'screener', node: <ScreenerDemo />, minHeight: 520 },
-  { id: 'themes', node: <ThemesDemo />, minHeight: 520 },
-  { id: 'academy', node: <AcademyDemo />, minHeight: 400 },
+  { id: 'backtest', node: <BacktestDemo />, minHeight: 460 },
+  { id: 'screener', node: <ScreenerDemo />, minHeight: 380 },
+  { id: 'themes', node: <ThemesDemo />, minHeight: 380 },
+  { id: 'academy', node: <AcademyDemo />, minHeight: 320 },
 ];
 
 export function DemoCarousel() {
