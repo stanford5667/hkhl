@@ -8,6 +8,7 @@ import { StockOfTheDay } from "@/components/research/StockOfTheDay";
 import { DiscoveryFeed } from "@/components/research/DiscoveryFeed";
 import { HubOverviewGrid } from "@/components/research/HubOverviewGrid";
 import { BacktesterProductPreview } from "@/components/research/BacktesterProductPreview";
+import { AcademyProductPreview } from "@/components/research/AcademyProductPreview";
 import { DemoCarousel } from "@/components/demos/DemoCarousel";
 
 const RECENT_KEY = "research:recent-searches";
@@ -86,6 +87,8 @@ export default function ResearchPage() {
         </section>
 
         <BacktesterProductPreview />
+
+        <AcademyProductPreview />
 
         <HubOverviewGrid />
 
