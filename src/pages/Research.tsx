@@ -7,8 +7,8 @@ import { ResearchHero } from "@/components/research/ResearchHero";
 import { StockOfTheDay } from "@/components/research/StockOfTheDay";
 import { DiscoveryFeed } from "@/components/research/DiscoveryFeed";
 import { HubOverviewGrid } from "@/components/research/HubOverviewGrid";
-import { FeaturePreviewShowcase } from "@/components/research/FeaturePreviewShowcase";
 import { BacktesterProductPreview } from "@/components/research/BacktesterProductPreview";
+import { DemoCarousel } from "@/components/demos/DemoCarousel";
 
 const RECENT_KEY = "research:recent-searches";
 const RECENT_LIMIT = 6;
@@ -84,7 +84,7 @@ export default function ResearchPage() {
           />
         </section>
 
-        <FeaturePreviewShowcase />
+        <BacktesterProductPreview />
 
         <HubOverviewGrid />
 
@@ -95,7 +95,7 @@ export default function ResearchPage() {
               Quick, interactive samples — swipe through and see what each module does.
             </p>
           </div>
-          <BacktesterProductPreview />
+          <DemoCarousel />
         </section>
 
         <StockOfTheDay />
