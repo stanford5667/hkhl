@@ -14,12 +14,12 @@ import modAdvImg from '@/assets/modules/mod-advanced-strategies.jpg';
 const TOPIC_IMAGES: Array<[string[], string]> = [
   [['intro', 'getting started', 'basics', 'beginner', 'welcome', 'overview', 'how markets'], modIntroImg],
   [['fundamental', 'valuation', 'financial statement', 'balance sheet', 'cash flow', 'earnings', 'income statement', 'dcf', 'moat'], modFundImg],
-  [['technical', 'chart', 'pattern', 'candle', 'trend', 'support', 'resistance', 'momentum', 'indicator', 'rsi', 'moving average'], modTechImg],
-  [['portfolio', 'allocation', 'diversif', 'rebalanc', 'position sizing', 'weighting'], modPortImg],
+  [['technical', 'chart', 'candle', 'trend', 'support', 'resistance', 'momentum', 'indicator', 'rsi', 'moving average'], modTechImg],
+  [['portfolio', 'allocation', 'diversif', 'rebalanc', 'position sizing', 'weighting', 'asset mix'], modPortImg],
   [['risk', 'drawdown', 'stop loss', 'volatility', 'hedge', 'psychology', 'discipline'], modRiskImg],
-  [['option', 'derivative', 'greek', 'call', 'put', 'spread', 'premium'], modOptsImg],
-  [['macro', 'economic', 'fed', 'inflation', 'rate', 'cycle', 'bond', 'yield', 'recession'], modMacroImg],
-  [['advanced', 'factor', 'quant', 'backtest', 'screen', 'model', 'strategy', 'automat', 'algorithm', 'data'], modAdvImg],
+  [['option', 'derivative', 'greek', 'covered call', 'spread', 'premium'], modOptsImg],
+  [['macro', 'economic', 'the fed', 'federal reserve', 'inflation', 'interest rate', 'bond', 'yield', 'recession'], modMacroImg],
+  [['advanced', 'factor', 'quant', 'backtest', 'screen', 'model', 'strateg', 'automat', 'algorithm'], modAdvImg],
 ];
 
 /** Best-matching realistic photo for a lesson/module title, with topical fallback. */
@@ -30,5 +30,6 @@ export function getTopicThumbnail(...titles: (string | null | undefined)[]): str
   }
   return modIntroImg;
 }
+
 
 export const TOPIC_FALLBACK_IMAGE = modIntroImg;

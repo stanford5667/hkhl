@@ -187,6 +187,7 @@ export function CoursePreviewPlayer({
             ref={videoRef}
             className="h-full w-full object-cover"
             src={videoUrl}
+            poster={getTopicThumbnail(lessonTitle, courseTitle)}
             autoPlay
             muted={muted}
             playsInline
