@@ -67,6 +67,8 @@ export default function ResearchPage() {
           />
         </section>
 
+        <FeaturePreviewShowcase />
+
         <HubOverviewGrid />
 
         <section>
@@ -78,9 +80,6 @@ export default function ResearchPage() {
           </div>
           <DemoCarousel />
         </section>
-
-
-        <FeaturePreviewShowcase />
 
         <StockOfTheDay />
 
