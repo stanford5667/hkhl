@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { Play, Pause, Maximize, Volume2, VolumeX, BookOpen, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getPreviewLimitSeconds, getPreviewLabel } from '@/lib/coursePreview';
+import { getTopicThumbnail } from '@/lib/lessonThumbnails';
 
 interface CoursePreviewPlayerProps {
   lessonTitle?: string | null;
