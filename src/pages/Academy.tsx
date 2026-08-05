@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { BookOpen, Clock, Layers, Play } from 'lucide-react';
 import { resolveCourseHours, formatHours } from '@/lib/courseContent';
-import { getTopicThumbnail } from '@/lib/lessonThumbnails';
+import LessonDiagram from '@/components/academy/LessonThumbnail';
 
 type CourseSummary = {
   id: string;
@@ -133,12 +133,16 @@ export default function Academy() {
             >
               <Card className="h-full overflow-hidden transition-colors group-hover:border-primary/40">
                 <div className="aspect-video bg-muted relative overflow-hidden">
-                  <img
-                    src={course.thumbnail_url || getTopicThumbnail(course.title, course.category)}
-                    alt={course.title}
-                    loading="lazy"
-                    className="size-full object-cover"
-                  />
+                  {course.thumbnail_url ? (
+                    <img
+                      src={course.thumbnail_url}
+                      alt={course.title}
+                      loading="lazy"
+                      className="size-full object-cover"
+                    />
+                  ) : (
+                    <LessonDiagram title={course.title} moduleTitle={course.category ?? undefined} />
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-background/70 via-transparent to-transparent" />
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
                     <span className="flex size-12 items-center justify-center rounded-full border border-white/20 bg-black/40 backdrop-blur-sm">

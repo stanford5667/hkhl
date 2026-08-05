@@ -30,7 +30,7 @@ import { UpgradeModal } from '@/components/premium/UpgradeModal';
 import { launchCheckout } from '@/lib/checkout';
 
 import { getPreviewLimitSeconds, getPreviewLabel, isLessonPreviewable, getPreviewableLessonCount } from '@/lib/coursePreview';
-import { getTopicThumbnail } from '@/lib/lessonThumbnails';
+import LessonDiagram from '@/components/academy/LessonThumbnail';
 
 
 // Premium dark thumbnail gradients
@@ -388,12 +388,13 @@ export default function LessonView() {
                 >
                   {/* Dark premium gradient background */}
                   {/* Relevant real-world photo for the lesson topic */}
-                  <img
-                    src={getTopicThumbnail(lesson.title, lesson.module?.title, lesson.module?.course?.title)}
-                    alt={lesson.title}
-                    loading="lazy"
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
+                  <div className="absolute inset-0">
+                    <LessonDiagram
+                      title={lesson.title}
+                      moduleTitle={lesson.module?.title || lesson.module?.course?.title}
+                      lessonNumber={lesson.order_index != null ? lesson.order_index + 1 : undefined}
+                    />
+                  </div>
                   <div className={`absolute inset-0 bg-gradient-to-br ${THUMB_GRADIENTS[gradientIndex]} opacity-60`} />
 
                   {/* Subtle noise texture overlay */}

@@ -45,7 +45,7 @@ import { FeatureComparisonPanel } from '@/components/auth/FeatureComparisonPanel
 import { Check, X, ArrowLeft, ChevronRight, ChevronDown, Search } from 'lucide-react';
 import { CourseHero } from '@/components/academy/CourseHero';
 import { CourseOverview } from '@/components/academy/CourseOverview';
-import { getTopicThumbnail } from '@/lib/lessonThumbnails';
+import LessonDiagram from '@/components/academy/LessonThumbnail';
 import {
   parseCourseDescription,
   prettyLabel,
@@ -78,13 +78,16 @@ function LessonThumbnail({ lesson, index, thumbnail, isCompleted, canAccess }: {
   lesson: any; index: number; thumbnail: string | null;
   isCompleted: boolean; canAccess: boolean;
 }) {
-  const gradient = THUMB_GRADIENTS[index % THUMB_GRADIENTS.length];
-  const poster = thumbnail || getTopicThumbnail(lesson.title, lesson.module?.title);
   return (
     <div className="relative w-16 h-10 sm:w-24 sm:h-14 rounded-md overflow-hidden bg-muted flex-shrink-0 hidden xs:flex">
-      <img src={poster} alt={lesson.title} loading="lazy" className="w-full h-full object-cover" />
-      {!thumbnail && (
-        <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-20`} />
+      {thumbnail ? (
+        <img src={thumbnail} alt={lesson.title} loading="lazy" className="w-full h-full object-cover" />
+      ) : (
+        <LessonDiagram
+          title={lesson.title}
+          moduleTitle={lesson.module?.title}
+          lessonNumber={index + 1}
+        />
       )}
       {lesson.video_duration != null && lesson.video_duration > 0 && (
         <span className="absolute bottom-0.5 right-0.5 sm:bottom-1 sm:right-1 bg-black/80 text-white text-[8px] sm:text-[10px] font-medium px-1 py-0.5 rounded">
