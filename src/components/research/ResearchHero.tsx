@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Search, Clock, X, TrendingUp, TrendingDown, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -140,8 +140,37 @@ export function ResearchHero({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
           >
-            Type any ticker — get AI analysis, backtests and setups in seconds
+            Start with any ticker — AI analysis, 30+ years of backtesting, and portfolio tracking in one place.
           </motion.p>
+          <motion.div
+            className="flex justify-start sm:justify-center mt-2"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.18 }}
+          >
+            <div className="inline-flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+              <Link
+                to="/academy"
+                className="flex items-center min-h-[44px] py-3 px-1 hover:text-foreground underline-offset-4 hover:underline transition-colors"
+              >
+                Learn
+              </Link>
+              <span aria-hidden="true">·</span>
+              <Link
+                to="/backtester"
+                className="flex items-center min-h-[44px] py-3 px-1 hover:text-foreground underline-offset-4 hover:underline transition-colors"
+              >
+                Test
+              </Link>
+              <span aria-hidden="true">·</span>
+              <Link
+                to="/watchlist"
+                className="flex items-center min-h-[44px] py-3 px-1 hover:text-foreground underline-offset-4 hover:underline transition-colors"
+              >
+                Track
+              </Link>
+            </div>
+          </motion.div>
         </div>
 
 
