@@ -51,7 +51,6 @@ export default function ResearchPage() {
 
 
       <main className="flex-1 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 space-y-3 sm:space-y-4 max-w-[1800px] w-full mx-auto">
-        {/* Restored landing-style sections - moved to top */}
         <section>
           <ResearchHero
             searchQuery={searchQuery}
@@ -59,12 +58,6 @@ export default function ResearchPage() {
             onSearch={handleSearch}
           />
         </section>
-
-        <BacktesterProductPreview />
-
-        <AcademyProductPreview />
-
-        <HubOverviewGrid />
 
         <section>
           <div className="mb-3">
@@ -76,8 +69,13 @@ export default function ResearchPage() {
           <DemoCarousel />
         </section>
 
-        <StockOfTheDay />
+        <BacktesterProductPreview />
 
+        <AcademyProductPreview />
+
+        <HubOverviewGrid />
+
+        <StockOfTheDay />
 
         <DiscoveryFeed />
 
