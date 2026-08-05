@@ -42,7 +42,7 @@ import { TestimonialsSection } from '@/components/academy/TestimonialsSection';
 import { BillingIntervalSheet } from '@/components/academy/BillingIntervalSheet';
 import { MembershipStep } from '@/components/onboarding/MembershipStep';
 import { FeatureComparisonPanel } from '@/components/auth/FeatureComparisonPanel';
-import { Check, X, ArrowLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import { Check, X, ArrowLeft, ChevronRight, ChevronDown, Search } from 'lucide-react';
 import { CourseHero } from '@/components/academy/CourseHero';
 import { CourseOverview } from '@/components/academy/CourseOverview';
 import {
@@ -1025,7 +1025,6 @@ export default function CourseDetail() {
         returnPath={`/academy/course/${courseId}`}
       />
 
-      <ExitIntentPopup isLoggedIn={!!user} />
     </div>
   );
 }
