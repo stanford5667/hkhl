@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { GraduationCap, Play } from 'lucide-react';
-import { DEMO_LESSON } from './demoData';
-import { DemoCard, DemoCardHeader } from './DemoCard';
+import { DEMO_LESSON, DEMO_LESSON_INSIGHT } from './demoData';
+import { AiInsight, DemoCard, DemoCardHeader, DemoVisual } from './DemoCard';
 import { useCountUp, usePrefersReducedMotion } from './useCountUp';
 
 const R = 26;
@@ -16,12 +16,13 @@ export function AcademyDemo() {
     <DemoCard>
       <DemoCardHeader
         icon={<GraduationCap className="h-4 w-4 text-cyan-400" />}
-        title="Academy"
+        category="Academy"
+        title="Your learning path"
         subtitle={`${DEMO_LESSON.totalLessons} lessons · self-paced`}
       />
 
       <div className="mt-3 flex flex-1 flex-col justify-between gap-3">
-        <div className="flex items-center gap-4 rounded-xl border border-slate-800 bg-slate-900/50 p-3">
+        <DemoVisual className="flex items-center gap-4 rounded-xl border border-slate-800 bg-slate-900/50 p-3">
           {/* Progress ring */}
           <div className="relative h-[68px] w-[68px] flex-shrink-0">
             <svg viewBox="0 0 68 68" className="h-full w-full -rotate-90">
@@ -53,7 +54,7 @@ export function AcademyDemo() {
               Lesson {DEMO_LESSON.lessonIndex} of {DEMO_LESSON.totalLessons} · {DEMO_LESSON.duration}
             </p>
           </div>
-        </div>
+        </DemoVisual>
 
         <div>
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
@@ -74,6 +75,8 @@ export function AcademyDemo() {
             <Play className="h-3.5 w-3.5" />
             Resume lesson
           </motion.button>
+
+          <AiInsight text={DEMO_LESSON_INSIGHT} />
         </div>
       </div>
     </DemoCard>

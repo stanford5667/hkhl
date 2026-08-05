@@ -1,8 +1,8 @@
 import { motion } from 'framer-motion';
 import { Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { DEMO_THEMES } from './demoData';
-import { DemoCard, DemoCardHeader } from './DemoCard';
+import { DEMO_THEMES, DEMO_THEME_INSIGHT } from './demoData';
+import { AiInsight, ConvictionMeter, DemoCard, DemoCardHeader, DemoVisual, DEMO_SPRING } from './DemoCard';
 import { usePrefersReducedMotion } from './useCountUp';
 
 export function ThemesDemo() {
@@ -12,11 +12,12 @@ export function ThemesDemo() {
     <DemoCard>
       <DemoCardHeader
         icon={<Globe className="h-4 w-4 text-cyan-400" />}
-        title="Market Themes"
-        subtitle="Macro narratives, scored daily"
+        category="Market Themes"
+        title="Macro narrative scan"
+        subtitle="Five narratives, scored daily"
       />
 
-      <div className="mt-3 flex-1 space-y-1.5">
+      <DemoVisual className="mt-3 flex-1 space-y-1.5">
         {DEMO_THEMES.map((theme, i) => {
           const label = theme.sentiment >= 0.6 ? 'Bullish' : theme.sentiment <= 0.4 ? 'Bearish' : 'Neutral';
           const tone =
@@ -32,7 +33,7 @@ export function ThemesDemo() {
               initial={reduced ? false : { opacity: 0, y: 10 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: reduced ? 0 : i * 0.07, duration: 0.35, ease: 'easeOut' }}
+              transition={reduced ? { duration: 0 } : { ...DEMO_SPRING, delay: i * 0.07 }}
               whileTap={{ scale: 0.98 }}
               className="rounded-lg border border-slate-800 bg-slate-900/50 p-2.5"
             >
@@ -69,7 +70,10 @@ export function ThemesDemo() {
             </motion.div>
           );
         })}
-      </div>
+      </DemoVisual>
+
+      <ConvictionMeter filled={4} value="High" />
+      <AiInsight text={DEMO_THEME_INSIGHT} />
     </DemoCard>
   );
 }
