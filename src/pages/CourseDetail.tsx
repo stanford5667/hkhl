@@ -754,7 +754,15 @@ export default function CourseDetail() {
                 <CardHeader className="p-4 sm:p-6">
                   <CardTitle className="text-base sm:text-lg">Student Reviews</CardTitle>
                 </CardHeader>
-                <CardContent className="p-4 sm:p-6 pt-0">
+                <CardContent className="p-4 sm:p-6 pt-0 space-y-4">
+                  {/* Only members with access can review */}
+                  {hasAccess && user && courseId && (
+                    <CourseReviewForm
+                      courseId={courseId}
+                      userId={user.id}
+                      existingReview={myReview as any}
+                    />
+                  )}
                   {reviews && reviews.length > 0 ? (
                     <div className="space-y-4">
                       {reviews.map((review: any) => (
@@ -780,7 +788,7 @@ export default function CourseDetail() {
                     </div>
                   ) : (
                     <p className="text-center text-muted-foreground py-6 sm:py-8 text-sm">
-                      No reviews yet. Be the first to review!
+                      {hasAccess ? 'No reviews yet — share yours above.' : 'No reviews yet.'}
                     </p>
                   )}
                 </CardContent>
