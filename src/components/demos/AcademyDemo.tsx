@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { GraduationCap, Play, Pause, Volume2, Maximize, Clock } from 'lucide-react';
-import { DEMO_LESSON, DEMO_LESSON_INSIGHT } from './demoData';
-import { AiInsight, DemoCard, DemoCardHeader, DemoVisual } from './DemoCard';
+import { DEMO_LESSON } from './demoData';
+import { DemoCard, DemoCardHeader, DemoVisual } from './DemoCard';
 import { useCountUp, usePrefersReducedMotion } from './useCountUp';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
