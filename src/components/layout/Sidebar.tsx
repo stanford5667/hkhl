@@ -1,3 +1,4 @@
+import { AssetLabsMark } from "@/components/brand/AssetLabsMark";
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
