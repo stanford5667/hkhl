@@ -118,7 +118,7 @@ function StockChartPreview() {
     new Date(t).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
   return (
-    <div className="relative overflow-hidden rounded-xl border border-white/[0.08] bg-slate-950/60">
+    <div className="relative overflow-hidden rounded-xl border border-white/[0.12] bg-slate-950/60 shadow-sm">
       {/* Mock ticker header */}
       <div className="flex items-center justify-between p-3">
         <div className="flex items-center gap-3">
