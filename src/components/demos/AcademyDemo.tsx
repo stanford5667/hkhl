@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { motion } from 'framer-motion';
 import { GraduationCap, Play, Pause, Volume2, VolumeX, Maximize, Clock, ArrowRight, Crown, ChevronDown, Lock, CheckCircle2 } from 'lucide-react';
@@ -24,56 +25,164 @@ const fmt = (s: number) => {
   return `${Math.floor(v / 60)}:${String(v % 60).padStart(2, '0')}`;
 };
 
-const DEMO_LESSONS = [
+type LessonItem = {
+  id: string;
+  moduleId: string;
+  title: string;
+  duration: string;
+  description: string;
+  locked: boolean;
+  orderIndex: number;
+};
+
+type CourseSection = {
+  id: string;
+  title: string;
+  orderIndex: number;
+  lessons: LessonItem[];
+};
+
+function formatDuration(seconds: number | null): string {
+  if (!seconds || seconds <= 0) return '—';
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h > 0 && m > 0) return `${h}h ${m}m`;
+  if (h > 0) return `${h}h`;
+  return `${m} min`;
+}
+
+const FALLBACK_SECTIONS: CourseSection[] = [
   {
-    id: 'l1',
-    module: 'Module 1',
-    title: 'How the Pros Find Ideas',
-    duration: '12 min',
-    description: 'The same screen hedge funds run every Monday morning: liquidity, momentum, and catalyst filters.',
-    locked: false,
+    id: 'm1',
+    title: 'Portfolio Management',
+    orderIndex: 0,
+    lessons: [
+      {
+        id: 'l1',
+        moduleId: 'm1',
+        title: 'How the Pros Find Ideas',
+        duration: '12 min',
+        description: 'The same screen hedge funds run every Monday morning: liquidity, momentum, and catalyst filters.',
+        locked: false,
+        orderIndex: 0,
+      },
+      {
+        id: 'l2',
+        moduleId: 'm1',
+        title: 'Reading the Macro Map',
+        duration: '16 min',
+        description: 'Rates, credit, and earnings revisions — the three inputs that drive 80% of market direction.',
+        locked: true,
+        orderIndex: 1,
+      },
+    ],
   },
   {
-    id: 'l2',
-    module: 'Module 1',
-    title: 'Reading the Macro Map',
-    duration: '16 min',
-    description: 'Rates, credit, and earnings revisions — the three inputs that drive 80% of market direction.',
-    locked: true,
+    id: 'm2',
+    title: 'Options Trading',
+    orderIndex: 1,
+    lessons: [
+      {
+        id: 'l3',
+        moduleId: 'm2',
+        title: 'Backtesting a Real Strategy',
+        duration: '22 min',
+        description: 'Build a rules-based strategy, test it across 30+ years, and interpret the Sharpe and drawdown.',
+        locked: true,
+        orderIndex: 0,
+      },
+    ],
   },
   {
-    id: 'l3',
-    module: 'Module 2',
-    title: 'Backtesting a Real Strategy',
-    duration: '22 min',
-    description: 'Build a rules-based strategy, test it across 30+ years, and interpret the Sharpe and drawdown.',
-    locked: true,
+    id: 'm3',
+    title: 'Stock Market',
+    orderIndex: 2,
+    lessons: [
+      {
+        id: 'l4',
+        moduleId: 'm3',
+        title: 'Position Sizing & Risk',
+        duration: '14 min',
+        description: 'Why the best idea can still ruin a portfolio if sizing is wrong.',
+        locked: true,
+        orderIndex: 0,
+      },
+    ],
   },
   {
-    id: 'l4',
-    module: 'Module 3',
-    title: 'Position Sizing & Risk',
-    duration: '14 min',
-    description: 'Why the best idea can still ruin a portfolio if sizing is wrong.',
-    locked: true,
-  },
-  {
-    id: 'l5',
-    module: 'Module 4',
-    title: 'The Options Overlay',
-    duration: '19 min',
-    description: 'Use defined-risk options to express the same thesis with less capital.',
-    locked: true,
-  },
-  {
-    id: 'l6',
-    module: 'Module 4',
-    title: 'Putting It All Together',
-    duration: '25 min',
-    description: 'A live walkthrough of a full playbook from idea to tested position.',
-    locked: true,
+    id: 'm4',
+    title: 'Financial Accounting',
+    orderIndex: 3,
+    lessons: [
+      {
+        id: 'l5',
+        moduleId: 'm4',
+        title: 'The Options Overlay',
+        duration: '19 min',
+        description: 'Use defined-risk options to express the same thesis with less capital.',
+        locked: true,
+        orderIndex: 0,
+      },
+      {
+        id: 'l6',
+        moduleId: 'm4',
+        title: 'Putting It All Together',
+        duration: '25 min',
+        description: 'A live walkthrough of a full playbook from idea to tested position.',
+        locked: true,
+        orderIndex: 1,
+      },
+    ],
   },
 ];
+
+function useCourseSections() {
+  return useQuery({
+    queryKey: ['academy-demo-sections'],
+    queryFn: async (): Promise<CourseSection[] | null> => {
+      const { data: courses } = await supabase
+        .from('courses')
+        .select('id')
+        .eq('is_published', true)
+        .order('created_at', { ascending: true })
+        .limit(1);
+      const course = courses?.[0];
+      if (!course) return null;
+
+      const { data: modules } = await supabase
+        .from('course_modules')
+        .select('id, title, order_index')
+        .eq('course_id', course.id)
+        .order('order_index', { ascending: true });
+      const moduleIds = modules?.map((m) => m.id) || [];
+
+      const { data: lessons } = await supabase
+        .from('course_lessons')
+        .select('id, title, module_id, order_index, video_duration, description')
+        .in('module_id', moduleIds)
+        .order('order_index', { ascending: true });
+
+      return (modules || []).map((m) => {
+        const moduleLessons = (lessons || []).filter((l) => l.module_id === m.id);
+        return {
+          id: m.id,
+          title: m.title,
+          orderIndex: m.order_index,
+          lessons: moduleLessons.map((l, i) => ({
+            id: l.id,
+            moduleId: m.id,
+            title: l.title,
+            orderIndex: l.order_index ?? i,
+            duration: formatDuration(l.video_duration),
+            description: l.description || 'Detailed lesson walkthrough.',
+            locked: true,
+          })),
+        };
+      });
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
 
 
 export function AcademyDemo() {
@@ -87,7 +196,11 @@ export function AcademyDemo() {
   const [preview, setPreview] = useState<{ title: string; url: string } | null>(null);
   const [openLesson, setOpenLesson] = useState<string | null>(null);
   const [showMore, setShowMore] = useState(false);
+  const { data: courseSections } = useCourseSections();
+  const sections = courseSections ?? FALLBACK_SECTIONS;
+  const totalLessons = sections.reduce((sum, s) => sum + s.lessons.length, 0);
   const pct = Math.round(DEMO_LESSON.progress * 100);
+
 
   const goToAuth = () => navigate('/auth', { state: { mode: 'signup' } });
 
@@ -176,11 +289,12 @@ export function AcademyDemo() {
           <div className="ml-auto flex items-center gap-1.5 text-[10px] text-muted-foreground">
             <span className="flex items-center gap-1">
               <Clock className="h-3 w-3" />
-              4 modules
+              {sections.length} modules
             </span>
             <span className="h-3 w-px bg-slate-800" />
-            <span>92 lessons</span>
+            <span>{totalLessons} lessons</span>
           </div>
+
         </div>
 
         {/* Video preview player */}
@@ -333,93 +447,81 @@ export function AcademyDemo() {
         <div className="space-y-2">
           <p className="text-[11px] font-semibold text-foreground">What you will learn</p>
           <div className="flex flex-col gap-3">
-            {(() => {
-              const grouped: Record<string, typeof DEMO_LESSONS> = {};
-              DEMO_LESSONS.forEach((lesson) => {
-                if (!grouped[lesson.module]) grouped[lesson.module] = [];
-                grouped[lesson.module].push(lesson);
-              });
-              const sections = Object.entries(grouped);
-
-              return sections.map(([module, lessons], sectionIndex) => {
-                const visibleLessons = showMore ? lessons : lessons.slice(0, 2);
-                return (
-                  <div
-                    key={module}
-                    className={cn(
-                      'rounded-xl border border-slate-800/80 bg-slate-900/40 p-2.5',
-                      !showMore && sectionIndex >= 1 && 'hidden'
-                    )}
-                  >
-                    <p className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-wider text-cyan-400/80">
-                      {module}
-                    </p>
-                    <div className="flex flex-col gap-1.5">
-                      {visibleLessons.map((lesson) => {
-                        const isOpen = openLesson === lesson.id;
-                        return (
-                          <div
-                            key={lesson.id}
-                            className={cn(
-                              'overflow-hidden rounded-lg border transition-colors',
-                              isOpen
-                                ? 'border-cyan-500/25 bg-cyan-500/5'
-                                : 'border-slate-800/80 bg-slate-900/40 hover:bg-slate-900/60'
-                            )}
+            {sections.map((section) => {
+              const visibleLessons = showMore ? section.lessons : section.lessons.slice(0, 2);
+              return (
+                <div
+                  key={section.id}
+                  className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-2.5"
+                >
+                  <p className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-wider text-cyan-400/80">
+                    {section.title}
+                  </p>
+                  <div className="flex flex-col gap-1.5">
+                    {visibleLessons.map((lesson) => {
+                      const isOpen = openLesson === lesson.id;
+                      return (
+                        <div
+                          key={lesson.id}
+                          className={cn(
+                            'overflow-hidden rounded-lg border transition-colors',
+                            isOpen
+                              ? 'border-cyan-500/25 bg-cyan-500/5'
+                              : 'border-slate-800/80 bg-slate-900/40 hover:bg-slate-900/60'
+                          )}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!user) {
+                                goToAuth();
+                                return;
+                              }
+                              setOpenLesson(isOpen ? null : lesson.id);
+                            }}
+                            className="flex w-full items-center gap-2 px-3 py-2.5 text-left"
                           >
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (!user) {
-                                  goToAuth();
-                                  return;
-                                }
-                                setOpenLesson(isOpen ? null : lesson.id);
-                              }}
-                              className="flex w-full items-center gap-2 px-3 py-2.5 text-left"
+                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-800 text-[9px] text-muted-foreground">
+                              {lesson.locked ? (
+                                <Lock className="h-2.5 w-2.5" />
+                              ) : (
+                                <CheckCircle2 className="h-2.5 w-2.5 text-emerald-400" />
+                              )}
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-[11px] font-medium text-foreground">
+                                {lesson.title}
+                              </span>
+                              <span className="block text-[9px] text-muted-foreground">
+                                {lesson.duration}
+                              </span>
+                            </span>
+                            <ChevronDown
+                              className={cn(
+                                'h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform',
+                                isOpen && 'rotate-180 text-cyan-400'
+                              )}
+                            />
+                          </button>
+                          {isOpen && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              className="px-3 pb-3"
                             >
-                              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-800 text-[9px] text-muted-foreground">
-                                {lesson.locked ? (
-                                  <Lock className="h-2.5 w-2.5" />
-                                ) : (
-                                  <CheckCircle2 className="h-2.5 w-2.5 text-emerald-400" />
-                                )}
-                              </span>
-                              <span className="min-w-0 flex-1">
-                                <span className="block truncate text-[11px] font-medium text-foreground">
-                                  {lesson.title}
-                                </span>
-                                <span className="block text-[9px] text-muted-foreground">
-                                  {lesson.duration}
-                                </span>
-                              </span>
-                              <ChevronDown
-                                className={cn(
-                                  'h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform',
-                                  isOpen && 'rotate-180 text-cyan-400'
-                                )}
-                              />
-                            </button>
-                            {isOpen && (
-                              <motion.div
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: 'auto', opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                className="px-3 pb-3"
-                              >
-                                <p className="text-[11px] leading-relaxed text-muted-foreground">
-                                  {lesson.description}
-                                </p>
-                              </motion.div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
+                              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                                {lesson.description}
+                              </p>
+                            </motion.div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              });
-            })()}
+                </div>
+              );
+            })}
           </div>
           <button
             type="button"
@@ -432,12 +534,13 @@ export function AcademyDemo() {
             }}
             className="flex h-8 w-full items-center justify-center gap-1 rounded-lg border border-slate-800 bg-slate-900/40 text-[11px] font-medium text-cyan-400 transition-colors hover:bg-cyan-500/10 hover:text-cyan-300"
           >
-            {showMore ? 'Show less' : `Show all ${DEMO_LESSONS.length} lessons`}
+            {showMore ? 'Show less' : `Show all ${totalLessons} lessons`}
             <ChevronDown
               className={cn('h-3 w-3 transition-transform', showMore && 'rotate-180')}
             />
           </button>
         </div>
+
 
         {/* Action buttons */}
         <div className="flex flex-col gap-2">
@@ -466,7 +569,7 @@ export function AcademyDemo() {
             className="h-8 w-full text-[11px] font-medium text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300"
             onClick={() => (user ? navigate('/academy') : goToAuth())}
           >
-            Unlock all 92 lessons — from $83/mo
+            Unlock all {totalLessons} lessons — from $83/mo
           </Button>
         </div>
       </div>
