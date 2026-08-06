@@ -115,32 +115,46 @@ export function BacktestDemo() {
         right={<SampleBadge />}
       />
 
-      {/* Strategy chips — 44px tap targets */}
-      <p className="mt-3 text-[11px] text-gray-400">
-        Start with an idea — pick a strategy and see how it would have performed.
-      </p>
-      <div className="mt-2 flex flex-wrap gap-2">
-
-        {DEMO_STRATEGIES.map((s) => (
-          <motion.button
-            key={s.id}
-            type="button"
-            whileTap={{ scale: 0.95 }}
-            transition={DEMO_SPRING}
-            onClick={() => setActiveId(s.id)}
-            aria-pressed={s.id === activeId}
-            className={cn(
-              'flex min-h-[44px] items-center justify-center rounded-full border px-4 py-1 text-left transition-colors',
-              s.id === activeId
-                ? 'border-cyan-500/50 bg-cyan-500/15 text-cyan-300'
-                : 'border-slate-700 bg-slate-900/70 text-gray-400 hover:border-cyan-500/30 hover:text-gray-200'
-            )}
-          >
-            <span className="text-xs font-semibold leading-tight">{s.name}</span>
-          </motion.button>
-
-
-        ))}
+      {/* Strategy chips — compact, clearly selectable presets */}
+      <div className="mt-3">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[11px] text-gray-400">Pick a strategy to preview</p>
+          <span className="text-[10px] text-gray-500">Tap to switch</span>
+        </div>
+        <div className="mt-1.5 flex flex-wrap gap-2">
+          {DEMO_STRATEGIES.map((s) => {
+            const isActive = s.id === activeId;
+            return (
+              <motion.button
+                key={s.id}
+                type="button"
+                whileTap={{ scale: 0.97 }}
+                transition={DEMO_SPRING}
+                onClick={() => setActiveId(s.id)}
+                aria-pressed={isActive}
+                className={cn(
+                  'flex min-h-[36px] items-center gap-2 rounded-lg border px-2.5 py-1 text-left transition-colors',
+                  isActive
+                    ? 'border-cyan-500/50 bg-cyan-500/15 text-cyan-300'
+                    : 'border-slate-700 bg-slate-900/70 text-gray-400 hover:border-cyan-500/30 hover:text-gray-200'
+                )}
+              >
+                <span
+                  className={cn(
+                    'flex h-5 w-5 items-center justify-center rounded',
+                    isActive ? 'bg-cyan-500/20 text-cyan-300' : 'bg-slate-800 text-slate-400'
+                  )}
+                >
+                  {isActive ? <Check className="h-3 w-3" /> : <Activity className="h-3 w-3" />}
+                </span>
+                <div className="flex flex-col leading-tight">
+                  <span className="text-xs font-semibold">{s.name}</span>
+                  <span className="text-[10px] text-gray-500">{s.techName}</span>
+                </div>
+              </motion.button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Chart — fixed aspect ratio, zero layout shift */}
