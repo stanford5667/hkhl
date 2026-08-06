@@ -277,28 +277,37 @@ function StatCard({
   }[accent];
 
   return (
-    <div className={cn('rounded-lg border border-white/[0.12] p-2 shadow-sm', styles.border, styles.bg)}>
-      <div className="flex items-center gap-1.5 text-[9px] uppercase tracking-wider text-gray-500">
-        {icon && <span className={cn('flex h-4 w-4 items-center justify-center rounded', styles.iconBg, styles.text)}>{icon}</span>}
-        <span className="truncate">{label}</span>
+    <div className={cn('rounded-xl border border-white/[0.12] p-3 shadow-sm', styles.border, styles.bg)}>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-white/50">
+          {icon && (
+            <span className={cn('flex h-4 w-4 items-center justify-center rounded', styles.iconBg, styles.text)}>
+              {icon}
+            </span>
+          )}
+          <span className="leading-tight">{label}</span>
+        </div>
         {tooltip && (
           <Tooltip>
             <TooltipTrigger asChild>
               <button
                 type="button"
                 aria-label={`What is ${label}?`}
-                className={cn('ml-auto flex h-5 w-5 items-center justify-center rounded-full opacity-60 transition-opacity hover:opacity-100 focus-visible:opacity-100', styles.iconBg)}
+                className={cn(
+                  'flex h-5 w-5 items-center justify-center rounded-full opacity-70 transition-opacity hover:opacity-100 focus-visible:opacity-100',
+                  styles.iconBg,
+                )}
               >
                 <HelpCircle className={cn('h-3 w-3', styles.text)} />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="top" className="max-w-[220px] normal-case text-[10px] leading-relaxed">
+            <TooltipContent side="top" className="max-w-[240px] normal-case text-[11px] leading-relaxed">
               {tooltip}
             </TooltipContent>
           </Tooltip>
         )}
       </div>
-      <div className={cn('mt-0.5 font-mono text-sm font-bold', styles.text)}>{value}</div>
+      <div className={cn('mt-1 font-mono text-base font-bold sm:text-lg', styles.text)}>{value}</div>
     </div>
   );
 }
