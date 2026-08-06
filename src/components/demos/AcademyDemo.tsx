@@ -237,10 +237,10 @@ export function AcademyDemo() {
   }, []);
 
   useEffect(() => {
-    if (courseSections && courseSections.length > 0 && expandedModules.size === 0) {
-      setExpandedModules(new Set([courseSections[0].id]));
+    if (sections.length > 0 && expandedModules.size === 0) {
+      setExpandedModules(new Set([sections[0].id]));
     }
-  }, [courseSections]);
+  }, [sections]);
 
 
   const togglePlay = () => {
