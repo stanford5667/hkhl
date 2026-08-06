@@ -147,10 +147,10 @@ export function StockResearchDemo() {
       <div className="flex flex-col gap-4">
         <DemoCardHeader
           icon={<LineChart className="h-4 w-4 text-cyan-400" />}
-          category="Individual Stock Analysis"
+          category="Historical market data"
           title="Research any ticker in depth"
           subtitle="Chart, fundamentals, quant signals, news, filings & more"
-          right={<SampleBadge />}
+          right={<SampleBadge label="Historical data" />}
         />
 
         {/* Real AAPL ticker header + price chart in one attached card */}

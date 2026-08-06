@@ -194,12 +194,15 @@ export function BacktestDemo() {
     <DemoCard accent>
       <DemoCardHeader
         icon={<Activity className="h-4 w-4 text-cyan-400" />}
-        category="AI Strategy Builder"
+        category="Backtested strategy"
         title={strategy.name}
         subtitle={`${strategy.techName} · ${strategy.ticker} · 2020–2024 · weekly`}
-        
-        right={<SampleBadge />}
+        right={<SampleBadge label="Backtest" />}
       />
+
+      <p className="mt-1 text-[10px] leading-relaxed text-white/50">
+        This is a simulated backtest. The curve and stats are predictions based on historical rules, not actual trades.
+      </p>
 
       {/* Strategy chips — compact, clearly selectable presets */}
       <div className="mt-3">
