@@ -446,93 +446,81 @@ export function AcademyDemo() {
         <div className="space-y-2">
           <p className="text-[11px] font-semibold text-foreground">What you will learn</p>
           <div className="flex flex-col gap-3">
-            {(() => {
-              const grouped: Record<string, typeof DEMO_LESSONS> = {};
-              DEMO_LESSONS.forEach((lesson) => {
-                if (!grouped[lesson.module]) grouped[lesson.module] = [];
-                grouped[lesson.module].push(lesson);
-              });
-              const sections = Object.entries(grouped);
-
-              return sections.map(([module, lessons], sectionIndex) => {
-                const visibleLessons = showMore ? lessons : lessons.slice(0, 2);
-                return (
-                  <div
-                    key={module}
-                    className={cn(
-                      'rounded-xl border border-slate-800/80 bg-slate-900/40 p-2.5',
-                      !showMore && sectionIndex >= 1 && 'hidden'
-                    )}
-                  >
-                    <p className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-wider text-cyan-400/80">
-                      {module}
-                    </p>
-                    <div className="flex flex-col gap-1.5">
-                      {visibleLessons.map((lesson) => {
-                        const isOpen = openLesson === lesson.id;
-                        return (
-                          <div
-                            key={lesson.id}
-                            className={cn(
-                              'overflow-hidden rounded-lg border transition-colors',
-                              isOpen
-                                ? 'border-cyan-500/25 bg-cyan-500/5'
-                                : 'border-slate-800/80 bg-slate-900/40 hover:bg-slate-900/60'
-                            )}
+            {sections.map((section) => {
+              const visibleLessons = showMore ? section.lessons : section.lessons.slice(0, 2);
+              return (
+                <div
+                  key={section.id}
+                  className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-2.5"
+                >
+                  <p className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-wider text-cyan-400/80">
+                    {section.title}
+                  </p>
+                  <div className="flex flex-col gap-1.5">
+                    {visibleLessons.map((lesson) => {
+                      const isOpen = openLesson === lesson.id;
+                      return (
+                        <div
+                          key={lesson.id}
+                          className={cn(
+                            'overflow-hidden rounded-lg border transition-colors',
+                            isOpen
+                              ? 'border-cyan-500/25 bg-cyan-500/5'
+                              : 'border-slate-800/80 bg-slate-900/40 hover:bg-slate-900/60'
+                          )}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!user) {
+                                goToAuth();
+                                return;
+                              }
+                              setOpenLesson(isOpen ? null : lesson.id);
+                            }}
+                            className="flex w-full items-center gap-2 px-3 py-2.5 text-left"
                           >
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (!user) {
-                                  goToAuth();
-                                  return;
-                                }
-                                setOpenLesson(isOpen ? null : lesson.id);
-                              }}
-                              className="flex w-full items-center gap-2 px-3 py-2.5 text-left"
+                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-800 text-[9px] text-muted-foreground">
+                              {lesson.locked ? (
+                                <Lock className="h-2.5 w-2.5" />
+                              ) : (
+                                <CheckCircle2 className="h-2.5 w-2.5 text-emerald-400" />
+                              )}
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-[11px] font-medium text-foreground">
+                                {lesson.title}
+                              </span>
+                              <span className="block text-[9px] text-muted-foreground">
+                                {lesson.duration}
+                              </span>
+                            </span>
+                            <ChevronDown
+                              className={cn(
+                                'h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform',
+                                isOpen && 'rotate-180 text-cyan-400'
+                              )}
+                            />
+                          </button>
+                          {isOpen && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              className="px-3 pb-3"
                             >
-                              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-800 text-[9px] text-muted-foreground">
-                                {lesson.locked ? (
-                                  <Lock className="h-2.5 w-2.5" />
-                                ) : (
-                                  <CheckCircle2 className="h-2.5 w-2.5 text-emerald-400" />
-                                )}
-                              </span>
-                              <span className="min-w-0 flex-1">
-                                <span className="block truncate text-[11px] font-medium text-foreground">
-                                  {lesson.title}
-                                </span>
-                                <span className="block text-[9px] text-muted-foreground">
-                                  {lesson.duration}
-                                </span>
-                              </span>
-                              <ChevronDown
-                                className={cn(
-                                  'h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform',
-                                  isOpen && 'rotate-180 text-cyan-400'
-                                )}
-                              />
-                            </button>
-                            {isOpen && (
-                              <motion.div
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: 'auto', opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                className="px-3 pb-3"
-                              >
-                                <p className="text-[11px] leading-relaxed text-muted-foreground">
-                                  {lesson.description}
-                                </p>
-                              </motion.div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
+                              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                                {lesson.description}
+                              </p>
+                            </motion.div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              });
-            })()}
+                </div>
+              );
+            })}
           </div>
           <button
             type="button"
@@ -545,12 +533,13 @@ export function AcademyDemo() {
             }}
             className="flex h-8 w-full items-center justify-center gap-1 rounded-lg border border-slate-800 bg-slate-900/40 text-[11px] font-medium text-cyan-400 transition-colors hover:bg-cyan-500/10 hover:text-cyan-300"
           >
-            {showMore ? 'Show less' : `Show all ${DEMO_LESSONS.length} lessons`}
+            {showMore ? 'Show less' : `Show all ${totalLessons} lessons`}
             <ChevronDown
               className={cn('h-3 w-3 transition-transform', showMore && 'rotate-180')}
             />
           </button>
         </div>
+
 
         {/* Action buttons */}
         <div className="flex flex-col gap-2">
