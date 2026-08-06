@@ -76,6 +76,61 @@ function useMorph(target: number[], enabled: boolean, duration = 620) {
   return values;
 }
 
+function StatCard({
+  label,
+  value,
+  icon,
+  accent,
+}: {
+  label: string;
+  value: string;
+  icon?: React.ReactNode;
+  accent: 'emerald' | 'cyan' | 'blue' | 'rose' | 'violet';
+}) {
+  const styles = {
+    emerald: {
+      border: 'border-emerald-500/20',
+      bg: 'bg-emerald-500/5',
+      text: 'text-emerald-400',
+      iconBg: 'bg-emerald-500/15',
+    },
+    cyan: {
+      border: 'border-cyan-500/20',
+      bg: 'bg-cyan-500/5',
+      text: 'text-cyan-400',
+      iconBg: 'bg-cyan-500/15',
+    },
+    blue: {
+      border: 'border-blue-500/20',
+      bg: 'bg-blue-500/5',
+      text: 'text-blue-400',
+      iconBg: 'bg-blue-500/15',
+    },
+    rose: {
+      border: 'border-rose-500/20',
+      bg: 'bg-rose-500/5',
+      text: 'text-rose-400',
+      iconBg: 'bg-rose-500/15',
+    },
+    violet: {
+      border: 'border-violet-500/20',
+      bg: 'bg-violet-500/5',
+      text: 'text-violet-400',
+      iconBg: 'bg-violet-500/15',
+    },
+  }[accent];
+
+  return (
+    <div className={cn('rounded-lg border p-2', styles.border, styles.bg)}>
+      <div className="flex items-center gap-1.5 text-[9px] uppercase tracking-wider text-gray-500">
+        {icon && <span className={cn('flex h-4 w-4 items-center justify-center rounded', styles.iconBg, styles.text)}>{icon}</span>}
+        {label}
+      </div>
+      <div className={cn('mt-0.5 font-mono text-sm font-bold', styles.text)}>{value}</div>
+    </div>
+  );
+}
+
 export function BacktestDemo() {
   const reduced = usePrefersReducedMotion();
   const navigate = useNavigate();
