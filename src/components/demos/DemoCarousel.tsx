@@ -31,7 +31,7 @@ const DEMOS = [
     id: 'academy',
     node: (
       <div className="flex flex-col gap-2">
-        <p className="text-lg sm:text-xl lg:text-2xl font-semibold text-cyan-400 px-1">
+        <p className="text-2xl sm:text-3xl lg:text-4xl font-semibold text-cyan-400 px-1">
           Learn the strategies
         </p>
         <p className="text-xs sm:text-sm text-muted-foreground px-1">
