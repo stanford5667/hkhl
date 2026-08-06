@@ -12,10 +12,10 @@ import modThumb from '@/assets/modules/mod-portfolio-construction-v2.jpg';
 
 const R = 26;
 const CIRC = 2 * Math.PI * R;
-/** Demo preview window, in seconds. */
-const PREVIEW_LIMIT = 360;
+/** Demo preview window end, in seconds. */
+const PREVIEW_LIMIT = 720;
 /** Start the demo preview at this timestamp. */
-const PREVIEW_START = 240;
+const PREVIEW_START = 600;
 
 
 const fmt = (s: number) => {
