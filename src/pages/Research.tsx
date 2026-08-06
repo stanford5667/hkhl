@@ -97,8 +97,9 @@ export default function ResearchPage() {
               </div>
             </div>
           </div>
-          <StockResearchDemo />
         </section>
+
+        <StockResearchDemo />
 
         <section>
           <div className="mb-4 sm:mb-5">
