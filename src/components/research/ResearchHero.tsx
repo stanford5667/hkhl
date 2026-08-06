@@ -1,110 +1,92 @@
-import { useState, useRef, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Search, X, TrendingUp, TrendingDown, Loader2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useTickerSearch } from '@/hooks/useTickerSearch';
+import { motion } from 'framer-motion';
 
 interface ResearchHeroProps {
-  searchQuery: string;
-  onSearchQueryChange: (q: string) => void;
-  onSearch: (ticker: string) => void;
+  className?: string;
 }
 
-export function ResearchHero({
-  searchQuery,
-  onSearchQueryChange,
-  onSearch,
-}: ResearchHeroProps) {
-  const [isFocused, setIsFocused] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const { query, setQuery, results, isSearching, clear } = useTickerSearch(200);
-  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+export function ResearchHero({ className }: ResearchHeroProps) {
+  return (
+    <div className={cn("relative", className)}>
+      <div className="relative max-w-6xl mx-auto px-3 sm:px-6 pt-4 sm:pt-10 pb-5 sm:pb-8">
+        {/* Hero Text — Terminal style */}
+        <div className="text-center mb-5 sm:mb-10">
+          <motion.div
+            className="mb-4 sm:mb-5"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            <span className="inline-flex items-center px-3 py-1 rounded-full border border-primary/30 bg-primary/10 text-primary text-[10px] font-semibold uppercase tracking-widest">
+              Research Terminal
+            </span>
+          </motion.div>
 
-  const POPULAR_TICKERS = [
-    { symbol: 'AAPL', label: 'Apple' },
-    { symbol: 'NVDA', label: 'NVIDIA' },
-    { symbol: 'MSFT', label: 'Microsoft' },
-    { symbol: 'GOOGL', label: 'Alphabet' },
-    { symbol: 'AMZN', label: 'Amazon' },
-    { symbol: 'TSLA', label: 'Tesla' },
-    { symbol: 'META', label: 'Meta' },
-    { symbol: 'SPY', label: 'S&P 500 ETF' },
-  ];
+          <motion.h1
+            className="font-display text-[clamp(2.75rem,12vw,4.5rem)] leading-[1.0] tracking-tight font-bold mb-4 sm:mb-5 w-full"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            {/* Mobile: 3-line stacked */}
+            <span className="block sm:hidden">
+              <span className="text-foreground block">Your next big</span>
+              <span className="text-primary block">investment</span>
+              <span className="text-foreground block">starts here</span>
+            </span>
+            {/* Desktop: single line */}
+            <span className="hidden sm:block whitespace-nowrap text-[clamp(2.25rem,4vw,3.25rem)]">
+              <span className="text-foreground">Your next big </span>
+              <span className="text-primary">investment</span>
+              <span className="text-foreground"> starts here</span>
+            </span>
+          </motion.h1>
+          <motion.p
+            className="text-muted-foreground text-[15px] sm:text-base lg:text-xl max-w-2xl sm:mx-auto leading-relaxed mb-3 sm:mb-4"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+          >
+            <span className="text-primary font-medium">Automated AI investing.</span>{' '}
+            Learn from top hedge fund managers, get trade ideas in the chatroom.
+          </motion.p>
+          <motion.div
+            className="flex justify-start sm:justify-center mt-4"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.18 }}
+          >
+            <div className="inline-flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+              <Link
+                to="/academy"
+                className="flex items-center min-h-[44px] py-3 px-1 hover:text-foreground underline-offset-4 hover:underline transition-colors"
+              >
+                Learn
+              </Link>
+              <span aria-hidden="true">·</span>
+              <Link
+                to="/backtester"
+                className="flex items-center min-h-[44px] py-3 px-1 hover:text-foreground underline-offset-4 hover:underline transition-colors"
+              >
+                Test
+              </Link>
+              <span aria-hidden="true">·</span>
+              <Link
+                to="/watchlist"
+                className="flex items-center min-h-[44px] py-3 px-1 hover:text-foreground underline-offset-4 hover:underline transition-colors"
+              >
+                Track
+              </Link>
+            </div>
+          </motion.div>
+        </div>
 
-  const hasResults = results.length > 0;
-  const showDropdown = isFocused;
 
-  useEffect(() => {
-    setHighlightedIndex(-1);
-  }, [results]);
-
-  // Sync external search query
-  useEffect(() => {
-    setQuery(searchQuery);
-  }, [searchQuery, setQuery]);
-
-  // ⌘K / Ctrl+K focuses this search box. Captured before the global palette
-  // listener on window so the page's own search wins while it's mounted.
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        e.stopPropagation();
-        inputRef.current?.focus();
-        inputRef.current?.select();
-        setIsFocused(true);
-      }
-    };
-    document.addEventListener('keydown', onKeyDown, true);
-    return () => document.removeEventListener('keydown', onKeyDown, true);
-  }, []);
-
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    onSearchQueryChange(val);
-    setQuery(val);
-  };
-
-  const handleSelect = (symbol: string) => {
-    onSearch(symbol);
-    setIsFocused(false);
-    clear();
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      if (highlightedIndex >= 0 && highlightedIndex < results.length) {
-        handleSelect(results[highlightedIndex].symbol);
-      } else if (query) {
-        onSearch(query);
-      }
-      return;
-    }
-    if (!hasResults) return;
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setHighlightedIndex(prev => (prev < results.length - 1 ? prev + 1 : 0));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setHighlightedIndex(prev => (prev > 0 ? prev - 1 : results.length - 1));
-    } else if (e.key === 'Escape') {
-      setIsFocused(false);
-    }
-  };
-
-  const handleBlur = () => {
-    setTimeout(() => setIsFocused(false), 200);
-  };
-
-  const handleClear = () => {
-    onSearchQueryChange('');
-    clear();
-    inputRef.current?.focus();
-  };
+      </div>
+    </div>
+  );
+}
 
   return (
     <div className="relative">
