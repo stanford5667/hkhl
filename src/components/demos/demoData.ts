@@ -105,7 +105,7 @@ const RAW_DEMO_STRATEGIES: Omit<DemoStrategy, 'historicalReturn' | 'expectedRetu
 
 export const DEMO_STRATEGIES: DemoStrategy[] = RAW_DEMO_STRATEGIES.map((s) => {
   const final = s.series.values[s.series.values.length - 1];
-  const totalReturn = Math.round(((final - INITIAL) / INITIAL) * 10000) / 100;
+  const historicalReturn = Math.round(((final - INITIAL) / INITIAL) * 10000) / 100;
 
   // Weekly returns
   const weeklyReturns = s.series.values.slice(1).map((v, i) => (v - s.series.values[i]) / s.series.values[i]);
@@ -131,8 +131,7 @@ export const DEMO_STRATEGIES: DemoStrategy[] = RAW_DEMO_STRATEGIES.map((s) => {
 
   return {
     ...s,
-    totalReturn,
-    historicalReturn: totalReturn,
+    historicalReturn,
     expectedReturn: Math.round(annualizedReturn * 10000) / 100,
     maxDrawdown: Math.round(maxDrawdown * 10000) / 100,
     winningDays,
