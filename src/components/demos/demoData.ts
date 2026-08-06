@@ -5,7 +5,6 @@
 
 export interface DemoSeries {
   values: number[];
-  buyHold: number[];
 }
 
 const POINTS = 120;
@@ -22,18 +21,14 @@ function buildSeries(seed: {
   ddSize: number;
 }): DemoSeries {
   const values: number[] = [];
-  const buyHold: number[] = [];
   let v = INITIAL;
-  let bh = INITIAL;
   for (let i = 0; i < POINTS; i++) {
     const noise = Math.sin(i * seed.freqA) * seed.noiseA + Math.cos(i * seed.freqB) * seed.noiseB;
     const drawdown = i > seed.ddStart && i < seed.ddEnd ? seed.ddSize : 0;
     v *= 1 + seed.trend + noise + drawdown;
-    bh *= 1 + 0.002 + Math.sin(i * 0.3) * 0.006;
     values.push(Math.round(v));
-    buyHold.push(Math.round(bh));
   }
-  return { values, buyHold };
+  return { values };
 }
 
 export interface DemoAnnotation {
@@ -51,7 +46,6 @@ export interface DemoStrategy {
   /** Technical strategy name, shown as secondary text for professionals. */
   techName: string;
   ticker: string;
-  totalReturn: number;
   historicalReturn: number;
   expectedReturn: number;
   sharpe: number;
@@ -61,8 +55,6 @@ export interface DemoStrategy {
   series: DemoSeries;
   /** Streaming analyst read-out for this state. */
   insight: string;
-  conviction: number;
-  convictionLabel: string;
   annotations: DemoAnnotation[];
 }
 
@@ -72,13 +64,10 @@ const RAW_DEMO_STRATEGIES: Omit<DemoStrategy, 'historicalReturn' | 'expectedRetu
     name: 'Buy the Dip',
     techName: 'RSI Oversold Bounce',
     ticker: 'AAPL',
-    totalReturn: 0,
     sharpe: 1.42,
     series: buildSeries({ trend: 0.003, noiseA: 0.012, noiseB: 0.008, freqA: 0.4, freqB: 0.15, ddStart: 30, ddEnd: 45, ddSize: -0.006 }),
     insight:
-      'Analyzed 1,043 sessions across 61 signals. Most of the edge came from sidestepping the Q2 drawdown, not from better entries \u2014 average hold was 9 sessions.',
-    conviction: 4,
-    convictionLabel: 'High',
+      'Analyzed 1,043 sessions across 61 signals. Most of the edge came from sidestepping the Q2 drawdown, not from better entries — average hold was 9 sessions.',
     annotations: [
       { index: 44, label: 'Avoided -18% drawdown', dir: 1 },
       { index: 112, label: 'Momentum re-entry', dir: -1 },
@@ -89,13 +78,10 @@ const RAW_DEMO_STRATEGIES: Omit<DemoStrategy, 'historicalReturn' | 'expectedRetu
     name: 'Ride the Trend',
     techName: 'Golden Cross',
     ticker: 'MSFT',
-    totalReturn: 0,
     sharpe: 1.08,
     series: buildSeries({ trend: 0.0042, noiseA: 0.006, noiseB: 0.014, freqA: 0.22, freqB: 0.33, ddStart: 62, ddEnd: 78, ddSize: -0.009 }),
     insight:
-      'Fewer trades, smoother ride: 14 round trips over five years. Trailed buy & hold on raw return but cut max drawdown close to half \u2014 a risk trade, not a return trade.',
-    conviction: 3,
-    convictionLabel: 'Moderate',
+      'Fewer trades, smoother ride: 14 round trips over five years. Trailed the benchmark on raw return but cut max drawdown close to half — a risk trade, not a return trade.',
     annotations: [
       { index: 70, label: 'Exited before the -11% leg', dir: 1 },
       { index: 100, label: 'Trend re-confirmed', dir: -1 },
@@ -106,13 +92,10 @@ const RAW_DEMO_STRATEGIES: Omit<DemoStrategy, 'historicalReturn' | 'expectedRetu
     name: 'Buy After Weakness',
     techName: 'Mean Reversion',
     ticker: 'SPY',
-    totalReturn: 0,
     sharpe: 1.76,
     series: buildSeries({ trend: 0.0024, noiseA: 0.004, noiseB: 0.004, freqA: 0.55, freqB: 0.08, ddStart: 15, ddEnd: 22, ddSize: -0.004 }),
     insight:
-      'Highest Sharpe of the three, and the tightest equity curve \u2014 the payoff is consistency. Edge decays sharply once index volatility drops under 12.',
-    conviction: 4,
-    convictionLabel: 'High',
+      'Highest Sharpe of the three, and the tightest equity curve — the payoff is consistency. Edge decays sharply once index volatility drops under 12.',
     annotations: [
       { index: 21, label: 'Bought the -4% dislocation', dir: 1 },
       { index: 96, label: '11 straight winning weeks', dir: -1 },
@@ -122,7 +105,7 @@ const RAW_DEMO_STRATEGIES: Omit<DemoStrategy, 'historicalReturn' | 'expectedRetu
 
 export const DEMO_STRATEGIES: DemoStrategy[] = RAW_DEMO_STRATEGIES.map((s) => {
   const final = s.series.values[s.series.values.length - 1];
-  const totalReturn = Math.round(((final - INITIAL) / INITIAL) * 10000) / 100;
+  const historicalReturn = Math.round(((final - INITIAL) / INITIAL) * 10000) / 100;
 
   // Weekly returns
   const weeklyReturns = s.series.values.slice(1).map((v, i) => (v - s.series.values[i]) / s.series.values[i]);
@@ -148,8 +131,7 @@ export const DEMO_STRATEGIES: DemoStrategy[] = RAW_DEMO_STRATEGIES.map((s) => {
 
   return {
     ...s,
-    totalReturn,
-    historicalReturn: totalReturn,
+    historicalReturn,
     expectedReturn: Math.round(annualizedReturn * 10000) / 100,
     maxDrawdown: Math.round(maxDrawdown * 10000) / 100,
     winningDays,

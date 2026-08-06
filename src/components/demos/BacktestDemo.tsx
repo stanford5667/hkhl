@@ -6,7 +6,6 @@ import { cn } from '@/lib/utils';
 import { DEMO_STRATEGIES, DEMO_INITIAL_CAPITAL } from './demoData';
 import { useCountUp, usePrefersReducedMotion } from './useCountUp';
 import {
-  ConvictionMeter,
   DemoCard,
   DemoCardHeader,
   DemoVisual,
@@ -167,9 +166,8 @@ export function BacktestDemo() {
   const strategy = DEMO_STRATEGIES.find((s) => s.id === activeId) ?? DEMO_STRATEGIES[0];
 
   const values = useMorph(strategy.series.values, !reduced);
-  const buyHold = useMorph(strategy.series.buyHold, !reduced);
 
-  const all = [...values, ...buyHold];
+  const all = [...values];
   const min = Math.min(...all, DEMO_INITIAL_CAPITAL);
   const max = Math.max(...all);
 
@@ -253,7 +251,7 @@ export function BacktestDemo() {
             className="h-full w-full"
             preserveAspectRatio="none"
             role="img"
-            aria-label="Equity curve versus buy and hold benchmark"
+            aria-label="Strategy equity curve preview"
           >
             <defs>
               <linearGradient id="demo-eq-fill" x1="0" y1="0" x2="0" y2="1">
@@ -264,13 +262,6 @@ export function BacktestDemo() {
             <path
               d={`${toPath(values, min, max)} L${W - PAD},${H} L${PAD},${H} Z`}
               fill="url(#demo-eq-fill)"
-            />
-            <path
-              d={toPath(buyHold, min, max)}
-              fill="none"
-              stroke="rgb(100 116 139)"
-              strokeWidth="1.25"
-              strokeDasharray="4 4"
             />
             <motion.path
               d={toPath(values, min, max)}
@@ -361,16 +352,6 @@ export function BacktestDemo() {
           />
         </div>
       </TooltipProvider>
-
-      <ConvictionMeter filled={strategy.conviction} value={strategy.convictionLabel} />
-
-      <p className="mt-2.5 flex items-center gap-1.5 text-[10px] text-gray-500">
-        <span className="h-1.5 w-4 rounded-full bg-cyan-400" /> Your idea
-        <span className="ml-2 h-px w-4 border-t border-dashed border-slate-500" /> Buy &amp; hold
-      </p>
-
-
-
 
       {/* Prompt-bar styled button — clearly an action, not a dead input */}
       <motion.button
