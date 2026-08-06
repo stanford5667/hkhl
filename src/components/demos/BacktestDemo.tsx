@@ -389,10 +389,10 @@ export function BacktestDemo() {
                 onClick={() => setActiveId(s.id)}
                 aria-pressed={isActive}
                 className={cn(
-                  'flex min-h-[26px] items-center gap-1 rounded-md border px-1.5 py-0.5 text-left transition-colors',
+                  'flex min-h-[26px] items-center gap-1 rounded-md border px-1.5 py-0.5 text-left transition-colors shadow-sm',
                   isActive
-                    ? 'border-blue-500/25 bg-blue-500/[0.12] text-blue-400'
-                    : 'border-slate-700 bg-slate-900/70 text-gray-400 hover:border-blue-500/30 hover:text-gray-200'
+                    ? 'border-white/[0.20] bg-blue-500/[0.12] text-blue-400 ring-1 ring-white/[0.06]'
+                    : 'border-white/[0.10] bg-slate-900/70 text-gray-400 hover:border-white/[0.18] hover:text-gray-200'
                 )}
               >
                 <span
