@@ -338,15 +338,7 @@ export function BacktestDemo() {
 
   return (
     <DemoCard accent>
-      <DemoCardHeader
-        icon={<LineChart className="h-4 w-4 text-blue-400" />}
-        category="Historical data"
-        title="Research any ticker"
-        subtitle="AAPL · Live price history and key stats"
-        right={<SampleBadge label="Historical data" />}
-      />
-
-      <DemoVisual className="mt-3 w-full">
+      <DemoVisual className="w-full">
         <StockChartPreview />
       </DemoVisual>
 
