@@ -42,44 +42,46 @@ export function ResearchHero({ className }: ResearchHeroProps) {
               <span className="text-foreground"> starts here</span>
             </span>
           </motion.h1>
-          <motion.p
-            className="text-muted-foreground text-[15px] sm:text-base lg:text-xl max-w-2xl sm:mx-auto leading-relaxed mb-3 sm:mb-4"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-          >
-            <span className="text-primary font-medium">Automated AI investing.</span>{' '}
-            Learn from top hedge fund managers, get trade ideas in the chatroom.
-          </motion.p>
+
           <motion.div
-            className="flex justify-center mt-4"
+            className="flex justify-center mb-3 sm:mb-4"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.18 }}
+            transition={{ duration: 0.5, delay: 0.12 }}
           >
-            <div className="inline-flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+            <div className="inline-flex items-center gap-2 sm:gap-3">
               <Link
                 to="/academy"
-                className="flex items-center min-h-[44px] py-3 px-1 hover:text-foreground underline-offset-4 hover:underline transition-colors"
+                className="inline-flex items-center px-3 py-1.5 rounded-full border border-primary/30 bg-primary/10 text-primary text-[10px] font-semibold uppercase tracking-widest hover:bg-primary/20 transition-colors"
               >
                 Learn
               </Link>
-              <span aria-hidden="true">·</span>
+              <span aria-hidden="true" className="text-primary/40">·</span>
               <Link
                 to="/backtester"
-                className="flex items-center min-h-[44px] py-3 px-1 hover:text-foreground underline-offset-4 hover:underline transition-colors"
+                className="inline-flex items-center px-3 py-1.5 rounded-full border border-primary/30 bg-primary/10 text-primary text-[10px] font-semibold uppercase tracking-widest hover:bg-primary/20 transition-colors"
               >
                 Test
               </Link>
-              <span aria-hidden="true">·</span>
+              <span aria-hidden="true" className="text-primary/40">·</span>
               <Link
                 to="/watchlist"
-                className="flex items-center min-h-[44px] py-3 px-1 hover:text-foreground underline-offset-4 hover:underline transition-colors"
+                className="inline-flex items-center px-3 py-1.5 rounded-full border border-primary/30 bg-primary/10 text-primary text-[10px] font-semibold uppercase tracking-widest hover:bg-primary/20 transition-colors"
               >
                 Track
               </Link>
             </div>
           </motion.div>
+
+          <motion.p
+            className="text-muted-foreground text-[15px] sm:text-base lg:text-xl max-w-2xl sm:mx-auto leading-relaxed"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.18 }}
+          >
+            <span className="text-primary font-medium">Automated AI investing.</span>{' '}
+            Learn from top hedge fund managers, get trade ideas in the chatroom.
+          </motion.p>
         </div>
 
 
