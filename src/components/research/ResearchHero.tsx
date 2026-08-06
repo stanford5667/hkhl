@@ -111,16 +111,25 @@ export function ResearchHero({
       <div className="relative max-w-6xl mx-auto px-3 sm:px-6 pt-4 sm:pt-10 pb-5 sm:pb-8">
         {/* Hero Text — Terminal style */}
         <div className="text-left sm:text-center mb-5 sm:mb-10">
+          <motion.div
+            className="mb-4 sm:mb-5"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            <span className="inline-flex items-center px-3 py-1 rounded-full border border-primary/30 bg-primary/10 text-primary text-[10px] font-semibold uppercase tracking-widest">
+              Research Terminal
+            </span>
+          </motion.div>
+
           <motion.h1
-            className="font-display text-[clamp(1.3rem,3.5vw+0.5rem,3.75rem)] leading-[1.05] tracking-tight whitespace-nowrap font-bold mb-2 sm:mb-4"
+            className="font-display text-[clamp(1.4rem,3.5vw+0.5rem,3.75rem)] leading-[1.05] tracking-tight font-bold mb-5 sm:mb-7"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <span className="text-foreground">Find your next</span>{' '}
-            <span className="text-primary">
-              big investment
-            </span>
+            <span className="text-foreground block">Your next big investment</span>
+            <span className="text-primary block">starts here</span>
           </motion.h1>
           <motion.p
             className="text-muted-foreground text-[15px] sm:text-base lg:text-lg max-w-lg sm:mx-auto leading-relaxed mb-3 sm:mb-4"
@@ -128,7 +137,7 @@ export function ResearchHero({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
           >
-            <span className="text-foreground font-medium">Automated AI investing.</span>{' '}
+            <span className="text-primary font-medium">Automated AI investing.</span>{' '}
             Learn from top performing hedge fund managers, get live trade ideas in the chatroom.
           </motion.p>
           <motion.div
