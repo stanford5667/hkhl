@@ -47,7 +47,7 @@ export default function ResearchPage() {
               Automate your investing
             </h2>
             <p className="text-sm sm:text-base lg:text-lg text-muted-foreground max-w-3xl mt-2 leading-relaxed">
-              Backtest strategies against decades of data, then learn the system behind them.
+              Backtest strategies against decades of data.
             </p>
           </div>
           <DemoCarousel />
