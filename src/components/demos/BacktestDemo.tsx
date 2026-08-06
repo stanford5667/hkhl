@@ -251,7 +251,7 @@ export function BacktestDemo() {
             className="h-full w-full"
             preserveAspectRatio="none"
             role="img"
-            aria-label="Equity curve versus buy and hold benchmark"
+            aria-label="Strategy equity curve preview"
           >
             <defs>
               <linearGradient id="demo-eq-fill" x1="0" y1="0" x2="0" y2="1">
@@ -262,13 +262,6 @@ export function BacktestDemo() {
             <path
               d={`${toPath(values, min, max)} L${W - PAD},${H} L${PAD},${H} Z`}
               fill="url(#demo-eq-fill)"
-            />
-            <path
-              d={toPath(buyHold, min, max)}
-              fill="none"
-              stroke="rgb(100 116 139)"
-              strokeWidth="1.25"
-              strokeDasharray="4 4"
             />
             <motion.path
               d={toPath(values, min, max)}
