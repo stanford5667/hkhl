@@ -18,7 +18,7 @@ import { AuthGateDialog } from "@/components/auth/AuthGateDialog";
 
 // Page metadata for breadcrumbs and titles
 const pageMetadata: Record<string, { title: string; subtitle: string; parent?: { label: string; href: string } }> = {
-  "/": { title: "Dashboard", subtitle: "Your command center for deals and insights" },
+  "/": { title: "Asset Labs AI", subtitle: "Portfolio Intelligence" },
   "/companies": { title: "Companies", subtitle: "Track every opportunity from first look to exit" },
   "/contacts": { title: "Network", subtitle: "Nurture relationships that drive deals" },
   "/models": { title: "Models", subtitle: "Stop guessing. Start projecting." },
