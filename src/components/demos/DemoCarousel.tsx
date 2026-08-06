@@ -50,7 +50,7 @@ const DEMOS = [
           Proprietary investment ideas
         </p>
         <p className="text-xs sm:text-sm text-muted-foreground px-1">
-          Real-time trade setups, analyst research notes, and live market discussion — all in one place.
+          Real-time trade setups, analyst research notes, and live market discussion — spanning stocks, options, commodities, FX, and more. From long-term allocations to short-term plays, we use a top-down approach to build diversified portfolios.
         </p>
         <ChatroomDemo />
       </div>
