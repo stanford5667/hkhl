@@ -14,6 +14,9 @@ const R = 26;
 const CIRC = 2 * Math.PI * R;
 /** Demo preview window, in seconds. */
 const PREVIEW_LIMIT = 120;
+/** Start the demo preview at this timestamp. */
+const PREVIEW_START = 4;
+
 
 const fmt = (s: number) => {
   const v = Math.max(0, Math.floor(s));
@@ -39,6 +42,7 @@ export function AcademyDemo() {
         .select('title, video_url')
         .eq('is_preview', true)
         .not('video_url', 'is', null)
+        .ilike('title', 'Our Strategy')
         .order('order_index', { ascending: true })
         .limit(1)
         .maybeSingle();
@@ -50,6 +54,7 @@ export function AcademyDemo() {
       cancelled = true;
     };
   }, []);
+
 
   const togglePlay = () => {
     const el = videoRef.current;
@@ -131,6 +136,11 @@ export function AcademyDemo() {
                 playsInline
                 preload="metadata"
                 className="absolute inset-0 h-full w-full object-cover"
+                onLoadedMetadata={(e) => {
+                  const el = e.currentTarget;
+                  el.currentTime = PREVIEW_START;
+                  setCurrent(PREVIEW_START);
+                }}
                 onPlay={() => setPlaying(true)}
                 onPause={() => setPlaying(false)}
                 onTimeUpdate={(e) => {
@@ -138,10 +148,12 @@ export function AcademyDemo() {
                   setCurrent(el.currentTime);
                   if (el.currentTime >= PREVIEW_LIMIT) {
                     el.pause();
-                    el.currentTime = 0;
+                    el.currentTime = PREVIEW_START;
+                    setCurrent(PREVIEW_START);
                   }
                 }}
               />
+
             ) : (
               <img
                 src={modThumb}
