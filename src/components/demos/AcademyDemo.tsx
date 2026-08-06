@@ -289,11 +289,12 @@ export function AcademyDemo() {
           <div className="ml-auto flex items-center gap-1.5 text-[10px] text-muted-foreground">
             <span className="flex items-center gap-1">
               <Clock className="h-3 w-3" />
-              4 modules
+              {sections.length} modules
             </span>
             <span className="h-3 w-px bg-slate-800" />
-            <span>92 lessons</span>
+            <span>{totalLessons} lessons</span>
           </div>
+
         </div>
 
         {/* Video preview player */}
