@@ -213,6 +213,27 @@ export function AcademyDemo() {
 
   const goToAuth = () => navigate('/auth', { state: { mode: 'signup' } });
 
+  // Guests may watch any free-preview lesson inline
+  const playPreviewLesson = async (lessonId: string) => {
+    const { data } = await supabase
+      .from('course_lessons')
+      .select('title, video_url')
+      .eq('id', lessonId)
+      .maybeSingle();
+    if (!data?.video_url) {
+      user ? navigate('/academy') : goToAuth();
+      return;
+    }
+    setPreview({ title: data.title, url: data.video_url });
+    setCurrent(0);
+    requestAnimationFrame(() => {
+      const el = videoRef.current;
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el?.play().catch(() => {});
+    });
+  };
+
+
   const shown = useCountUp(pct, true);
 
   useEffect(() => {
