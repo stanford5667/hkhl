@@ -426,6 +426,14 @@ export function AcademyDemoInner({ className }: { className?: string }) {
           </Button>
         </div>
       </div>
+    </div>
+  );
+}
+
+export function AcademyDemo() {
+  return (
+    <DemoCard className="overflow-hidden">
+      <AcademyDemoInner />
     </DemoCard>
   );
 }
