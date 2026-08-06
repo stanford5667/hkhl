@@ -154,7 +154,13 @@ function StockChartPreview() {
               <button
                 key={r}
                 type="button"
-                onClick={() => setRange(r)}
+                onClick={() => {
+                  if (!user) {
+                    navigate('/auth', { state: { mode: 'signup' } });
+                    return;
+                  }
+                  setRange(r);
+                }}
                 className={cn(
                   'rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors',
                   range === r ? 'bg-primary text-white' : 'text-white/50 hover:text-white',
