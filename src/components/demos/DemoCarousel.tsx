@@ -31,8 +31,11 @@ const DEMOS = [
     id: 'academy',
     node: (
       <div className="flex flex-col gap-2">
-        <p className="text-xs font-medium text-cyan-400/80 px-1">
-          Learn the method behind the strategies
+        <p className="text-sm sm:text-base font-semibold text-cyan-400 px-1">
+          Learn the strategies
+        </p>
+        <p className="text-xs sm:text-sm text-muted-foreground px-1">
+          A course taught by top hedge fund managers.
         </p>
         <AcademyDemo />
       </div>
