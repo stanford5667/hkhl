@@ -78,6 +78,7 @@ const DEMO_LESSONS = [
 
 export function AcademyDemo() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const reduced = usePrefersReducedMotion();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
@@ -87,6 +88,8 @@ export function AcademyDemo() {
   const [openLesson, setOpenLesson] = useState<string | null>(null);
   const [showMore, setShowMore] = useState(false);
   const pct = Math.round(DEMO_LESSON.progress * 100);
+
+  const goToAuth = () => navigate('/auth', { state: { mode: 'signup' } });
 
   const shown = useCountUp(pct, true);
 
