@@ -122,12 +122,39 @@ export function AcademyDemo() {
         {/* Video preview player */}
         <div className="relative overflow-hidden rounded-xl border border-slate-800 bg-black shadow-lg">
           <div className="relative aspect-video w-full">
-            <img
-              src={modThumb}
-              alt={`${DEMO_LESSON.title} preview thumbnail`}
-              className="absolute inset-0 h-full w-full object-cover"
+            {preview ? (
+              <video
+                ref={videoRef}
+                src={preview.url}
+                poster={modThumb}
+                muted={muted}
+                playsInline
+                preload="metadata"
+                className="absolute inset-0 h-full w-full object-cover"
+                onPlay={() => setPlaying(true)}
+                onPause={() => setPlaying(false)}
+                onTimeUpdate={(e) => {
+                  const el = e.currentTarget;
+                  setCurrent(el.currentTime);
+                  if (el.currentTime >= PREVIEW_LIMIT) {
+                    el.pause();
+                    el.currentTime = 0;
+                  }
+                }}
+              />
+            ) : (
+              <img
+                src={modThumb}
+                alt={`${DEMO_LESSON.title} preview thumbnail`}
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+            )}
+            <div
+              className={cn(
+                'absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent transition-opacity',
+                playing && 'opacity-0'
+              )}
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
             {/* FREE PREVIEW badge */}
             <div className="absolute left-3 top-3">
@@ -143,18 +170,23 @@ export function AcademyDemo() {
             {/* Remaining counter */}
             <div className="absolute right-3 top-3">
               <span className="inline-flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[10px] font-medium text-white backdrop-blur-sm">
-                258 remaining
+                {fmt(remaining)} left
               </span>
             </div>
 
             {/* Play overlay */}
             <button
               type="button"
-              onClick={() => setPlaying((p) => !p)}
+              onClick={togglePlay}
               className="absolute inset-0 flex items-center justify-center group/play"
               aria-label={playing ? 'Pause preview' : 'Play preview'}
             >
-              <span className="flex h-14 w-14 items-center justify-center rounded-full border border-white/20 bg-black/40 backdrop-blur-sm transition-transform group-hover/play:scale-110">
+              <span
+                className={cn(
+                  'flex h-14 w-14 items-center justify-center rounded-full border border-white/20 bg-black/40 backdrop-blur-sm transition-all group-hover/play:scale-110',
+                  playing && 'opacity-0 group-hover/play:opacity-100'
+                )}
+              >
                 {playing ? (
                   <Pause className="h-5 w-5 text-white" />
                 ) : (
@@ -166,23 +198,35 @@ export function AcademyDemo() {
             {/* Bottom progress overlay */}
             <div className="absolute bottom-0 left-0 w-full p-3">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] tabular-nums text-white/80">2:18</span>
+                <span className="text-[10px] tabular-nums text-white/80">{fmt(current)}</span>
                 <div className="relative h-1 flex-1 overflow-hidden rounded-full bg-white/20">
-                  <motion.div
-                    className="absolute inset-y-0 left-0 rounded-full bg-cyan-400"
-                    initial={reduced ? { width: `${pct}%` } : { width: 0 }}
-                    whileInView={{ width: `${pct}%` }}
-                    viewport={{ once: true }}
-                    transition={{ duration: reduced ? 0 : 1.1, ease: 'easeOut' }}
+                  <div
+                    className="absolute inset-y-0 left-0 rounded-full bg-cyan-400 transition-[width] duration-200"
+                    style={{ width: `${Math.min(100, (current / PREVIEW_LIMIT) * 100)}%` }}
                   />
                 </div>
-                <span className="text-[10px] tabular-nums text-white/60">{DEMO_LESSON.duration}</span>
-                <Volume2 className="h-3.5 w-3.5 text-white/60" />
-                <Maximize className="h-3.5 w-3.5 text-white/60" />
+                <span className="text-[10px] tabular-nums text-white/60">{fmt(PREVIEW_LIMIT)}</span>
+                <button
+                  type="button"
+                  onClick={() => setMuted((m) => !m)}
+                  aria-label={muted ? 'Unmute preview' : 'Mute preview'}
+                  className="text-white/60 transition-colors hover:text-white"
+                >
+                  {muted ? <VolumeX className="h-3.5 w-3.5" /> : <Volume2 className="h-3.5 w-3.5" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => videoRef.current?.requestFullscreen?.()}
+                  aria-label="Fullscreen"
+                  className="text-white/60 transition-colors hover:text-white"
+                >
+                  <Maximize className="h-3.5 w-3.5" />
+                </button>
               </div>
             </div>
           </div>
         </div>
+
 
         {/* Current lesson */}
         <div className="flex items-center gap-3 rounded-xl border border-slate-800/80 bg-slate-900/50 p-2.5">
