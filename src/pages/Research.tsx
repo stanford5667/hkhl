@@ -39,15 +39,27 @@ export default function ResearchPage() {
     }
   }, [queryClient]);
 
-  // Guests: any interaction on the page content routes to the sign-up form
-  const handleGuestGate = useCallback(
-    (e: React.MouseEvent) => {
-      if (user) return;
+  // Guests: treat ANY interaction on the page content as the call to action
+  const gate = useCallback(
+    (e: React.SyntheticEvent) => {
+      if (user) return false;
       e.preventDefault();
       e.stopPropagation();
       navigate("/auth", { state: { mode: "signup", from: "/research" } });
+      return true;
     },
     [user, navigate]
+  );
+
+  const handleGuestClick = useCallback((e: React.MouseEvent) => gate(e), [gate]);
+
+  // Keyboard activation (Enter / Space) counts as a click
+  const handleGuestKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (user) return;
+      if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") gate(e);
+    },
+    [user, gate]
   );
 
   return (
@@ -56,9 +68,25 @@ export default function ResearchPage() {
 
 
       <main
-        onClickCapture={handleGuestGate}
-        className="flex-1 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 space-y-8 sm:space-y-10 max-w-[1800px] w-full mx-auto"
+        onClickCapture={handleGuestClick}
+        onAuxClickCapture={handleGuestClick}
+        onDoubleClickCapture={handleGuestClick}
+        onKeyDownCapture={handleGuestKeyDown}
+        onSubmitCapture={gate}
+        onChangeCapture={gate}
+        onInputCapture={gate}
+        onFocusCapture={user ? undefined : (e) => {
+          // Focusing an input (tap into a search field) is intent — send them to sign-up
+          const el = e.target as HTMLElement;
+          if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement) {
+            gate(e);
+          }
+        }}
+        className={`flex-1 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 space-y-8 sm:space-y-10 max-w-[1800px] w-full mx-auto ${
+          user ? "" : "cursor-pointer [&_*]:cursor-pointer"
+        }`}
       >
+
 
         <section>
           <ResearchHero />
