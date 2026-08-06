@@ -123,7 +123,7 @@ export function ResearchHero({
           </motion.div>
 
           <motion.h1
-            className="font-display text-[clamp(2rem,8vw+0.8rem,5.5rem)] leading-[1.05] tracking-tight font-bold mb-5 sm:mb-7 w-full"
+            className="font-display text-[clamp(2rem,5.5vw+0.5rem,4rem)] leading-[1.08] tracking-tight font-bold mb-5 sm:mb-6 w-full"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
@@ -139,7 +139,7 @@ export function ResearchHero({
             transition={{ duration: 0.5, delay: 0.1 }}
           >
             <span className="text-primary font-medium">Automated AI investing.</span>{' '}
-            Build strategies for any stock, then backtest them for historical returns before you risk a dollar.
+            Learn from top performing hedge fund managers, get live trade ideas in the chatroom.
           </motion.p>
           <motion.div
             className="flex justify-start sm:justify-center mt-4"
