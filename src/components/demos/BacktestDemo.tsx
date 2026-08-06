@@ -343,7 +343,18 @@ export function BacktestDemo() {
         <StockChartPreview />
       </DemoVisual>
 
-      {/* Divider between the live ticker and the backtested strategy */}
+      {/* Learn the strategies — placed below the live ticker */}
+      <div className="mt-4">
+        <h2 className="text-2xl sm:text-3xl lg:text-4xl font-semibold text-white tracking-tight">
+          Learn the strategies
+        </h2>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-2 leading-relaxed">
+          40+ hours of on-demand video lessons, time-tested strategies, real-world trade breakdowns, and portfolio frameworks from top hedge fund managers.
+        </p>
+        <AcademyDemoInner className="mt-4" />
+      </div>
+
+      {/* Divider between the live ticker/academy and the backtested strategy */}
       <div className="mt-4 flex items-center gap-3">
         <span className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-700 to-slate-700" />
         <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Then test a strategy</span>
