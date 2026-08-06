@@ -136,6 +136,11 @@ export function AcademyDemo() {
                 playsInline
                 preload="metadata"
                 className="absolute inset-0 h-full w-full object-cover"
+                onLoadedMetadata={(e) => {
+                  const el = e.currentTarget;
+                  el.currentTime = PREVIEW_START;
+                  setCurrent(PREVIEW_START);
+                }}
                 onPlay={() => setPlaying(true)}
                 onPause={() => setPlaying(false)}
                 onTimeUpdate={(e) => {
@@ -143,10 +148,12 @@ export function AcademyDemo() {
                   setCurrent(el.currentTime);
                   if (el.currentTime >= PREVIEW_LIMIT) {
                     el.pause();
-                    el.currentTime = 0;
+                    el.currentTime = PREVIEW_START;
+                    setCurrent(PREVIEW_START);
                   }
                 }}
               />
+
             ) : (
               <img
                 src={modThumb}
