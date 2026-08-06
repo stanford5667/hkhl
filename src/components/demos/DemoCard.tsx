@@ -72,7 +72,7 @@ export function DemoVisual({ children, className }: { children: ReactNode; class
 interface DemoCardHeaderProps {
   icon: ReactNode;
   category?: string;
-  title: string;
+  title?: string;
   subtitle?: string;
   right?: ReactNode;
 }
@@ -90,7 +90,7 @@ export function DemoCardHeader({ icon, category, title, subtitle, right }: DemoC
               {category}
             </p>
           )}
-          <h3 className="truncate text-sm font-semibold tracking-[-0.01em] text-white">{title}</h3>
+          {title && <h3 className="truncate text-sm font-semibold tracking-[-0.01em] text-white">{title}</h3>}
           {subtitle && <p className="truncate text-[11px] text-gray-500">{subtitle}</p>}
         </div>
       </div>
