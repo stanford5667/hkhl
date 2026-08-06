@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Activity, Check, HelpCircle, Sparkles, TrendingDown } from 'lucide-react';
+import { Area, AreaChart, ResponsiveContainer, Tooltip as ReTooltip, XAxis, YAxis } from 'recharts';
+import { Activity, Check, HelpCircle, LineChart, Sparkles, TrendingDown, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DEMO_STRATEGIES, DEMO_INITIAL_CAPITAL } from './demoData';
 import { useCountUp, usePrefersReducedMotion } from './useCountUp';
+import { useChartData } from '@/hooks/useChartData';
 import {
   DemoCard,
   DemoCardHeader,
@@ -18,6 +20,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+
 
 
 const W = 320;
@@ -85,6 +88,156 @@ function useMorph(target: number[], enabled: boolean, duration = 620) {
 function safeFormat(value: number, formatter: (n: number) => string): string {
   return Number.isFinite(value) ? formatter(value) : '--';
 }
+
+const STOCK_DEMO_TICKER = 'AAPL';
+const STOCK_DEMO_COMPANY = 'Apple Inc.';
+const STOCK_RANGES = ['1M', '3M', '6M', '1Y'] as const;
+
+function StockChartPreview() {
+  const reduced = usePrefersReducedMotion();
+  const [range, setRange] = useState<(typeof STOCK_RANGES)[number]>('6M');
+  const { data: bars, isLoading } = useChartData(STOCK_DEMO_TICKER, range);
+
+  const points = useMemo(
+    () =>
+      (bars ?? [])
+        .filter((b) => Number.isFinite(b.price))
+        .map((b) => ({ t: b.time * 1000, price: b.price })),
+    [bars],
+  );
+
+  const isLive = points.length > 4;
+  const last = isLive ? points[points.length - 1].price : 243.52;
+  const prev = isLive && points.length > 1 ? points[points.length - 2].price : 243.52 - 4.18;
+  const change = last - prev;
+  const changePercent = prev ? (change / prev) * 100 : 0;
+
+  const domain = useMemo(() => {
+    if (!isLive) return undefined;
+    const vals = points.map((p) => p.price);
+    const min = Math.min(...vals);
+    const max = Math.max(...vals);
+    const pad = (max - min) * 0.08 || 1;
+    return [min - pad, max + pad] as [number, number];
+  }, [points, isLive]);
+
+  const price = useCountUp(last, true);
+  const isPositive = change >= 0;
+  const fmtDate = (t: number) =>
+    new Date(t).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+  return (
+    <div className="relative overflow-hidden rounded-xl border border-white/[0.08] bg-slate-950/60">
+      {/* Mock ticker header */}
+      <div className="flex items-center justify-between p-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-800 text-sm font-bold text-white">
+            {STOCK_DEMO_TICKER}
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-white">{STOCK_DEMO_COMPANY}</p>
+            <p className="text-[10px] text-muted-foreground">NASDAQ · Technology</p>
+          </div>
+        </div>
+        <div className="text-right">
+          <p className="text-lg font-bold tabular-nums text-white">${price.toFixed(2)}</p>
+          <p className={cn(
+            'flex items-center justify-end gap-1 text-[11px] font-medium',
+            isPositive ? 'text-emerald-400' : 'text-rose-400'
+          )}>
+            {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+            {isPositive ? '+' : ''}{change.toFixed(2)} ({isPositive ? '+' : ''}{changePercent.toFixed(2)}%)
+          </p>
+        </div>
+      </div>
+
+      {/* Price action chart */}
+      <div className="p-3">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-white/50">Price action</span>
+          <div className="flex items-center gap-1 rounded-full border border-white/[0.08] bg-white/[0.04] p-0.5">
+            {STOCK_RANGES.map((r) => (
+              <button
+                key={r}
+                type="button"
+                onClick={() => setRange(r)}
+                className={cn(
+                  'rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors',
+                  range === r ? 'bg-primary text-white' : 'text-white/50 hover:text-white',
+                )}
+              >
+                {r}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="relative h-[140px] w-full sm:h-[180px]">
+          {points.length > 1 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={points} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+                <defs>
+                  <linearGradient id="demo-stock-fill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#38BDF8" stopOpacity={0.28} />
+                    <stop offset="100%" stopColor="#38BDF8" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <XAxis
+                  dataKey="t"
+                  type="number"
+                  scale="time"
+                  domain={['dataMin', 'dataMax']}
+                  tickFormatter={fmtDate}
+                  tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 9 }}
+                  axisLine={false}
+                  tickLine={false}
+                  minTickGap={40}
+                />
+                <YAxis
+                  domain={domain ?? ['auto', 'auto']}
+                  orientation="right"
+                  width={44}
+                  tickFormatter={(v: number) => `$${v.toFixed(0)}`}
+                  tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 9 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <ReTooltip
+                  contentStyle={{
+                    background: '#111827',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    borderRadius: 8,
+                    fontSize: 11,
+                  }}
+                  labelFormatter={(t) => fmtDate(Number(t))}
+                  formatter={(v: number) => [`$${Number(v).toFixed(2)}`, 'Close']}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="price"
+                  stroke="#38BDF8"
+                  strokeWidth={1.5}
+                  fill="url(#demo-stock-fill)"
+                  isAnimationActive={!reduced}
+                  animationDuration={900}
+                  dot={false}
+                  activeDot={{ r: 3, fill: '#38BDF8', stroke: 'none' }}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex h-full items-center justify-center text-[11px] text-white/40">
+              {isLoading ? 'Loading AAPL price history…' : 'Price history unavailable'}
+            </div>
+          )}
+        </div>
+        <p className="mt-1 text-right text-[9px] text-white/35">
+          {isLive ? `${STOCK_DEMO_TICKER} · ${range} · live market data` : `${STOCK_DEMO_TICKER} daily closes`}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 
 function StatCard({
   label,
@@ -193,6 +346,26 @@ export function BacktestDemo() {
   return (
     <DemoCard accent>
       <DemoCardHeader
+        icon={<LineChart className="h-4 w-4 text-cyan-400" />}
+        category="Historical data"
+        title="Research any ticker"
+        subtitle="AAPL · Live price history and key stats"
+        right={<SampleBadge label="Historical data" />}
+      />
+
+      <DemoVisual className="mt-3 w-full">
+        <StockChartPreview />
+      </DemoVisual>
+
+      {/* Divider between the live ticker and the backtested strategy */}
+      <div className="mt-4 flex items-center gap-3">
+        <span className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-700 to-slate-700" />
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Then test a strategy</span>
+        <span className="h-px flex-1 bg-gradient-to-l from-transparent via-slate-700 to-slate-700" />
+      </div>
+
+      <DemoCardHeader
+        className="mt-4"
         icon={<Activity className="h-4 w-4 text-cyan-400" />}
         category="Backtested strategy"
         title={strategy.name}
@@ -203,6 +376,7 @@ export function BacktestDemo() {
       <p className="mt-1 text-[10px] leading-relaxed text-white/50">
         This is a simulated backtest. The curve and stats are predictions based on historical rules, not actual trades.
       </p>
+
 
       {/* Strategy chips — compact, clearly selectable presets */}
       <div className="mt-3">
