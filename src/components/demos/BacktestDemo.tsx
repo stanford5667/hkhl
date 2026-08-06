@@ -110,14 +110,15 @@ export function BacktestDemo() {
         icon={<Activity className="h-4 w-4 text-cyan-400" />}
         category="AI Strategy Builder"
         title={strategy.name}
-        subtitle={`Backtested on ${strategy.ticker} · 2020–2024 · weekly · historical returns`}
+        subtitle={`${strategy.techName} · ${strategy.ticker} · 2020–2024 · weekly`}
+        
         right={<SampleBadge />}
       />
 
       {/* Strategy chips — compact, clearly selectable presets */}
       <div className="mt-3">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-[11px] text-gray-400">Pick a strategy to see how it would have performed historically on {strategy.ticker}</p>
+          <p className="text-[11px] text-gray-400">Pick a strategy to preview</p>
           <span className="text-[10px] text-gray-500">Tap to switch</span>
         </div>
         <div className="mt-1.5 flex flex-wrap gap-2">
