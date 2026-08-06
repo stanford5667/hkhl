@@ -143,7 +143,11 @@ function StockChartPreview() {
             ⌘K
           </span>
         </button>
+        <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+          Research 12,000+ tickers with charts, fundamentals, news, and more.
+        </p>
       </div>
+
 
       {/* Mock ticker header */}
       <div className="flex items-center justify-between p-3">
