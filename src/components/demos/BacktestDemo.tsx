@@ -236,19 +236,45 @@ export function BacktestDemo() {
         </div>
       </DemoVisual>
 
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-2.5">
-          <div className="text-[10px] uppercase tracking-wider text-gray-500">Total return</div>
-          <div className="flex items-center gap-1 font-mono text-lg font-bold text-emerald-400">
-            <TrendingUp className="h-3.5 w-3.5" />
-            {ret >= 0 ? '+' : ''}
-            {ret.toFixed(1)}%
-          </div>
-        </div>
-        <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-2.5">
-          <div className="text-[10px] uppercase tracking-wider text-gray-500">Sharpe ratio</div>
-          <div className="font-mono text-lg font-bold text-white">{sharpe.toFixed(2)}</div>
-        </div>
+      {/* Condensed stats grid — bordered, accent-colored cards */}
+      <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <StatCard
+          label="Total return"
+          value={`${ret >= 0 ? '+' : ''}${ret.toFixed(1)}%`}
+          icon={<TrendingUp className="h-3 w-3" />}
+          accent="emerald"
+        />
+        <StatCard
+          label="Historical return"
+          value={`${historical >= 0 ? '+' : ''}${historical.toFixed(1)}%`}
+          accent="cyan"
+        />
+        <StatCard
+          label="Expected return"
+          value={`${expected >= 0 ? '+' : ''}${expected.toFixed(1)}%`}
+          accent="blue"
+        />
+        <StatCard
+          label="Sharpe ratio"
+          value={sharpe.toFixed(2)}
+          accent="cyan"
+        />
+        <StatCard
+          label="Max drawdown"
+          value={`-${maxDd.toFixed(1)}%`}
+          icon={<TrendingDown className="h-3 w-3" />}
+          accent="rose"
+        />
+        <StatCard
+          label="Winning weeks"
+          value={`${winWeeks.toFixed(0)}%`}
+          accent="emerald"
+        />
+        <StatCard
+          label="Volatility"
+          value={`${vol.toFixed(1)}%`}
+          accent="violet"
+        />
       </div>
 
       <ConvictionMeter filled={strategy.conviction} value={strategy.convictionLabel} />
