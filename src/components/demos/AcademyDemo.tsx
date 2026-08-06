@@ -458,102 +458,131 @@ export function AcademyDemo() {
           </div>
         </div>
 
-        {/* Lessons accordion — grouped by module */}
-        <div className="space-y-2">
-          <p className="text-[11px] font-semibold text-foreground">What you will learn</p>
-          <div className="flex flex-col gap-3">
-            {sections.map((section) => {
-              const visibleLessons = showMore ? section.lessons : section.lessons.slice(0, 2);
+        {/* Course content preview */}
+        <div className="space-y-3">
+          {/* Tabs */}
+          <div className="flex items-center gap-4 border-b border-slate-800/80">
+            <span className="pb-2 text-[11px] font-semibold text-foreground border-b border-cyan-400">
+              Curriculum
+            </span>
+            <span className="pb-2 text-[11px] text-muted-foreground">Overview</span>
+            <span className="pb-2 text-[11px] text-muted-foreground">Reviews (0)</span>
+          </div>
+
+          <div>
+            <p className="text-sm font-semibold text-foreground">Course content</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              {sections.length} modules • {totalLessons} lessons • {previewCount} lessons open for a short free preview
+            </p>
+          </div>
+
+          {/* Search */}
+          <div
+            onClick={() => !user && goToAuth()}
+            className="flex items-center gap-2 rounded-lg border border-slate-800/80 bg-slate-900/40 px-3 py-2 text-[11px] text-muted-foreground cursor-pointer hover:bg-slate-900/60 transition-colors"
+          >
+            <Search className="h-3.5 w-3.5" />
+            <span>Search lessons...</span>
+          </div>
+
+          {/* Modules */}
+          <div className="flex flex-col gap-2">
+            {sections.map((section, sectionIdx) => {
+              const moduleNum = sectionIdx + 1;
+              const isExpanded = expandedModules.has(section.id);
+              const isShowAll = expandedShowAll.has(section.id);
+              const visibleLessons = isShowAll ? section.lessons : section.lessons.slice(0, 2);
+              const hiddenCount = section.lessons.length - visibleLessons.length;
+
               return (
-                <div
-                  key={section.id}
-                  className="rounded-xl border border-slate-800/80 bg-slate-900/40 p-2.5"
-                >
-                  <p className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-wider text-cyan-400/80">
-                    {section.title}
-                  </p>
-                  <div className="flex flex-col gap-1.5">
-                    {visibleLessons.map((lesson) => {
-                      const isOpen = openLesson === lesson.id;
-                      return (
-                        <div
-                          key={lesson.id}
-                          className={cn(
-                            'overflow-hidden rounded-lg border transition-colors',
-                            isOpen
-                              ? 'border-cyan-500/25 bg-cyan-500/5'
-                              : 'border-slate-800/80 bg-slate-900/40 hover:bg-slate-900/60'
-                          )}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (!user) {
-                                goToAuth();
-                                return;
-                              }
-                              setOpenLesson(isOpen ? null : lesson.id);
-                            }}
-                            className="flex w-full items-center gap-2 px-3 py-2.5 text-left"
+                <div key={section.id} className="rounded-xl border border-slate-800/80 bg-slate-900/40 overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!user) {
+                        goToAuth();
+                        return;
+                      }
+                      setExpandedModules((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(section.id)) next.delete(section.id);
+                        else next.add(section.id);
+                        return next;
+                      });
+                    }}
+                    className="flex w-full items-center gap-3 px-3 py-2.5 text-left"
+                  >
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-800 text-[10px] font-semibold text-white">
+                      {moduleNum}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-semibold text-foreground">{section.title}</p>
+                      <p className="text-[10px] text-muted-foreground">{section.lessons.length} lessons</p>
+                    </div>
+                    <ChevronDown
+                      className={cn(
+                        'h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform',
+                        isExpanded && 'rotate-180'
+                      )}
+                    />
+                  </button>
+
+                  {isExpanded && (
+                    <div className="border-t border-slate-800/80">
+                      {visibleLessons.map((lesson) => {
+                        const lessonNum = `${moduleNum}.${lesson.orderIndex + 1}`;
+                        return (
+                          <div
+                            key={lesson.id}
+                            onClick={() => (user ? navigate('/academy') : goToAuth())}
+                            className="flex items-center gap-3 px-3 py-2 hover:bg-slate-900/60 cursor-pointer transition-colors"
                           >
-                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-800 text-[9px] text-muted-foreground">
-                              {lesson.locked ? (
-                                <Lock className="h-2.5 w-2.5" />
-                              ) : (
-                                <CheckCircle2 className="h-2.5 w-2.5 text-emerald-400" />
-                              )}
-                            </span>
-                            <span className="min-w-0 flex-1">
-                              <span className="block truncate text-[11px] font-medium text-foreground">
-                                {lesson.title}
-                              </span>
-                              <span className="block text-[9px] text-muted-foreground">
-                                {lesson.duration}
-                              </span>
-                            </span>
-                            <ChevronDown
-                              className={cn(
-                                'h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform',
-                                isOpen && 'rotate-180 text-cyan-400'
-                              )}
-                            />
-                          </button>
-                          {isOpen && (
-                            <motion.div
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: 'auto', opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              className="px-3 pb-3"
-                            >
-                              <p className="text-[11px] leading-relaxed text-muted-foreground">
-                                {lesson.description}
+                            <Play className="h-3 w-3 shrink-0 text-slate-500" />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[11px] font-medium text-foreground truncate">
+                                {lessonNum} {lesson.title}
                               </p>
-                            </motion.div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+                            </div>
+                            {lesson.isPreview ? (
+                              <span className="shrink-0 rounded border border-cyan-500/20 bg-cyan-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-400">
+                                Free preview
+                              </span>
+                            ) : (
+                              <Lock className="h-3 w-3 shrink-0 text-muted-foreground" />
+                            )}
+                          </div>
+                        );
+                      })}
+
+                      {hiddenCount > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!user) {
+                              goToAuth();
+                              return;
+                            }
+                            setExpandedShowAll((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(section.id)) next.delete(section.id);
+                              else next.add(section.id);
+                              return next;
+                            });
+                          }}
+                          className="flex h-8 w-full items-center justify-center gap-1 border-t border-slate-800/80 text-[10px] font-medium text-cyan-400 transition-colors hover:bg-cyan-500/5"
+                        >
+                          Show {hiddenCount} more {hiddenCount === 1 ? 'lesson' : 'lessons'}
+                          <ChevronDown
+                            className={cn('h-3 w-3 transition-transform', isShowAll && 'rotate-180')}
+                          />
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              if (!user) {
-                goToAuth();
-                return;
-              }
-              setShowMore((s) => !s);
-            }}
-            className="flex h-8 w-full items-center justify-center gap-1 rounded-lg border border-slate-800 bg-slate-900/40 text-[11px] font-medium text-cyan-400 transition-colors hover:bg-cyan-500/10 hover:text-cyan-300"
-          >
-            {showMore ? 'Show less' : `Show all ${totalLessons} lessons`}
-            <ChevronDown
-              className={cn('h-3 w-3 transition-transform', showMore && 'rotate-180')}
-            />
-          </button>
         </div>
 
 
