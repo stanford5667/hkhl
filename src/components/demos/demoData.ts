@@ -52,7 +52,12 @@ export interface DemoStrategy {
   techName: string;
   ticker: string;
   totalReturn: number;
+  historicalReturn: number;
+  expectedReturn: number;
   sharpe: number;
+  maxDrawdown: number;
+  winningWeeks: number;
+  volatility: number;
   series: DemoSeries;
   /** Streaming analyst read-out for this state. */
   insight: string;
@@ -61,7 +66,7 @@ export interface DemoStrategy {
   annotations: DemoAnnotation[];
 }
 
-export const DEMO_STRATEGIES: DemoStrategy[] = [
+const RAW_DEMO_STRATEGIES: Omit<DemoStrategy, 'historicalReturn' | 'expectedReturn' | 'maxDrawdown' | 'winningWeeks' | 'volatility'>[] = [
   {
     id: 'rsi',
     name: 'Buy the Dip',
@@ -113,10 +118,44 @@ export const DEMO_STRATEGIES: DemoStrategy[] = [
       { index: 96, label: '11 straight winning weeks', dir: -1 },
     ],
   },
-].map((s) => ({
-  ...s,
-  totalReturn: Math.round(((s.series.values[s.series.values.length - 1] - INITIAL) / INITIAL) * 10000) / 100,
-}));
+];
+
+export const DEMO_STRATEGIES: DemoStrategy[] = RAW_DEMO_STRATEGIES.map((s) => {
+  const final = s.series.values[s.series.values.length - 1];
+  const totalReturn = Math.round(((final - INITIAL) / INITIAL) * 10000) / 100;
+
+  // Weekly returns
+  const weeklyReturns = s.series.values.slice(1).map((v, i) => (v - s.series.values[i]) / s.series.values[i]);
+  const avgWeeklyReturn = weeklyReturns.reduce((a, b) => a + b, 0) / weeklyReturns.length;
+  const stdDev = Math.sqrt(weeklyReturns.reduce((sq, r) => sq + Math.pow(r - avgWeeklyReturn, 2), 0) / weeklyReturns.length);
+
+  // Annualized metrics (120 weekly points ≈ 2.3 years)
+  const weeks = s.series.values.length - 1;
+  const annualizedReturn = Math.pow(final / INITIAL, 52 / weeks) - 1;
+  const volatility = stdDev * Math.sqrt(52);
+
+  // Max drawdown
+  let peak = INITIAL;
+  let maxDrawdown = 0;
+  for (const v of s.series.values) {
+    if (v > peak) peak = v;
+    const dd = (peak - v) / peak;
+    if (dd > maxDrawdown) maxDrawdown = dd;
+  }
+
+  // Winning weeks percentage
+  const winningWeeks = Math.round((weeklyReturns.filter((r) => r > 0).length / weeklyReturns.length) * 100);
+
+  return {
+    ...s,
+    totalReturn,
+    historicalReturn: totalReturn,
+    expectedReturn: Math.round(annualizedReturn * 10000) / 100,
+    maxDrawdown: Math.round(maxDrawdown * 10000) / 100,
+    winningWeeks,
+    volatility: Math.round(volatility * 10000) / 100,
+  };
+});
 
 export const DEMO_INITIAL_CAPITAL = INITIAL;
 
