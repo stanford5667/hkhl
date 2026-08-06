@@ -293,12 +293,6 @@ export function BacktestDemo() {
       {/* Condensed stats grid — bordered, accent-colored cards */}
       <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
         <StatCard
-          label="Total return"
-          value={`${ret >= 0 ? '+' : ''}${ret.toFixed(1)}%`}
-          icon={<TrendingUp className="h-3 w-3" />}
-          accent="emerald"
-        />
-        <StatCard
           label="Historical return"
           value={`${historical >= 0 ? '+' : ''}${historical.toFixed(1)}%`}
           accent="cyan"
@@ -320,8 +314,8 @@ export function BacktestDemo() {
           accent="rose"
         />
         <StatCard
-          label="Winning weeks"
-          value={`${winWeeks.toFixed(0)}%`}
+          label="Winning days"
+          value={`${winDays.toFixed(0)}%`}
           accent="emerald"
         />
         <StatCard
