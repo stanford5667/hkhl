@@ -45,7 +45,7 @@ export default function ResearchPage() {
         <section>
           <div className="mb-4 sm:mb-5">
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground tracking-tight">
-              Build automated investment strategies
+              Automate investing
             </h2>
             <p className="text-sm sm:text-base lg:text-lg text-muted-foreground max-w-3xl mt-2 leading-relaxed">
               Pick a strategy, see how it actually held up across decades of market data, and understand exactly what drove the result — before you put money behind it.
