@@ -66,7 +66,7 @@ export interface DemoStrategy {
   annotations: DemoAnnotation[];
 }
 
-const RAW_DEMO_STRATEGIES: Omit<DemoStrategy, 'historicalReturn' | 'expectedReturn' | 'maxDrawdown' | 'winningWeeks' | 'volatility'>[] = [
+const RAW_DEMO_STRATEGIES: Omit<DemoStrategy, 'historicalReturn' | 'expectedReturn' | 'maxDrawdown' | 'winningDays' | 'volatility'>[] = [
   {
     id: 'rsi',
     name: 'Buy the Dip',
