@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Activity, Sparkles, TrendingUp } from 'lucide-react';
+import { Activity, Check, Sparkles, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DEMO_STRATEGIES, DEMO_INITIAL_CAPITAL } from './demoData';
 import { useCountUp, usePrefersReducedMotion } from './useCountUp';
