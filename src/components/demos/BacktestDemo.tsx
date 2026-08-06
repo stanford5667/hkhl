@@ -568,7 +568,7 @@ export function BacktestDemo() {
         whileTap={{ scale: 0.98 }}
         transition={DEMO_SPRING}
         onClick={() => navigate('/auth', { state: { mode: 'signup' } })}
-        className="mt-3 flex min-h-[44px] w-full cursor-pointer items-center gap-2 rounded-xl border border-slate-700 bg-slate-900/70 px-3 text-left text-[11px] text-gray-400 transition-colors hover:border-cyan-500/40 hover:text-gray-200"
+        className="mt-3 flex min-h-[44px] w-full cursor-pointer items-center gap-2 rounded-xl border border-white/[0.14] bg-slate-900/70 px-3 text-left text-[11px] text-gray-400 transition-colors shadow-sm hover:border-white/25 hover:text-gray-200"
       >
         <Sparkles className="h-3.5 w-3.5 flex-shrink-0 text-cyan-400" />
         <span className="truncate">Build my strategy with AI</span>
