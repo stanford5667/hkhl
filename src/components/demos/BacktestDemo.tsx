@@ -277,7 +277,7 @@ function StatCard({
   }[accent];
 
   return (
-    <div className={cn('rounded-lg border p-2', styles.border, styles.bg)}>
+    <div className={cn('rounded-lg border border-white/[0.12] p-2 shadow-sm', styles.border, styles.bg)}>
       <div className="flex items-center gap-1.5 text-[9px] uppercase tracking-wider text-gray-500">
         {icon && <span className={cn('flex h-4 w-4 items-center justify-center rounded', styles.iconBg, styles.text)}>{icon}</span>}
         <span className="truncate">{label}</span>
