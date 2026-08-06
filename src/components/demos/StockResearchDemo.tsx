@@ -61,15 +61,16 @@ const INSIGHTS = [
   },
 ];
 
-const CHART_POINTS = [218, 225, 222, 230, 228, 235, 232, 240, 238, 245, 242, 248, 244, 252, 249, 243];
+const FALLBACK_POINTS = [218, 225, 222, 230, 228, 235, 232, 240, 238, 245, 242, 248, 244, 252, 249, 243];
+
+const W = 320;
+const H = 100;
+const PAD = 4;
 
 function toPath(values: number[]) {
   const min = Math.min(...values) - 2;
   const max = Math.max(...values) + 2;
   const span = max - min || 1;
-  const W = 320;
-  const H = 100;
-  const PAD = 4;
   return values
     .map((v, i) => {
       const x = PAD + (i / (values.length - 1)) * (W - PAD * 2);
@@ -79,11 +80,45 @@ function toPath(values: number[]) {
     .join(' ');
 }
 
+function endPoint(values: number[]) {
+  const min = Math.min(...values) - 2;
+  const max = Math.max(...values) + 2;
+  const span = max - min || 1;
+  const last = values[values.length - 1];
+  return {
+    x: W - PAD,
+    y: H - PAD - ((last - min) / span) * (H - PAD * 2),
+  };
+}
+
+/** Downsample a series to at most `n` evenly spaced points. */
+function sample(values: number[], n = 48) {
+  if (values.length <= n) return values;
+  const step = (values.length - 1) / (n - 1);
+  return Array.from({ length: n }, (_, i) => values[Math.round(i * step)]);
+}
+
 export function StockResearchDemo() {
   const navigate = useNavigate();
   const reduced = usePrefersReducedMotion();
-  const price = useCountUp(DEMO_PRICE, true);
-  const isPositive = DEMO_CHANGE >= 0;
+
+  const { data: bars, isLoading } = useChartData(DEMO_TICKER, '6M');
+
+  const series = useMemo(() => {
+    const closes = (bars ?? []).map((b) => b.price).filter((p) => Number.isFinite(p));
+    return closes.length > 4 ? sample(closes) : FALLBACK_POINTS;
+  }, [bars]);
+
+  const isLive = (bars?.length ?? 0) > 4;
+  const livePrice = isLive ? series[series.length - 1] : DEMO_PRICE;
+  const prevClose = isLive && series.length > 1 ? series[series.length - 2] : DEMO_PRICE - DEMO_CHANGE;
+  const change = livePrice - prevClose;
+  const changePercent = prevClose ? (change / prevClose) * 100 : 0;
+
+  const price = useCountUp(livePrice, true);
+  const isPositive = change >= 0;
+  const dot = endPoint(series);
+
 
   return (
     <DemoCard accent>
