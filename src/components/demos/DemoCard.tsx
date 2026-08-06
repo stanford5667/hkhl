@@ -29,10 +29,10 @@ export function DemoCard({ children, accent, className }: DemoCardProps) {
       whileTap={{ scale: 0.995 }}
       className={cn(
         'relative isolate flex h-full flex-col overflow-hidden rounded-2xl border p-4 [font-variant-numeric:tabular-nums]',
-        'border-slate-800/90 bg-slate-950/85 transition-colors',
+        'border-white/[0.12] bg-slate-950/85 transition-colors',
         'shadow-[0_24px_60px_-24px_rgb(2_6_23/0.9),0_2px_10px_-4px_rgb(2_6_23/0.6)]',
-        'hover:border-cyan-500/25 focus-within:border-cyan-500/35',
-        accent && 'border-cyan-500/20',
+        'hover:border-white/20 focus-within:border-white/25',
+        accent && 'border-white/[0.16] ring-1 ring-white/[0.06]',
         className
       )}
     >
