@@ -135,7 +135,7 @@ export function ResearchHero({
               <span className="text-foreground block">starts here</span>
             </span>
             {/* Desktop: single line */}
-            <span className="hidden sm:block">
+            <span className="hidden sm:block whitespace-nowrap text-[clamp(2.25rem,4vw,3.25rem)]">
               <span className="text-foreground">Your next big </span>
               <span className="text-primary">investment</span>
               <span className="text-foreground"> starts here</span>
