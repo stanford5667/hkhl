@@ -87,6 +87,8 @@ const STOCK_RANGES = ['1M', '3M', '6M', '1Y'] as const;
 
 function StockChartPreview() {
   const reduced = usePrefersReducedMotion();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [range, setRange] = useState<(typeof STOCK_RANGES)[number]>('6M');
   const { data: bars, isLoading } = useChartData(STOCK_DEMO_TICKER, range);
 
