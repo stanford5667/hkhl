@@ -44,6 +44,17 @@ export default function ResearchPage() {
         <section>
           <div className="mb-4 sm:mb-5">
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-cyan-400 tracking-tight">
+              We give you the tools to learn how to invest
+            </h2>
+            <p className="text-sm sm:text-base lg:text-lg text-muted-foreground max-w-3xl mt-2 leading-relaxed">
+              Investing isn't about intuition — it's about process. From foundational frameworks to advanced quantitative strategies, we teach you the same methods used by top hedge fund managers. Learn at your own pace, test every idea with historical data, and build the confidence to make your own decisions.
+            </p>
+          </div>
+        </section>
+
+        <section>
+          <div className="mb-4 sm:mb-5">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-cyan-400 tracking-tight">
               Automate your investing
             </h2>
             <p className="text-sm sm:text-base lg:text-lg text-muted-foreground max-w-3xl mt-2 leading-relaxed">
@@ -52,6 +63,7 @@ export default function ResearchPage() {
           </div>
           <DemoCarousel />
         </section>
+
 
         <section>
           <div className="mb-4 sm:mb-5">
