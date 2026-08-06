@@ -56,7 +56,7 @@ export interface DemoStrategy {
   expectedReturn: number;
   sharpe: number;
   maxDrawdown: number;
-  winningWeeks: number;
+  winningDays: number;
   volatility: number;
   series: DemoSeries;
   /** Streaming analyst read-out for this state. */
