@@ -662,7 +662,7 @@ function TeaserCard({
   accent,
   blurb,
 }: {
-  to: string;
+  to: string | { pathname: string; state?: Record<string, any> };
   icon: React.ElementType;
   title: string;
   accent: Accent;
