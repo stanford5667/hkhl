@@ -148,7 +148,7 @@ export function BacktestDemo() {
   const expected = useCountUp(strategy.expectedReturn, true);
   const historical = useCountUp(strategy.historicalReturn, true);
   const maxDd = useCountUp(strategy.maxDrawdown, true);
-  const winDays = useCountUp(strategy.winningWeeks, true);
+  const winDays = useCountUp(strategy.winningDays, true);
   const vol = useCountUp(strategy.volatility, true);
 
   // Annotations land only after the curve has finished drawing.
