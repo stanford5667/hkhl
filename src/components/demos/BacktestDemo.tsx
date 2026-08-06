@@ -353,16 +353,6 @@ export function BacktestDemo() {
         </div>
       </TooltipProvider>
 
-      <ConvictionMeter filled={strategy.conviction} value={strategy.convictionLabel} />
-
-      <p className="mt-2.5 flex items-center gap-1.5 text-[10px] text-gray-500">
-        <span className="h-1.5 w-4 rounded-full bg-cyan-400" /> Your idea
-        <span className="ml-2 h-px w-4 border-t border-dashed border-slate-500" /> Buy &amp; hold
-      </p>
-
-
-
-
       {/* Prompt-bar styled button — clearly an action, not a dead input */}
       <motion.button
         type="button"
