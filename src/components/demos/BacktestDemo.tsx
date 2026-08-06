@@ -126,15 +126,15 @@ export function BacktestDemo() {
             onClick={() => setActiveId(s.id)}
             aria-pressed={s.id === activeId}
             className={cn(
-              'flex min-h-[44px] flex-col items-start justify-center rounded-full border px-3 py-1 text-left transition-colors',
+              'flex min-h-[44px] items-center justify-center rounded-full border px-4 py-1 text-left transition-colors',
               s.id === activeId
                 ? 'border-cyan-500/50 bg-cyan-500/15 text-cyan-300'
                 : 'border-slate-700 bg-slate-900/70 text-gray-400 hover:border-cyan-500/30 hover:text-gray-200'
             )}
           >
-            <span className="text-[11px] font-semibold leading-tight">{s.name}</span>
-            <span className="text-[9px] leading-tight opacity-60">{s.techName}</span>
+            <span className="text-xs font-semibold leading-tight">{s.name}</span>
           </motion.button>
+
 
         ))}
       </div>
