@@ -168,7 +168,7 @@ export function StockOfTheDay() {
 
       {/* CTA */}
       <Button
-        onClick={() => navigate(`/stock/${pick.ticker}`)}
+        onClick={() => (user ? navigate(`/stock/${pick.ticker}`) : goToAuth())}
         className="w-full bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 group-hover:border-primary/50 transition-all"
         size="sm"
       >
