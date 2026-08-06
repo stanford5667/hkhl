@@ -27,7 +27,18 @@ function LazyDemo({ children, minHeight }: { children: ReactNode; minHeight: num
 
 const DEMOS = [
   { id: 'backtest', node: <BacktestDemo />, minHeight: 620 },
-  { id: 'academy', node: <AcademyDemo />, minHeight: 520 },
+  {
+    id: 'academy',
+    node: (
+      <div className="flex flex-col gap-2">
+        <p className="text-xs font-medium text-cyan-400/80 px-1">
+          Learn the method behind the strategies
+        </p>
+        <AcademyDemo />
+      </div>
+    ),
+    minHeight: 560,
+  },
   { id: 'chatroom', node: <ChatroomDemo />, minHeight: 520 },
 ];
 

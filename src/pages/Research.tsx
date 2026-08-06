@@ -47,7 +47,7 @@ export default function ResearchPage() {
               Automate investing
             </h2>
             <p className="text-sm sm:text-base lg:text-lg text-muted-foreground max-w-3xl mt-2 leading-relaxed">
-              Pick a strategy, see how it actually held up across decades of market data, and understand exactly what drove the result — before you put money behind it.
+              Backtest strategies against decades of data, then learn the system behind them.
             </p>
           </div>
           <DemoCarousel />
