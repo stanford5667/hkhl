@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { BacktestDemo } from './BacktestDemo';
 import { ChatroomDemo } from './ChatroomDemo';
+import { AcademyDemo } from './AcademyDemo';
 import { useInViewOnce } from './useCountUp';
 
 const AUTO_ADVANCE_MS = 5000;
@@ -25,7 +26,22 @@ function LazyDemo({ children, minHeight }: { children: ReactNode; minHeight: num
 }
 
 const DEMOS = [
-  { id: 'backtest', node: <BacktestDemo />, minHeight: 1320 },
+  { id: 'backtest', node: <BacktestDemo />, minHeight: 620 },
+  {
+    id: 'academy',
+    node: (
+      <div className="flex flex-col gap-2">
+        <p className="text-2xl sm:text-3xl lg:text-4xl font-semibold text-white px-1">
+          Learn the strategies
+        </p>
+        <p className="text-xs sm:text-sm text-muted-foreground px-1">
+          40+ hours of on-demand video lessons, time-tested strategies, real-world trade breakdowns, and portfolio frameworks from top hedge fund managers.
+        </p>
+        <AcademyDemo />
+      </div>
+    ),
+    minHeight: 560,
+  },
   {
     id: 'chatroom',
     node: (
