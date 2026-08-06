@@ -32,6 +32,7 @@ type LessonItem = {
   duration: string;
   description: string;
   locked: boolean;
+  isPreview: boolean;
   orderIndex: number;
 };
 
