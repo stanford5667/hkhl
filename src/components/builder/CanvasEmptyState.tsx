@@ -103,20 +103,23 @@ export const CanvasEmptyState = memo(function CanvasEmptyState({
         {/* Quick Start */}
         <div className="pt-4 border-t border-border/50">
           <p className="text-xs text-muted-foreground mb-3">
-            Or start with a ready-made template:
+            Or tap a preset to start:
           </p>
           <div className="flex flex-wrap gap-2 justify-center">
-            {templates.slice(0, 3).map((template) => (
-              <Button
-                key={template.id}
-                variant="outline"
-                size="sm"
-                onClick={() => onLoadTemplate(template)}
-                className="text-xs"
-              >
-                {template.name}
-              </Button>
-            ))}
+            {templates.slice(0, 3).map((template) => {
+              const display = getStrategyDisplayName(template);
+              return (
+                <Button
+                  key={template.id}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onLoadTemplate(template)}
+                  className="text-xs h-auto py-1.5 px-2"
+                >
+                  {display.plainName}
+                </Button>
+              );
+            })}
           </div>
         </div>
       </div>
