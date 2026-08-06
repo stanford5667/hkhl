@@ -414,7 +414,7 @@ export function BacktestDemo() {
       </div>
 
       {/* Chart — proper time-based axes, benchmark overlay, and trade markers */}
-      <DemoVisual className="mt-3 w-full">
+      <DemoVisual className="mt-3 w-full rounded-xl border border-white/[0.12] bg-slate-950/40 p-2 shadow-sm">
         <div className="relative h-[180px] w-full sm:h-[220px]">
           <div className="absolute right-2 top-2 z-10 flex items-center gap-3 text-[9px]">
             <span className="flex items-center gap-1.5 text-white/60">
