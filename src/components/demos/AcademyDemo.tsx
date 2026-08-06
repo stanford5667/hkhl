@@ -83,7 +83,10 @@ export function AcademyDemo() {
   const [muted, setMuted] = useState(true);
   const [current, setCurrent] = useState(0);
   const [preview, setPreview] = useState<{ title: string; url: string } | null>(null);
+  const [openLesson, setOpenLesson] = useState<string | null>(null);
+  const [showMore, setShowMore] = useState(false);
   const pct = Math.round(DEMO_LESSON.progress * 100);
+
   const shown = useCountUp(pct, true);
 
   useEffect(() => {
