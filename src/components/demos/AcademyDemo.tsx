@@ -75,7 +75,7 @@ const DEMO_LESSONS = [
 ];
 
 
-export function AcademyDemo() {
+export function AcademyDemoInner({ className }: { className?: string }) {
   const navigate = useNavigate();
   const reduced = usePrefersReducedMotion();
   const videoRef = useRef<HTMLVideoElement>(null);
