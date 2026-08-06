@@ -108,7 +108,7 @@ export function BacktestDemo() {
     <DemoCard accent>
       <DemoCardHeader
         icon={<Activity className="h-4 w-4 text-cyan-400" />}
-        category="Backtester"
+        category="AI Strategy Builder"
         title={strategy.name}
         subtitle={`${strategy.techName} · ${strategy.ticker} · 2020–2024 · weekly`}
         
@@ -116,7 +116,11 @@ export function BacktestDemo() {
       />
 
       {/* Strategy chips — 44px tap targets */}
-      <div className="mt-3 flex flex-wrap gap-2">
+      <p className="mt-3 text-[11px] text-gray-400">
+        Start with an idea — pick a strategy and see how it would have performed.
+      </p>
+      <div className="mt-2 flex flex-wrap gap-2">
+
         {DEMO_STRATEGIES.map((s) => (
           <motion.button
             key={s.id}
@@ -231,7 +235,7 @@ export function BacktestDemo() {
       <ConvictionMeter filled={strategy.conviction} value={strategy.convictionLabel} />
 
       <p className="mt-2.5 flex items-center gap-1.5 text-[10px] text-gray-500">
-        <span className="h-1.5 w-4 rounded-full bg-cyan-400" /> Strategy
+        <span className="h-1.5 w-4 rounded-full bg-cyan-400" /> Your idea
         <span className="ml-2 h-px w-4 border-t border-dashed border-slate-500" /> Buy &amp; hold
       </p>
 
@@ -245,7 +249,7 @@ export function BacktestDemo() {
         className="mt-3 flex min-h-[44px] w-full cursor-pointer items-center gap-2 rounded-xl border border-slate-700 bg-slate-900/70 px-3 text-left text-[11px] text-gray-400 transition-colors hover:border-cyan-500/40 hover:text-gray-200"
       >
         <Sparkles className="h-3.5 w-3.5 flex-shrink-0 text-cyan-400" />
-        <span className="truncate">Ask anything about this backtest</span>
+        <span className="truncate">Build my strategy with AI</span>
         <span className="ml-auto flex-shrink-0 rounded-md border border-cyan-500/30 bg-cyan-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-cyan-300">
           Start free
         </span>
