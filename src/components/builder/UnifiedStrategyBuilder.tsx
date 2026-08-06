@@ -269,13 +269,18 @@ export const UnifiedStrategyBuilder = memo(function UnifiedStrategyBuilder({
                   )}
                 >
                   <div className={cn(
-                    "p-1 rounded",
+                    "p-1 rounded relative",
                     isActive ? "bg-primary/20" : "bg-muted group-hover:bg-primary/10"
                   )}>
                     <Icon className={cn(
                       "h-3.5 w-3.5",
                       isActive ? "text-primary" : "text-muted-foreground"
                     )} />
+                    {isActive && (
+                      <span className="absolute -right-0.5 -top-0.5 flex h-3 w-3 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                        <Check className="h-2 w-2" />
+                      </span>
+                    )}
                   </div>
                   <div className="flex flex-col leading-tight">
                     <span className="text-xs font-medium">{preset.name}</span>
