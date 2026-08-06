@@ -110,9 +110,12 @@ function HubCard({
   tone = "default",
 }: HubCardProps) {
   const a = ACCENTS[accent];
+  const linkTo = typeof to === "string" ? to : to.pathname;
+  const linkState = typeof to === "string" ? undefined : to.state;
   return (
     <Link
-      to={to}
+      to={linkTo}
+      state={linkState}
       className={cn(
         "group relative rounded-2xl border border-border/50 bg-card/40 backdrop-blur-sm overflow-hidden",
         "p-3.5 sm:p-5 flex flex-col gap-2.5 sm:gap-4 min-h-[152px] sm:min-h-[180px]",
