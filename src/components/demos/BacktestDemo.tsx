@@ -110,7 +110,8 @@ export function BacktestDemo() {
         icon={<Activity className="h-4 w-4 text-cyan-400" />}
         category="Backtester"
         title={strategy.name}
-        subtitle={`${strategy.ticker} · 2020–2024 · weekly`}
+        subtitle={`${strategy.techName} · ${strategy.ticker} · 2020–2024 · weekly`}
+        
         right={<SampleBadge />}
       />
 
@@ -125,14 +126,16 @@ export function BacktestDemo() {
             onClick={() => setActiveId(s.id)}
             aria-pressed={s.id === activeId}
             className={cn(
-              'min-h-[44px] rounded-full border px-3 text-[11px] font-semibold transition-colors',
+              'flex min-h-[44px] flex-col items-start justify-center rounded-full border px-3 py-1 text-left transition-colors',
               s.id === activeId
                 ? 'border-cyan-500/50 bg-cyan-500/15 text-cyan-300'
                 : 'border-slate-700 bg-slate-900/70 text-gray-400 hover:border-cyan-500/30 hover:text-gray-200'
             )}
           >
-            {s.name}
+            <span className="text-[11px] font-semibold leading-tight">{s.name}</span>
+            <span className="text-[9px] leading-tight opacity-60">{s.techName}</span>
           </motion.button>
+
         ))}
       </div>
 

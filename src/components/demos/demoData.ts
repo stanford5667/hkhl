@@ -46,7 +46,10 @@ export interface DemoAnnotation {
 
 export interface DemoStrategy {
   id: string;
+  /** Plain-language outcome name, shown first. */
   name: string;
+  /** Technical strategy name, shown as secondary text for professionals. */
+  techName: string;
   ticker: string;
   totalReturn: number;
   sharpe: number;
@@ -61,7 +64,8 @@ export interface DemoStrategy {
 export const DEMO_STRATEGIES: DemoStrategy[] = [
   {
     id: 'rsi',
-    name: 'RSI Oversold Bounce',
+    name: 'Buy the Dip',
+    techName: 'RSI Oversold Bounce',
     ticker: 'AAPL',
     totalReturn: 0,
     sharpe: 1.42,
@@ -77,7 +81,8 @@ export const DEMO_STRATEGIES: DemoStrategy[] = [
   },
   {
     id: 'golden-cross',
-    name: 'Golden Cross',
+    name: 'Ride the Trend',
+    techName: 'Golden Cross',
     ticker: 'MSFT',
     totalReturn: 0,
     sharpe: 1.08,
@@ -93,7 +98,8 @@ export const DEMO_STRATEGIES: DemoStrategy[] = [
   },
   {
     id: 'mean-reversion',
-    name: 'Mean Reversion',
+    name: 'Buy After Weakness',
+    techName: 'Mean Reversion',
     ticker: 'SPY',
     totalReturn: 0,
     sharpe: 1.76,

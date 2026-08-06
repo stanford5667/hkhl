@@ -1200,7 +1200,7 @@ export const SentenceBuilder = memo(function SentenceBuilder({
       >
         {entrySignals.length === 0 ? 'Select Entry Signal' : 
          exitRules.length === 0 ? 'Add Exit Rules' : 
-         '🚀 Run Backtest'}
+         'Build my strategy with AI'}
       </Button>
     </div>
   );
