@@ -46,7 +46,6 @@ export interface DemoStrategy {
   /** Technical strategy name, shown as secondary text for professionals. */
   techName: string;
   ticker: string;
-  totalReturn: number;
   historicalReturn: number;
   expectedReturn: number;
   sharpe: number;
@@ -56,8 +55,6 @@ export interface DemoStrategy {
   series: DemoSeries;
   /** Streaming analyst read-out for this state. */
   insight: string;
-  conviction: number;
-  convictionLabel: string;
   annotations: DemoAnnotation[];
 }
 
