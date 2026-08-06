@@ -83,7 +83,7 @@ const ACCENTS: Record<Accent, { bar: string; badge: string; ring: string; text: 
 };
 
 interface HubCardProps {
-  to: string;
+  to: string | { pathname: string; state?: Record<string, any> };
   icon: React.ElementType;
   title: string;
   accent: Accent;
@@ -110,9 +110,12 @@ function HubCard({
   tone = "default",
 }: HubCardProps) {
   const a = ACCENTS[accent];
+  const linkTo = typeof to === "string" ? to : to.pathname;
+  const linkState = typeof to === "string" ? undefined : to.state;
   return (
     <Link
-      to={to}
+      to={linkTo}
+      state={linkState}
       className={cn(
         "group relative rounded-2xl border border-border/50 bg-card/40 backdrop-blur-sm overflow-hidden",
         "p-3.5 sm:p-5 flex flex-col gap-2.5 sm:gap-4 min-h-[152px] sm:min-h-[180px]",
@@ -522,7 +525,7 @@ function BacktesterCard() {
   })();
   return (
     <HubCard
-      to="/stock/SPY?tab=backtest"
+      to={{ pathname: "/auth", state: { mode: "signup" } }}
       icon={LineChart}
       title="Backtester"
       accent="teal"
@@ -659,7 +662,7 @@ function TeaserCard({
   accent,
   blurb,
 }: {
-  to: string;
+  to: string | { pathname: string; state?: Record<string, any> };
   icon: React.ElementType;
   title: string;
   accent: Accent;
@@ -702,7 +705,7 @@ export function HubOverviewGrid() {
           <>
             <TeaserCard to="/academy" icon={GraduationCap} title="Academy" accent="indigo" blurb={BLURBS.academy} />
             <TeaserCard to="/community" icon={MessagesSquare} title="Chatroom" accent="violet" blurb={BLURBS.chatroom} />
-            <TeaserCard to="/stock/SPY?tab=backtest" icon={LineChart} title="Backtester" accent="teal" blurb={BLURBS.backtester} />
+            <TeaserCard to={{ pathname: "/auth", state: { mode: "signup" } }} icon={LineChart} title="Backtester" accent="teal" blurb={BLURBS.backtester} />
             <TeaserCard to="/auth" icon={Briefcase} title="Portfolio" accent="emerald" blurb={BLURBS.portfolio} />
             <TeaserCard to="/auth" icon={Eye} title="Watchlist" accent="amber" blurb={BLURBS.watchlist} />
             <TeaserCard to="/smart-money" icon={Radar} title="Smart Money" accent="rose" blurb={BLURBS.smartMoney} />

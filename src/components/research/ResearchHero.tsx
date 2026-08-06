@@ -58,7 +58,8 @@ export function ResearchHero({ className }: ResearchHeroProps) {
               </Link>
               <span aria-hidden="true" className="text-primary/40">·</span>
               <Link
-                to="/backtester"
+                to="/auth"
+                state={{ mode: 'signup' }}
                 className="inline-flex items-center px-3 py-1.5 rounded-full border border-primary/30 bg-primary/10 text-primary text-[10px] font-semibold uppercase tracking-widest hover:bg-primary/20 transition-colors"
               >
                 Test
