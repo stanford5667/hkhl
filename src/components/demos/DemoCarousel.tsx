@@ -123,11 +123,11 @@ export function DemoCarousel() {
       onTouchStart={() => setIsPaused(true)}
       onTouchEnd={() => setIsPaused(false)}
     >
-      {/* Mobile: vertical stack so both demos are visible · md+: 2x2 grid */}
+      {/* All viewports: vertical stack so each demo is fully visible */}
       <div
         ref={scrollerRef}
         className={cn(
-          'flex flex-col gap-3 md:grid md:grid-cols-2 md:gap-4 md:overflow-visible md:pb-0'
+          'flex flex-col gap-3 md:gap-4 md:overflow-visible md:pb-0'
         )}
       >
         {DEMOS.map((d, i) => (
