@@ -101,77 +101,96 @@
     --active-overlay: 0 0% 0% / 0.08;
   }
 
-  /* Dark Mode */
+  /* Dark Mode — Fortune 500 blue & white system */
   .dark {
-    --background: 222 47% 6%;
-    --foreground: 210 40% 98%;
+    /* Root canvas #0B0F17 */
+    --background: 220 35% 6%;
+    --foreground: 0 0% 100%;
 
-    --card: 222 47% 8%;
-    --card-foreground: 210 40% 98%;
+    /* Cards / containers #111827 */
+    --card: 221 39% 11%;
+    --card-foreground: 0 0% 100%;
 
-    --popover: 222 47% 8%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 221 39% 11%;
+    --popover-foreground: 0 0% 100%;
 
-    --primary: 220 90% 60%;
-    --primary-foreground: 222 47% 6%;
+    /* Primary brand accent #3B82F6 */
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
+    /* Secondary controls: translucent white fill */
+    --secondary: 0 0% 100% / 0.05;
+    --secondary-foreground: 220 13% 91%;
 
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 0 0% 100% / 0.04;
+    --muted-foreground: 0 0% 100% / 0.65;
 
-    --accent: 217 33% 17%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 0 0% 100% / 0.06;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
+    /* Muted, strictly functional status colors */
+    --destructive: 0 40% 57%;
+    --destructive-foreground: 0 0% 100%;
 
-    --success: 142 76% 39%;
-    --success-foreground: 210 40% 98%;
+    --success: 155 34% 45%;
+    --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
-    --warning-foreground: 222 47% 6%;
+    --warning: 36 43% 51%;
+    --warning-foreground: 0 0% 100%;
 
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 220 90% 60%;
+    /* Hairline borders / dividers */
+    --border: 0 0% 100% / 0.08;
+    --input: 0 0% 100% / 0.12;
+    --ring: 217 91% 60%;
 
-    --chart-1: 220 90% 60%;
-    --chart-2: 142 76% 39%;
-    --chart-3: 38 92% 50%;
-    --chart-4: 280 80% 60%;
-    --chart-5: 340 82% 52%;
+    /* Charts: blue + sky only */
+    --chart-1: 199 92% 60%;
+    --chart-2: 217 91% 60%;
+    --chart-3: 213 94% 68%;
+    --chart-4: 224 76% 53%;
+    --chart-5: 199 80% 51%;
+    --chart-6: 217 60% 40%;
 
-    --sidebar-background: 222 47% 5%;
-    --sidebar-foreground: 215 20% 65%;
-    --sidebar-primary: 220 90% 60%;
-    --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 215 28% 12%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 215 28% 12%;
-    --sidebar-ring: 220 90% 60%;
+    --profit: 155 34% 45%;
+    --loss: 0 40% 57%;
 
-    /* Behavioral Design Tokens - Dark */
-    --surface-1: 222 47% 5%;
-    --surface-2: 222 47% 8%;
-    --surface-3: 222 47% 11%;
-    --surface-4: 222 47% 14%;
-    
+    --sidebar-background: 220 35% 6%;
+    --sidebar-foreground: 0 0% 100% / 0.65;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 100% / 0.05;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 0 0% 100% / 0.08;
+    --sidebar-ring: 217 91% 60%;
+
+    /* Surfaces - Dark */
+    --surface-1: 220 35% 6%;
+    --surface-2: 221 39% 11%;
+    --surface-3: 221 36% 14%;
+    --surface-4: 221 33% 17%;
+
     /* Semantic action colors - Dark */
-    --positive: 142 76% 39%;
-    --positive-foreground: 142 76% 85%;
-    --negative: 0 84% 60%;
-    --negative-foreground: 0 89% 85%;
-    --trust: 220 90% 60%;
-    --trust-foreground: 220 91% 85%;
-    --premium: 280 65% 60%;
-    --premium-foreground: 280 65% 85%;
-    
+    --positive: 155 34% 45%;
+    --positive-foreground: 155 30% 80%;
+    --negative: 0 40% 57%;
+    --negative-foreground: 0 35% 82%;
+    --trust: 217 91% 60%;
+    --trust-foreground: 213 94% 85%;
+    --premium: 217 91% 60%;
+    --premium-foreground: 213 94% 85%;
+
+    /* Flat surfaces — no heavy drop shadows */
+    --shadow-sm: 0 0 0 0 transparent;
+    --shadow: 0 0 0 0 transparent;
+    --shadow-md: 0 1px 0 0 rgb(255 255 255 / 0.04);
+    --shadow-lg: 0 1px 0 0 rgb(255 255 255 / 0.04);
+    --shadow-xl: 0 1px 0 0 rgb(255 255 255 / 0.04);
+
     /* Interactive states - Dark */
     --hover-overlay: 0 0% 100% / 0.05;
     --active-overlay: 0 0% 100% / 0.1;
   }
+
 }
 
 @layer base {
