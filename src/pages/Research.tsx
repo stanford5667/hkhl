@@ -63,6 +63,8 @@ export default function ResearchPage() {
           <ResearchHero />
         </section>
 
+        <SectionDivider />
+
         <section>
           <div className="mb-4 sm:mb-5">
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white tracking-tight">
@@ -75,10 +77,11 @@ export default function ResearchPage() {
           <DemoCarousel />
         </section>
 
-
-
+        <SectionDivider />
 
         <StockOfTheDay />
+
+        <SectionDivider />
 
         <section>
           <div className="mb-4 sm:mb-5">
@@ -90,6 +93,8 @@ export default function ResearchPage() {
             </p>
           </div>
         </section>
+
+        <SectionDivider />
       </main>
 
 
