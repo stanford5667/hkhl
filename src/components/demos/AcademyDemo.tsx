@@ -15,7 +15,7 @@ const CIRC = 2 * Math.PI * R;
 /** Demo preview window, in seconds. */
 const PREVIEW_LIMIT = 120;
 /** Start the demo preview at this timestamp. */
-const PREVIEW_START = 4;
+const PREVIEW_START = 240;
 
 
 const fmt = (s: number) => {
