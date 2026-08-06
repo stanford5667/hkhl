@@ -16,6 +16,7 @@ import {
   Zap,
   Target,
   Sparkles,
+  Check,
 } from 'lucide-react';
 import { SentenceBuilder, type SentenceBuilderState, type SelectedSignal, type SelectedExit, type BacktestParams } from './SentenceBuilder';
 import { EXIT_BLOCKS } from '@/lib/strategyBuilder/templates';
@@ -243,13 +244,15 @@ export const UnifiedStrategyBuilder = memo(function UnifiedStrategyBuilder({
       <div className="p-3 space-y-4">
         {/* Quick Start Presets */}
         <div>
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-1.5">
             <Sparkles className="h-4 w-4 text-primary" />
             <h3 className="text-sm font-semibold">Start with an idea</h3>
-            <span className="text-xs text-muted-foreground">Pick a strategy and see how it would have performed.</span>
           </div>
+          <p className="text-xs text-muted-foreground mb-2">
+            Tap a preset to load it into the builder, then run a backtest.
+          </p>
           
-          <div className="grid grid-cols-2 gap-2">
+          <div className="flex flex-wrap gap-2">
             {PRESET_STRATEGIES.map((preset) => {
               const Icon = preset.icon;
               const isActive = activePresetId === preset.id;
@@ -258,44 +261,39 @@ export const UnifiedStrategyBuilder = memo(function UnifiedStrategyBuilder({
                 <button
                   key={preset.id}
                   onClick={() => handleSelectPreset(preset)}
+                  aria-pressed={isActive}
                   className={cn(
-                    "flex flex-col items-start p-3 rounded-lg border text-left transition-all",
+                    "group inline-flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-left transition-all",
                     "hover:border-primary/50 hover:bg-primary/5",
                     isActive && "border-primary bg-primary/10 ring-1 ring-primary/50"
                   )}
                 >
-                  <div className="flex items-center gap-2 w-full mb-1">
-                    <div className={cn(
-                      "p-1.5 rounded-md",
-                      isActive ? "bg-primary/20" : "bg-muted"
-                    )}>
-                      <Icon className={cn(
-                        "h-3.5 w-3.5",
-                        isActive ? "text-primary" : "text-muted-foreground"
-                      )} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <span className="block font-medium text-xs truncate">{preset.name}</span>
-                      <span className="block text-[9px] text-muted-foreground/80 truncate">{preset.techName}</span>
-                    </div>
+                  <div className={cn(
+                    "p-1 rounded relative",
+                    isActive ? "bg-primary/20" : "bg-muted group-hover:bg-primary/10"
+                  )}>
+                    <Icon className={cn(
+                      "h-3.5 w-3.5",
+                      isActive ? "text-primary" : "text-muted-foreground"
+                    )} />
                     {isActive && (
-                      <Badge variant="secondary" className="text-[9px] px-1 py-0">Active</Badge>
+                      <span className="absolute -right-0.5 -top-0.5 flex h-3 w-3 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                        <Check className="h-2 w-2" />
+                      </span>
                     )}
                   </div>
-                  <p className="text-[10px] text-muted-foreground line-clamp-1">{preset.shortDesc}</p>
-                  <div className="flex items-center gap-1 mt-1.5">
-                    <Badge 
-                      variant="outline" 
-                      className={cn(
-                        "text-[9px] px-1.5 py-0",
-                        preset.riskLevel === 'Conservative' && 'border-emerald-500/50 text-emerald-500',
-                        preset.riskLevel === 'Moderate' && 'border-amber-500/50 text-amber-500',
-                        preset.riskLevel === 'Aggressive' && 'border-rose-500/50 text-rose-500',
-                      )}
-                    >
-                      {preset.riskLevel}
-                    </Badge>
+                  <div className="flex flex-col leading-tight">
+                    <span className="text-xs font-medium">{preset.name}</span>
+                    <span className="text-[10px] text-muted-foreground">{preset.techName}</span>
                   </div>
+                  <span className={cn(
+                    "text-[9px] px-1 py-0 rounded border",
+                    preset.riskLevel === 'Conservative' && 'border-emerald-500/50 text-emerald-500',
+                    preset.riskLevel === 'Moderate' && 'border-amber-500/50 text-amber-500',
+                    preset.riskLevel === 'Aggressive' && 'border-rose-500/50 text-rose-500',
+                  )}>
+                    {preset.riskLevel}
+                  </span>
                 </button>
               );
             })}
