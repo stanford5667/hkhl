@@ -57,19 +57,6 @@ export default function ResearchPage() {
         <section>
           <div className="mb-4 sm:mb-5">
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-cyan-400 tracking-tight">
-              Research any ticker
-            </h2>
-            <p className="text-sm sm:text-base lg:text-lg text-muted-foreground max-w-3xl mt-2 leading-relaxed">
-              Pull up a stock or ETF and get chart, fundamentals, quant signals, news, SEC filings, and analyst chatter — all in one view.
-            </p>
-          </div>
-          <StockResearchDemo />
-        </section>
-
-
-        <section>
-          <div className="mb-4 sm:mb-5">
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-cyan-400 tracking-tight">
               Automate your investing
             </h2>
             <p className="text-sm sm:text-base lg:text-lg text-muted-foreground max-w-3xl mt-2 leading-relaxed">
@@ -77,6 +64,19 @@ export default function ResearchPage() {
             </p>
           </div>
           <DemoCarousel />
+        </section>
+
+
+        <section>
+          <div className="mb-4 sm:mb-5">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-cyan-400 tracking-tight">
+              Research any ticker
+            </h2>
+            <p className="text-sm sm:text-base lg:text-lg text-muted-foreground max-w-3xl mt-2 leading-relaxed">
+              Pull up a stock or ETF and get chart, fundamentals, quant signals, news, SEC filings, and analyst chatter — all in one view.
+            </p>
+          </div>
+          <StockResearchDemo />
         </section>
 
 
