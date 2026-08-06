@@ -127,7 +127,7 @@ export function DemoCarousel() {
       <div
         ref={scrollerRef}
         className={cn(
-          'flex flex-col gap-3 md:grid md:grid-cols-2 md:gap-4 md:overflow-visible md:pb-0'
+          'flex flex-col gap-3 md:gap-4 md:overflow-visible md:pb-0'
         )}
       >
         {DEMOS.map((d, i) => (
