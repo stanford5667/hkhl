@@ -1,5 +1,4 @@
 import { useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { ResearchTopBar } from "@/pages/research/components/ResearchTopBar";
 import { ResearchBottomBar } from "@/pages/research/components/ResearchBottomBar";
@@ -10,11 +9,9 @@ import { HubOverviewGrid } from "@/components/research/HubOverviewGrid";
 import { DemoCarousel } from "@/components/demos/DemoCarousel";
 
 export default function ResearchPage() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
@@ -33,15 +30,6 @@ export default function ResearchPage() {
     }
   }, [queryClient]);
 
-  const handleSearch = useCallback(
-    (ticker: string) => {
-      const t = ticker.trim().toUpperCase();
-      if (!t) return;
-      navigate(`/stock/${encodeURIComponent(t)}`);
-    },
-    [navigate]
-  );
-
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -50,11 +38,7 @@ export default function ResearchPage() {
 
       <main className="flex-1 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 space-y-3 sm:space-y-4 max-w-[1800px] w-full mx-auto">
         <section>
-          <ResearchHero
-            searchQuery={searchQuery}
-            onSearchQueryChange={setSearchQuery}
-            onSearch={handleSearch}
-          />
+          <ResearchHero />
         </section>
 
         <section>
