@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Activity, Check, Sparkles, TrendingDown } from 'lucide-react';
+import { Activity, Check, HelpCircle, Sparkles, TrendingDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DEMO_STRATEGIES, DEMO_INITIAL_CAPITAL } from './demoData';
 import { useCountUp, usePrefersReducedMotion } from './useCountUp';
@@ -13,6 +13,12 @@ import {
   SampleBadge,
   DEMO_SPRING,
 } from './DemoCard';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 
 const W = 320;
@@ -76,16 +82,23 @@ function useMorph(target: number[], enabled: boolean, duration = 620) {
   return values;
 }
 
+/** Format a number safely; fallback to '--' when the value is NaN or undefined. */
+function safeFormat(value: number, formatter: (n: number) => string): string {
+  return Number.isFinite(value) ? formatter(value) : '--';
+}
+
 function StatCard({
   label,
   value,
   icon,
   accent,
+  tooltip,
 }: {
   label: string;
   value: string;
   icon?: React.ReactNode;
   accent: 'emerald' | 'cyan' | 'blue' | 'rose' | 'violet';
+  tooltip?: string;
 }) {
   const styles = {
     emerald: {
@@ -124,7 +137,23 @@ function StatCard({
     <div className={cn('rounded-lg border p-2', styles.border, styles.bg)}>
       <div className="flex items-center gap-1.5 text-[9px] uppercase tracking-wider text-gray-500">
         {icon && <span className={cn('flex h-4 w-4 items-center justify-center rounded', styles.iconBg, styles.text)}>{icon}</span>}
-        {label}
+        <span className="truncate">{label}</span>
+        {tooltip && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                aria-label={`What is ${label}?`}
+                className={cn('ml-auto flex h-5 w-5 items-center justify-center rounded-full opacity-60 transition-opacity hover:opacity-100 focus-visible:opacity-100', styles.iconBg)}
+              >
+                <HelpCircle className={cn('h-3 w-3', styles.text)} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-[220px] normal-case text-[10px] leading-relaxed">
+              {tooltip}
+            </TooltipContent>
+          </Tooltip>
+        )}
       </div>
       <div className={cn('mt-0.5 font-mono text-sm font-bold', styles.text)}>{value}</div>
     </div>
@@ -291,39 +320,47 @@ export function BacktestDemo() {
       </DemoVisual>
 
       {/* Condensed stats grid — bordered, accent-colored cards */}
-      <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
-        <StatCard
-          label="Historical return"
-          value={`${historical >= 0 ? '+' : ''}${historical.toFixed(1)}%`}
-          accent="cyan"
-        />
-        <StatCard
-          label="Expected return"
-          value={`${expected >= 0 ? '+' : ''}${expected.toFixed(1)}%`}
-          accent="blue"
-        />
-        <StatCard
-          label="Sharpe ratio"
-          value={sharpe.toFixed(2)}
-          accent="cyan"
-        />
-        <StatCard
-          label="Max drawdown"
-          value={`-${maxDd.toFixed(1)}%`}
-          icon={<TrendingDown className="h-3 w-3" />}
-          accent="rose"
-        />
-        <StatCard
-          label="Winning days"
-          value={`${winDays.toFixed(0)}%`}
-          accent="emerald"
-        />
-        <StatCard
-          label="Volatility"
-          value={`${vol.toFixed(1)}%`}
-          accent="violet"
-        />
-      </div>
+      <TooltipProvider delayDuration={200}>
+        <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <StatCard
+            label="Historical return"
+            value={safeFormat(historical, (v) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`)}
+            accent="cyan"
+            tooltip="Total percentage return the strategy produced during the backtested history window."
+          />
+          <StatCard
+            label="Expected return"
+            value={safeFormat(expected, (v) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`)}
+            accent="blue"
+            tooltip="Annualized return forecast based on the strategy's historical risk/return profile."
+          />
+          <StatCard
+            label="Sharpe ratio"
+            value={safeFormat(sharpe, (v) => v.toFixed(2))}
+            accent="cyan"
+            tooltip="Return earned per unit of risk; a ratio above 1.0 generally means the return justifies the volatility."
+          />
+          <StatCard
+            label="Max drawdown"
+            value={safeFormat(maxDd, (v) => `-${v.toFixed(1)}%`)}
+            icon={<TrendingDown className="h-3 w-3" />}
+            accent="rose"
+            tooltip="The largest peak-to-trough decline during the period; a measure of worst-case downside."
+          />
+          <StatCard
+            label="Winning days"
+            value={safeFormat(winDays, (v) => `${v.toFixed(0)}%`)}
+            accent="emerald"
+            tooltip="Percentage of trading days that closed with a positive P&L for the strategy."
+          />
+          <StatCard
+            label="Volatility"
+            value={safeFormat(vol, (v) => `${v.toFixed(1)}%`)}
+            accent="violet"
+            tooltip="Standard deviation of returns; higher values mean the strategy swings more sharply."
+          />
+        </div>
+      </TooltipProvider>
 
       <ConvictionMeter filled={strategy.conviction} value={strategy.convictionLabel} />
 
