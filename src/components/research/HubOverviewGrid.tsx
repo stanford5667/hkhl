@@ -83,7 +83,7 @@ const ACCENTS: Record<Accent, { bar: string; badge: string; ring: string; text: 
 };
 
 interface HubCardProps {
-  to: string;
+  to: string | { pathname: string; state?: Record<string, any> };
   icon: React.ElementType;
   title: string;
   accent: Accent;
