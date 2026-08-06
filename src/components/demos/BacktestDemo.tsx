@@ -277,28 +277,37 @@ function StatCard({
   }[accent];
 
   return (
-    <div className={cn('rounded-lg border border-white/[0.12] p-2 shadow-sm', styles.border, styles.bg)}>
-      <div className="flex items-center gap-1.5 text-[9px] uppercase tracking-wider text-gray-500">
-        {icon && <span className={cn('flex h-4 w-4 items-center justify-center rounded', styles.iconBg, styles.text)}>{icon}</span>}
-        <span className="truncate">{label}</span>
+    <div className={cn('rounded-xl border border-white/[0.12] p-3 shadow-sm', styles.border, styles.bg)}>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-white/50">
+          {icon && (
+            <span className={cn('flex h-4 w-4 items-center justify-center rounded', styles.iconBg, styles.text)}>
+              {icon}
+            </span>
+          )}
+          <span className="leading-tight">{label}</span>
+        </div>
         {tooltip && (
           <Tooltip>
             <TooltipTrigger asChild>
               <button
                 type="button"
                 aria-label={`What is ${label}?`}
-                className={cn('ml-auto flex h-5 w-5 items-center justify-center rounded-full opacity-60 transition-opacity hover:opacity-100 focus-visible:opacity-100', styles.iconBg)}
+                className={cn(
+                  'flex h-5 w-5 items-center justify-center rounded-full opacity-70 transition-opacity hover:opacity-100 focus-visible:opacity-100',
+                  styles.iconBg,
+                )}
               >
                 <HelpCircle className={cn('h-3 w-3', styles.text)} />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="top" className="max-w-[220px] normal-case text-[10px] leading-relaxed">
+            <TooltipContent side="top" className="max-w-[240px] normal-case text-[11px] leading-relaxed">
               {tooltip}
             </TooltipContent>
           </Tooltip>
         )}
       </div>
-      <div className={cn('mt-0.5 font-mono text-sm font-bold', styles.text)}>{value}</div>
+      <div className={cn('mt-1 font-mono text-base font-bold sm:text-lg', styles.text)}>{value}</div>
     </div>
   );
 }
@@ -513,44 +522,55 @@ export function BacktestDemo() {
 
       {/* Condensed stats grid — bordered, accent-colored cards */}
       <TooltipProvider delayDuration={200}>
-        <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
-          <StatCard
-            label="Historical return"
-            value={safeFormat(historical, (v) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`)}
-            accent="blue"
-            tooltip="Total percentage return the strategy produced during the backtested history window."
-          />
-          <StatCard
-            label="Expected return"
-            value={safeFormat(expected, (v) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`)}
-            accent="blue"
-            tooltip="Annualized return forecast based on the strategy's historical risk/return profile."
-          />
-          <StatCard
-            label="Sharpe ratio"
-            value={safeFormat(sharpe, (v) => v.toFixed(2))}
-            accent="blue"
-            tooltip="Return earned per unit of risk; a ratio above 1.0 generally means the return justifies the volatility."
-          />
-          <StatCard
-            label="Max drawdown"
-            value={safeFormat(maxDd, (v) => `-${v.toFixed(1)}%`)}
-            icon={<TrendingDown className="h-3 w-3" />}
-            accent="rose"
-            tooltip="The largest peak-to-trough decline during the period; a measure of worst-case downside."
-          />
-          <StatCard
-            label="Winning days"
-            value={safeFormat(winDays, (v) => `${v.toFixed(0)}%`)}
-            accent="blue"
-            tooltip="Percentage of trading days that closed with a positive P&L for the strategy."
-          />
-          <StatCard
-            label="Volatility"
-            value={safeFormat(vol, (v) => `${v.toFixed(1)}%`)}
-            accent="blue"
-            tooltip="Standard deviation of returns; higher values mean the strategy swings more sharply."
-          />
+        <div className="mt-4 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <h4 className="text-sm font-semibold text-white">Backtest results</h4>
+              <p className="text-[10px] text-muted-foreground">What this strategy would have produced over 2020–2024.</p>
+            </div>
+            <span className="rounded-md border border-white/[0.08] bg-white/[0.04] px-2 py-1 text-[9px] font-medium text-white/50">
+              Simulated
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <StatCard
+              label="Total return"
+              value={safeFormat(historical, (v) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`)}
+              accent="blue"
+              tooltip="Total percentage gain or loss the strategy produced during the entire backtested period."
+            />
+            <StatCard
+              label="Annualized return"
+              value={safeFormat(expected, (v) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`)}
+              accent="blue"
+              tooltip="Average return per year, adjusted so the 2020–2024 result can be compared like an annual rate."
+            />
+            <StatCard
+              label="Sharpe ratio"
+              value={safeFormat(sharpe, (v) => v.toFixed(2))}
+              accent="blue"
+              tooltip="Return earned per unit of risk. Above 1.0 means the strategy generally paid well for the volatility it took."
+            />
+            <StatCard
+              label="Max drawdown"
+              value={safeFormat(maxDd, (v) => `-${v.toFixed(1)}%`)}
+              icon={<TrendingDown className="h-3 w-3" />}
+              accent="rose"
+              tooltip="The largest peak-to-trough drop during the period. Smaller numbers mean a smoother ride."
+            />
+            <StatCard
+              label="Win rate"
+              value={safeFormat(winDays, (v) => `${v.toFixed(0)}%`)}
+              accent="blue"
+              tooltip="Percentage of periods that closed with a positive result. 60% means the strategy won about 6 out of 10 times."
+            />
+            <StatCard
+              label="Volatility"
+              value={safeFormat(vol, (v) => `${v.toFixed(1)}%`)}
+              accent="blue"
+              tooltip="How much the strategy’s returns bounce around. Higher means bigger swings up and down."
+            />
+          </div>
         </div>
       </TooltipProvider>
 
