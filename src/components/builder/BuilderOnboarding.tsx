@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { StrategyTemplate } from '@/lib/strategyBuilder/templates';
+import { getStrategyDisplayName } from '@/lib/strategyBuilder/displayNames';
 
 interface BuilderOnboardingProps {
   templates: StrategyTemplate[];
@@ -74,7 +75,7 @@ export const BuilderOnboarding = memo(function BuilderOnboarding({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium">Quick Start</span>
+            <span className="text-sm font-medium">Start with an idea</span>
           </div>
           <Button variant="ghost" size="sm" onClick={onDismiss} className="h-6 w-6 p-0">
             <X className="h-3 w-3" />
@@ -83,20 +84,28 @@ export const BuilderOnboarding = memo(function BuilderOnboarding({
 
         {/* One-Click Templates */}
         <div className="grid grid-cols-2 gap-2">
-          {templates.slice(0, 4).map((template) => (
-            <Button
-              key={template.id}
-              variant="outline"
-              size="sm"
-              onClick={() => onLoadTemplate(template)}
-              className="h-auto py-2 px-2 text-left justify-start flex-col items-start gap-0.5"
-            >
-              <span className="text-xs font-medium truncate w-full">{template.name}</span>
-              <span className="text-[10px] text-muted-foreground truncate w-full">
-                {template.blocks.length} blocks ready
-              </span>
-            </Button>
-          ))}
+          {templates.slice(0, 4).map((template) => {
+            const display = getStrategyDisplayName(template);
+            return (
+              <Button
+                key={template.id}
+                variant="outline"
+                size="sm"
+                onClick={() => onLoadTemplate(template)}
+                className="h-auto py-2 px-2 text-left justify-start flex-col items-start gap-0.5"
+              >
+                <span className="text-xs font-medium truncate w-full">{display.plainName}</span>
+                {display.techName && (
+                  <span className="text-[9px] text-muted-foreground/80 truncate w-full">
+                    {display.techName}
+                  </span>
+                )}
+                <span className="text-[10px] text-muted-foreground truncate w-full">
+                  {template.blocks.length} blocks ready
+                </span>
+              </Button>
+            );
+          })}
         </div>
 
         {/* How It Works Toggle */}
@@ -153,27 +162,36 @@ export const BuilderOnboarding = memo(function BuilderOnboarding({
         {/* Quick Start Templates */}
         <div>
           <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
-            One-Click Templates
+            Start with an idea
+          </p>
+          <p className="text-xs text-muted-foreground mb-2">
+            Pick a strategy and see how it would have performed.
           </p>
           <div className="grid grid-cols-2 gap-2">
-            {templates.map((template) => (
-              <Button
-                key={template.id}
-                variant="outline"
-                onClick={() => onLoadTemplate(template)}
-                className="h-auto py-3 px-3 text-left justify-start flex-col items-start gap-1 hover:border-primary hover:bg-primary/5 transition-all"
-              >
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="text-xs">
-                    {template.blocks.length} blocks
-                  </Badge>
-                </div>
-                <span className="text-sm font-medium">{template.name}</span>
-                <span className="text-xs text-muted-foreground line-clamp-1">
-                  {template.description}
-                </span>
-              </Button>
-            ))}
+            {templates.map((template) => {
+              const display = getStrategyDisplayName(template);
+              return (
+                <Button
+                  key={template.id}
+                  variant="outline"
+                  onClick={() => onLoadTemplate(template)}
+                  className="h-auto py-3 px-3 text-left justify-start flex-col items-start gap-1 hover:border-primary hover:bg-primary/5 transition-all"
+                >
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="text-xs">
+                      {template.blocks.length} blocks
+                    </Badge>
+                  </div>
+                  <span className="text-sm font-medium">{display.plainName}</span>
+                  {display.techName && (
+                    <span className="text-[10px] text-muted-foreground/80">{display.techName}</span>
+                  )}
+                  <span className="text-xs text-muted-foreground line-clamp-1">
+                    {template.description}
+                  </span>
+                </Button>
+              );
+            })}
           </div>
         </div>
 

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { MousePointerClick, GripVertical, ArrowRight, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { StrategyTemplate } from '@/lib/strategyBuilder/templates';
+import { getStrategyDisplayName } from '@/lib/strategyBuilder/displayNames';
 
 interface CanvasEmptyStateProps {
   templates: StrategyTemplate[];
@@ -56,7 +57,7 @@ export const CanvasEmptyState = memo(function CanvasEmptyState({
               className="gap-2 w-full"
             >
               <Sparkles className="h-4 w-4" />
-              Quick Start: RSI Bounce
+              Start with an idea: {getStrategyDisplayName(featuredTemplate).plainName}
             </Button>
           </div>
         </div>
