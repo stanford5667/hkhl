@@ -534,10 +534,18 @@ export function AcademyDemo() {
                         return (
                           <div
                             key={lesson.id}
-                            onClick={() => (user ? navigate('/academy') : goToAuth())}
+                            {...(lesson.isPreview ? { 'data-guest-allow': true } : {})}
+                            onClick={() => {
+                              if (lesson.isPreview) {
+                                void playPreviewLesson(lesson.id);
+                                return;
+                              }
+                              user ? navigate('/academy') : goToAuth();
+                            }}
                             className="flex items-center gap-3 px-3 py-2 hover:bg-slate-900/60 cursor-pointer transition-colors"
                           >
                             <Play className="h-3 w-3 shrink-0 text-slate-500" />
+
                             <div className="min-w-0 flex-1">
                               <p className="text-[11px] font-medium text-foreground truncate">
                                 {lessonNum} {lesson.title}
