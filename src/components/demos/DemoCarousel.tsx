@@ -110,27 +110,26 @@ export function DemoCarousel() {
       onTouchStart={() => setIsPaused(true)}
       onTouchEnd={() => setIsPaused(false)}
     >
-      {/* Mobile: scroll-snap carousel · md+: 2x2 grid */}
+      {/* Mobile: vertical stack so both demos are visible · md+: 2x2 grid */}
       <div
         ref={scrollerRef}
         className={cn(
-          'flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden',
-          'md:grid md:grid-cols-2 md:gap-4 md:overflow-visible md:pb-0'
+          'flex flex-col gap-3 md:grid md:grid-cols-2 md:gap-4 md:overflow-visible md:pb-0'
         )}
       >
         {DEMOS.map((d, i) => (
           <div
             key={d.id}
             className={cn(
-              'w-[85%] flex-shrink-0 snap-center md:w-auto md:flex-shrink transition-all duration-500',
+              'w-full flex-shrink-0 md:w-auto md:flex-shrink transition-all duration-500',
               i === activeIndex && 'md:ring-1 md:ring-cyan-400/30 md:rounded-2xl'
             )}
           >
             <div className="relative overflow-hidden rounded-2xl">
-              {/* Progress bar across the top of the active card */}
+              {/* Progress bar across the top of the active card (desktop only) */}
               <div
                 className={cn(
-                  'absolute left-0 right-0 top-0 z-20 h-0.5 bg-cyan-400/80 transition-transform duration-100 ease-linear',
+                  'hidden md:block absolute left-0 right-0 top-0 z-20 h-0.5 bg-cyan-400/80 transition-transform duration-100 ease-linear',
                   i === activeIndex ? 'opacity-100' : 'opacity-0'
                 )}
                 style={{ transform: `scaleX(${i === activeIndex ? progress : 0})`, transformOrigin: 'left' }}
@@ -141,8 +140,8 @@ export function DemoCarousel() {
         ))}
       </div>
 
-      {/* Dot indicators (mobile only) */}
-      <div className="mt-3 flex items-center justify-center gap-2 md:hidden">
+      {/* Dot indicators (desktop only) */}
+      <div className="mt-3 hidden items-center justify-center gap-2 md:flex">
         {DEMOS.map((d, i) => (
           <button
             key={d.id}
