@@ -1,5 +1,7 @@
 import { useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/AuthContext";
 import { ResearchTopBar } from "@/pages/research/components/ResearchTopBar";
 import { ResearchBottomBar } from "@/pages/research/components/ResearchBottomBar";
 import { ResearchHero } from "@/components/research/ResearchHero";
@@ -13,6 +15,8 @@ import { StockResearchDemo } from "@/components/demos/StockResearchDemo";
 
 export default function ResearchPage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -33,13 +37,27 @@ export default function ResearchPage() {
     }
   }, [queryClient]);
 
+  // Guests: any interaction on the page content routes to the sign-up form
+  const handleGuestGate = useCallback(
+    (e: React.MouseEvent) => {
+      if (user) return;
+      e.preventDefault();
+      e.stopPropagation();
+      navigate("/auth", { state: { mode: "signup", from: "/research" } });
+    },
+    [user, navigate]
+  );
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <ResearchTopBar />
 
 
-      <main className="flex-1 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 space-y-8 sm:space-y-10 max-w-[1800px] w-full mx-auto">
+      <main
+        onClickCapture={handleGuestGate}
+        className="flex-1 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 space-y-8 sm:space-y-10 max-w-[1800px] w-full mx-auto"
+      >
+
         <section>
           <ResearchHero />
         </section>
