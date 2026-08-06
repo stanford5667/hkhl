@@ -118,7 +118,7 @@ function StockChartPreview() {
     new Date(t).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
   return (
-    <div className="relative overflow-hidden rounded-xl border border-white/[0.08] bg-slate-950/60">
+    <div className="relative overflow-hidden rounded-xl border border-white/[0.12] bg-slate-950/60 shadow-sm">
       {/* Mock ticker header */}
       <div className="flex items-center justify-between p-3">
         <div className="flex items-center gap-3">
@@ -277,7 +277,7 @@ function StatCard({
   }[accent];
 
   return (
-    <div className={cn('rounded-lg border p-2', styles.border, styles.bg)}>
+    <div className={cn('rounded-lg border border-white/[0.12] p-2 shadow-sm', styles.border, styles.bg)}>
       <div className="flex items-center gap-1.5 text-[9px] uppercase tracking-wider text-gray-500">
         {icon && <span className={cn('flex h-4 w-4 items-center justify-center rounded', styles.iconBg, styles.text)}>{icon}</span>}
         <span className="truncate">{label}</span>
@@ -389,10 +389,10 @@ export function BacktestDemo() {
                 onClick={() => setActiveId(s.id)}
                 aria-pressed={isActive}
                 className={cn(
-                  'flex min-h-[26px] items-center gap-1 rounded-md border px-1.5 py-0.5 text-left transition-colors',
+                  'flex min-h-[26px] items-center gap-1 rounded-md border px-1.5 py-0.5 text-left transition-colors shadow-sm',
                   isActive
-                    ? 'border-blue-500/25 bg-blue-500/[0.12] text-blue-400'
-                    : 'border-slate-700 bg-slate-900/70 text-gray-400 hover:border-blue-500/30 hover:text-gray-200'
+                    ? 'border-white/[0.20] bg-blue-500/[0.12] text-blue-400 ring-1 ring-white/[0.06]'
+                    : 'border-white/[0.10] bg-slate-900/70 text-gray-400 hover:border-white/[0.18] hover:text-gray-200'
                 )}
               >
                 <span
@@ -414,7 +414,7 @@ export function BacktestDemo() {
       </div>
 
       {/* Chart — proper time-based axes, benchmark overlay, and trade markers */}
-      <DemoVisual className="mt-3 w-full">
+      <DemoVisual className="mt-3 w-full rounded-xl border border-white/[0.12] bg-slate-950/40 p-2 shadow-sm">
         <div className="relative h-[180px] w-full sm:h-[220px]">
           <div className="absolute right-2 top-2 z-10 flex items-center gap-3 text-[9px]">
             <span className="flex items-center gap-1.5 text-white/60">
@@ -568,7 +568,7 @@ export function BacktestDemo() {
         whileTap={{ scale: 0.98 }}
         transition={DEMO_SPRING}
         onClick={() => navigate('/auth', { state: { mode: 'signup' } })}
-        className="mt-3 flex min-h-[44px] w-full cursor-pointer items-center gap-2 rounded-xl border border-slate-700 bg-slate-900/70 px-3 text-left text-[11px] text-gray-400 transition-colors hover:border-cyan-500/40 hover:text-gray-200"
+        className="mt-3 flex min-h-[44px] w-full cursor-pointer items-center gap-2 rounded-xl border border-white/[0.14] bg-slate-900/70 px-3 text-left text-[11px] text-gray-400 transition-colors shadow-sm hover:border-white/25 hover:text-gray-200"
       >
         <Sparkles className="h-3.5 w-3.5 flex-shrink-0 text-cyan-400" />
         <span className="truncate">Build my strategy with AI</span>
