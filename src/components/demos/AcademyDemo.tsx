@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { motion } from 'framer-motion';
-import { GraduationCap, Play, Pause, Volume2, VolumeX, Maximize, Clock, ArrowRight, Crown, ChevronDown, Lock, CheckCircle2, Search } from 'lucide-react';
+import { GraduationCap, Play, Pause, Volume2, VolumeX, Maximize, Clock, ArrowRight, Crown, ChevronDown, Lock, Search } from 'lucide-react';
 import { DEMO_LESSON } from './demoData';
 import { DemoCard } from './DemoCard';
 import { useCountUp, usePrefersReducedMotion } from './useCountUp';
