@@ -75,11 +75,12 @@ interface DemoCardHeaderProps {
   title?: string;
   subtitle?: string;
   right?: ReactNode;
+  className?: string;
 }
 
-export function DemoCardHeader({ icon, category, title, subtitle, right }: DemoCardHeaderProps) {
+export function DemoCardHeader({ icon, category, title, subtitle, right, className }: DemoCardHeaderProps) {
   return (
-    <div className="flex items-start justify-between gap-2">
+    <div className={cn('flex items-start justify-between gap-2', className)}>
       <div className="flex min-w-0 items-center gap-2.5">
         <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-cyan-500/20 bg-cyan-500/10">
           {icon}
@@ -98,6 +99,7 @@ export function DemoCardHeader({ icon, category, title, subtitle, right }: DemoC
     </div>
   );
 }
+
 
 /** Honest label for demos running on hardcoded sample data. */
 export function SampleBadge({ label = 'Sample' }: { label?: string }) {
