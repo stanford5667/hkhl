@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
@@ -20,6 +21,7 @@ import {
 import { cn } from '@/lib/utils';
 import { DemoCard, DemoCardHeader, DemoVisual, SampleBadge } from './DemoCard';
 import { useCountUp, usePrefersReducedMotion } from './useCountUp';
+import { useChartData } from '@/hooks/useChartData';
 
 const DEMO_TICKER = 'AAPL';
 const DEMO_COMPANY = 'Apple Inc.';
@@ -61,15 +63,16 @@ const INSIGHTS = [
   },
 ];
 
-const CHART_POINTS = [218, 225, 222, 230, 228, 235, 232, 240, 238, 245, 242, 248, 244, 252, 249, 243];
+const FALLBACK_POINTS = [218, 225, 222, 230, 228, 235, 232, 240, 238, 245, 242, 248, 244, 252, 249, 243];
+
+const W = 320;
+const H = 100;
+const PAD = 4;
 
 function toPath(values: number[]) {
   const min = Math.min(...values) - 2;
   const max = Math.max(...values) + 2;
   const span = max - min || 1;
-  const W = 320;
-  const H = 100;
-  const PAD = 4;
   return values
     .map((v, i) => {
       const x = PAD + (i / (values.length - 1)) * (W - PAD * 2);
@@ -79,11 +82,45 @@ function toPath(values: number[]) {
     .join(' ');
 }
 
+function endPoint(values: number[]) {
+  const min = Math.min(...values) - 2;
+  const max = Math.max(...values) + 2;
+  const span = max - min || 1;
+  const last = values[values.length - 1];
+  return {
+    x: W - PAD,
+    y: H - PAD - ((last - min) / span) * (H - PAD * 2),
+  };
+}
+
+/** Downsample a series to at most `n` evenly spaced points. */
+function sample(values: number[], n = 48) {
+  if (values.length <= n) return values;
+  const step = (values.length - 1) / (n - 1);
+  return Array.from({ length: n }, (_, i) => values[Math.round(i * step)]);
+}
+
 export function StockResearchDemo() {
   const navigate = useNavigate();
   const reduced = usePrefersReducedMotion();
-  const price = useCountUp(DEMO_PRICE, true);
-  const isPositive = DEMO_CHANGE >= 0;
+
+  const { data: bars, isLoading } = useChartData(DEMO_TICKER, '6M');
+
+  const series = useMemo(() => {
+    const closes = (bars ?? []).map((b) => b.price).filter((p) => Number.isFinite(p));
+    return closes.length > 4 ? sample(closes) : FALLBACK_POINTS;
+  }, [bars]);
+
+  const isLive = (bars?.length ?? 0) > 4;
+  const livePrice = isLive ? series[series.length - 1] : DEMO_PRICE;
+  const prevClose = isLive && series.length > 1 ? series[series.length - 2] : DEMO_PRICE - DEMO_CHANGE;
+  const change = livePrice - prevClose;
+  const changePercent = prevClose ? (change / prevClose) * 100 : 0;
+
+  const price = useCountUp(livePrice, true);
+  const isPositive = change >= 0;
+  const dot = endPoint(series);
+
 
   return (
     <DemoCard accent>
@@ -114,7 +151,7 @@ export function StockResearchDemo() {
               isPositive ? 'text-emerald-400' : 'text-rose-400'
             )}>
               {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-              +{DEMO_CHANGE.toFixed(2)} (+{DEMO_CHANGE_PERCENT.toFixed(2)}%)
+              {isPositive ? '+' : ''}{change.toFixed(2)} ({isPositive ? '+' : ''}{changePercent.toFixed(2)}%)
             </p>
           </div>
         </div>
@@ -124,7 +161,7 @@ export function StockResearchDemo() {
           <div className="relative overflow-hidden rounded-xl border border-slate-800 bg-slate-950/60 p-3">
             <div className="mb-2 flex items-center justify-between">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">Price action</span>
-              <span className="text-[10px] text-muted-foreground">6M view</span>
+              <span className="text-[10px] text-muted-foreground">{isLive ? '6M · live data' : isLoading ? 'Loading 6M…' : '6M view'}</span>
             </div>
             <div className="relative w-full" style={{ aspectRatio: '320 / 100' }}>
               <svg
@@ -132,7 +169,7 @@ export function StockResearchDemo() {
                 className="h-full w-full"
                 preserveAspectRatio="none"
                 role="img"
-                aria-label="Sample AAPL price chart"
+                aria-label="AAPL 6-month price chart"
               >
                 <defs>
                   <linearGradient id="demo-stock-fill" x1="0" y1="0" x2="0" y2="1">
@@ -141,11 +178,11 @@ export function StockResearchDemo() {
                   </linearGradient>
                 </defs>
                 <path
-                  d={`${toPath(CHART_POINTS)} L316,100 4,100 Z`}
+                  d={`${toPath(series)} L316,100 4,100 Z`}
                   fill="url(#demo-stock-fill)"
                 />
                 <motion.path
-                  d={toPath(CHART_POINTS)}
+                  d={toPath(series)}
                   fill="none"
                   stroke="hsl(185 80% 50%)"
                   strokeWidth="2"
@@ -156,7 +193,7 @@ export function StockResearchDemo() {
                   transition={{ duration: reduced ? 0 : 1.2, ease: 'easeOut' }}
                 />
                 {/* End dot */}
-                <circle cx="316" cy="12" r="3" fill="hsl(185 80% 50%)" />
+                <circle cx={dot.x} cy={dot.y} r="3" fill="hsl(185 80% 50%)" />
               </svg>
             </div>
           </div>
