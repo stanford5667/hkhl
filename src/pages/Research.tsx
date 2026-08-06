@@ -44,7 +44,7 @@ export default function ResearchPage() {
         <section>
           <div className="mb-4 sm:mb-5">
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground tracking-tight">
-              Automate investing
+              Automate your investing
             </h2>
             <p className="text-sm sm:text-base lg:text-lg text-muted-foreground max-w-3xl mt-2 leading-relaxed">
               Backtest strategies against decades of data, then learn the system behind them.
