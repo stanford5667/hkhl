@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { motion } from 'framer-motion';
 import { 
   Sparkles, TrendingUp, TrendingDown, ArrowRight, 
@@ -35,8 +36,11 @@ const DAILY_PICKS: StockPick[] = [
 
 export function StockOfTheDay() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [pick, setPick] = useState<StockPick | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const goToAuth = () => navigate('/auth', { state: { mode: 'signup' } });
 
   useEffect(() => {
     const fetchStockOfTheDay = async () => {
@@ -129,7 +133,7 @@ export function StockOfTheDay() {
       <div className="relative flex items-start justify-between mb-3">
         <div>
           <button
-            onClick={() => navigate(`/stock/${pick.ticker}`)}
+            onClick={() => (user ? navigate(`/stock/${pick.ticker}`) : goToAuth())}
             className="text-lg font-bold text-foreground hover:text-primary transition-colors"
           >
             {pick.ticker}
@@ -164,7 +168,7 @@ export function StockOfTheDay() {
 
       {/* CTA */}
       <Button
-        onClick={() => navigate(`/stock/${pick.ticker}`)}
+        onClick={() => (user ? navigate(`/stock/${pick.ticker}`) : goToAuth())}
         className="w-full bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30 group-hover:border-primary/50 transition-all"
         size="sm"
       >

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { motion } from 'framer-motion';
 import { GraduationCap, Play, Pause, Volume2, VolumeX, Maximize, Clock, ArrowRight, Crown, ChevronDown, Lock, CheckCircle2 } from 'lucide-react';
 import { DEMO_LESSON } from './demoData';
@@ -77,6 +78,7 @@ const DEMO_LESSONS = [
 
 export function AcademyDemo() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const reduced = usePrefersReducedMotion();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
@@ -86,6 +88,8 @@ export function AcademyDemo() {
   const [openLesson, setOpenLesson] = useState<string | null>(null);
   const [showMore, setShowMore] = useState(false);
   const pct = Math.round(DEMO_LESSON.progress * 100);
+
+  const goToAuth = () => navigate('/auth', { state: { mode: 'signup' } });
 
   const shown = useCountUp(pct, true);
 
@@ -343,7 +347,13 @@ export function AcademyDemo() {
                 >
                   <button
                     type="button"
-                    onClick={() => setOpenLesson(isOpen ? null : lesson.id)}
+                    onClick={() => {
+                      if (!user) {
+                        goToAuth();
+                        return;
+                      }
+                      setOpenLesson(isOpen ? null : lesson.id);
+                    }}
                     className="flex w-full items-center gap-2 px-3 py-2.5 text-left"
                   >
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-800 text-[9px] text-muted-foreground">
@@ -386,7 +396,13 @@ export function AcademyDemo() {
           </div>
           <button
             type="button"
-            onClick={() => setShowMore((s) => !s)}
+            onClick={() => {
+              if (!user) {
+                goToAuth();
+                return;
+              }
+              setShowMore((s) => !s);
+            }}
             className="flex h-8 w-full items-center justify-center gap-1 rounded-lg border border-slate-800 bg-slate-900/40 text-[11px] font-medium text-cyan-400 transition-colors hover:bg-cyan-500/10 hover:text-cyan-300"
           >
             {showMore ? 'Show less' : `Show more lessons (${DEMO_LESSONS.length - 3})`}
@@ -403,7 +419,7 @@ export function AcademyDemo() {
               variant="outline"
               size="sm"
               className="h-9 border-slate-700 bg-slate-900/50 text-[11px] font-medium hover:bg-slate-800 hover:text-foreground"
-              onClick={() => navigate('/academy')}
+              onClick={() => (user ? navigate('/academy') : goToAuth())}
             >
               Watch in player
               <ArrowRight className="h-3 w-3" />
@@ -411,7 +427,7 @@ export function AcademyDemo() {
             <Button
               size="sm"
               className="h-9 bg-gradient-to-r from-cyan-500 to-blue-600 text-[11px] font-semibold text-white hover:from-cyan-400 hover:to-blue-500"
-              onClick={() => navigate('/academy')}
+              onClick={() => (user ? navigate('/academy') : goToAuth())}
             >
               <Crown className="h-3 w-3" />
               Upgrade to Pro
@@ -421,7 +437,7 @@ export function AcademyDemo() {
             variant="ghost"
             size="sm"
             className="h-8 w-full text-[11px] font-medium text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300"
-            onClick={() => navigate('/academy')}
+            onClick={() => (user ? navigate('/academy') : goToAuth())}
           >
             Unlock all 92 lessons — from $83/mo
           </Button>

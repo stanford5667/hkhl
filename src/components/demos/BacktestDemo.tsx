@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Area,
   AreaChart,
@@ -86,6 +87,8 @@ const STOCK_RANGES = ['1M', '3M', '6M', '1Y'] as const;
 
 function StockChartPreview() {
   const reduced = usePrefersReducedMotion();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [range, setRange] = useState<(typeof STOCK_RANGES)[number]>('6M');
   const { data: bars, isLoading } = useChartData(STOCK_DEMO_TICKER, range);
 
@@ -151,7 +154,13 @@ function StockChartPreview() {
               <button
                 key={r}
                 type="button"
-                onClick={() => setRange(r)}
+                onClick={() => {
+                  if (!user) {
+                    navigate('/auth', { state: { mode: 'signup' } });
+                    return;
+                  }
+                  setRange(r);
+                }}
                 className={cn(
                   'rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors',
                   range === r ? 'bg-primary text-white' : 'text-white/50 hover:text-white',
@@ -315,6 +324,7 @@ function StatCard({
 export function BacktestDemo() {
   const reduced = usePrefersReducedMotion();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [activeId, setActiveId] = useState(DEMO_STRATEGIES[0].id);
   const strategy = DEMO_STRATEGIES.find((s) => s.id === activeId) ?? DEMO_STRATEGIES[0];
 
@@ -387,7 +397,13 @@ export function BacktestDemo() {
                 type="button"
                 whileTap={{ scale: 0.97 }}
                 transition={DEMO_SPRING}
-                onClick={() => setActiveId(s.id)}
+                onClick={() => {
+                  if (!user) {
+                    navigate('/auth', { state: { mode: 'signup' } });
+                    return;
+                  }
+                  setActiveId(s.id);
+                }}
                 aria-pressed={isActive}
                 className={cn(
                   'flex min-h-[26px] items-center gap-1 rounded-md border px-1.5 py-0.5 text-left transition-colors shadow-sm',
