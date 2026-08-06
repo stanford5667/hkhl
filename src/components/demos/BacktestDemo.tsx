@@ -149,7 +149,7 @@ function StatCard({
                 <HelpCircle className={cn('h-3 w-3', styles.text)} />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="top" className="max-w-[220px] text-[10px] leading-relaxed">
+            <TooltipContent side="top" className="max-w-[220px] normal-case text-[10px] leading-relaxed">
               {tooltip}
             </TooltipContent>
           </Tooltip>
