@@ -419,7 +419,7 @@ export function AcademyDemo() {
               variant="outline"
               size="sm"
               className="h-9 border-slate-700 bg-slate-900/50 text-[11px] font-medium hover:bg-slate-800 hover:text-foreground"
-              onClick={() => navigate('/academy')}
+              onClick={() => (user ? navigate('/academy') : goToAuth())}
             >
               Watch in player
               <ArrowRight className="h-3 w-3" />
@@ -427,7 +427,7 @@ export function AcademyDemo() {
             <Button
               size="sm"
               className="h-9 bg-gradient-to-r from-cyan-500 to-blue-600 text-[11px] font-semibold text-white hover:from-cyan-400 hover:to-blue-500"
-              onClick={() => navigate('/academy')}
+              onClick={() => (user ? navigate('/academy') : goToAuth())}
             >
               <Crown className="h-3 w-3" />
               Upgrade to Pro
@@ -437,7 +437,7 @@ export function AcademyDemo() {
             variant="ghost"
             size="sm"
             className="h-8 w-full text-[11px] font-medium text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300"
-            onClick={() => navigate('/academy')}
+            onClick={() => (user ? navigate('/academy') : goToAuth())}
           >
             Unlock all 92 lessons — from $83/mo
           </Button>
