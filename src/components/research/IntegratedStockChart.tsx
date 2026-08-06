@@ -131,6 +131,8 @@ export function IntegratedStockChart({
 
       const container = chartContainerRef.current;
 
+      if (!container || !container.isConnected) return;
+
       chart = createChart(container, {
         width: container.clientWidth,
         height: height,
