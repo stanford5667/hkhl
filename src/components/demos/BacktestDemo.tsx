@@ -6,6 +6,14 @@ import { cn } from '@/lib/utils';
 import { DEMO_STRATEGIES, DEMO_INITIAL_CAPITAL } from './demoData';
 import { useCountUp, usePrefersReducedMotion } from './useCountUp';
 import {
+  ConvictionMeter,
+  DemoCard,
+  DemoCardHeader,
+  DemoVisual,
+  SampleBadge,
+  DEMO_SPRING,
+} from './DemoCard';
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
