@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { MessagesSquare, ArrowRight, Crown, Pin, TrendingUp, MessageSquare } from 'lucide-react';
+import { MessagesSquare, ArrowRight, Pin, TrendingUp, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DemoCard, DemoCardHeader, SampleBadge } from './DemoCard';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -173,20 +173,12 @@ export function ChatroomDemo() {
         <div className="mt-2 flex flex-col gap-2">
           <button
             type="button"
-            onClick={() => navigate('/community')}
+            onClick={() => navigate('/auth', { state: { mode: 'signup' } })}
             className="flex min-h-[44px] w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-4 text-[11px] font-semibold text-white transition-all hover:from-cyan-400 hover:to-blue-500 active:scale-[0.99]"
           >
             <MessagesSquare className="h-3.5 w-3.5" />
             Join the chatroom
             <ArrowRight className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate('/auth', { state: { mode: 'signup' } })}
-            className="flex min-h-[40px] w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 text-[11px] font-semibold text-amber-400 transition-colors hover:bg-amber-500/15"
-          >
-            <Crown className="h-3.5 w-3.5" />
-            Unlock live trade ideas — Pro required
           </button>
         </div>
       </div>
