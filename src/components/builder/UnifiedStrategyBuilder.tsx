@@ -29,7 +29,10 @@ import type { AdvancedBacktestParams } from '@/lib/backtesting/types';
 
 interface PresetStrategy {
   id: string;
+  /** Plain-language outcome name, shown first. */
   name: string;
+  /** Technical strategy name, shown as secondary text for professionals. */
+  techName: string;
   shortDesc: string;
   whyItWorks: string;
   riskLevel: 'Conservative' | 'Moderate' | 'Aggressive';
@@ -44,7 +47,8 @@ interface PresetStrategy {
 const PRESET_STRATEGIES: PresetStrategy[] = [
   {
     id: 'rsi-bounce',
-    name: 'RSI Oversold Bounce',
+    name: 'Buy the Dip',
+    techName: 'RSI Oversold Bounce',
     shortDesc: 'Buy when oversold (RSI < 30)',
     whyItWorks: 'Catches panic selling reversals',
     riskLevel: 'Moderate',
@@ -59,7 +63,8 @@ const PRESET_STRATEGIES: PresetStrategy[] = [
   },
   {
     id: 'ma-crossover',
-    name: 'Golden Cross',
+    name: 'Ride the Trend',
+    techName: 'Golden Cross',
     shortDesc: 'Ride momentum trends',
     whyItWorks: 'The trend is your friend',
     riskLevel: 'Moderate',
@@ -74,7 +79,8 @@ const PRESET_STRATEGIES: PresetStrategy[] = [
   },
   {
     id: 'gap-fill',
-    name: 'Gap Fill',
+    name: 'Fade the Gap',
+    techName: 'Gap Fill',
     shortDesc: 'Buy gap downs, sell recovery',
     whyItWorks: 'Gaps fill 70%+ of the time',
     riskLevel: 'Aggressive',
@@ -89,7 +95,8 @@ const PRESET_STRATEGIES: PresetStrategy[] = [
   },
   {
     id: 'mean-reversion',
-    name: 'Mean Reversion',
+    name: 'Buy After Weakness',
+    techName: 'Mean Reversion',
     shortDesc: 'Buy after 3+ down days',
     whyItWorks: 'Markets overcorrect short-term',
     riskLevel: 'Conservative',
@@ -238,8 +245,8 @@ export const UnifiedStrategyBuilder = memo(function UnifiedStrategyBuilder({
         <div>
           <div className="flex items-center gap-2 mb-2">
             <Sparkles className="h-4 w-4 text-primary" />
-            <h3 className="text-sm font-semibold">Quick Start</h3>
-            <span className="text-xs text-muted-foreground">Pick a proven strategy</span>
+            <h3 className="text-sm font-semibold">Start with an idea</h3>
+            <span className="text-xs text-muted-foreground">Pick a strategy and see how it would have performed.</span>
           </div>
           
           <div className="grid grid-cols-2 gap-2">
@@ -267,7 +274,10 @@ export const UnifiedStrategyBuilder = memo(function UnifiedStrategyBuilder({
                         isActive ? "text-primary" : "text-muted-foreground"
                       )} />
                     </div>
-                    <span className="font-medium text-xs flex-1 truncate">{preset.name}</span>
+                    <div className="flex-1 min-w-0">
+                      <span className="block font-medium text-xs truncate">{preset.name}</span>
+                      <span className="block text-[9px] text-muted-foreground/80 truncate">{preset.techName}</span>
+                    </div>
                     {isActive && (
                       <Badge variant="secondary" className="text-[9px] px-1 py-0">Active</Badge>
                     )}
