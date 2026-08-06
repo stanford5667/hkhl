@@ -36,8 +36,11 @@ const DAILY_PICKS: StockPick[] = [
 
 export function StockOfTheDay() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [pick, setPick] = useState<StockPick | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const goToAuth = () => navigate('/auth', { state: { mode: 'signup' } });
 
   useEffect(() => {
     const fetchStockOfTheDay = async () => {
