@@ -128,8 +128,8 @@ export function ResearchHero({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
           >
-            <span className="text-foreground font-medium">Quant investing, without a line of code.</span>{' '}
-            Learn from a hedge fund manager, get live trade ideas in the chatroom, and automate the strategies that hold up.
+            <span className="text-foreground font-medium">Automated AI investing.</span>{' '}
+            Learn the strategies of top hedge fund managers, then get live trade strategies in the chatroom.
           </motion.p>
           <motion.div
             className="flex justify-start sm:justify-center mt-4"
