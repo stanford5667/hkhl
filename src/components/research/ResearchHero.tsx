@@ -142,7 +142,7 @@ export function ResearchHero({
             </span>
           </motion.h1>
           <motion.p
-            className="text-muted-foreground text-[15px] sm:text-base lg:text-lg max-w-lg sm:mx-auto leading-relaxed mb-3 sm:mb-4"
+            className="text-muted-foreground text-[15px] sm:text-base lg:text-xl max-w-2xl sm:mx-auto leading-relaxed mb-3 sm:mb-4"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
