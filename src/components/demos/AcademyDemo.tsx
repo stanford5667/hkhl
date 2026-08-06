@@ -339,7 +339,7 @@ export function AcademyDemoInner({ className }: { className?: string }) {
                       {lesson.title}
                     </span>
                     <span className="block text-[9px] text-muted-foreground">
-                      {lesson.module} {bull} {lesson.duration}
+                      {lesson.module} · {lesson.duration}
                     </span>
                   </span>
                   <ChevronDown
