@@ -112,14 +112,14 @@ export function ResearchHero({
         {/* Hero Text — Terminal style */}
         <div className="text-left sm:text-center mb-5 sm:mb-10">
           <motion.h1
-            className="font-display text-[clamp(1.1rem,2.8vw+0.5rem,3.25rem)] leading-[1.05] tracking-tight whitespace-nowrap font-bold mb-2 sm:mb-4"
+            className="font-display text-[clamp(1.3rem,3.5vw+0.5rem,3.75rem)] leading-[1.05] tracking-tight whitespace-nowrap font-bold mb-2 sm:mb-4"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
             <span className="text-foreground">Find your next</span>{' '}
             <span className="text-primary">
-              big investment idea
+              big investment
             </span>
           </motion.h1>
           <motion.p
