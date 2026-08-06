@@ -123,13 +123,14 @@ export function ResearchHero({
           </motion.div>
 
           <motion.h1
-            className="font-display text-[clamp(1.4rem,3.5vw+0.5rem,3.75rem)] leading-[1.05] tracking-tight font-bold mb-5 sm:mb-7"
+            className="font-display text-[clamp(1.5rem,4vw+0.6rem,4.25rem)] leading-[1.08] tracking-tight font-bold mb-5 sm:mb-7"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <span className="text-foreground block">Your next big investment</span>
-            <span className="text-primary block">starts here</span>
+            <span className="text-foreground block">Your next big</span>
+            <span className="text-primary block">investment</span>
+            <span className="text-foreground block">starts here</span>
           </motion.h1>
           <motion.p
             className="text-muted-foreground text-[15px] sm:text-base lg:text-lg max-w-lg sm:mx-auto leading-relaxed mb-3 sm:mb-4"
