@@ -54,25 +54,6 @@ const DEMO_MESSAGES: DemoMessage[] = [
     reactions: [{ emoji: '👍', count: 7 }],
     replies: 3,
   },
-  {
-    id: '3',
-    name: 'Chris Stanford',
-    initials: 'CS',
-    isAdmin: true,
-    time: 'Today, 10:05 AM',
-    content: (
-      <>
-        <span className="text-amber-400 font-semibold">UPDATE: </span>
-        Trimming half the <TickerBadge ticker="NVDA" className="mx-0.5" /> position here into $129. The setup
-        still works, but it’s overextended and we’re booking risk. Stops raised to breakeven.
-      </>
-    ),
-    reactions: [
-      { emoji: '📈', count: 9 },
-      { emoji: '🔥', count: 4 },
-    ],
-    replies: 11,
-  },
 ];
 
 function MessageRow({ message, index }: { message: DemoMessage; index: number }) {
