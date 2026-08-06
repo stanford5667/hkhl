@@ -4,9 +4,9 @@ import { ResearchTopBar } from "@/pages/research/components/ResearchTopBar";
 import { ResearchBottomBar } from "@/pages/research/components/ResearchBottomBar";
 import { ResearchHero } from "@/components/research/ResearchHero";
 import { StockOfTheDay } from "@/components/research/StockOfTheDay";
-import { DiscoveryFeed } from "@/components/research/DiscoveryFeed";
 import { HubOverviewGrid } from "@/components/research/HubOverviewGrid";
 import { DemoCarousel } from "@/components/demos/DemoCarousel";
+
 
 export default function ResearchPage() {
   const queryClient = useQueryClient();
@@ -54,8 +54,6 @@ export default function ResearchPage() {
         <HubOverviewGrid />
 
         <StockOfTheDay />
-
-        <DiscoveryFeed />
 
       </main>
 
