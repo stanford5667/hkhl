@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
+import { Search } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ResearchTopBar } from "@/pages/research/components/ResearchTopBar";
 import { ResearchBottomBar } from "@/pages/research/components/ResearchBottomBar";
@@ -9,6 +10,8 @@ import { StockOfTheDay } from "@/components/research/StockOfTheDay";
 import { HubOverviewGrid } from "@/components/research/HubOverviewGrid";
 import { DemoCarousel } from "@/components/demos/DemoCarousel";
 import { StockResearchDemo } from "@/components/demos/StockResearchDemo";
+import { cn } from "@/lib/utils";
+
 
 
 
