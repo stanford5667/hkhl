@@ -346,6 +346,26 @@ export function BacktestDemo() {
   return (
     <DemoCard accent>
       <DemoCardHeader
+        icon={<LineChart className="h-4 w-4 text-cyan-400" />}
+        category="Historical data"
+        title="Research any ticker"
+        subtitle="AAPL · Live price history and key stats"
+        right={<SampleBadge label="Historical data" />}
+      />
+
+      <DemoVisual className="mt-3 w-full">
+        <StockChartPreview />
+      </DemoVisual>
+
+      {/* Divider between the live ticker and the backtested strategy */}
+      <div className="mt-4 flex items-center gap-3">
+        <span className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-700 to-slate-700" />
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Then test a strategy</span>
+        <span className="h-px flex-1 bg-gradient-to-l from-transparent via-slate-700 to-slate-700" />
+      </div>
+
+      <DemoCardHeader
+        className="mt-4"
         icon={<Activity className="h-4 w-4 text-cyan-400" />}
         category="Backtested strategy"
         title={strategy.name}
@@ -356,6 +376,7 @@ export function BacktestDemo() {
       <p className="mt-1 text-[10px] leading-relaxed text-white/50">
         This is a simulated backtest. The curve and stats are predictions based on historical rules, not actual trades.
       </p>
+
 
       {/* Strategy chips — compact, clearly selectable presets */}
       <div className="mt-3">
