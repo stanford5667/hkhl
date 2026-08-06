@@ -82,6 +82,11 @@ function useMorph(target: number[], enabled: boolean, duration = 620) {
   return values;
 }
 
+/** Format a number safely; fallback to '--' when the value is NaN or undefined. */
+function safeFormat(value: number, formatter: (n: number) => string): string {
+  return Number.isFinite(value) ? formatter(value) : '--';
+}
+
 function StatCard({
   label,
   value,
