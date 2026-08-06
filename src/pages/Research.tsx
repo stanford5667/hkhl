@@ -66,20 +66,6 @@ export default function ResearchPage() {
           <HubOverviewGrid />
         </section>
 
-        <section>
-          <div className="mb-4 sm:mb-5">
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground tracking-tight">
-              Learn it properly — not from a thread
-            </h2>
-            <p className="text-sm sm:text-base lg:text-lg text-muted-foreground max-w-3xl mt-2 leading-relaxed">
-              92 video lessons from a hedge fund manager, from first principles through portfolio construction. Go at your own pace, and revisit anything as often as you need.
-            </p>
-          </div>
-          <div className="w-full md:max-w-4xl">
-            <AcademyDemo />
-          </div>
-        </section>
-
         <StockOfTheDay />
 
       </main>

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { BacktestDemo } from './BacktestDemo';
 import { ChatroomDemo } from './ChatroomDemo';
+import { AcademyDemo } from './AcademyDemo';
 import { useInViewOnce } from './useCountUp';
 
 const AUTO_ADVANCE_MS = 5000;
@@ -26,6 +27,7 @@ function LazyDemo({ children, minHeight }: { children: ReactNode; minHeight: num
 
 const DEMOS = [
   { id: 'backtest', node: <BacktestDemo />, minHeight: 620 },
+  { id: 'academy', node: <AcademyDemo />, minHeight: 520 },
   { id: 'chatroom', node: <ChatroomDemo />, minHeight: 520 },
 ];
 
