@@ -44,16 +44,6 @@ export default function ResearchPage() {
           <ResearchHero />
         </section>
 
-        <section>
-          <div className="mb-4 sm:mb-5">
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-cyan-400 tracking-tight">
-              The tools to find winning ideas
-            </h2>
-            <p className="text-sm sm:text-base lg:text-lg text-muted-foreground max-w-3xl mt-2 leading-relaxed">
-              Great investments don't come from guesswork. Screen thousands of tickers, backtest any thesis against decades of data, and learn the same research process used by top hedge fund managers — so you can find your next winning idea with confidence.
-            </p>
-          </div>
-        </section>
 
 
         <section>
