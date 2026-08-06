@@ -56,7 +56,7 @@ export interface DemoStrategy {
   expectedReturn: number;
   sharpe: number;
   maxDrawdown: number;
-  winningWeeks: number;
+  winningDays: number;
   volatility: number;
   series: DemoSeries;
   /** Streaming analyst read-out for this state. */
@@ -66,7 +66,7 @@ export interface DemoStrategy {
   annotations: DemoAnnotation[];
 }
 
-const RAW_DEMO_STRATEGIES: Omit<DemoStrategy, 'historicalReturn' | 'expectedReturn' | 'maxDrawdown' | 'winningWeeks' | 'volatility'>[] = [
+const RAW_DEMO_STRATEGIES: Omit<DemoStrategy, 'historicalReturn' | 'expectedReturn' | 'maxDrawdown' | 'winningDays' | 'volatility'>[] = [
   {
     id: 'rsi',
     name: 'Buy the Dip',
@@ -143,8 +143,8 @@ export const DEMO_STRATEGIES: DemoStrategy[] = RAW_DEMO_STRATEGIES.map((s) => {
     if (dd > maxDrawdown) maxDrawdown = dd;
   }
 
-  // Winning weeks percentage
-  const winningWeeks = Math.round((weeklyReturns.filter((r) => r > 0).length / weeklyReturns.length) * 100);
+  // Winning days percentage
+  const winningDays = Math.round((weeklyReturns.filter((r) => r > 0).length / weeklyReturns.length) * 100);
 
   return {
     ...s,
@@ -152,7 +152,7 @@ export const DEMO_STRATEGIES: DemoStrategy[] = RAW_DEMO_STRATEGIES.map((s) => {
     historicalReturn: totalReturn,
     expectedReturn: Math.round(annualizedReturn * 10000) / 100,
     maxDrawdown: Math.round(maxDrawdown * 10000) / 100,
-    winningWeeks,
+    winningDays,
     volatility: Math.round(volatility * 10000) / 100,
   };
 });

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Activity, Check, Sparkles, TrendingDown, TrendingUp } from 'lucide-react';
+import { Activity, Check, Sparkles, TrendingDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DEMO_STRATEGIES, DEMO_INITIAL_CAPITAL } from './demoData';
 import { useCountUp, usePrefersReducedMotion } from './useCountUp';
@@ -144,12 +144,11 @@ export function BacktestDemo() {
   const min = Math.min(...all, DEMO_INITIAL_CAPITAL);
   const max = Math.max(...all);
 
-  const ret = useCountUp(strategy.totalReturn, true);
   const sharpe = useCountUp(strategy.sharpe, true);
   const expected = useCountUp(strategy.expectedReturn, true);
   const historical = useCountUp(strategy.historicalReturn, true);
   const maxDd = useCountUp(strategy.maxDrawdown, true);
-  const winWeeks = useCountUp(strategy.winningWeeks, true);
+  const winDays = useCountUp(strategy.winningDays, true);
   const vol = useCountUp(strategy.volatility, true);
 
   // Annotations land only after the curve has finished drawing.
@@ -294,12 +293,6 @@ export function BacktestDemo() {
       {/* Condensed stats grid — bordered, accent-colored cards */}
       <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
         <StatCard
-          label="Total return"
-          value={`${ret >= 0 ? '+' : ''}${ret.toFixed(1)}%`}
-          icon={<TrendingUp className="h-3 w-3" />}
-          accent="emerald"
-        />
-        <StatCard
           label="Historical return"
           value={`${historical >= 0 ? '+' : ''}${historical.toFixed(1)}%`}
           accent="cyan"
@@ -321,8 +314,8 @@ export function BacktestDemo() {
           accent="rose"
         />
         <StatCard
-          label="Winning weeks"
-          value={`${winWeeks.toFixed(0)}%`}
+          label="Winning days"
+          value={`${winDays.toFixed(0)}%`}
           accent="emerald"
         />
         <StatCard
