@@ -7,7 +7,7 @@ import { StockOfTheDay } from "@/components/research/StockOfTheDay";
 import { HubOverviewGrid } from "@/components/research/HubOverviewGrid";
 import { DemoCarousel } from "@/components/demos/DemoCarousel";
 import { StockResearchDemo } from "@/components/demos/StockResearchDemo";
-import { BacktestTickerPreview } from "@/components/demos/BacktestTickerPreview";
+
 
 
 
@@ -66,10 +66,8 @@ export default function ResearchPage() {
             </p>
           </div>
           <DemoCarousel />
-          <div className="mt-3 sm:mt-4">
-            <BacktestTickerPreview />
-          </div>
         </section>
+
 
 
 
