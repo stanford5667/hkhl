@@ -396,7 +396,13 @@ export function AcademyDemo() {
           </div>
           <button
             type="button"
-            onClick={() => setShowMore((s) => !s)}
+            onClick={() => {
+              if (!user) {
+                goToAuth();
+                return;
+              }
+              setShowMore((s) => !s);
+            }}
             className="flex h-8 w-full items-center justify-center gap-1 rounded-lg border border-slate-800 bg-slate-900/40 text-[11px] font-medium text-cyan-400 transition-colors hover:bg-cyan-500/10 hover:text-cyan-300"
           >
             {showMore ? 'Show less' : `Show more lessons (${DEMO_LESSONS.length - 3})`}
