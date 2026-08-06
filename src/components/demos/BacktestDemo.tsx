@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { DEMO_STRATEGIES, DEMO_INITIAL_CAPITAL, type DemoDataPoint } from './demoData';
 import { useCountUp, usePrefersReducedMotion } from './useCountUp';
 import { useChartData } from '@/hooks/useChartData';
+import { AcademyDemoInner } from './AcademyDemo';
 import {
   DemoCard,
   DemoCardHeader,
