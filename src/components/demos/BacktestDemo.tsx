@@ -219,7 +219,7 @@ export function BacktestDemo() {
                 onClick={() => setActiveId(s.id)}
                 aria-pressed={isActive}
                 className={cn(
-                  'flex min-h-[30px] items-center gap-1.5 rounded-md border px-2 py-1 text-left transition-colors',
+                  'flex min-h-[26px] items-center gap-1 rounded-md border px-1.5 py-0.5 text-left transition-colors',
                   isActive
                     ? 'border-cyan-500/50 bg-cyan-500/15 text-cyan-300'
                     : 'border-slate-700 bg-slate-900/70 text-gray-400 hover:border-cyan-500/30 hover:text-gray-200'
@@ -227,15 +227,15 @@ export function BacktestDemo() {
               >
                 <span
                   className={cn(
-                    'flex h-4 w-4 items-center justify-center rounded-sm',
+                    'flex h-3.5 w-3.5 items-center justify-center rounded-sm',
                     isActive ? 'bg-cyan-500/20 text-cyan-300' : 'bg-slate-800 text-slate-400'
                   )}
                 >
                   {isActive ? <Check className="h-2.5 w-2.5" /> : <Activity className="h-2.5 w-2.5" />}
                 </span>
                 <div className="flex flex-col leading-tight">
-                  <span className="text-[11px] font-semibold">{s.name}</span>
-                  <span className="text-[9px] text-gray-500">{s.techName}</span>
+                  <span className="text-[10px] font-semibold">{s.name}</span>
+                  <span className="text-[8px] text-gray-500">{s.techName}</span>
                 </div>
               </motion.button>
             );
