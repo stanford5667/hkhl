@@ -139,7 +139,7 @@ export function ResearchHero({
             transition={{ duration: 0.5, delay: 0.1 }}
           >
             <span className="text-primary font-medium">Automated AI investing.</span>{' '}
-            Learn from top performing hedge fund managers, get live trade ideas in the chatroom.
+            Build strategies for any stock, then backtest them for historical returns before you risk a dollar.
           </motion.p>
           <motion.div
             className="flex justify-start sm:justify-center mt-4"

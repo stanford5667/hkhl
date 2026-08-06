@@ -249,7 +249,7 @@ export function StrategyBacktester({ ticker, companyName, autoRunStrategy }: Str
         <div>
           <h2 className="text-xl font-bold">Strategy Backtester</h2>
           <p className="text-sm text-muted-foreground">
-            Test trading strategies on {companyName} ({ticker}) with real historical data
+            Pick a stock, build a strategy, then see how it would have performed historically. No real trades.
           </p>
         </div>
         {result && <InspectModeToggle inspectMode={inspectMode} onToggle={setInspectMode} />}
