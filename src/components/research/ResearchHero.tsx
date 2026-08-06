@@ -123,7 +123,7 @@ export function ResearchHero({
           </motion.div>
 
           <motion.h1
-            className="font-display text-[clamp(2rem,8vw,3rem)] sm:text-[clamp(2.25rem,4.5vw,3.25rem)] leading-[1.08] tracking-tight font-bold mb-5 sm:mb-6 w-full"
+            className="font-display text-[clamp(2rem,8vw,3rem)] sm:text-[clamp(2.25rem,4vw,2.75rem)] leading-[1.08] tracking-tight font-bold mb-5 sm:mb-6 w-full"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
