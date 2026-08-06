@@ -128,8 +128,7 @@ export function AcademyDemoInner({ className }: { className?: string }) {
 
 
   return (
-    <DemoCard className="overflow-hidden">
-      <div className="flex flex-col gap-4">
+    <div className={cn('flex flex-col gap-4', className)}>
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2.5">
