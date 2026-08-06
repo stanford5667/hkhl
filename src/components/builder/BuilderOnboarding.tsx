@@ -159,37 +159,36 @@ export const BuilderOnboarding = memo(function BuilderOnboarding({
           </Button>
         </div>
 
-        {/* Quick Start Templates */}
+        {/* Quick Start Templates — compact selectable chips */}
         <div>
           <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
             Start with an idea
           </p>
           <p className="text-xs text-muted-foreground mb-2">
-            Pick a strategy and see how it would have performed.
+            Tap a preset to load it into the canvas.
           </p>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="flex flex-wrap gap-2">
             {templates.map((template) => {
               const display = getStrategyDisplayName(template);
               return (
-                <Button
+                <button
                   key={template.id}
-                  variant="outline"
                   onClick={() => onLoadTemplate(template)}
-                  className="h-auto py-3 px-3 text-left justify-start flex-col items-start gap-1 hover:border-primary hover:bg-primary/5 transition-all"
+                  className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-left transition-all hover:border-primary hover:bg-primary/5"
                 >
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="text-xs">
-                      {template.blocks.length} blocks
-                    </Badge>
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                    {template.blocks.length} blocks
+                  </Badge>
+                  <div className="flex flex-col leading-tight">
+                    <span className="text-sm font-medium">{display.plainName}</span>
+                    {display.techName && (
+                      <span className="text-[10px] text-muted-foreground/80">{display.techName}</span>
+                    )}
                   </div>
-                  <span className="text-sm font-medium">{display.plainName}</span>
-                  {display.techName && (
-                    <span className="text-[10px] text-muted-foreground/80">{display.techName}</span>
-                  )}
-                  <span className="text-xs text-muted-foreground line-clamp-1">
+                  <span className="text-xs text-muted-foreground line-clamp-1 max-w-[160px]">
                     {template.description}
                   </span>
-                </Button>
+                </button>
               );
             })}
           </div>
