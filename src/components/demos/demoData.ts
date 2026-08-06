@@ -52,7 +52,12 @@ export interface DemoStrategy {
   techName: string;
   ticker: string;
   totalReturn: number;
+  historicalReturn: number;
+  expectedReturn: number;
   sharpe: number;
+  maxDrawdown: number;
+  winningWeeks: number;
+  volatility: number;
   series: DemoSeries;
   /** Streaming analyst read-out for this state. */
   insight: string;
