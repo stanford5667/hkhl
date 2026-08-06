@@ -7,6 +7,7 @@ import { ResearchBottomBar } from "@/pages/research/components/ResearchBottomBar
 import { ResearchHero } from "@/components/research/ResearchHero";
 import { StockOfTheDay } from "@/components/research/StockOfTheDay";
 import { SectionDivider } from "@/components/research/SectionDivider";
+import { StrategyPillars } from "@/components/research/StrategyPillars";
 import { DemoCarousel } from "@/components/demos/DemoCarousel";
 
 
