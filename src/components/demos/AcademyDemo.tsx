@@ -569,7 +569,7 @@ export function AcademyDemo() {
             className="h-8 w-full text-[11px] font-medium text-cyan-400 hover:bg-cyan-500/10 hover:text-cyan-300"
             onClick={() => (user ? navigate('/academy') : goToAuth())}
           >
-            Unlock all 92 lessons — from $83/mo
+            Unlock all {totalLessons} lessons — from $83/mo
           </Button>
         </div>
       </div>
