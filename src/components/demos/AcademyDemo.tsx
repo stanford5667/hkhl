@@ -347,7 +347,13 @@ export function AcademyDemo() {
                 >
                   <button
                     type="button"
-                    onClick={() => setOpenLesson(isOpen ? null : lesson.id)}
+                    onClick={() => {
+                      if (!user) {
+                        goToAuth();
+                        return;
+                      }
+                      setOpenLesson(isOpen ? null : lesson.id);
+                    }}
                     className="flex w-full items-center gap-2 px-3 py-2.5 text-left"
                   >
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-800 text-[9px] text-muted-foreground">
