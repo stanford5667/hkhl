@@ -116,7 +116,11 @@ export function BacktestDemo() {
       />
 
       {/* Strategy chips — 44px tap targets */}
-      <div className="mt-3 flex flex-wrap gap-2">
+      <p className="mt-3 text-[11px] text-gray-400">
+        Start with an idea — pick a strategy and see how it would have performed.
+      </p>
+      <div className="mt-2 flex flex-wrap gap-2">
+
         {DEMO_STRATEGIES.map((s) => (
           <motion.button
             key={s.id}
