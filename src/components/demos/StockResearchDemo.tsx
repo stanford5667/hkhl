@@ -1,4 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
@@ -100,26 +102,44 @@ function sample(values: number[], n = 48) {
   return Array.from({ length: n }, (_, i) => values[Math.round(i * step)]);
 }
 
+const RANGES = ['1M', '3M', '6M', '1Y'] as const;
+
 export function StockResearchDemo() {
   const navigate = useNavigate();
   const reduced = usePrefersReducedMotion();
+  const [range, setRange] = useState<(typeof RANGES)[number]>('6M');
 
-  const { data: bars, isLoading } = useChartData(DEMO_TICKER, '6M');
+  const { data: bars, isLoading } = useChartData(DEMO_TICKER, range);
 
-  const series = useMemo(() => {
-    const closes = (bars ?? []).map((b) => b.price).filter((p) => Number.isFinite(p));
-    return closes.length > 4 ? sample(closes) : FALLBACK_POINTS;
-  }, [bars]);
+  const points = useMemo(
+    () =>
+      (bars ?? [])
+        .filter((b) => Number.isFinite(b.price))
+        .map((b) => ({ t: b.time * 1000, price: b.price })),
+    [bars],
+  );
 
-  const isLive = (bars?.length ?? 0) > 4;
-  const livePrice = isLive ? series[series.length - 1] : DEMO_PRICE;
-  const prevClose = isLive && series.length > 1 ? series[series.length - 2] : DEMO_PRICE - DEMO_CHANGE;
-  const change = livePrice - prevClose;
-  const changePercent = prevClose ? (change / prevClose) * 100 : 0;
+  const isLive = points.length > 4;
+  const last = isLive ? points[points.length - 1].price : DEMO_PRICE;
+  const prev = isLive && points.length > 1 ? points[points.length - 2].price : DEMO_PRICE - DEMO_CHANGE;
+  const change = last - prev;
+  const changePercent = prev ? (change / prev) * 100 : 0;
 
-  const price = useCountUp(livePrice, true);
+  const domain = useMemo(() => {
+    if (!isLive) return undefined;
+    const vals = points.map((p) => p.price);
+    const min = Math.min(...vals);
+    const max = Math.max(...vals);
+    const pad = (max - min) * 0.08 || 1;
+    return [min - pad, max + pad] as [number, number];
+  }, [points, isLive]);
+
+  const price = useCountUp(last, true);
   const isPositive = change >= 0;
-  const dot = endPoint(series);
+  const fmtDate = (t: number) =>
+    new Date(t).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+
 
 
   return (
@@ -156,48 +176,92 @@ export function StockResearchDemo() {
           </div>
         </div>
 
-        {/* Mini chart */}
+        {/* Real AAPL price chart */}
         <DemoVisual className="w-full">
-          <div className="relative overflow-hidden rounded-xl border border-slate-800 bg-slate-950/60 p-3">
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">Price action</span>
-              <span className="text-[10px] text-muted-foreground">{isLive ? '6M · live data' : isLoading ? 'Loading 6M…' : '6M view'}</span>
+          <div className="relative overflow-hidden rounded-xl border border-white/[0.08] bg-slate-950/60 p-3">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-white/50">Price action</span>
+              <div className="flex items-center gap-1 rounded-full border border-white/[0.08] bg-white/[0.04] p-0.5">
+                {RANGES.map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => setRange(r)}
+                    className={cn(
+                      'rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors',
+                      range === r ? 'bg-primary text-white' : 'text-white/50 hover:text-white',
+                    )}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="relative w-full" style={{ aspectRatio: '320 / 100' }}>
-              <svg
-                viewBox="0 0 320 100"
-                className="h-full w-full"
-                preserveAspectRatio="none"
-                role="img"
-                aria-label="AAPL 6-month price chart"
-              >
-                <defs>
-                  <linearGradient id="demo-stock-fill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="hsl(185 80% 50%)" stopOpacity="0.25" />
-                    <stop offset="100%" stopColor="hsl(185 80% 50%)" stopOpacity="0" />
-                  </linearGradient>
-                </defs>
-                <path
-                  d={`${toPath(series)} L316,100 4,100 Z`}
-                  fill="url(#demo-stock-fill)"
-                />
-                <motion.path
-                  d={toPath(series)}
-                  fill="none"
-                  stroke="hsl(185 80% 50%)"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  initial={reduced ? { pathLength: 1 } : { pathLength: 0 }}
-                  whileInView={{ pathLength: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: reduced ? 0 : 1.2, ease: 'easeOut' }}
-                />
-                {/* End dot */}
-                <circle cx={dot.x} cy={dot.y} r="3" fill="hsl(185 80% 50%)" />
-              </svg>
+            <div className="relative h-[140px] w-full sm:h-[180px]">
+              {points.length > 1 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={points} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+                    <defs>
+                      <linearGradient id="demo-stock-fill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#38BDF8" stopOpacity={0.28} />
+                        <stop offset="100%" stopColor="#38BDF8" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis
+                      dataKey="t"
+                      type="number"
+                      scale="time"
+                      domain={['dataMin', 'dataMax']}
+                      tickFormatter={fmtDate}
+                      tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 9 }}
+                      axisLine={false}
+                      tickLine={false}
+                      minTickGap={40}
+                    />
+                    <YAxis
+                      domain={domain ?? ['auto', 'auto']}
+                      orientation="right"
+                      width={44}
+                      tickFormatter={(v: number) => `$${v.toFixed(0)}`}
+                      tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 9 }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        background: '#111827',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        borderRadius: 8,
+                        fontSize: 11,
+                      }}
+                      labelFormatter={(t) => fmtDate(Number(t))}
+                      formatter={(v: number) => [`$${Number(v).toFixed(2)}`, 'Close']}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="price"
+                      stroke="#38BDF8"
+                      strokeWidth={1.5}
+                      fill="url(#demo-stock-fill)"
+                      isAnimationActive={!reduced}
+                      animationDuration={900}
+                      dot={false}
+                      activeDot={{ r: 3, fill: '#38BDF8', stroke: 'none' }}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex h-full items-center justify-center text-[11px] text-white/40">
+                  {isLoading ? 'Loading AAPL price history…' : 'Price history unavailable'}
+                </div>
+              )}
             </div>
+            <p className="mt-1 text-right text-[9px] text-white/35">
+              {isLive ? `AAPL · ${range} · live market data` : 'AAPL daily closes'}
+            </p>
           </div>
         </DemoVisual>
+
 
         {/* Research tabs */}
         <div>
