@@ -91,6 +91,28 @@ export default function ResearchPage() {
               Pull up a stock or ETF and get chart, fundamentals, quant signals, news, SEC filings, and analyst chatter — all in one view.
             </p>
 
+            {/* Search bar above the AAPL demo */}
+            <div className="relative mt-4">
+              <div className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
+                <Search className="h-4 w-4 text-white/40" />
+              </div>
+              <input
+                type="text"
+                placeholder="Search AAPL, NVDA, TSLA, or any ticker…"
+                className={cn(
+                  "w-full rounded-xl border border-white/[0.08] bg-slate-950/60 py-3 pl-10 pr-4",
+                  "text-sm text-white placeholder:text-white/40",
+                  "focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/30",
+                  "transition-colors"
+                )}
+                readOnly
+              />
+              <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                <span className="hidden sm:inline-flex items-center rounded-md border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 text-[10px] font-medium text-white/40">
+                  ⌘K
+                </span>
+              </div>
+            </div>
           </div>
           <StockResearchDemo />
         </section>
