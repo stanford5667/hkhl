@@ -133,7 +133,7 @@ export function StockOfTheDay() {
       <div className="relative flex items-start justify-between mb-3">
         <div>
           <button
-            onClick={() => navigate(`/stock/${pick.ticker}`)}
+            onClick={() => (user ? navigate(`/stock/${pick.ticker}`) : goToAuth())}
             className="text-lg font-bold text-foreground hover:text-primary transition-colors"
           >
             {pick.ticker}
