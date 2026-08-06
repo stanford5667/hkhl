@@ -77,17 +77,6 @@ export default function ResearchPage() {
 
 
 
-        <section>
-          <div className="mb-4 sm:mb-5">
-            <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground tracking-tight">
-              Everything, in one place
-            </h2>
-            <p className="text-sm sm:text-base text-muted-foreground max-w-3xl mt-2 leading-relaxed">
-              Where you left off across the platform.
-            </p>
-          </div>
-          <HubOverviewGrid />
-        </section>
 
         <StockOfTheDay />
 
