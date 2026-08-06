@@ -123,7 +123,7 @@ export function ResearchHero({
           </motion.div>
 
           <motion.h1
-            className="font-display text-[clamp(2rem,8vw,3rem)] sm:text-[clamp(2.5rem,4.5vw,3.5rem)] leading-[1.08] tracking-tight font-bold mb-4 sm:mb-5 w-full"
+            className="font-display text-[clamp(2rem,8vw,3rem)] sm:text-[clamp(2.5rem,5vw,4rem)] leading-[1.05] tracking-tight font-bold mb-4 sm:mb-5 w-full"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
@@ -134,10 +134,11 @@ export function ResearchHero({
               <span className="text-primary block">investment</span>
               <span className="text-foreground block">starts here</span>
             </span>
-            {/* Desktop: 2-line, more horizontal */}
+            {/* Desktop: single line */}
             <span className="hidden sm:block">
-              <span className="text-foreground block">Your next big <span className="text-primary">investment</span></span>
-              <span className="text-foreground block">starts here</span>
+              <span className="text-foreground">Your next big </span>
+              <span className="text-primary">investment</span>
+              <span className="text-foreground"> starts here</span>
             </span>
           </motion.h1>
           <motion.p
