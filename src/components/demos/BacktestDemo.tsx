@@ -166,9 +166,8 @@ export function BacktestDemo() {
   const strategy = DEMO_STRATEGIES.find((s) => s.id === activeId) ?? DEMO_STRATEGIES[0];
 
   const values = useMorph(strategy.series.values, !reduced);
-  const buyHold = useMorph(strategy.series.buyHold, !reduced);
 
-  const all = [...values, ...buyHold];
+  const all = [...values];
   const min = Math.min(...all, DEMO_INITIAL_CAPITAL);
   const max = Math.max(...all);
 
