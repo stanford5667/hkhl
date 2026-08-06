@@ -85,6 +85,14 @@ export default function ResearchPage() {
         <SectionDivider />
 
         <section>
+          <StrategyPillars />
+        </section>
+
+        <SectionDivider />
+
+
+
+        <section>
           <div className="mb-4 sm:mb-5">
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white tracking-tight">
               The tools to find winning ideas
