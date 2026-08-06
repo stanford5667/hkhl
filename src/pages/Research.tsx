@@ -6,6 +6,7 @@ import { ResearchHero } from "@/components/research/ResearchHero";
 import { StockOfTheDay } from "@/components/research/StockOfTheDay";
 import { HubOverviewGrid } from "@/components/research/HubOverviewGrid";
 import { DemoCarousel } from "@/components/demos/DemoCarousel";
+import { StockResearchDemo } from "@/components/demos/StockResearchDemo";
 
 
 export default function ResearchPage() {
@@ -50,6 +51,19 @@ export default function ResearchPage() {
               Great investments don't come from guesswork. Screen thousands of tickers, backtest any thesis against decades of data, and learn the same research process used by top hedge fund managers — so you can find your next winning idea with confidence.
             </p>
           </div>
+        </section>
+
+
+        <section>
+          <div className="mb-4 sm:mb-5">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-cyan-400 tracking-tight">
+              Research any ticker
+            </h2>
+            <p className="text-sm sm:text-base lg:text-lg text-muted-foreground max-w-3xl mt-2 leading-relaxed">
+              Pull up a stock or ETF and get chart, fundamentals, quant signals, news, SEC filings, and analyst chatter — all in one view.
+            </p>
+          </div>
+          <StockResearchDemo />
         </section>
 
 
