@@ -313,7 +313,7 @@ export function AcademyDemo() {
         </div>
 
         {/* Video preview player */}
-        <div className="relative overflow-hidden rounded-xl border border-slate-800 bg-black shadow-lg">
+        <div data-guest-allow className="relative overflow-hidden rounded-xl border border-slate-800 bg-black shadow-lg">
           <div className="relative aspect-video w-full">
             {preview ? (
               <video
