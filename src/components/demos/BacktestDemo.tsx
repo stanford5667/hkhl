@@ -1,10 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Area, AreaChart, ResponsiveContainer, Tooltip as ReTooltip, XAxis, YAxis } from 'recharts';
+import {
+  Area,
+  AreaChart,
+  Line,
+  ReferenceDot,
+  ResponsiveContainer,
+  Tooltip as ReTooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import { Activity, Check, HelpCircle, LineChart, Sparkles, TrendingDown, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { DEMO_STRATEGIES, DEMO_INITIAL_CAPITAL } from './demoData';
+import { DEMO_STRATEGIES, DEMO_INITIAL_CAPITAL, type DemoDataPoint } from './demoData';
 import { useCountUp, usePrefersReducedMotion } from './useCountUp';
 import { useChartData } from '@/hooks/useChartData';
 import {
@@ -23,54 +32,41 @@ import {
 
 
 
-const W = 320;
-const H = 120;
-const PAD = 6;
-
-function toPath(values: number[], min: number, max: number) {
-  const span = max - min || 1;
-  return values
-    .map((v, i) => {
-      const x = PAD + (i / (values.length - 1)) * (W - PAD * 2);
-      const y = H - PAD - ((v - min) / span) * (H - PAD * 2);
-      return `${i === 0 ? 'M' : 'L'}${x.toFixed(2)},${y.toFixed(2)}`;
-    })
-    .join(' ');
+/** Format a number safely; fallback to '--' when the value is NaN or undefined. */
+function safeFormat(value: number, formatter: (n: number) => string): string {
+  return Number.isFinite(value) ? formatter(value) : '--';
 }
 
-function pointAt(values: number[], i: number, min: number, max: number) {
-  const span = max - min || 1;
-  const idx = Math.max(0, Math.min(values.length - 1, i));
-  return {
-    xPct: ((PAD + (idx / (values.length - 1)) * (W - PAD * 2)) / W) * 100,
-    yPct: ((H - PAD - ((values[idx] - min) / span) * (H - PAD * 2)) / H) * 100,
-  };
-}
-
-/** Spring-ish tween between two equal-length numeric arrays. */
-function useMorph(target: number[], enabled: boolean, duration = 620) {
-  const [values, setValues] = useState<number[]>(target);
-  const fromRef = useRef<number[]>(target);
+/** Spring-ish tween between two equal-length series. */
+function useMorphSeries(target: DemoDataPoint[], enabled: boolean, duration = 620) {
+  const [points, setPoints] = useState<DemoDataPoint[]>(target);
+  const fromRef = useRef<DemoDataPoint[]>(target);
   const rafRef = useRef<number>();
 
   useEffect(() => {
     if (!enabled) {
       fromRef.current = target;
-      setValues(target);
+      setPoints(target);
       return;
     }
     const from = fromRef.current;
     if (from.length !== target.length) {
       fromRef.current = target;
-      setValues(target);
+      setPoints(target);
       return;
     }
     const start = performance.now();
     const tick = (now: number) => {
       const t = Math.min(1, (now - start) / duration);
-      // critically damped spring-like settle
       const eased = 1 - Math.exp(-6 * t) * (1 + 6 * t * 0.35);
-      setValues(from.map((v, i) => v + (target[i] - v) * Math.min(1, eased)));
+      setPoints(
+        from.map((p, i) => ({
+          ...p,
+          equity: p.equity + (target[i].equity - p.equity) * eased,
+          benchmark: p.benchmark + (target[i].benchmark - p.benchmark) * eased,
+          drawdown: p.drawdown + (target[i].drawdown - p.drawdown) * eased,
+        }))
+      );
       if (t < 1) rafRef.current = requestAnimationFrame(tick);
       else fromRef.current = target;
     };
@@ -81,12 +77,7 @@ function useMorph(target: number[], enabled: boolean, duration = 620) {
     };
   }, [target, enabled, duration]);
 
-  return values;
-}
-
-/** Format a number safely; fallback to '--' when the value is NaN or undefined. */
-function safeFormat(value: number, formatter: (n: number) => string): string {
-  return Number.isFinite(value) ? formatter(value) : '--';
+  return points;
 }
 
 const STOCK_DEMO_TICKER = 'AAPL';
@@ -177,8 +168,8 @@ function StockChartPreview() {
               <AreaChart data={points} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
                 <defs>
                   <linearGradient id="demo-stock-fill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#38BDF8" stopOpacity={0.28} />
-                    <stop offset="100%" stopColor="#38BDF8" stopOpacity={0} />
+                    <stop offset="0%" stopColor="hsl(var(--chart-1))" stopOpacity={0.28} />
+                    <stop offset="100%" stopColor="hsl(var(--chart-1))" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <XAxis
@@ -214,13 +205,13 @@ function StockChartPreview() {
                 <Area
                   type="monotone"
                   dataKey="price"
-                  stroke="#38BDF8"
+                  stroke="hsl(var(--chart-1))"
                   strokeWidth={1.5}
                   fill="url(#demo-stock-fill)"
                   isAnimationActive={!reduced}
                   animationDuration={900}
                   dot={false}
-                  activeDot={{ r: 3, fill: '#38BDF8', stroke: 'none' }}
+                  activeDot={{ r: 3, fill: 'hsl(var(--chart-1))', stroke: 'none' }}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -318,11 +309,13 @@ export function BacktestDemo() {
   const [activeId, setActiveId] = useState(DEMO_STRATEGIES[0].id);
   const strategy = DEMO_STRATEGIES.find((s) => s.id === activeId) ?? DEMO_STRATEGIES[0];
 
-  const values = useMorph(strategy.series.values, !reduced);
+  const points = useMorphSeries(strategy.series.points, !reduced);
 
-  const all = [...values];
-  const min = Math.min(...all, DEMO_INITIAL_CAPITAL);
-  const max = Math.max(...all);
+  const min = useMemo(
+    () => Math.min(DEMO_INITIAL_CAPITAL, ...points.map((p) => p.equity)),
+    [points]
+  );
+  const max = useMemo(() => Math.max(...points.map((p) => p.equity)), [points]);
 
   const sharpe = useCountUp(strategy.sharpe, true);
   const expected = useCountUp(strategy.expectedReturn, true);
@@ -346,7 +339,7 @@ export function BacktestDemo() {
   return (
     <DemoCard accent>
       <DemoCardHeader
-        icon={<LineChart className="h-4 w-4 text-cyan-400" />}
+        icon={<LineChart className="h-4 w-4 text-blue-400" />}
         category="Historical data"
         title="Research any ticker"
         subtitle="AAPL · Live price history and key stats"
@@ -366,7 +359,7 @@ export function BacktestDemo() {
 
       <DemoCardHeader
         className="mt-4"
-        icon={<Activity className="h-4 w-4 text-cyan-400" />}
+        icon={<Activity className="h-4 w-4 text-blue-400" />}
         category="Backtested strategy"
         title={strategy.name}
         subtitle={`${strategy.techName} · ${strategy.ticker} · 2020–2024 · weekly`}
@@ -420,70 +413,109 @@ export function BacktestDemo() {
         </div>
       </div>
 
-      {/* Chart — fixed aspect ratio, zero layout shift */}
+      {/* Chart — proper time-based axes, benchmark overlay, and trade markers */}
       <DemoVisual className="mt-3 w-full">
-        <div className="relative w-full" style={{ aspectRatio: `${W} / ${H}` }}>
-          <svg
-            viewBox={`0 0 ${W} ${H}`}
-            className="h-full w-full"
-            preserveAspectRatio="none"
-            role="img"
-            aria-label="Strategy equity curve preview"
-          >
-            <defs>
-              <linearGradient id="demo-eq-fill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="hsl(185 80% 50%)" stopOpacity="0.28" />
-                <stop offset="100%" stopColor="hsl(185 80% 50%)" stopOpacity="0" />
-              </linearGradient>
-            </defs>
-            <path
-              d={`${toPath(values, min, max)} L${W - PAD},${H} L${PAD},${H} Z`}
-              fill="url(#demo-eq-fill)"
-            />
-            <motion.path
-              d={toPath(values, min, max)}
-              fill="none"
-              stroke="hsl(185 80% 50%)"
-              strokeWidth="2"
-              strokeLinecap="round"
-              initial={reduced ? { pathLength: 1 } : { pathLength: 0 }}
-              whileInView={{ pathLength: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: reduced ? 0 : 1.15, ease: 'easeOut' }}
-            />
-          </svg>
-
-          {/* AI annotations, overlaid so the labels stay undistorted */}
-          <AnimatePresence>
-            {showAnnotations &&
-              strategy.annotations.map((a) => {
-                const { xPct, yPct } = pointAt(values, a.index, min, max);
-                const below = a.dir === 1;
-                const flipX = xPct > 60;
-                return (
-                  <motion.div
+        <div className="relative h-[180px] w-full sm:h-[220px]">
+          <div className="absolute right-2 top-2 z-10 flex items-center gap-3 text-[9px]">
+            <span className="flex items-center gap-1.5 text-white/60">
+              <span className="h-2 w-4 rounded-full bg-[hsl(var(--chart-1))]" />
+              Strategy
+            </span>
+            <span className="flex items-center gap-1.5 text-white/40">
+              <span className="h-px w-4 border-t border-dashed border-white/40" />
+              Buy & hold
+            </span>
+          </div>
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={points} margin={{ top: 24, right: 8, bottom: 0, left: 0 }}>
+              <defs>
+                <linearGradient id="demo-eq-fill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(var(--chart-1))" stopOpacity={0.25} />
+                  <stop offset="100%" stopColor="hsl(var(--chart-1))" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <XAxis
+                dataKey="timestamp"
+                type="number"
+                scale="time"
+                domain={['dataMin', 'dataMax']}
+                tickFormatter={(t: number) =>
+                  new Date(t).toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+                }
+                tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 9 }}
+                axisLine={false}
+                tickLine={false}
+                minTickGap={50}
+              />
+              <YAxis
+                dataKey="equity"
+                orientation="right"
+                width={52}
+                domain={[min, max]}
+                tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`}
+                tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 9 }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <ReTooltip
+                contentStyle={{
+                  background: '#111827',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 8,
+                  fontSize: 11,
+                }}
+                labelFormatter={(t: number) =>
+                  new Date(Number(t)).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })
+                }
+                formatter={(v: number, name: string) => {
+                  if (name === 'equity') return [`$${Number(v).toLocaleString()}`, 'Strategy'];
+                  if (name === 'benchmark') return [`$${Number(v).toLocaleString()}`, 'Buy & hold'];
+                  return [v, name];
+                }}
+              />
+              <Area
+                type="monotone"
+                dataKey="equity"
+                stroke="hsl(var(--chart-1))"
+                strokeWidth={2}
+                fill="url(#demo-eq-fill)"
+                isAnimationActive={!reduced}
+                animationDuration={1000}
+                dot={false}
+                activeDot={{ r: 3, fill: 'hsl(var(--chart-1))', stroke: 'none' }}
+              />
+              <Line
+                type="monotone"
+                dataKey="benchmark"
+                stroke="rgba(255,255,255,0.35)"
+                strokeWidth={1.5}
+                strokeDasharray="4 4"
+                dot={false}
+                isAnimationActive={false}
+              />
+              {showAnnotations &&
+                strategy.annotations.map((a) => (
+                  <ReferenceDot
                     key={`${strategy.id}-${a.index}`}
-                    initial={reduced ? false : { opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={reduced ? { duration: 0 } : { ...DEMO_SPRING, delay: 0.12 }}
-                    className="pointer-events-none absolute"
-                    style={{ left: `${xPct}%`, top: `${yPct}%` }}
-                  >
-                    <span className="absolute -left-[3px] -top-[3px] block h-1.5 w-1.5 rounded-full bg-cyan-300 ring-2 ring-cyan-400/25" />
-                    <span
-                      className={cn(
-                        'absolute whitespace-nowrap rounded-md border border-cyan-500/25 bg-slate-950/90 px-1.5 py-0.5 text-[9px] font-medium text-cyan-200/90',
-                        below ? 'top-2.5' : 'bottom-2.5',
-                        flipX ? 'right-1' : 'left-1'
-                      )}
-                    >
-                      {a.label}
-                    </span>
-                  </motion.div>
-                );
-              })}
-          </AnimatePresence>
+                    x={strategy.series.points[a.index].timestamp}
+                    y={strategy.series.points[a.index].equity}
+                    r={3}
+                    fill="hsl(var(--chart-1))"
+                    stroke="none"
+                    label={{
+                      value: a.label,
+                      position: a.dir === 1 ? 'bottom' : 'top',
+                      fill: 'rgba(255,255,255,0.85)',
+                      fontSize: 9,
+                    }}
+                  />
+                ))}
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
       </DemoVisual>
 
@@ -493,7 +525,7 @@ export function BacktestDemo() {
           <StatCard
             label="Historical return"
             value={safeFormat(historical, (v) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`)}
-            accent="cyan"
+            accent="blue"
             tooltip="Total percentage return the strategy produced during the backtested history window."
           />
           <StatCard
@@ -505,7 +537,7 @@ export function BacktestDemo() {
           <StatCard
             label="Sharpe ratio"
             value={safeFormat(sharpe, (v) => v.toFixed(2))}
-            accent="cyan"
+            accent="blue"
             tooltip="Return earned per unit of risk; a ratio above 1.0 generally means the return justifies the volatility."
           />
           <StatCard
@@ -524,7 +556,7 @@ export function BacktestDemo() {
           <StatCard
             label="Volatility"
             value={safeFormat(vol, (v) => `${v.toFixed(1)}%`)}
-            accent="cyan"
+            accent="blue"
             tooltip="Standard deviation of returns; higher values mean the strategy swings more sharply."
           />
         </div>
