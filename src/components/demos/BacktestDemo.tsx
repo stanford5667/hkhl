@@ -144,7 +144,7 @@ function StatCard({
               <button
                 type="button"
                 aria-label={`What is ${label}?`}
-                className={cn('ml-auto flex h-4 w-4 items-center justify-center rounded-full opacity-60 transition-opacity hover:opacity-100', styles.iconBg)}
+                className={cn('ml-auto flex h-5 w-5 items-center justify-center rounded-full opacity-60 transition-opacity hover:opacity-100 focus-visible:opacity-100', styles.iconBg)}
               >
                 <HelpCircle className={cn('h-3 w-3', styles.text)} />
               </button>
