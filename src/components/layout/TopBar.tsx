@@ -79,7 +79,15 @@ export function TopBar({ onOpenSearch }: TopBarProps) {
             </nav>
           ) : (
             <div className="flex flex-col">
-              <h1 className="text-foreground font-semibold text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none">{pageMeta.title}</h1>
+              <h1 className="text-foreground font-semibold text-sm sm:text-base lg:text-lg truncate max-w-[140px] sm:max-w-none">
+                {pageMeta.title === "Asset Labs AI" ? (
+                  <>
+                    Asset Labs <span className="text-cyan-400">AI</span>
+                  </>
+                ) : (
+                  pageMeta.title
+                )}
+              </h1>
               <p className="text-muted-foreground text-xs hidden sm:block">{pageMeta.subtitle}</p>
             </div>
           )}
