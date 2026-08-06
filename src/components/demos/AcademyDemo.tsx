@@ -23,6 +23,58 @@ const fmt = (s: number) => {
   return `${Math.floor(v / 60)}:${String(v % 60).padStart(2, '0')}`;
 };
 
+const DEMO_LESSONS = [
+  {
+    id: 'l1',
+    module: 'Module 1',
+    title: 'How the Pros Find Ideas',
+    duration: '12 min',
+    description: 'The same screen hedge funds run every Monday morning: liquidity, momentum, and catalyst filters.',
+    locked: false,
+  },
+  {
+    id: 'l2',
+    module: 'Module 1',
+    title: 'Reading the Macro Map',
+    duration: '16 min',
+    description: 'Rates, credit, and earnings revisions — the three inputs that drive 80% of market direction.',
+    locked: true,
+  },
+  {
+    id: 'l3',
+    module: 'Module 2',
+    title: 'Backtesting a Real Strategy',
+    duration: '22 min',
+    description: 'Build a rules-based strategy, test it across 30+ years, and interpret the Sharpe and drawdown.',
+    locked: true,
+  },
+  {
+    id: 'l4',
+    module: 'Module 3',
+    title: 'Position Sizing & Risk',
+    duration: '14 min',
+    description: 'Why the best idea can still ruin a portfolio if sizing is wrong.',
+    locked: true,
+  },
+  {
+    id: 'l5',
+    module: 'Module 4',
+    title: 'The Options Overlay',
+    duration: '19 min',
+    description: 'Use defined-risk options to express the same thesis with less capital.',
+    locked: true,
+  },
+  {
+    id: 'l6',
+    module: 'Module 4',
+    title: 'Putting It All Together',
+    duration: '25 min',
+    description: 'A live walkthrough of a full playbook from idea to tested position.',
+    locked: true,
+  },
+];
+
+
 export function AcademyDemo() {
   const navigate = useNavigate();
   const reduced = usePrefersReducedMotion();
