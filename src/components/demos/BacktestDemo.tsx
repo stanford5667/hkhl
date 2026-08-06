@@ -324,6 +324,7 @@ function StatCard({
 export function BacktestDemo() {
   const reduced = usePrefersReducedMotion();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [activeId, setActiveId] = useState(DEMO_STRATEGIES[0].id);
   const strategy = DEMO_STRATEGIES.find((s) => s.id === activeId) ?? DEMO_STRATEGIES[0];
 
