@@ -73,6 +73,16 @@ export function ResearchHero({ className }: ResearchHeroProps) {
             Automate investing with AI. Learn investing from top fund managers. Access their best plays.
           </motion.p>
 
+          <motion.p
+            className="mt-2 sm:mt-3 text-xs sm:text-sm lg:text-base text-muted-foreground max-w-2xl sm:mx-auto leading-relaxed"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.24 }}
+          >
+            Research 12,000+ tickers with charts, fundamentals, news, and more.
+          </motion.p>
+
+
         </div>
 
 
