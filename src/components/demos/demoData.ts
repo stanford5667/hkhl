@@ -155,7 +155,7 @@ const RAW_DEMO_STRATEGIES: Omit<DemoStrategy, 'historicalReturn' | 'expectedRetu
   {
     id: 'rsi',
     name: 'Buy the Dip',
-    techName: 'RSI Oversold Bounce',
+    techName: 'RSI(14) < 30 mean-reversion, 10-day exit',
     ticker: 'AAPL',
     sharpe: 1.42,
     series: buildRealisticSeries(42.0, {
@@ -168,7 +168,7 @@ const RAW_DEMO_STRATEGIES: Omit<DemoStrategy, 'historicalReturn' | 'expectedRetu
       crisisDrop: 0.06,
     }),
     insight:
-      'Analyzed 1,043 sessions across 61 signals. Most of the edge came from sidestepping the Q2 drawdown, not from better entries — average hold was 9 sessions.',
+      'Analyzed 1,043 sessions across 61 signals. Most of the edge came from sidestepping the Q2 drawdown, not from better entries \u2014 average hold was 9 sessions.',
     annotations: [
       { index: 62, label: 'Avoided -23% drawdown', dir: 1 },
       { index: 215, label: 'Momentum re-entry', dir: -1 },
@@ -177,7 +177,7 @@ const RAW_DEMO_STRATEGIES: Omit<DemoStrategy, 'historicalReturn' | 'expectedRetu
   {
     id: 'golden-cross',
     name: 'Ride the Trend',
-    techName: 'Golden Cross',
+    techName: '50/200-day SMA crossover, long-only',
     ticker: 'MSFT',
     sharpe: 1.08,
     series: buildRealisticSeries(7.11, {
@@ -190,31 +190,97 @@ const RAW_DEMO_STRATEGIES: Omit<DemoStrategy, 'historicalReturn' | 'expectedRetu
       crisisDrop: 0.10,
     }),
     insight:
-      'Fewer trades, smoother ride: 14 round trips over five years. Trailed the benchmark on raw return but cut max drawdown close to half — a risk trade, not a return trade.',
+      'Fewer trades, smoother ride: 14 round trips over five years. Trailed the benchmark on raw return but cut max drawdown close to half \u2014 a risk trade, not a return trade.',
     annotations: [
       { index: 85, label: 'Exited before the -16% leg', dir: 1 },
       { index: 190, label: 'Trend re-confirmed', dir: -1 },
     ],
   },
   {
-    id: 'mean-reversion',
-    name: 'Buy After Weakness',
-    techName: 'Mean Reversion',
-    ticker: 'SPY',
-    sharpe: 1.76,
-    series: buildRealisticSeries(19.77, {
-      marketTrend: 0.0015,
-      vol: 0.015,
-      alpha: 0.0013,
-      lag: 2,
-      crisisStart: 28,
-      crisisEnd: 40,
-      crisisDrop: 0.05,
+    id: 'dual-momentum',
+    name: 'Own What Is Winning',
+    techName: '12-month dual momentum rotation, monthly rebalance',
+    ticker: 'QQQ',
+    sharpe: 1.21,
+    series: buildRealisticSeries(88.4, {
+      marketTrend: 0.0022,
+      vol: 0.023,
+      alpha: 0.0012,
+      lag: 8,
+      crisisStart: 96,
+      crisisEnd: 112,
+      crisisDrop: 0.12,
     }),
     insight:
-      'Highest Sharpe of the three, and the tightest equity curve — the payoff is consistency. Edge decays sharply once index volatility drops under 12.',
+      'Holds the strongest of equities, bonds and cash each month. Only 41 rebalances in five years, but the cash rotation is what saved the 2022 leg lower.',
     annotations: [
-      { index: 40, label: 'Bought the -13% dislocation', dir: 1 },
+      { index: 108, label: 'Rotated to cash', dir: 1 },
+      { index: 200, label: 'Back into equities', dir: -1 },
+    ],
+  },
+  {
+    id: 'breakout',
+    name: 'Follow the Breakout',
+    techName: '20-day Donchian channel breakout, ATR trailing stop',
+    ticker: 'NVDA',
+    sharpe: 0.94,
+    series: buildRealisticSeries(133.7, {
+      marketTrend: 0.0026,
+      vol: 0.030,
+      alpha: 0.0016,
+      lag: 3,
+      crisisStart: 60,
+      crisisEnd: 70,
+      crisisDrop: 0.14,
+    }),
+    insight:
+      'Low win rate by design \u2014 44% of trades win, but the average winner is 3.1x the average loser. Expect long flat stretches between the handful of trades that matter.',
+    annotations: [
+      { index: 70, label: 'Stopped out, -9%', dir: 1 },
+      { index: 205, label: 'New 20-day high', dir: -1 },
+    ],
+  },
+  {
+    id: 'vol-target',
+    name: 'Stay Steady in Chaos',
+    techName: 'Volatility-targeted exposure, 12% annualized target',
+    ticker: 'SPY',
+    sharpe: 1.63,
+    series: buildRealisticSeries(56.25, {
+      marketTrend: 0.0016,
+      vol: 0.013,
+      alpha: 0.0009,
+      lag: 2,
+      crisisStart: 34,
+      crisisEnd: 48,
+      crisisDrop: 0.07,
+    }),
+    insight:
+      'Scales position size down as realized volatility rises. Gives up upside in melt-ups, but realized vol stayed inside a 3-point band the entire test.',
+    annotations: [
+      { index: 46, label: 'Cut exposure to 40%', dir: 1 },
+      { index: 185, label: 'Full exposure restored', dir: -1 },
+    ],
+  },
+  {
+    id: 'pairs',
+    name: 'Trade the Spread',
+    techName: 'Market-neutral pairs trade, 2-sigma z-score entry',
+    ticker: 'KO / PEP',
+    sharpe: 1.85,
+    series: buildRealisticSeries(19.77, {
+      marketTrend: 0.0009,
+      vol: 0.009,
+      alpha: 0.0011,
+      lag: 1,
+      crisisStart: 28,
+      crisisEnd: 40,
+      crisisDrop: 0.03,
+    }),
+    insight:
+      'Long one name, short the other \u2014 returns are nearly uncorrelated with the index. Highest Sharpe of the set, but the edge decays fast when the spread stops mean-reverting.',
+    annotations: [
+      { index: 40, label: 'Spread reverted', dir: 1 },
       { index: 180, label: '11 straight winning weeks', dir: -1 },
     ],
   },
