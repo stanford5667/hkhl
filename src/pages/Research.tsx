@@ -98,10 +98,12 @@ export default function ResearchPage() {
             </p>
           </div>
         </section>
+      </main>
 
 
 
       {/* Hidden on mobile — the bottom nav owns that space */}
+
       <div className="hidden md:block">
         <ResearchBottomBar lastUpdated={lastUpdated} />
       </div>
