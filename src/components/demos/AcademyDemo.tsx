@@ -42,6 +42,7 @@ export function AcademyDemo() {
         .select('title, video_url')
         .eq('is_preview', true)
         .not('video_url', 'is', null)
+        .ilike('title', 'Our Strategy')
         .order('order_index', { ascending: true })
         .limit(1)
         .maybeSingle();
@@ -53,6 +54,7 @@ export function AcademyDemo() {
       cancelled = true;
     };
   }, []);
+
 
   const togglePlay = () => {
     const el = videoRef.current;
