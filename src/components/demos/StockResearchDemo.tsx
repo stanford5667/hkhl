@@ -102,26 +102,44 @@ function sample(values: number[], n = 48) {
   return Array.from({ length: n }, (_, i) => values[Math.round(i * step)]);
 }
 
+const RANGES = ['1M', '3M', '6M', '1Y'] as const;
+
 export function StockResearchDemo() {
   const navigate = useNavigate();
   const reduced = usePrefersReducedMotion();
+  const [range, setRange] = useState<(typeof RANGES)[number]>('6M');
 
-  const { data: bars, isLoading } = useChartData(DEMO_TICKER, '6M');
+  const { data: bars, isLoading } = useChartData(DEMO_TICKER, range);
 
-  const series = useMemo(() => {
-    const closes = (bars ?? []).map((b) => b.price).filter((p) => Number.isFinite(p));
-    return closes.length > 4 ? sample(closes) : FALLBACK_POINTS;
-  }, [bars]);
+  const points = useMemo(
+    () =>
+      (bars ?? [])
+        .filter((b) => Number.isFinite(b.price))
+        .map((b) => ({ t: b.time * 1000, price: b.price })),
+    [bars],
+  );
 
-  const isLive = (bars?.length ?? 0) > 4;
-  const livePrice = isLive ? series[series.length - 1] : DEMO_PRICE;
-  const prevClose = isLive && series.length > 1 ? series[series.length - 2] : DEMO_PRICE - DEMO_CHANGE;
-  const change = livePrice - prevClose;
-  const changePercent = prevClose ? (change / prevClose) * 100 : 0;
+  const isLive = points.length > 4;
+  const last = isLive ? points[points.length - 1].price : DEMO_PRICE;
+  const prev = isLive && points.length > 1 ? points[points.length - 2].price : DEMO_PRICE - DEMO_CHANGE;
+  const change = last - prev;
+  const changePercent = prev ? (change / prev) * 100 : 0;
 
-  const price = useCountUp(livePrice, true);
+  const domain = useMemo(() => {
+    if (!isLive) return undefined;
+    const vals = points.map((p) => p.price);
+    const min = Math.min(...vals);
+    const max = Math.max(...vals);
+    const pad = (max - min) * 0.08 || 1;
+    return [min - pad, max + pad] as [number, number];
+  }, [points, isLive]);
+
+  const price = useCountUp(last, true);
   const isPositive = change >= 0;
-  const dot = endPoint(series);
+  const fmtDate = (t: number) =>
+    new Date(t).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+
 
 
   return (
