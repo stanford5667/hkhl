@@ -35,7 +35,7 @@ const DEMOS = [
           Learn the strategies
         </p>
         <p className="text-xs sm:text-sm text-muted-foreground px-1">
-          A course taught by top hedge fund managers.
+          40+ hours of on-demand video lessons, time-tested strategies, real-world trade breakdowns, and portfolio frameworks from top hedge fund managers.
         </p>
         <AcademyDemo />
       </div>
