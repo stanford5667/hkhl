@@ -79,8 +79,8 @@ export function ResearchHero({ className }: ResearchHeroProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.18 }}
           >
-            <span className="text-primary font-medium">Automated AI investing tools.</span>{' '}
-            Access proprietary investment ideas.
+            <span className="text-primary font-medium">Hedge fund academy</span>{' '}
+            with proprietary investment ideas and automated AI investing tools.
 
 
           </motion.p>
