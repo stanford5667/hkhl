@@ -41,25 +41,23 @@ export function ResearchHero({ className }: ResearchHeroProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.12 }}
           >
-            <div className="inline-flex items-center gap-2 sm:gap-3">
+            <div className="inline-flex items-center gap-1 rounded-full bg-white/[0.04] border border-white/[0.08] p-1">
               <Link
                 to="/academy"
-                className="inline-flex items-center px-3 py-1.5 rounded-full border border-primary/30 bg-primary/10 text-primary text-[10px] font-semibold uppercase tracking-widest hover:bg-primary/20 transition-colors"
+                className="inline-flex items-center px-3.5 py-1.5 rounded-full bg-primary text-white text-[10px] font-semibold uppercase tracking-widest hover:bg-blue-600 transition-colors"
               >
                 Learn
               </Link>
-              <span aria-hidden="true" className="text-primary/40">·</span>
               <Link
                 to="/auth"
                 state={{ mode: 'signup' }}
-                className="inline-flex items-center px-3 py-1.5 rounded-full border border-primary/30 bg-primary/10 text-primary text-[10px] font-semibold uppercase tracking-widest hover:bg-primary/20 transition-colors"
+                className="inline-flex items-center px-3.5 py-1.5 rounded-full text-white/50 text-[10px] font-semibold uppercase tracking-widest hover:text-white hover:bg-white/[0.06] transition-colors"
               >
                 Test
               </Link>
-              <span aria-hidden="true" className="text-primary/40">·</span>
               <Link
                 to="/watchlist"
-                className="inline-flex items-center px-3 py-1.5 rounded-full border border-primary/30 bg-primary/10 text-primary text-[10px] font-semibold uppercase tracking-widest hover:bg-primary/20 transition-colors"
+                className="inline-flex items-center px-3.5 py-1.5 rounded-full text-white/50 text-[10px] font-semibold uppercase tracking-widest hover:text-white hover:bg-white/[0.06] transition-colors"
               >
                 Track
               </Link>
@@ -67,14 +65,14 @@ export function ResearchHero({ className }: ResearchHeroProps) {
           </motion.div>
 
           <motion.p
-            className="text-muted-foreground text-[15px] sm:text-base lg:text-xl max-w-2xl sm:mx-auto leading-relaxed"
+            className="text-[15px] sm:text-base lg:text-xl max-w-2xl sm:mx-auto leading-relaxed text-white/65"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.18 }}
           >
-            <span className="text-primary font-medium">Automate investing with AI.</span>{' '}
-            Learn investing from top fund managers. Access their best plays.
+            Automate investing with AI. Learn investing from top fund managers. Access their best plays.
           </motion.p>
+
         </div>
 
 
