@@ -6,6 +6,7 @@ import { ResearchHero } from "@/components/research/ResearchHero";
 import { StockOfTheDay } from "@/components/research/StockOfTheDay";
 import { HubOverviewGrid } from "@/components/research/HubOverviewGrid";
 import { DemoCarousel } from "@/components/demos/DemoCarousel";
+import { AcademyDemo } from "@/components/demos/AcademyDemo";
 
 
 export default function ResearchPage() {
