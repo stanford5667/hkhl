@@ -39,10 +39,13 @@ export default function ResearchPage() {
     }
   }, [queryClient]);
 
-  // Guests: treat ANY interaction on the page content as the call to action
+  // Guests: treat ANY interaction on the page content as the call to action,
+  // except elements explicitly marked as guest-allowed (e.g. free video previews)
   const gate = useCallback(
     (e: React.SyntheticEvent) => {
       if (user) return false;
+      const target = e.target as HTMLElement | null;
+      if (target?.closest?.("[data-guest-allow]")) return false;
       e.preventDefault();
       e.stopPropagation();
       navigate("/auth", { state: { mode: "signup", from: "/research" } });
@@ -50,6 +53,7 @@ export default function ResearchPage() {
     },
     [user, navigate]
   );
+
 
   const handleGuestClick = useCallback((e: React.MouseEvent) => gate(e), [gate]);
 
