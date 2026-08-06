@@ -66,7 +66,11 @@ export default function ResearchPage() {
             </p>
           </div>
           <DemoCarousel />
+          <div className="mt-3 sm:mt-4">
+            <BacktestTickerPreview />
+          </div>
         </section>
+
 
 
         <section>
