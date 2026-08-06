@@ -92,11 +92,13 @@ function StatCard({
   value,
   icon,
   accent,
+  tooltip,
 }: {
   label: string;
   value: string;
   icon?: React.ReactNode;
   accent: 'emerald' | 'cyan' | 'blue' | 'rose' | 'violet';
+  tooltip?: string;
 }) {
   const styles = {
     emerald: {
@@ -135,7 +137,23 @@ function StatCard({
     <div className={cn('rounded-lg border p-2', styles.border, styles.bg)}>
       <div className="flex items-center gap-1.5 text-[9px] uppercase tracking-wider text-gray-500">
         {icon && <span className={cn('flex h-4 w-4 items-center justify-center rounded', styles.iconBg, styles.text)}>{icon}</span>}
-        {label}
+        <span className="truncate">{label}</span>
+        {tooltip && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                aria-label={`What is ${label}?`}
+                className={cn('ml-auto flex h-4 w-4 items-center justify-center rounded-full opacity-60 transition-opacity hover:opacity-100', styles.iconBg)}
+              >
+                <HelpCircle className={cn('h-3 w-3', styles.text)} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-[220px] text-[10px] leading-relaxed">
+              {tooltip}
+            </TooltipContent>
+          </Tooltip>
+        )}
       </div>
       <div className={cn('mt-0.5 font-mono text-sm font-bold', styles.text)}>{value}</div>
     </div>
