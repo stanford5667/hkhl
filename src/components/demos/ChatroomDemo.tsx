@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { MessagesSquare, ArrowRight, Crown, Pin, TrendingUp, MessageSquare } from 'lucide-react';
+import { MessagesSquare, ArrowRight, Pin, TrendingUp, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DemoCard, DemoCardHeader, SampleBadge } from './DemoCard';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
