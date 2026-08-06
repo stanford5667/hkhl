@@ -12,7 +12,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { Activity, Check, HelpCircle, LineChart, Sparkles, TrendingDown, TrendingUp } from 'lucide-react';
+import { Activity, Check, HelpCircle, LineChart, Search, Sparkles, TrendingDown, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DEMO_STRATEGIES, DEMO_INITIAL_CAPITAL, type DemoDataPoint } from './demoData';
 import { useCountUp, usePrefersReducedMotion } from './useCountUp';
