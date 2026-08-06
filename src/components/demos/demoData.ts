@@ -5,7 +5,6 @@
 
 export interface DemoSeries {
   values: number[];
-  buyHold: number[];
 }
 
 const POINTS = 120;
@@ -22,18 +21,14 @@ function buildSeries(seed: {
   ddSize: number;
 }): DemoSeries {
   const values: number[] = [];
-  const buyHold: number[] = [];
   let v = INITIAL;
-  let bh = INITIAL;
   for (let i = 0; i < POINTS; i++) {
     const noise = Math.sin(i * seed.freqA) * seed.noiseA + Math.cos(i * seed.freqB) * seed.noiseB;
     const drawdown = i > seed.ddStart && i < seed.ddEnd ? seed.ddSize : 0;
     v *= 1 + seed.trend + noise + drawdown;
-    bh *= 1 + 0.002 + Math.sin(i * 0.3) * 0.006;
     values.push(Math.round(v));
-    buyHold.push(Math.round(bh));
   }
-  return { values, buyHold };
+  return { values };
 }
 
 export interface DemoAnnotation {
