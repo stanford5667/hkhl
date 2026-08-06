@@ -397,7 +397,13 @@ export function BacktestDemo() {
                 type="button"
                 whileTap={{ scale: 0.97 }}
                 transition={DEMO_SPRING}
-                onClick={() => setActiveId(s.id)}
+                onClick={() => {
+                  if (!user) {
+                    navigate('/auth', { state: { mode: 'signup' } });
+                    return;
+                  }
+                  setActiveId(s.id);
+                }}
                 aria-pressed={isActive}
                 className={cn(
                   'flex min-h-[26px] items-center gap-1 rounded-md border px-1.5 py-0.5 text-left transition-colors shadow-sm',
