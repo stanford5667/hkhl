@@ -82,28 +82,28 @@ export const BuilderOnboarding = memo(function BuilderOnboarding({
           </Button>
         </div>
 
-        {/* One-Click Templates */}
-        <div className="grid grid-cols-2 gap-2">
+        {/* One-Click Templates — compact horizontal chips */}
+        <div className="flex flex-wrap gap-2">
           {templates.slice(0, 4).map((template) => {
             const display = getStrategyDisplayName(template);
             return (
-              <Button
+              <button
                 key={template.id}
-                variant="outline"
-                size="sm"
                 onClick={() => onLoadTemplate(template)}
-                className="h-auto py-2 px-2 text-left justify-start flex-col items-start gap-0.5"
+                className="inline-flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-left transition-all hover:border-primary/50 hover:bg-primary/5"
               >
-                <span className="text-xs font-medium truncate w-full">{display.plainName}</span>
-                {display.techName && (
-                  <span className="text-[9px] text-muted-foreground/80 truncate w-full">
-                    {display.techName}
-                  </span>
-                )}
-                <span className="text-[10px] text-muted-foreground truncate w-full">
-                  {template.blocks.length} blocks ready
+                <div className="flex flex-col leading-tight">
+                  <span className="text-xs font-medium truncate">{display.plainName}</span>
+                  {display.techName && (
+                    <span className="text-[10px] text-muted-foreground/80 truncate">
+                      {display.techName}
+                    </span>
+                  )}
+                </div>
+                <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                  {template.blocks.length} blocks
                 </span>
-              </Button>
+              </button>
             );
           })}
         </div>
