@@ -320,39 +320,47 @@ export function BacktestDemo() {
       </DemoVisual>
 
       {/* Condensed stats grid — bordered, accent-colored cards */}
-      <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
-        <StatCard
-          label="Historical return"
-          value={`${historical >= 0 ? '+' : ''}${historical.toFixed(1)}%`}
-          accent="cyan"
-        />
-        <StatCard
-          label="Expected return"
-          value={`${expected >= 0 ? '+' : ''}${expected.toFixed(1)}%`}
-          accent="blue"
-        />
-        <StatCard
-          label="Sharpe ratio"
-          value={sharpe.toFixed(2)}
-          accent="cyan"
-        />
-        <StatCard
-          label="Max drawdown"
-          value={`-${maxDd.toFixed(1)}%`}
-          icon={<TrendingDown className="h-3 w-3" />}
-          accent="rose"
-        />
-        <StatCard
-          label="Winning days"
-          value={`${winDays.toFixed(0)}%`}
-          accent="emerald"
-        />
-        <StatCard
-          label="Volatility"
-          value={`${vol.toFixed(1)}%`}
-          accent="violet"
-        />
-      </div>
+      <TooltipProvider delayDuration={200}>
+        <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <StatCard
+            label="Historical return"
+            value={safeFormat(historical, (v) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`)}
+            accent="cyan"
+            tooltip="Total percentage return the strategy produced during the backtested history window."
+          />
+          <StatCard
+            label="Expected return"
+            value={safeFormat(expected, (v) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`)}
+            accent="blue"
+            tooltip="Annualized return forecast based on the strategy's historical risk/return profile."
+          />
+          <StatCard
+            label="Sharpe ratio"
+            value={safeFormat(sharpe, (v) => v.toFixed(2))}
+            accent="cyan"
+            tooltip="Return earned per unit of risk; a ratio above 1.0 generally means the return justifies the volatility."
+          />
+          <StatCard
+            label="Max drawdown"
+            value={safeFormat(maxDd, (v) => `-${v.toFixed(1)}%`)}
+            icon={<TrendingDown className="h-3 w-3" />}
+            accent="rose"
+            tooltip="The largest peak-to-trough decline during the period; a measure of worst-case downside."
+          />
+          <StatCard
+            label="Winning days"
+            value={safeFormat(winDays, (v) => `${v.toFixed(0)}%`)}
+            accent="emerald"
+            tooltip="Percentage of trading days that closed with a positive P&L for the strategy."
+          />
+          <StatCard
+            label="Volatility"
+            value={safeFormat(vol, (v) => `${v.toFixed(1)}%`)}
+            accent="violet"
+            tooltip="Standard deviation of returns; higher values mean the strategy swings more sharply."
+          />
+        </div>
+      </TooltipProvider>
 
       <ConvictionMeter filled={strategy.conviction} value={strategy.convictionLabel} />
 
