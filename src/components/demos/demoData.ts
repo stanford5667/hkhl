@@ -66,7 +66,7 @@ export interface DemoStrategy {
   annotations: DemoAnnotation[];
 }
 
-export const DEMO_STRATEGIES: DemoStrategy[] = [
+const RAW_DEMO_STRATEGIES: Omit<DemoStrategy, 'totalReturn' | 'historicalReturn' | 'expectedReturn' | 'maxDrawdown' | 'winningWeeks' | 'volatility'>[] = [
   {
     id: 'rsi',
     name: 'Buy the Dip',
@@ -118,7 +118,9 @@ export const DEMO_STRATEGIES: DemoStrategy[] = [
       { index: 96, label: '11 straight winning weeks', dir: -1 },
     ],
   },
-]).map((s) => {
+];
+
+export const DEMO_STRATEGIES: DemoStrategy[] = RAW_DEMO_STRATEGIES.map((s) => {
   const final = s.series.values[s.series.values.length - 1];
   const totalReturn = Math.round(((final - INITIAL) / INITIAL) * 10000) / 100;
 
