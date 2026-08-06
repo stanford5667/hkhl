@@ -110,7 +110,7 @@ export function ResearchHero({
     <div className="relative">
       <div className="relative max-w-6xl mx-auto px-3 sm:px-6 pt-4 sm:pt-10 pb-5 sm:pb-8">
         {/* Hero Text — Terminal style */}
-        <div className="text-left sm:text-center mb-5 sm:mb-10">
+        <div className="text-center mb-5 sm:mb-10">
           <motion.div
             className="mb-4 sm:mb-5"
             initial={{ opacity: 0, y: 8 }}
@@ -123,7 +123,7 @@ export function ResearchHero({
           </motion.div>
 
           <motion.h1
-            className="font-display text-[clamp(1.5rem,4vw+0.6rem,4.25rem)] leading-[1.08] tracking-tight font-bold mb-5 sm:mb-7"
+            className="font-display text-[clamp(2rem,8vw+0.8rem,5.5rem)] leading-[1.05] tracking-tight font-bold mb-5 sm:mb-7 w-full"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
