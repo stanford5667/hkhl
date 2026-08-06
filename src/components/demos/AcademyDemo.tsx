@@ -165,7 +165,7 @@ function useCourseSections() {
 
       const { data: lessons } = await supabase
         .from('course_lessons')
-        .select('id, title, module_id, order_index, video_duration, description')
+        .select('id, title, module_id, order_index, video_duration, description, is_preview')
         .in('module_id', moduleIds)
         .order('order_index', { ascending: true });
 
@@ -182,7 +182,8 @@ function useCourseSections() {
             orderIndex: l.order_index ?? i,
             duration: formatDuration(l.video_duration),
             description: l.description || 'Detailed lesson walkthrough.',
-            locked: true,
+            locked: !l.is_preview,
+            isPreview: !!l.is_preview,
           })),
         };
       });
