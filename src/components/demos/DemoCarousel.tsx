@@ -42,7 +42,21 @@ const DEMOS = [
     ),
     minHeight: 560,
   },
-  { id: 'chatroom', node: <ChatroomDemo />, minHeight: 520 },
+  {
+    id: 'chatroom',
+    node: (
+      <div className="flex flex-col gap-2">
+        <p className="text-2xl sm:text-3xl lg:text-4xl font-semibold text-cyan-400 px-1">
+          Proprietary investment ideas
+        </p>
+        <p className="text-xs sm:text-sm text-muted-foreground px-1">
+          Real-time trade setups, analyst research notes, and live market discussion — all in one place.
+        </p>
+        <ChatroomDemo />
+      </div>
+    ),
+    minHeight: 560,
+  },
 ];
 
 export function DemoCarousel() {
