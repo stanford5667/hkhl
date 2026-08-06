@@ -73,21 +73,6 @@ const DEMO_MESSAGES: DemoMessage[] = [
     ],
     replies: 11,
   },
-  {
-    id: '4',
-    name: 'Maya Chen',
-    initials: 'MC',
-    isAdmin: false,
-    time: 'Today, 10:18 AM',
-    content: (
-      <>
-        <TickerBadge ticker="SPY" className="mx-0.5" /> breadth is finally improving. The equal-weighted
-        ratio turned up yesterday — that’s the missing piece for the next leg higher.
-      </>
-    ),
-    reactions: [{ emoji: '🐂', count: 6 }],
-    replies: 2,
-  },
 ];
 
 function MessageRow({ message, index }: { message: DemoMessage; index: number }) {
