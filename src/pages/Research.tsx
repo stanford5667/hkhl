@@ -7,6 +7,8 @@ import { StockOfTheDay } from "@/components/research/StockOfTheDay";
 import { HubOverviewGrid } from "@/components/research/HubOverviewGrid";
 import { DemoCarousel } from "@/components/demos/DemoCarousel";
 import { StockResearchDemo } from "@/components/demos/StockResearchDemo";
+import { BacktestTickerPreview } from "@/components/demos/BacktestTickerPreview";
+
 
 
 export default function ResearchPage() {
