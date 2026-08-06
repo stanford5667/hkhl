@@ -202,11 +202,12 @@ export function AcademyDemo() {
   const [muted, setMuted] = useState(true);
   const [current, setCurrent] = useState(0);
   const [preview, setPreview] = useState<{ title: string; url: string } | null>(null);
-  const [openLesson, setOpenLesson] = useState<string | null>(null);
-  const [showMore, setShowMore] = useState(false);
+  const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
+  const [expandedShowAll, setExpandedShowAll] = useState<Set<string>>(new Set());
   const { data: courseSections } = useCourseSections();
   const sections = courseSections ?? FALLBACK_SECTIONS;
   const totalLessons = sections.reduce((sum, s) => sum + s.lessons.length, 0);
+  const previewCount = sections.flatMap((s) => s.lessons).filter((l) => l.isPreview).length;
   const pct = Math.round(DEMO_LESSON.progress * 100);
 
 
