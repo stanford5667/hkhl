@@ -6,7 +6,6 @@ import { cn } from '@/lib/utils';
 import { DEMO_STRATEGIES, DEMO_INITIAL_CAPITAL } from './demoData';
 import { useCountUp, usePrefersReducedMotion } from './useCountUp';
 import {
-  AiInsight,
   ConvictionMeter,
   DemoCard,
   DemoCardHeader,
@@ -14,6 +13,7 @@ import {
   SampleBadge,
   DEMO_SPRING,
 } from './DemoCard';
+
 
 const W = 320;
 const H = 120;
