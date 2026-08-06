@@ -1,23 +1,71 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { GraduationCap, Play, Pause, Volume2, Maximize, Clock, ArrowRight, Crown } from 'lucide-react';
+import { GraduationCap, Play, Pause, Volume2, VolumeX, Maximize, Clock, ArrowRight, Crown } from 'lucide-react';
 import { DEMO_LESSON } from './demoData';
 import { DemoCard } from './DemoCard';
 import { useCountUp, usePrefersReducedMotion } from './useCountUp';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
 import modThumb from '@/assets/modules/mod-portfolio-construction-v2.jpg';
 
 const R = 26;
 const CIRC = 2 * Math.PI * R;
+/** Demo preview window, in seconds. */
+const PREVIEW_LIMIT = 120;
+
+const fmt = (s: number) => {
+  const v = Math.max(0, Math.floor(s));
+  return `${Math.floor(v / 60)}:${String(v % 60).padStart(2, '0')}`;
+};
 
 export function AcademyDemo() {
   const navigate = useNavigate();
   const reduced = usePrefersReducedMotion();
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
+  const [muted, setMuted] = useState(true);
+  const [current, setCurrent] = useState(0);
+  const [preview, setPreview] = useState<{ title: string; url: string } | null>(null);
   const pct = Math.round(DEMO_LESSON.progress * 100);
   const shown = useCountUp(pct, true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from('course_lessons')
+        .select('title, video_url')
+        .eq('is_preview', true)
+        .not('video_url', 'is', null)
+        .order('order_index', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (!cancelled && data?.video_url) {
+        setPreview({ title: data.title, url: data.video_url });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const togglePlay = () => {
+    const el = videoRef.current;
+    if (!el) {
+      navigate('/academy');
+      return;
+    }
+    if (el.paused) {
+      el.play().catch(() => navigate('/academy'));
+    } else {
+      el.pause();
+    }
+  };
+
+  const remaining = Math.max(0, PREVIEW_LIMIT - current);
+
 
   return (
     <DemoCard className="overflow-hidden">
