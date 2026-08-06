@@ -55,8 +55,6 @@ export default function ResearchPage() {
 
         <StockOfTheDay />
 
-        <DiscoveryFeed />
-
       </main>
 
 
