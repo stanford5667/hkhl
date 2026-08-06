@@ -401,7 +401,7 @@ export function BacktestDemo() {
       />
 
       <p className="mt-1 text-[10px] leading-relaxed text-white/50">
-        This is a simulated backtest. The curve and stats are predictions based on historical rules, not actual trades.
+        Chart shows historical performance if you had invested in {strategy.ticker} over this period using the {strategy.techName} rule. Results are simulated from historical prices, not actual trades.
       </p>
 
 
