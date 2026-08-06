@@ -153,112 +153,115 @@ export function StockResearchDemo() {
           right={<SampleBadge />}
         />
 
-        {/* Mock ticker header */}
-        <div className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950/60 p-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-800 text-sm font-bold text-white">
-              {DEMO_TICKER}
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-white">{DEMO_COMPANY}</p>
-              <p className="text-[10px] text-muted-foreground">NASDAQ · Technology</p>
-            </div>
-          </div>
-          <div className="text-right">
-            <p className="text-lg font-bold tabular-nums text-white">${price.toFixed(2)}</p>
-            <p className={cn(
-              'flex items-center justify-end gap-1 text-[11px] font-medium',
-              isPositive ? 'text-emerald-400' : 'text-rose-400'
-            )}>
-              {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-              {isPositive ? '+' : ''}{change.toFixed(2)} ({isPositive ? '+' : ''}{changePercent.toFixed(2)}%)
-            </p>
-          </div>
-        </div>
-
-        {/* Real AAPL price chart */}
+        {/* Real AAPL ticker header + price chart in one attached card */}
         <DemoVisual className="w-full">
-          <div className="relative overflow-hidden rounded-xl border border-white/[0.08] bg-slate-950/60 p-3">
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-white/50">Price action</span>
-              <div className="flex items-center gap-1 rounded-full border border-white/[0.08] bg-white/[0.04] p-0.5">
-                {RANGES.map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setRange(r)}
-                    className={cn(
-                      'rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors',
-                      range === r ? 'bg-primary text-white' : 'text-white/50 hover:text-white',
-                    )}
-                  >
-                    {r}
-                  </button>
-                ))}
+          <div className="relative overflow-hidden rounded-xl border border-white/[0.08] bg-slate-950/60">
+            {/* Mock ticker header */}
+            <div className="flex items-center justify-between border-b border-white/[0.08] p-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-800 text-sm font-bold text-white">
+                  {DEMO_TICKER}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-white">{DEMO_COMPANY}</p>
+                  <p className="text-[10px] text-muted-foreground">NASDAQ · Technology</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-lg font-bold tabular-nums text-white">${price.toFixed(2)}</p>
+                <p className={cn(
+                  'flex items-center justify-end gap-1 text-[11px] font-medium',
+                  isPositive ? 'text-emerald-400' : 'text-rose-400'
+                )}>
+                  {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                  {isPositive ? '+' : ''}{change.toFixed(2)} ({isPositive ? '+' : ''}{changePercent.toFixed(2)}%)
+                </p>
               </div>
             </div>
-            <div className="relative h-[140px] w-full sm:h-[180px]">
-              {points.length > 1 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={points} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
-                    <defs>
-                      <linearGradient id="demo-stock-fill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#38BDF8" stopOpacity={0.28} />
-                        <stop offset="100%" stopColor="#38BDF8" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <XAxis
-                      dataKey="t"
-                      type="number"
-                      scale="time"
-                      domain={['dataMin', 'dataMax']}
-                      tickFormatter={fmtDate}
-                      tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 9 }}
-                      axisLine={false}
-                      tickLine={false}
-                      minTickGap={40}
-                    />
-                    <YAxis
-                      domain={domain ?? ['auto', 'auto']}
-                      orientation="right"
-                      width={44}
-                      tickFormatter={(v: number) => `$${v.toFixed(0)}`}
-                      tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 9 }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        background: '#111827',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        borderRadius: 8,
-                        fontSize: 11,
-                      }}
-                      labelFormatter={(t) => fmtDate(Number(t))}
-                      formatter={(v: number) => [`$${Number(v).toFixed(2)}`, 'Close']}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="price"
-                      stroke="#38BDF8"
-                      strokeWidth={1.5}
-                      fill="url(#demo-stock-fill)"
-                      isAnimationActive={!reduced}
-                      animationDuration={900}
-                      dot={false}
-                      activeDot={{ r: 3, fill: '#38BDF8', stroke: 'none' }}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex h-full items-center justify-center text-[11px] text-white/40">
-                  {isLoading ? 'Loading AAPL price history…' : 'Price history unavailable'}
+
+            {/* Price action chart */}
+            <div className="p-3">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-white/50">Price action</span>
+                <div className="flex items-center gap-1 rounded-full border border-white/[0.08] bg-white/[0.04] p-0.5">
+                  {RANGES.map((r) => (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => setRange(r)}
+                      className={cn(
+                        'rounded-full px-2 py-0.5 text-[10px] font-semibold transition-colors',
+                        range === r ? 'bg-primary text-white' : 'text-white/50 hover:text-white',
+                      )}
+                    >
+                      {r}
+                    </button>
+                  ))}
                 </div>
-              )}
+              </div>
+              <div className="relative h-[140px] w-full sm:h-[180px]">
+                {points.length > 1 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={points} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+                      <defs>
+                        <linearGradient id="demo-stock-fill" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#38BDF8" stopOpacity={0.28} />
+                          <stop offset="100%" stopColor="#38BDF8" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <XAxis
+                        dataKey="t"
+                        type="number"
+                        scale="time"
+                        domain={['dataMin', 'dataMax']}
+                        tickFormatter={fmtDate}
+                        tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 9 }}
+                        axisLine={false}
+                        tickLine={false}
+                        minTickGap={40}
+                      />
+                      <YAxis
+                        domain={domain ?? ['auto', 'auto']}
+                        orientation="right"
+                        width={44}
+                        tickFormatter={(v: number) => `$${v.toFixed(0)}`}
+                        tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 9 }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          background: '#111827',
+                          border: '1px solid rgba(255,255,255,0.08)',
+                          borderRadius: 8,
+                          fontSize: 11,
+                        }}
+                        labelFormatter={(t) => fmtDate(Number(t))}
+                        formatter={(v: number) => [`$${Number(v).toFixed(2)}`, 'Close']}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="price"
+                        stroke="#38BDF8"
+                        strokeWidth={1.5}
+                        fill="url(#demo-stock-fill)"
+                        isAnimationActive={!reduced}
+                        animationDuration={900}
+                        dot={false}
+                        activeDot={{ r: 3, fill: '#38BDF8', stroke: 'none' }}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex h-full items-center justify-center text-[11px] text-white/40">
+                    {isLoading ? 'Loading AAPL price history…' : 'Price history unavailable'}
+                  </div>
+                )}
+              </div>
+              <p className="mt-1 text-right text-[9px] text-white/35">
+                {isLive ? `AAPL · ${range} · live market data` : 'AAPL daily closes'}
+              </p>
             </div>
-            <p className="mt-1 text-right text-[9px] text-white/35">
-              {isLive ? `AAPL · ${range} · live market data` : 'AAPL daily closes'}
-            </p>
           </div>
         </DemoVisual>
 
