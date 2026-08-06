@@ -213,6 +213,27 @@ export function AcademyDemo() {
 
   const goToAuth = () => navigate('/auth', { state: { mode: 'signup' } });
 
+  // Guests may watch any free-preview lesson inline
+  const playPreviewLesson = async (lessonId: string) => {
+    const { data } = await supabase
+      .from('course_lessons')
+      .select('title, video_url')
+      .eq('id', lessonId)
+      .maybeSingle();
+    if (!data?.video_url) {
+      user ? navigate('/academy') : goToAuth();
+      return;
+    }
+    setPreview({ title: data.title, url: data.video_url });
+    setCurrent(0);
+    requestAnimationFrame(() => {
+      const el = videoRef.current;
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el?.play().catch(() => {});
+    });
+  };
+
+
   const shown = useCountUp(pct, true);
 
   useEffect(() => {
@@ -313,7 +334,7 @@ export function AcademyDemo() {
         </div>
 
         {/* Video preview player */}
-        <div className="relative overflow-hidden rounded-xl border border-slate-800 bg-black shadow-lg">
+        <div data-guest-allow className="relative overflow-hidden rounded-xl border border-slate-800 bg-black shadow-lg">
           <div className="relative aspect-video w-full">
             {preview ? (
               <video
@@ -534,10 +555,18 @@ export function AcademyDemo() {
                         return (
                           <div
                             key={lesson.id}
-                            onClick={() => (user ? navigate('/academy') : goToAuth())}
+                            {...(lesson.isPreview ? { 'data-guest-allow': true } : {})}
+                            onClick={() => {
+                              if (lesson.isPreview) {
+                                void playPreviewLesson(lesson.id);
+                                return;
+                              }
+                              user ? navigate('/academy') : goToAuth();
+                            }}
                             className="flex items-center gap-3 px-3 py-2 hover:bg-slate-900/60 cursor-pointer transition-colors"
                           >
                             <Play className="h-3 w-3 shrink-0 text-slate-500" />
+
                             <div className="min-w-0 flex-1">
                               <p className="text-[11px] font-medium text-foreground truncate">
                                 {lessonNum} {lesson.title}
