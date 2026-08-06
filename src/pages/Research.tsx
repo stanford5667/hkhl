@@ -36,7 +36,7 @@ export default function ResearchPage() {
       <ResearchTopBar />
 
 
-      <main className="flex-1 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 space-y-3 sm:space-y-4 max-w-[1800px] w-full mx-auto">
+      <main className="flex-1 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 space-y-8 sm:space-y-10 max-w-[1800px] w-full mx-auto">
         <section>
           <ResearchHero />
         </section>
@@ -44,16 +44,40 @@ export default function ResearchPage() {
         <section>
           <div className="mb-4 sm:mb-5">
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground tracking-tight">
-              Start automating
+              Turn an idea into a tested strategy
             </h2>
             <p className="text-sm sm:text-base lg:text-lg text-muted-foreground max-w-3xl mt-2 leading-relaxed">
-              Build systematic, rules-based strategies that run without you. Backtest every idea against decades of data, then put the winners to work — so you can outperform on autopilot.
+              Pick a strategy, see how it actually held up across decades of market data, and understand exactly what drove the result — before you put money behind it.
             </p>
           </div>
           <DemoCarousel />
         </section>
 
-        <HubOverviewGrid />
+        <section>
+          <div className="mb-4 sm:mb-5">
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground tracking-tight">
+              Everything, in one place
+            </h2>
+            <p className="text-sm sm:text-base text-muted-foreground max-w-3xl mt-2 leading-relaxed">
+              Where you left off across the platform.
+            </p>
+          </div>
+          <HubOverviewGrid />
+        </section>
+
+        <section>
+          <div className="mb-4 sm:mb-5">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground tracking-tight">
+              Learn it properly — not from a thread
+            </h2>
+            <p className="text-sm sm:text-base lg:text-lg text-muted-foreground max-w-3xl mt-2 leading-relaxed">
+              92 video lessons from a hedge fund manager, from first principles through portfolio construction. Go at your own pace, and revisit anything as often as you need.
+            </p>
+          </div>
+          <div className="w-full md:max-w-4xl">
+            <AcademyDemo />
+          </div>
+        </section>
 
         <StockOfTheDay />
 
