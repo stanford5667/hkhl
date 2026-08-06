@@ -16,6 +16,7 @@ import {
   Zap,
   Target,
   Sparkles,
+  Check,
 } from 'lucide-react';
 import { SentenceBuilder, type SentenceBuilderState, type SelectedSignal, type SelectedExit, type BacktestParams } from './SentenceBuilder';
 import { EXIT_BLOCKS } from '@/lib/strategyBuilder/templates';
