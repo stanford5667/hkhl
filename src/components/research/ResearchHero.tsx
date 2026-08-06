@@ -11,7 +11,7 @@ export function ResearchHero({ className }: ResearchHeroProps) {
     <div className={cn("relative", className)}>
       <div className="relative max-w-6xl mx-auto px-3 sm:px-6 pt-4 sm:pt-10 pb-5 sm:pb-8">
         {/* Hero Text — Terminal style */}
-        <div className="text-center mb-5 sm:mb-10">
+        <div className="text-center mb-2 sm:mb-3">
       {/* Removed Research Terminal badge */}
 
 
