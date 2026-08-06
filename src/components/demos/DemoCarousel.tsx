@@ -123,7 +123,7 @@ export function DemoCarousel() {
       onTouchStart={() => setIsPaused(true)}
       onTouchEnd={() => setIsPaused(false)}
     >
-      {/* Mobile: vertical stack so both demos are visible · md+: 2x2 grid */}
+      {/* All viewports: vertical stack so each demo is fully visible */}
       <div
         ref={scrollerRef}
         className={cn(
