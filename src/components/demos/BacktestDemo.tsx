@@ -12,7 +12,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { Activity, Check, HelpCircle, LineChart, Sparkles, TrendingDown, TrendingUp } from 'lucide-react';
+import { Activity, Check, HelpCircle, LineChart, Search, Sparkles, TrendingDown, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DEMO_STRATEGIES, DEMO_INITIAL_CAPITAL, type DemoDataPoint } from './demoData';
 import { useCountUp, usePrefersReducedMotion } from './useCountUp';
@@ -122,6 +122,29 @@ function StockChartPreview() {
 
   return (
     <div className="relative overflow-hidden rounded-xl border border-white/[0.12] bg-slate-950/60 shadow-sm">
+      {/* Search bar */}
+      <div className="border-b border-white/[0.08] p-3">
+        <button
+          type="button"
+          onClick={() => {
+            if (!user) {
+              navigate('/auth', { state: { mode: 'signup' } });
+              return;
+            }
+            navigate('/stock/AAPL');
+          }}
+          className="flex w-full items-center gap-2 rounded-lg border border-white/[0.10] bg-slate-900/60 px-3 py-2 text-left transition-colors hover:border-white/[0.18] hover:bg-slate-900/80"
+        >
+          <Search className="h-3.5 w-3.5 text-white/40" />
+          <span className="flex-1 text-[12px] text-white/50">
+            Search any ticker, company, or ETF…
+          </span>
+          <span className="rounded border border-white/[0.10] bg-slate-950 px-1.5 py-0.5 text-[10px] font-medium text-white/40">
+            ⌘K
+          </span>
+        </button>
+      </div>
+
       {/* Mock ticker header */}
       <div className="flex items-center justify-between p-3">
         <div className="flex items-center gap-3">
