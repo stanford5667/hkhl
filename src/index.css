@@ -915,3 +915,62 @@
     animation: none;
   }
 }
+
+/* ============================================================
+   Premium dark refinement — flat surfaces, hairline borders,
+   restrained blue accents. (Design system: blue & white)
+   ============================================================ */
+@layer components {
+  .dark [class*="shadow-lg"],
+  .dark [class*="shadow-xl"],
+  .dark [class*="shadow-2xl"],
+  .dark [class*="shadow-md"] {
+    box-shadow: none;
+  }
+
+  /* Cards: single hairline border, no glow */
+  .dark .bg-card,
+  .dark .bg-surface-2 {
+    border-color: rgb(255 255 255 / 0.08);
+  }
+
+  /* Dividers */
+  .dark hr,
+  .dark [data-orientation="horizontal"][role="separator"],
+  .dark [data-orientation="vertical"][role="separator"] {
+    background-color: rgb(255 255 255 / 0.06);
+    border-color: rgb(255 255 255 / 0.06);
+  }
+
+  /* Segmented controls (tabs) → unified capsule */
+  .dark [role="tablist"] {
+    background-color: rgb(255 255 255 / 0.04);
+    border: 1px solid rgb(255 255 255 / 0.08);
+    border-radius: 9999px;
+    padding: 3px;
+  }
+  .dark [role="tablist"] > [role="tab"] {
+    border-radius: 9999px;
+    color: rgb(255 255 255 / 0.5);
+    box-shadow: none;
+  }
+  .dark [role="tablist"] > [role="tab"][data-state="active"] {
+    background-color: #3B82F6;
+    color: #FFFFFF;
+    font-weight: 600;
+    box-shadow: none;
+  }
+
+  /* Strategy pills / badges */
+  .dark .pill-strategy {
+    background-color: rgb(59 130 246 / 0.12);
+    border: 1px solid rgb(59 130 246 / 0.25);
+    color: #60A5FA;
+  }
+
+  /* Charts: thin sky-blue lines */
+  .dark .recharts-line-curve,
+  .dark .recharts-area-curve {
+    stroke-width: 1.5px;
+  }
+}
