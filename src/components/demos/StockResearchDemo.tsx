@@ -1,4 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
