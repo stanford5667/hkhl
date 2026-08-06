@@ -80,7 +80,7 @@ export function ResearchHero({ className }: ResearchHeroProps) {
             transition={{ duration: 0.5, delay: 0.18 }}
           >
             <span className="text-primary font-medium">Automate investing with AI.</span>{' '}
-            Learn investing from top performing fund manager. Access their best stock & option plays.
+            Learn investing from top-performing fund managers. Access their best stock & option plays.
           </motion.p>
         </div>
 
