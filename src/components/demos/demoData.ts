@@ -214,7 +214,7 @@ const RAW_DEMO_STRATEGIES: Omit<DemoStrategy, 'historicalReturn' | 'expectedRetu
     insight:
       'Highest Sharpe of the three, and the tightest equity curve — the payoff is consistency. Edge decays sharply once index volatility drops under 12.',
     annotations: [
-      { index: 40, label: 'Bought the -8% dislocation', dir: 1 },
+      { index: 40, label: 'Bought the -13% dislocation', dir: 1 },
       { index: 180, label: '11 straight winning weeks', dir: -1 },
     ],
   },
