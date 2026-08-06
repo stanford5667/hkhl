@@ -157,7 +157,7 @@ export function StockResearchDemo() {
         <DemoVisual className="w-full">
           <div className="relative overflow-hidden rounded-xl border border-white/[0.08] bg-slate-950/60">
             {/* Mock ticker header */}
-            <div className="flex items-center justify-between border-b border-white/[0.08] p-3">
+            <div className="flex items-center justify-between p-3">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-800 text-sm font-bold text-white">
                   {DEMO_TICKER}
