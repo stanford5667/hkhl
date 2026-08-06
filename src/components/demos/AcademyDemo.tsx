@@ -13,7 +13,7 @@ import modThumb from '@/assets/modules/mod-portfolio-construction-v2.jpg';
 const R = 26;
 const CIRC = 2 * Math.PI * R;
 /** Demo preview window, in seconds. */
-const PREVIEW_LIMIT = 120;
+const PREVIEW_START = 4;
 
 const fmt = (s: number) => {
   const v = Math.max(0, Math.floor(s));
