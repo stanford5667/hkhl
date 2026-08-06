@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { GraduationCap, Play, Pause, Volume2, VolumeX, Maximize, Clock, ArrowRight, Crown } from 'lucide-react';
+import { GraduationCap, Play, Pause, Volume2, VolumeX, Maximize, Clock, ArrowRight, Crown, ChevronDown, Lock, CheckCircle2 } from 'lucide-react';
 import { DEMO_LESSON } from './demoData';
 import { DemoCard } from './DemoCard';
 import { useCountUp, usePrefersReducedMotion } from './useCountUp';
@@ -23,6 +23,58 @@ const fmt = (s: number) => {
   return `${Math.floor(v / 60)}:${String(v % 60).padStart(2, '0')}`;
 };
 
+const DEMO_LESSONS = [
+  {
+    id: 'l1',
+    module: 'Module 1',
+    title: 'How the Pros Find Ideas',
+    duration: '12 min',
+    description: 'The same screen hedge funds run every Monday morning: liquidity, momentum, and catalyst filters.',
+    locked: false,
+  },
+  {
+    id: 'l2',
+    module: 'Module 1',
+    title: 'Reading the Macro Map',
+    duration: '16 min',
+    description: 'Rates, credit, and earnings revisions — the three inputs that drive 80% of market direction.',
+    locked: true,
+  },
+  {
+    id: 'l3',
+    module: 'Module 2',
+    title: 'Backtesting a Real Strategy',
+    duration: '22 min',
+    description: 'Build a rules-based strategy, test it across 30+ years, and interpret the Sharpe and drawdown.',
+    locked: true,
+  },
+  {
+    id: 'l4',
+    module: 'Module 3',
+    title: 'Position Sizing & Risk',
+    duration: '14 min',
+    description: 'Why the best idea can still ruin a portfolio if sizing is wrong.',
+    locked: true,
+  },
+  {
+    id: 'l5',
+    module: 'Module 4',
+    title: 'The Options Overlay',
+    duration: '19 min',
+    description: 'Use defined-risk options to express the same thesis with less capital.',
+    locked: true,
+  },
+  {
+    id: 'l6',
+    module: 'Module 4',
+    title: 'Putting It All Together',
+    duration: '25 min',
+    description: 'A live walkthrough of a full playbook from idea to tested position.',
+    locked: true,
+  },
+];
+
+
 export function AcademyDemo() {
   const navigate = useNavigate();
   const reduced = usePrefersReducedMotion();
@@ -31,7 +83,10 @@ export function AcademyDemo() {
   const [muted, setMuted] = useState(true);
   const [current, setCurrent] = useState(0);
   const [preview, setPreview] = useState<{ title: string; url: string } | null>(null);
+  const [openLesson, setOpenLesson] = useState<string | null>(null);
+  const [showMore, setShowMore] = useState(false);
   const pct = Math.round(DEMO_LESSON.progress * 100);
+
   const shown = useCountUp(pct, true);
 
   useEffect(() => {
@@ -268,6 +323,77 @@ export function AcademyDemo() {
             </p>
             <p className="truncate text-[12px] font-semibold text-foreground">{DEMO_LESSON.title}</p>
           </div>
+        </div>
+
+        {/* Lessons accordion */}
+        <div className="space-y-2">
+          <p className="text-[11px] font-semibold text-foreground">What you will learn</p>
+          <div className="flex flex-col gap-1.5">
+            {DEMO_LESSONS.slice(0, showMore ? DEMO_LESSONS.length : 3).map((lesson) => {
+              const isOpen = openLesson === lesson.id;
+              return (
+                <div
+                  key={lesson.id}
+                  className={cn(
+                    'overflow-hidden rounded-xl border transition-colors',
+                    isOpen
+                      ? 'border-cyan-500/25 bg-cyan-500/5'
+                      : 'border-slate-800/80 bg-slate-900/40 hover:bg-slate-900/60'
+                  )}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setOpenLesson(isOpen ? null : lesson.id)}
+                    className="flex w-full items-center gap-2 px-3 py-2.5 text-left"
+                  >
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-slate-800 text-[9px] text-muted-foreground">
+                      {lesson.locked ? (
+                        <Lock className="h-2.5 w-2.5" />
+                      ) : (
+                        <CheckCircle2 className="h-2.5 w-2.5 text-emerald-400" />
+                      )}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[11px] font-medium text-foreground">
+                        {lesson.title}
+                      </span>
+                      <span className="block text-[9px] text-muted-foreground">
+                        {lesson.module} · {lesson.duration}
+                      </span>
+                    </span>
+                    <ChevronDown
+                      className={cn(
+                        'h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform',
+                        isOpen && 'rotate-180 text-cyan-400'
+                      )}
+                    />
+                  </button>
+                  {isOpen && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="px-3 pb-3"
+                    >
+                      <p className="text-[11px] leading-relaxed text-muted-foreground">
+                        {lesson.description}
+                      </p>
+                    </motion.div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowMore((s) => !s)}
+            className="flex h-8 w-full items-center justify-center gap-1 rounded-lg border border-slate-800 bg-slate-900/40 text-[11px] font-medium text-cyan-400 transition-colors hover:bg-cyan-500/10 hover:text-cyan-300"
+          >
+            {showMore ? 'Show less' : `Show more lessons (${DEMO_LESSONS.length - 3})`}
+            <ChevronDown
+              className={cn('h-3 w-3 transition-transform', showMore && 'rotate-180')}
+            />
+          </button>
         </div>
 
         {/* Action buttons */}
