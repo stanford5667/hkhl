@@ -12,16 +12,8 @@ export function ResearchHero({ className }: ResearchHeroProps) {
       <div className="relative max-w-6xl mx-auto px-3 sm:px-6 pt-4 sm:pt-10 pb-5 sm:pb-8">
         {/* Hero Text — Terminal style */}
         <div className="text-center mb-5 sm:mb-10">
-          <motion.div
-            className="mb-4 sm:mb-5"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-          >
-            <span className="inline-flex items-center px-3 py-1 rounded-full border border-primary/30 bg-primary/10 text-primary text-[10px] font-semibold uppercase tracking-widest">
-              Research Terminal
-            </span>
-          </motion.div>
+      {/* Removed Research Terminal badge */}
+
 
           <motion.h1
             className="font-display text-[clamp(2.75rem,12vw,4.5rem)] leading-[1.0] tracking-tight font-bold mb-4 sm:mb-5 w-full"
