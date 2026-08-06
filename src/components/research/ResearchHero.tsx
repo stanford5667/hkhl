@@ -52,7 +52,7 @@ export function ResearchHero({ className }: ResearchHeroProps) {
             Learn from top hedge fund managers, get trade ideas in the chatroom.
           </motion.p>
           <motion.div
-            className="flex justify-start sm:justify-center mt-4"
+            className="flex justify-center mt-4"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.18 }}
