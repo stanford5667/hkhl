@@ -89,7 +89,7 @@ export function SectorHeatmap() {
         <div className="text-[9px] text-muted-foreground uppercase tracking-wider font-medium mb-3">
           Sector Performance
         </div>
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5">
           {Array.from({ length: 9 }).map((_, i) => (
             <Skeleton key={i} className="h-12 rounded-lg" />
           ))}
@@ -107,7 +107,7 @@ export function SectorHeatmap() {
         <span className="text-[9px] text-muted-foreground">1D Change</span>
       </div>
 
-      <div className="grid grid-cols-3 gap-1.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5">
         {sectors.slice(0, 9).map((sector, idx) => (
           <motion.button
             key={sector.ticker}

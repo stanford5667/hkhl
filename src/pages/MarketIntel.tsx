@@ -531,7 +531,7 @@ function MacroContent() {
 
       <Card className="bg-secondary/50 border-border p-6 md:col-span-2">
         <h3 className="text-lg font-medium mb-4">Sector Performance (YTD)</h3>
-        <div className="grid grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 lg:grid-cols-6 gap-3">
           {[
             { n: 'Technology', c: 38.2 },
             { n: 'Financials', c: 28.1 },
@@ -668,7 +668,7 @@ function DealsContent() {
                 <span className="font-medium">{e.name}</span>
                 <Badge variant="secondary">2025</Badge>
               </div>
-              <div className="grid grid-cols-3 gap-2 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-sm">
                 <div>
                   <span className="text-muted-foreground">Hold:</span>
                   <span className="ml-1">{2024 - e.vintage_year} yrs</span>

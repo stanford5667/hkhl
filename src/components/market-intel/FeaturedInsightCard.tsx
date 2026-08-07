@@ -116,7 +116,7 @@ export function FeaturedInsightCard() {
             </div>
             
             {/* Probability Summary */}
-            <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5 sm:gap-2">
               <div className="text-center p-1.5 sm:p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
                 <div className="text-[9px] sm:text-[10px] text-muted-foreground">Cut</div>
                 <div className="text-xs sm:text-sm font-bold text-emerald-400">{cutProbability}%</div>

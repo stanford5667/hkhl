@@ -98,7 +98,7 @@ export function ALAStockInfoCard({
         <CardContent className="p-5 space-y-4">
           <Skeleton className="h-6 w-32" />
           <Skeleton className="h-10 w-40" />
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {Array.from({ length: 4 }).map((_, i) => (
               <Skeleton key={i} className="h-12" />
             ))}
@@ -168,7 +168,7 @@ export function ALAStockInfoCard({
         </div>
 
         {/* OHLC Grid */}
-        <div className="grid grid-cols-4 gap-2 md:gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3">
           <div>
             <p className="text-[9px] md:text-[10px] text-muted-foreground uppercase tracking-wider">OPEN</p>
             <p className="text-xs md:text-sm font-semibold tabular-nums">{formatCurrency(open)}</p>
@@ -207,7 +207,7 @@ export function ALAStockInfoCard({
         </div>
 
         {/* Key Stats Grid */}
-        <div className="grid grid-cols-3 gap-2 md:gap-3 pt-2 border-t border-border">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3 pt-2 border-t border-border">
           <div className="p-1.5 md:p-2 bg-secondary/30 rounded-md">
             <p className="text-[9px] md:text-[10px] text-muted-foreground uppercase">Mkt Cap</p>
             <p className="text-xs md:text-sm font-semibold">{formatMarketCap(marketCap)}</p>
@@ -223,7 +223,7 @@ export function ALAStockInfoCard({
         </div>
 
         {/* Financial Metrics Grid */}
-        <div className="grid grid-cols-4 gap-2 md:gap-3 pt-2 border-t border-border">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3 pt-2 border-t border-border">
           <div>
             <p className="text-[9px] md:text-[10px] text-muted-foreground uppercase">P/E</p>
             <p className="text-xs md:text-sm font-semibold">{peRatio?.toFixed(1) || '—'}</p>
@@ -243,7 +243,7 @@ export function ALAStockInfoCard({
         </div>
 
         {/* Analyst & Earnings Row */}
-        <div className="grid grid-cols-3 gap-2 md:gap-3 pt-2 border-t border-border">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3 pt-2 border-t border-border">
           <div className="flex flex-col">
             <p className="text-[9px] md:text-[10px] text-muted-foreground uppercase">Rating</p>
             <Badge className={cn("w-fit mt-0.5 text-[10px] md:text-xs px-1.5 py-0", ratingColors[analystRating])}>

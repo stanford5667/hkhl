@@ -204,7 +204,7 @@ function ClickableDataPoint({
         </div>
         
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             <TabsTrigger value="overview" className="text-xs flex items-center gap-1">
               <BookOpen className="h-3 w-3" />
               Overview

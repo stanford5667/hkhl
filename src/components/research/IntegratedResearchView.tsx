@@ -210,7 +210,7 @@ export function IntegratedResearchView({ ticker, currentPrice }: IntegratedResea
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3 h-auto p-0 bg-transparent gap-1">
+        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 h-auto p-0 bg-transparent gap-1">
           <TabsTrigger 
             value="overview"
             className="data-[state=active]:bg-secondary data-[state=active]:text-foreground text-xs px-2 py-1.5"

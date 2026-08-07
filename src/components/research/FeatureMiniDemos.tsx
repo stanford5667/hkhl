@@ -247,7 +247,7 @@ export function BacktestMiniDemo() {
       </Button>
 
       {/* metrics */}
-      <div className="grid grid-cols-3 gap-px rounded-md overflow-hidden bg-border/50">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px rounded-md overflow-hidden bg-border/50">
         {(run ? metrics : Array.from({ length: 6 })).map((m: any, i) => (
           <div key={i} className="bg-background/80 px-2 py-1.5">
             <p className="text-[9px] uppercase tracking-wider text-muted-foreground truncate">

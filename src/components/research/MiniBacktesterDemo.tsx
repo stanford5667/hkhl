@@ -118,7 +118,7 @@ export function MiniBacktesterDemo() {
         </div>
 
         {/* Metrics row */}
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-px bg-white/[0.04]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 sm:grid-cols-6 gap-px bg-white/[0.04]">
           {metrics.map((m, i) => (
             <div
               key={m.label}

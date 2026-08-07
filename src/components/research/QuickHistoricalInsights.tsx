@@ -139,7 +139,7 @@ export function QuickHistoricalInsights({
         </div>
 
         {/* Key Metrics - Single row */}
-        <div className="grid grid-cols-3 gap-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1">
           <div className="p-1 bg-secondary/30 rounded text-center">
             <p className="text-[8px] text-muted-foreground">Current Streak</p>
             <p className="text-xs font-bold">{streakData.consecutiveDays} days {isDownStreak ? 'down' : 'up'}</p>

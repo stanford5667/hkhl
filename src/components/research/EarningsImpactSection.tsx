@@ -388,7 +388,7 @@ export function EarningsImpactSection({ ticker, nextEarnings: fallbackNextEarnin
         </div>
 
         {/* Summary Stats Row */}
-        <div className="grid grid-cols-4 gap-2 py-1.5 border-b border-border">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 py-1.5 border-b border-border">
           <div className="text-center">
             <p className="text-[7px] md:text-[8px] text-muted-foreground uppercase">Reports</p>
             <p className="text-xs md:text-sm font-bold">{stats.totalReports}</p>

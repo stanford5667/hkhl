@@ -237,7 +237,7 @@ export const TickerHoverPreview = memo(function TickerHoverPreview({ ticker, sto
         </div>
 
         {/* Key Stats grid */}
-        <div className="grid grid-cols-3 gap-x-3 gap-y-1 px-3 py-2 border-t border-border/50 text-[11px]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-3 gap-y-1 px-3 py-2 border-t border-border/50 text-[11px]">
           <div>
             <span className="text-muted-foreground block text-[9px]">Volume</span>
             <span className="font-medium tabular-nums">
@@ -267,7 +267,7 @@ export const TickerHoverPreview = memo(function TickerHoverPreview({ ticker, sto
         </div>
 
         {/* Multi-period Performance */}
-        <div className="grid grid-cols-4 gap-1 px-3 py-2 border-t border-border/50 text-[10px]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-1 px-3 py-2 border-t border-border/50 text-[10px]">
           <div className="text-center">
             <span className="text-muted-foreground block text-[8px]">1D</span>
             <span className={cn('font-semibold tabular-nums', stock.changePercent >= 0 ? 'text-emerald-500' : 'text-destructive')}>

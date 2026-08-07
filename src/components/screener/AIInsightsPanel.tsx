@@ -290,7 +290,7 @@ export function AIInsightsPanel({
                     <p className="text-xs text-muted-foreground mb-2">
                       {INDUSTRY_BENCHMARKS[criteria.sector[0]].description}
                     </p>
-                    <div className="grid grid-cols-3 gap-3 text-center">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-center">
                       <div>
                         <p className="text-lg font-semibold">{INDUSTRY_BENCHMARKS[criteria.sector[0]].medianPE}x</p>
                         <p className="text-[10px] text-muted-foreground">Median P/E</p>

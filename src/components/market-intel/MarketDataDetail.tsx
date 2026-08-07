@@ -741,7 +741,7 @@ export function MarketDataDetail({ item, open, onOpenChange }: MarketDataDetailP
         </SheetHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-3 mb-6">
+          <TabsList className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 mb-6">
             <TabsTrigger value="overview" className="gap-2">
               <Info className="h-4 w-4" />
               Overview

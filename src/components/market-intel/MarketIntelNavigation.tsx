@@ -30,7 +30,7 @@ export function MarketIntelNavigation({ activeCategory, onCategoryChange }: Mark
   return (
     <Card className="bg-gradient-to-r from-card via-secondary/30 to-card border-border/50 overflow-hidden shadow-lg">
       <CardContent className="p-2 sm:p-3">
-        <div className="grid grid-cols-4 sm:flex sm:flex-wrap gap-1.5 sm:gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 sm:flex sm:flex-wrap gap-1.5 sm:gap-2">
           {categories.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
