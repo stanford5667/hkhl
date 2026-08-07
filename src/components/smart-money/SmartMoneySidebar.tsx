@@ -40,7 +40,7 @@ export function SmartMoneySidebar() {
         <Button
           variant="ghost"
           size="icon"
-          className="ml-auto h-6 w-6 shrink-0"
+          className="ml-auto h-6 w-6 shrink-0 hidden md:inline-flex"
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
         >
           {sidebarCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
