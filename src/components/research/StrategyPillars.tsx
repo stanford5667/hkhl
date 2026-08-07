@@ -75,6 +75,21 @@ export function StrategyPillars() {
           </div>
         ))}
       </div>
+
+      <div className="mt-5 sm:mt-6 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+        <Button asChild size="lg" className="w-full sm:w-auto gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
+          <Link to="/academy">
+            <GraduationCap className="h-4 w-4" />
+            Explore the full curriculum
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </Button>
+        <Button asChild variant="outline" size="lg" className="w-full sm:w-auto gap-2 border-white/[0.12] bg-white/[0.03] text-white hover:bg-white/[0.06] hover:text-white">
+          <Link to="/auth" state={{ mode: 'signup', from: '/research' }}>
+            Start your free trial
+          </Link>
+        </Button>
+      </div>
     </div>
   );
 }
