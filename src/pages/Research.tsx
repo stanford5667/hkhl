@@ -99,17 +99,29 @@ export default function ResearchPage() {
 
         <SectionDivider />
 
-        <section className="relative -mx-3 sm:-mx-4 lg:-mx-6 px-3 sm:px-4 lg:px-6 py-4 sm:py-5 bg-card border-y border-primary/10">
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-          <div className="mb-2 sm:mb-3">
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground tracking-tight">
-              Automate your investing
-            </h2>
-            <p className="text-sm sm:text-base lg:text-lg text-muted-foreground max-w-3xl mt-2 leading-relaxed">
-              Research any ticker, then backtest strategies against decades of data.
-            </p>
+        <section className="relative -mx-3 sm:-mx-4 lg:-mx-6 px-3 sm:px-4 lg:px-6 py-5 sm:py-6 bg-card border-y border-primary/20 overflow-hidden">
+          {/* Strong top accent line */}
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent" />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 h-1 w-32 bg-primary shadow-[0_0_20px_rgba(59,130,246,0.55)]" />
+          {/* Left vertical accent */}
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-primary via-cyan-400/60 to-transparent" />
+          {/* Right vertical accent */}
+          <div className="absolute right-0 top-0 bottom-0 w-1 bg-gradient-to-b from-primary via-cyan-400/60 to-transparent" />
+          {/* Contrast wash */}
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/[0.04] via-transparent to-cyan-400/[0.03] pointer-events-none" />
+
+          <div className="relative">
+            <div className="mb-3 sm:mb-4">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight">
+                <span className="text-primary">Automate</span>{" "}
+                <span className="text-foreground">your investing</span>
+              </h2>
+              <p className="text-sm sm:text-base lg:text-lg text-muted-foreground max-w-3xl mt-2 leading-relaxed">
+                Research any ticker, then backtest strategies against decades of data.
+              </p>
+            </div>
+            <DemoCarousel />
           </div>
-          <DemoCarousel />
         </section>
 
         <SectionDivider />
