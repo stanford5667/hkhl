@@ -87,7 +87,7 @@ export default function ResearchPage() {
             gate(e);
           }
         }}
-        className={`flex-1 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 space-y-8 sm:space-y-10 max-w-[1800px] w-full mx-auto ${
+        className={`flex-1 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 space-y-5 sm:space-y-6 max-w-[1800px] w-full mx-auto ${
           user ? "" : "cursor-pointer [&_*]:cursor-pointer"
         }`}
       >
