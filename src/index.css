@@ -974,3 +974,55 @@
     stroke-width: 1.5px;
   }
 }
+
+/* ============================================================
+   Mobile responsiveness guardrails
+   Global safety net so no page can produce horizontal overflow
+   or unreadable layouts on small screens.
+   ============================================================ */
+@layer utilities {
+  /* Any element opting into horizontal scroll keeps momentum on iOS */
+  .overflow-x-auto,
+  .overflow-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Wrap long tickers / URLs / hashes instead of blowing out the layout */
+  .break-anywhere {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+}
+
+@media (max-width: 767px) {
+  /* Long unbroken strings (tickers, emails, tx hashes) must never widen a row */
+  p, span, h1, h2, h3, h4, h5, h6, li, td, th, dd, dt, label, a, button {
+    overflow-wrap: anywhere;
+  }
+
+  /* Radix dialogs / sheets: never wider than the viewport */
+  [role="dialog"] {
+    max-width: calc(100vw - 1.5rem) !important;
+  }
+
+  /* Tabs lists become horizontally scrollable rather than wrapping oddly */
+  [role="tablist"] {
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  [role="tablist"]::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Tables keep their intrinsic width but always live inside a scroller */
+  table {
+    max-width: none;
+  }
+
+  /* Recharts responsive containers can overflow their parent by a pixel or two */
+  .recharts-wrapper,
+  .recharts-surface {
+    max-width: 100%;
+  }
+}
