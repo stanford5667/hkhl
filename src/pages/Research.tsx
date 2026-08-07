@@ -111,10 +111,6 @@ export default function ResearchPage() {
 
         <SectionDivider />
 
-        <StockOfTheDay />
-
-        <SectionDivider />
-
         <section>
           <StrategyPillars />
         </section>
