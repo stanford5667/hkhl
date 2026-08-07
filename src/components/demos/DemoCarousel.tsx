@@ -29,7 +29,17 @@ function LazyDemo({ children, minHeight }: { children: ReactNode; minHeight: num
 }
 
 const DEMOS = [
-  { id: 'backtest', node: <BacktestDemo />, minHeight: 620 },
+  {
+    id: 'backtest',
+    node: <BacktestDemo />,
+    minHeight: 620,
+    cta: {
+      label: 'Run your first backtest',
+      to: '/auth',
+      state: { mode: 'signup', from: '/research' },
+      icon: <Sparkles className="h-4 w-4" />,
+    },
+  },
   {
     id: 'academy',
     node: (
@@ -44,6 +54,11 @@ const DEMOS = [
       </div>
     ),
     minHeight: 560,
+    cta: {
+      label: 'Explore the curriculum',
+      to: '/academy',
+      icon: <BookOpen className="h-4 w-4" />,
+    },
   },
   {
     id: 'chatroom',
@@ -59,6 +74,12 @@ const DEMOS = [
       </div>
     ),
     minHeight: 560,
+    cta: {
+      label: 'Join the chatroom',
+      to: '/auth',
+      state: { mode: 'signup', from: '/research' },
+      icon: <MessageSquare className="h-4 w-4" />,
+    },
   },
 ];
 
