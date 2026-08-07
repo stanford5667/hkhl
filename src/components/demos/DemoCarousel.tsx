@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import { BacktestDemo } from './BacktestDemo';
 import { ChatroomDemo } from './ChatroomDemo';
 import { AcademyDemo } from './AcademyDemo';
 import { useInViewOnce } from './useCountUp';
+import { ArrowRight, BookOpen, MessageSquare, Sparkles } from 'lucide-react';
 
 const AUTO_ADVANCE_MS = 5000;
 
