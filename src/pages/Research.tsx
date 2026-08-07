@@ -8,6 +8,8 @@ import { ResearchHero } from "@/components/research/ResearchHero";
 import { SectionDivider } from "@/components/research/SectionDivider";
 import { StrategyPillars } from "@/components/research/StrategyPillars";
 import { DemoCarousel } from "@/components/demos/DemoCarousel";
+import { Button } from "@/components/ui/button";
+import { ArrowRight, Sparkles } from "lucide-react";
 
 
 
