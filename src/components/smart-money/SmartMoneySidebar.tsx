@@ -63,7 +63,7 @@ export function SmartMoneySidebar() {
               )}
             >
               <item.icon className="h-4 w-4 shrink-0" />
-              {!sidebarCollapsed && <span className="truncate">{item.label}</span>}
+              {!sidebarCollapsed && <span className="hidden md:inline truncate">{item.label}</span>}
             </button>
           );
 
