@@ -29,13 +29,13 @@ export function SmartMoneySidebar() {
   return (
     <div className={cn(
       "relative flex flex-col border-r border-border bg-card/50 transition-all duration-200 shrink-0",
-      sidebarCollapsed ? "w-14" : "w-56"
+      sidebarCollapsed ? "w-14" : "w-14 md:w-56"
     )}>
       {/* Header */}
       <div className="flex items-center gap-2 p-3 border-b border-border">
         <Fish className="h-5 w-5 text-primary shrink-0" />
         {!sidebarCollapsed && (
-          <span className="font-semibold text-sm truncate">Smart Money</span>
+          <span className="hidden md:inline font-semibold text-sm truncate">Smart Money</span>
         )}
         <Button
           variant="ghost"
