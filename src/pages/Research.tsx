@@ -87,7 +87,7 @@ export default function ResearchPage() {
             gate(e);
           }
         }}
-        className={`flex-1 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 space-y-5 sm:space-y-6 max-w-[1800px] w-full mx-auto ${
+        className={`flex-1 px-3 sm:px-4 lg:px-6 py-2 sm:py-3 space-y-3 sm:space-y-4 max-w-[1800px] w-full mx-auto ${
           user ? "" : "cursor-pointer [&_*]:cursor-pointer"
         }`}
       >
@@ -100,7 +100,7 @@ export default function ResearchPage() {
         <SectionDivider />
 
         <section>
-          <div className="mb-4 sm:mb-5">
+          <div className="mb-2 sm:mb-3">
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white tracking-tight">
               Automate your investing
             </h2>
