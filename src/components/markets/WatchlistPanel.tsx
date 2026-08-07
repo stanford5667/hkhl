@@ -168,7 +168,7 @@ export function WatchlistPanel() {
       </CardHeader>
       <CardContent className="pt-0">
         <Tabs defaultValue="all" className="w-full">
-          <TabsList className="w-full grid grid-cols-4 h-8 mb-3">
+          <TabsList className="w-full grid grid-cols-2 sm:grid-cols-4 h-8 mb-3">
             <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
             <TabsTrigger value="stocks" className="text-xs">Stocks</TabsTrigger>
             <TabsTrigger value="indicators" className="text-xs">Indicators</TabsTrigger>

@@ -251,7 +251,7 @@ export default function FundamentalEventCalendar({ onEventClick, selectedTicker 
           <div className="flex flex-col sm:flex-row gap-4">
             {/* Time filter */}
             <Tabs value={timeFilter} onValueChange={(v: any) => setTimeFilter(v)} className="flex-1">
-              <TabsList className="grid w-full grid-cols-3 bg-background/50">
+              <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 bg-background/50">
                 <TabsTrigger value="today">Today</TabsTrigger>
                 <TabsTrigger value="week">This Week</TabsTrigger>
                 <TabsTrigger value="month">This Month</TabsTrigger>
@@ -300,7 +300,7 @@ export default function FundamentalEventCalendar({ onEventClick, selectedTicker 
       <div className="space-y-4">
         {Object.entries(groupedEvents).length === 0 ? (
           <Card className="bg-card/50 border-border/50">
-            <CardContent className="text-center py-12">
+            <CardContent className="text-center py-8 sm:py-10 md:py-12">
               <Calendar className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-xl font-semibold mb-2">No events scheduled</h3>
               <p className="text-muted-foreground">

@@ -1179,7 +1179,7 @@ export function ProfessionalBacktester() {
                     </div>
                     
                     {assets.length === 0 ? (
-                      <div className="py-8 text-center">
+                      <div className="py-4 sm:py-6 md:py-8 text-center">
                         <div className="w-10 h-10 rounded-full bg-[rgb(17,21,28)] mx-auto mb-3 flex items-center justify-center">
                           <Layers className="h-5 w-5 text-[rgb(87,96,106)]" />
                         </div>
@@ -1437,7 +1437,7 @@ export function ProfessionalBacktester() {
               
               {/* Metrics bar */}
               <div className="flex-shrink-0 p-3 border-b border-[rgb(33,38,45)] bg-[rgb(13,17,23)]">
-                <div className="grid grid-cols-6 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2">
                   <MetricCell
                     label="Total Return"
                     value={`${result.metrics.totalReturn >= 0 ? '+' : ''}${result.metrics.totalReturn.toFixed(1)}%`}

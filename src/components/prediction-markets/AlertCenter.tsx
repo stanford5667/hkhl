@@ -229,7 +229,7 @@ export function AlertCenter() {
 
       <div className="px-4 pb-3 flex-shrink-0">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full grid grid-cols-4">
+          <TabsList className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             <TabsTrigger value="all" className="text-xs">
               All
               {alerts.filter(a => a.status !== 'dismissed').length > 0 && (
@@ -255,12 +255,12 @@ export function AlertCenter() {
       <CardContent className="flex-1 overflow-hidden p-0">
         <ScrollArea className="h-full px-4 pb-4">
           {isGenerating ? (
-            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+            <div className="flex flex-col items-center justify-center py-8 sm:py-10 md:py-12 text-muted-foreground">
               <RefreshCw className="h-8 w-8 animate-spin mb-3" />
               <p className="text-sm">Generating smart alerts...</p>
             </div>
           ) : filteredAlerts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+            <div className="flex flex-col items-center justify-center py-8 sm:py-10 md:py-12 text-muted-foreground">
               <Bell className="h-12 w-12 mb-3 opacity-50" />
               <p className="font-medium">No alerts</p>
               <p className="text-sm">You're all caught up!</p>

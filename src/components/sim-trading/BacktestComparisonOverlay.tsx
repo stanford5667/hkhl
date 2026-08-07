@@ -96,7 +96,7 @@ export function BacktestComparisonOverlay({
       </CardHeader>
       <CardContent className="space-y-3">
         {/* Comparison metrics */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <div className="text-center">
             <p className="text-xs text-muted-foreground">Your Return</p>
             <p className={`text-sm font-bold font-mono ${simReturn >= 0 ? 'text-success' : 'text-destructive'}`}>
@@ -125,7 +125,7 @@ export function BacktestComparisonOverlay({
         </div>
 
         {/* Backtest metrics reference */}
-        <div className="grid grid-cols-4 gap-2 pt-2 border-t border-border">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 pt-2 border-t border-border">
           <div>
             <p className="text-[10px] text-muted-foreground">Win Rate</p>
             <p className="text-xs font-mono">{backtestResults.winRate.toFixed(1)}%</p>

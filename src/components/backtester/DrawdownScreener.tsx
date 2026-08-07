@@ -707,7 +707,7 @@ export function DrawdownScreener({ onComplete }: DrawdownScreenerProps) {
             </div>
 
             {isLoading ? (
-              <div className="flex items-center justify-center py-12">
+              <div className="flex items-center justify-center py-8 sm:py-10 md:py-12">
                 <div className="text-center space-y-3">
                   <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
                   <p className="text-sm text-muted-foreground">Analyzing historical performance...</p>
@@ -787,7 +787,7 @@ export function DrawdownScreener({ onComplete }: DrawdownScreenerProps) {
                             {portfolio.description}
                           </p>
                           
-                          <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/50">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 pt-2 border-t border-border/50">
                             <div className="text-center">
                               <p className={cn("text-sm font-bold", textColor)}>
                                 {portfolio.metrics.annualizedReturn.toFixed(1)}%
@@ -827,7 +827,7 @@ export function DrawdownScreener({ onComplete }: DrawdownScreenerProps) {
             )}
             
             {!isLoading && filteredPortfolios.length === 0 && (
-              <div className="text-center py-12">
+              <div className="text-center py-8 sm:py-10 md:py-12">
                 <p className="text-muted-foreground mb-4">No portfolios match your current criteria</p>
                 <Button variant="outline" onClick={screenPortfolios}>
                   <RefreshCw className="h-4 w-4 mr-2" />
@@ -1090,7 +1090,7 @@ export function DrawdownScreener({ onComplete }: DrawdownScreenerProps) {
                     onClick={handleSubmit} 
                     disabled={!canProceed}
                     size="lg"
-                    className="px-8 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/25"
+                    className="px-4 sm:px-6 md:px-8 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/25"
                   >
                     <BarChart3 className="h-5 w-5 mr-2" />
                     Analyze Portfolio
@@ -1106,7 +1106,7 @@ export function DrawdownScreener({ onComplete }: DrawdownScreenerProps) {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="text-center py-8"
+              className="text-center py-4 sm:py-6 md:py-8"
             >
               <p className="text-muted-foreground mb-4">
                 Set your risk tolerance above and select a portfolio to get started

@@ -211,7 +211,7 @@ export const GlobalCommandSearch: React.FC = () => {
 
               {/* No Query State */}
               {!query && !results && !isLoading && (
-                <div className="text-center py-8">
+                <div className="text-center py-4 sm:py-6 md:py-8">
                   <Command className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
                   <p className="text-muted-foreground mb-4">
                     Type to search prediction markets and news
@@ -236,7 +236,7 @@ export const GlobalCommandSearch: React.FC = () => {
 
               {/* No Results */}
               {results && results.markets.length === 0 && results.signals.length === 0 && !isLoading && (
-                <div className="text-center py-8 text-muted-foreground">
+                <div className="text-center py-4 sm:py-6 md:py-8 text-muted-foreground">
                   <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>No results found for "{query}"</p>
                   <p className="text-sm mt-1">Try a different search term</p>

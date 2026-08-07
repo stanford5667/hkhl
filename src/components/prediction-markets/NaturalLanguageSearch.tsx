@@ -405,7 +405,7 @@ export const NaturalLanguageSearch: React.FC<NaturalLanguageSearchProps> = ({
 
         {/* Loading State */}
         {isLoading && (
-          <div className="flex items-center justify-center py-12">
+          <div className="flex items-center justify-center py-8 sm:py-10 md:py-12">
             <div className="text-center space-y-3">
               <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
               <p className="text-sm text-muted-foreground">Searching markets...</p>
@@ -465,7 +465,7 @@ export const NaturalLanguageSearch: React.FC<NaturalLanguageSearchProps> = ({
                 </div>
               </ScrollArea>
             ) : (
-              <div className="text-center py-8 text-muted-foreground">
+              <div className="text-center py-4 sm:py-6 md:py-8 text-muted-foreground">
                 <p>No results found. Try a different query.</p>
               </div>
             )}

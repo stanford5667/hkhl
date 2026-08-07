@@ -2191,7 +2191,7 @@ function EmailCaptureScreen({ email, setEmail, onSubmit, isSubmitting, userName,
         </p>
 
         {/* Preview stats */}
-        <div className="grid grid-cols-3 gap-4 mb-8 p-4 bg-white/5 rounded-2xl border border-white/10">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 p-4 bg-white/5 rounded-2xl border border-white/10">
           <div className="text-center">
             <div className="text-2xl font-bold text-emerald-400">{riskScore}</div>
             <div className="text-xs text-white/40">Risk Score</div>

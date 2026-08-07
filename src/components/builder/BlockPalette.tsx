@@ -218,7 +218,7 @@ const TabbedPalette = memo(function TabbedPalette({ onAddBlock }: { onAddBlock?:
   return (
     <Tabs value={activeStep} onValueChange={setActiveStep} className="flex flex-col h-full">
       {/* Horizontal step tabs - all visible at once */}
-      <TabsList className="grid grid-cols-5 h-auto p-1 bg-muted/50 rounded-none border-b">
+      <TabsList className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 h-auto p-1 bg-muted/50 rounded-none border-b">
         {STEPS.map((step) => {
           const status = getStepStatus(step.id);
           return (

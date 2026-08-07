@@ -262,7 +262,7 @@ export function RollingReturnsChart({ data, className }: RollingReturnsProps) {
           Rolling 1Y Returns Distribution
         </span>
       </div>
-      <div className="grid grid-cols-3 gap-2 mb-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-3">
         <div className="text-center p-2 bg-[rgb(17,21,28)] rounded">
           <p className="text-[9px] text-[rgb(87,96,106)]">5th %ile</p>
           <p className="font-mono text-sm text-[rgb(248,81,73)]">{p5.toFixed(1)}%</p>

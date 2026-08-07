@@ -121,7 +121,7 @@ export function PositionDetailDialog({ position, open, onOpenChange, onSellFull,
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full grid grid-cols-3">
+          <TabsList className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="actions">Sell / Adjust</TabsTrigger>
             <TabsTrigger value="learn">Learn</TabsTrigger>
@@ -161,7 +161,7 @@ export function PositionDetailDialog({ position, open, onOpenChange, onSellFull,
 
             {pos.instrument_type === 'option' && (
               <Card>
-                <CardContent className="pt-4 pb-3 grid grid-cols-3 gap-4">
+                <CardContent className="pt-4 pb-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div>
                     <p className="text-xs text-muted-foreground">Type</p>
                     <p className="font-bold">{pos.option_type?.toUpperCase()}</p>

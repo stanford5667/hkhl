@@ -129,7 +129,7 @@ export function EnhancedPortfolioBuilder({
         </CardHeader>
         <CardContent className="space-y-3">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3 h-8">
+            <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 h-8">
               <TabsTrigger value="manual" className="text-xs">
                 <Plus className="h-3 w-3 mr-1" />
                 Manual
@@ -206,7 +206,7 @@ export function EnhancedPortfolioBuilder({
       
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             <TabsTrigger value="manual" className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
               Manual
@@ -285,7 +285,7 @@ function CurrentHoldingsList({
   
   if (items.length === 0) {
     return (
-      <div className="text-center py-8 text-muted-foreground">
+      <div className="text-center py-4 sm:py-6 md:py-8 text-muted-foreground">
         <Wallet className="h-8 w-8 mx-auto mb-2 opacity-50" />
         <p className="text-sm">No holdings yet</p>
         <p className="text-xs">Add your first position to get started</p>
@@ -333,7 +333,7 @@ function SavedPortfoliosList({
 }) {
   if (portfolios.length === 0) {
     return (
-      <div className={`text-center ${compact ? 'py-4' : 'py-8'} text-muted-foreground`}>
+      <div className={`text-center ${compact ? 'py-4' : 'py-4 sm:py-6 md:py-8'} text-muted-foreground`}>
         <FolderOpen className={`${compact ? 'h-6 w-6' : 'h-8 w-8'} mx-auto mb-2 opacity-50`} />
         <p className="text-sm">No saved portfolios</p>
         <p className="text-xs">Save your current portfolio to access it later</p>

@@ -215,7 +215,7 @@ export function OptionsChainSelector({ underlyingTicker, onSelect, selectedContr
       )}
 
       {loading && (
-        <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
+        <div className="flex items-center justify-center py-4 sm:py-6 md:py-8 text-sm text-muted-foreground">
           <Loader2 className="w-4 h-4 animate-spin mr-2" /> Loading chain...
         </div>
       )}
@@ -400,7 +400,7 @@ export function OptionsChainSelector({ underlyingTicker, onSelect, selectedContr
             </span>
             <span className="text-muted-foreground">{selectedContract.expiration_date}</span>
           </div>
-          <div className="grid grid-cols-4 gap-x-3 gap-y-0.5 text-[10px] font-mono">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-3 gap-y-0.5 text-[10px] font-mono">
             <div><span className="text-muted-foreground">Bid </span><span className="text-success">{fmtPrice(selectedContract.bid)}</span></div>
             <div><span className="text-muted-foreground">Ask </span><span className="text-destructive">{fmtPrice(selectedContract.ask)}</span></div>
             <div><span className="text-muted-foreground">Mid </span><span>{fmtPrice(selectedContract.mid)}</span></div>

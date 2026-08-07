@@ -207,7 +207,7 @@ export function OptionsAdvisorChat({ ticker, intent }: Props) {
 
       <ScrollArea className="flex-1 p-4" ref={scrollRef}>
         {!hasStarted ? (
-          <div className="flex flex-col items-center justify-center h-full text-center space-y-6 py-12">
+          <div className="flex flex-col items-center justify-center h-full text-center space-y-6 py-8 sm:py-10 md:py-12">
             <div className="p-4 rounded-2xl bg-primary/10 border border-primary/20">
               <Brain className="h-10 w-10 text-primary" />
             </div>

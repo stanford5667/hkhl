@@ -191,8 +191,8 @@ export default function ModelEditor() {
 
   if (!model) {
     return (
-      <div className="p-8">
-        <Card className="p-8 text-center">
+      <div className="p-4 sm:p-6 md:p-8">
+        <Card className="p-4 sm:p-6 md:p-8 text-center">
           <h2 className="text-xl font-semibold mb-2">Model not found</h2>
           <Button variant="outline" onClick={() => navigate("/models")}>
             Back to Models
@@ -386,7 +386,7 @@ export default function ModelEditor() {
       <div className="flex-1 flex flex-col min-w-0">
         {/* Returns Summary */}
         <div className="p-4 border-b border-border bg-card/30">
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="bg-primary/10 border-primary/20">
               <CardContent className="p-4">
                 <p className="text-xs text-muted-foreground uppercase tracking-wider">IRR</p>

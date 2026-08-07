@@ -80,7 +80,7 @@ export function SmartMoneyAlerts() {
 
   if (!user) {
     return (
-      <div className="text-center py-12 text-muted-foreground">
+      <div className="text-center py-8 sm:py-10 md:py-12 text-muted-foreground">
         <Bell className="h-12 w-12 mx-auto mb-4 opacity-30" />
         <p>Sign in to create and manage alerts.</p>
       </div>
@@ -128,7 +128,7 @@ export function SmartMoneyAlerts() {
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
-            <p className="p-8 text-center text-muted-foreground">Loading...</p>
+            <p className="p-4 sm:p-6 md:p-8 text-center text-muted-foreground">Loading...</p>
           ) : alerts && alerts.length > 0 ? (
             <div className="divide-y divide-border">
               {alerts.map((alert) => (
@@ -155,7 +155,7 @@ export function SmartMoneyAlerts() {
               ))}
             </div>
           ) : (
-            <p className="p-8 text-center text-muted-foreground text-sm">No alerts yet. Create one to get started.</p>
+            <p className="p-4 sm:p-6 md:p-8 text-center text-muted-foreground text-sm">No alerts yet. Create one to get started.</p>
           )}
         </CardContent>
       </Card>

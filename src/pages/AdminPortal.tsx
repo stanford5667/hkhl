@@ -44,7 +44,7 @@ export default function AdminPortal() {
   }
 
   return (
-    <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3 mb-8">
         <div className="p-3 rounded-xl bg-primary/10 border border-primary/20">
@@ -58,7 +58,7 @@ export default function AdminPortal() {
 
       {/* Main Tabs */}
       <Tabs defaultValue="courses" className="w-full">
-        <TabsList className="grid w-full grid-cols-8 bg-muted/50">
+        <TabsList className="grid w-full grid-cols-4 sm:grid-cols-8 bg-muted/50">
           <TabsTrigger value="users" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
             <span className="hidden sm:inline">Users</span>

@@ -89,7 +89,7 @@ export function BlockTradesFeed() {
               </TableBody>
             </Table>
           ) : (
-            <div className="text-center py-12 text-muted-foreground">
+            <div className="text-center py-8 sm:py-10 md:py-12 text-muted-foreground">
               <p>No block trade data yet.</p>
               <p className="text-xs mt-1">Data will populate once the Polygon block trades pipeline runs.</p>
             </div>

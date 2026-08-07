@@ -8,7 +8,7 @@ interface Props {
 
 export function TradeHistory({ trades }: Props) {
   if (trades.length === 0) {
-    return <div className="text-center py-12 text-muted-foreground">No trades yet.</div>;
+    return <div className="text-center py-8 sm:py-10 md:py-12 text-muted-foreground">No trades yet.</div>;
   }
 
   return (

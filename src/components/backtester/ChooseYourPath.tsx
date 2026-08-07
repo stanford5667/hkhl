@@ -184,7 +184,7 @@ export function ChooseYourPath({ onSelectManual, onSelectAIChat, onSelectQuestio
             <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-teal-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
             
             {/* Most Popular Ribbon */}
-            <div className="absolute -top-1 -right-8 rotate-45 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[10px] sm:text-xs font-bold px-8 sm:px-10 py-0.5 sm:py-1 shadow-lg">
+            <div className="absolute -top-1 -right-8 rotate-45 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[10px] sm:text-xs font-bold px-4 sm:px-6 md:px-8 sm:px-10 py-0.5 sm:py-1 shadow-lg">
               Popular
             </div>
             

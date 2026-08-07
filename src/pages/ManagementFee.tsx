@@ -74,13 +74,13 @@ export default function ManagementFee() {
           <div className="mx-auto w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center mb-4">
             <Shield className="h-7 w-7 text-primary" />
           </div>
-          <h1 className="text-3xl font-bold text-foreground">Annual Management Fee</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Annual Management Fee</h1>
           <p className="text-muted-foreground">Research & Consulting Agreement — Annual Payment</p>
         </div>
 
-        <div className="rounded-xl border border-border bg-card p-8 space-y-6">
+        <div className="rounded-xl border border-border bg-card p-4 sm:p-8 space-y-6">
           <div className="text-center">
-            <div className="text-5xl font-bold text-foreground">$10,000</div>
+            <div className="text-4xl sm:text-5xl font-bold text-foreground">$10,000</div>
             <p className="text-sm text-muted-foreground mt-2">Annual management fee — billed yearly</p>
           </div>
 

@@ -192,7 +192,7 @@ export function DrawdownChart({
         </div>
         
         {/* Stats Summary */}
-        <div className="mt-4 pt-4 border-t grid grid-cols-4 gap-4">
+        <div className="mt-4 pt-4 border-t grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="text-center">
             <p className="text-xs text-muted-foreground">Max Drawdown</p>
             <p className="text-sm font-semibold text-rose-600">{stats.maxDrawdown.toFixed(2)}%</p>

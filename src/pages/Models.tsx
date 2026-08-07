@@ -55,7 +55,7 @@ export default function Models() {
   const navigate = useNavigate();
 
   return (
-    <div className="p-8 space-y-8 animate-fade-up">
+    <div className="p-4 sm:p-6 md:p-8 space-y-8 animate-fade-up">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

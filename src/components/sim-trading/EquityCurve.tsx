@@ -39,12 +39,12 @@ export function EquityCurve({ portfolioId, initialCapital }: Props) {
     fetch();
   }, [portfolioId, initialCapital]);
 
-  if (loading) return <div className="text-muted-foreground text-center py-8">Loading performance data...</div>;
+  if (loading) return <div className="text-muted-foreground text-center py-4 sm:py-6 md:py-8">Loading performance data...</div>;
 
   if (data.length === 0) {
     return (
       <Card>
-        <CardContent className="py-12 text-center">
+        <CardContent className="py-8 sm:py-10 md:py-12 text-center">
           <p className="text-muted-foreground">No performance data yet. Trade and refresh to generate snapshots over time.</p>
           <p className="text-xs text-muted-foreground mt-2">Portfolio value is tracked each time you view this page.</p>
         </CardContent>

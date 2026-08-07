@@ -834,7 +834,7 @@ export const StudyAuditDashboard: React.FC<StudyAuditDashboardProps> = ({
         {results.length > 0 && (
           <>
             {/* Summary Stats */}
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div className="p-3 rounded-lg bg-muted/50 text-center">
                 <div className="text-2xl font-bold text-foreground">{results.length}</div>
                 <div className="text-xs text-muted-foreground">Studies Tested</div>
@@ -1016,7 +1016,7 @@ export const StudyAuditDashboard: React.FC<StudyAuditDashboardProps> = ({
         )}
         
         {!isRunning && results.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground">
+          <div className="text-center py-4 sm:py-6 md:py-8 text-muted-foreground">
             <BarChart3 className="h-12 w-12 mx-auto mb-3 opacity-50" />
             <p>Click "Run Full Audit" to verify all study calculations</p>
             <p className="text-sm mt-1">Testing ticker: <code className="bg-muted px-2 py-0.5 rounded">{ticker}</code></p>

@@ -175,7 +175,7 @@ export function SavedPortfoliosPanel({
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
+      <div className="flex items-center justify-center py-8 sm:py-10 md:py-12">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -226,7 +226,7 @@ export function SavedPortfoliosPanel({
       {/* Portfolio Cards */}
       {filteredAndSortedPortfolios.length === 0 ? (
         <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-12">
+          <CardContent className="flex flex-col items-center justify-center py-8 sm:py-10 md:py-12">
             <FolderOpen className="h-12 w-12 text-muted-foreground/50 mb-4" />
             <h3 className="text-lg font-medium mb-1">No Portfolios Found</h3>
             <p className="text-sm text-muted-foreground text-center max-w-sm">

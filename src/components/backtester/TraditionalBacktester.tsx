@@ -927,7 +927,7 @@ export function TraditionalBacktester() {
                 ))}
                 
                 {assets.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
+                  <div className="text-center py-4 sm:py-6 md:py-8 text-muted-foreground">
                     <PieChart className="h-8 w-8 mx-auto mb-2 opacity-50" />
                     <p className="text-sm">Add assets to build your portfolio</p>
                   </div>
@@ -1059,7 +1059,7 @@ export function TraditionalBacktester() {
         <div className="lg:col-span-2 space-y-4">
           {result ? (
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid grid-cols-4">
+              <TabsList className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                 <TabsTrigger value="overview" className="gap-1">
                   <BarChart3 className="h-4 w-4" />
                   <span className="hidden sm:inline">Overview</span>

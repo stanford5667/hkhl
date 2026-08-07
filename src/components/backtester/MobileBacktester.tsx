@@ -909,7 +909,7 @@ export function MobileBacktester() {
             <Card className="h-full">
               <CardContent className="p-2 h-full">
                 <Tabs defaultValue="growth" className="h-full flex flex-col">
-                  <TabsList className="flex-shrink-0 h-8 w-full grid grid-cols-3">
+                  <TabsList className="flex-shrink-0 h-8 w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                     <TabsTrigger value="growth" className="text-xs">Growth</TabsTrigger>
                     <TabsTrigger value="drawdown" className="text-xs">Drawdown</TabsTrigger>
                     <TabsTrigger value="yearly" className="text-xs">Yearly</TabsTrigger>
@@ -1424,7 +1424,7 @@ export function MobileBacktester() {
           <ScrollArea className="flex-1">
             <div className="p-3 space-y-1.5">
               {assets.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground text-sm">
+                <div className="text-center py-8 sm:py-10 md:py-12 text-muted-foreground text-sm">
                   <Search className="h-8 w-8 mx-auto mb-3 opacity-30" />
                   <p>Add tickers to build your portfolio</p>
                   <p className="text-xs mt-1">Use the search bar above</p>

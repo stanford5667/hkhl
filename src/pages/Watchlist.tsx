@@ -283,7 +283,7 @@ export default function Watchlist() {
             <div key={i} className="h-16 bg-muted/30 rounded-lg animate-pulse" />
           ))
         ) : filteredItems.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground text-sm">
+          <div className="text-center py-4 sm:py-6 md:py-8 text-muted-foreground text-sm">
             {searchQuery ? 'No stocks match your search' : 'Your watchlist is empty. Add a stock to get started.'}
           </div>
         ) : (
@@ -325,7 +325,7 @@ export default function Watchlist() {
               ))
             ) : filteredItems.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={6} className="text-center py-4 sm:py-6 md:py-8 text-muted-foreground">
                   {searchQuery ? 'No stocks match your search' : 'Your watchlist is empty. Add a stock to get started.'}
                 </TableCell>
               </TableRow>

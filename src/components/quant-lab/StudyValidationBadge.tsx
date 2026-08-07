@@ -398,7 +398,7 @@ export function BatchValidationSummary({
         </div>
       </div>
       
-      <div className="grid grid-cols-3 gap-2 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-4">
         <div className="p-2 rounded bg-muted/30 text-center">
           <p className="text-lg font-mono font-bold text-emerald-500">{validStudies}</p>
           <p className="text-[10px] text-muted-foreground">Valid</p>

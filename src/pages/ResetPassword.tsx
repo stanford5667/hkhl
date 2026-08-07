@@ -80,14 +80,14 @@ export default function ResetPassword() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-8">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 sm:p-8">
       <div className="w-full max-w-md space-y-8 animate-fade-up">
         <div className="flex justify-center mb-8">
           <AssetLabsLogo size="lg" showTagline />
         </div>
 
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-foreground">Set new password</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Set new password</h1>
           <p className="mt-2 text-muted-foreground">
             {isSuccess
               ? "Your password has been updated"

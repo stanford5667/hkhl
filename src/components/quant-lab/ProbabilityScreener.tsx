@@ -314,7 +314,7 @@ export function ProbabilityScreener() {
 
       {results.length === 0 && !isScreening && (
         <Card className="bg-card/30 border-dashed">
-          <CardContent className="py-12 text-center">
+          <CardContent className="py-8 sm:py-10 md:py-12 text-center">
             <Target className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
             <h3 className="font-medium text-muted-foreground mb-2">No Results Yet</h3>
             <p className="text-sm text-muted-foreground/70">

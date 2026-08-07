@@ -125,7 +125,7 @@ export default function SimTrading() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Simulation Trading</h1>
           <p className="text-muted-foreground text-sm">Paper trade stocks & options with virtual capital — track real performance forward</p>
@@ -212,7 +212,7 @@ export default function SimTrading() {
       )}
 
       {loading ? (
-        <div className="text-muted-foreground text-center py-12">Loading simulations...</div>
+        <div className="text-muted-foreground text-center py-8 sm:py-10 md:py-12">Loading simulations...</div>
       ) : portfolios.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="py-16 text-center space-y-4">

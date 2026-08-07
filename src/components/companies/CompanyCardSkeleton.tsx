@@ -12,7 +12,7 @@ export function CompanyCardSkeleton() {
       </div>
 
       {/* Metrics Row */}
-      <div className="grid grid-cols-3 gap-4 py-3 border-y border-border">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4 py-3 border-y border-border">
         {[1, 2, 3].map((i) => (
           <div key={i} className="text-center space-y-2">
             <div className="skeleton h-3 w-12 mx-auto rounded" />

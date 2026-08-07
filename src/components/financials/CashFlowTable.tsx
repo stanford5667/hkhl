@@ -177,7 +177,7 @@ export function CashFlowTable({ ticker, companyName }: CashFlowTableProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
+          <div className="text-center py-4 sm:py-6 md:py-8 text-muted-foreground">
             <Coins className="h-12 w-12 mx-auto mb-3 opacity-30" />
             <p>Cash flow data not available for {ticker}</p>
             <p className="text-xs mt-1">Try refreshing or check back later</p>

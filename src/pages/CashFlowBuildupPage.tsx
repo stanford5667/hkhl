@@ -424,7 +424,7 @@ export default function CashFlowBuildupPage() {
 
             <div>
               <Label className="text-foreground">Upload Historical Financial Data</Label>
-              <div className="mt-2 border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors cursor-pointer relative">
+              <div className="mt-2 border-2 border-dashed border-border rounded-lg p-4 sm:p-6 md:p-8 text-center hover:border-primary/50 transition-colors cursor-pointer relative">
                 <input
                   type="file"
                   accept=".xlsx,.xls,.csv"

@@ -102,7 +102,7 @@ export function MetricExplanationCard({
         <CollapsibleContent className="animate-accordion-down">
           <CardContent className="pt-0 pb-4">
             <Tabs defaultValue="plain-english" className="w-full">
-              <TabsList className="grid w-full grid-cols-4 mb-4">
+              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 mb-4">
                 <TabsTrigger value="plain-english" className="text-xs gap-1">
                   <BookOpen className="h-3 w-3" />
                   <span className="hidden sm:inline">Plain English</span>

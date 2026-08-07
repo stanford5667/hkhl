@@ -147,7 +147,7 @@ export function RecentModelsTable() {
         <CardHeader>
           <CardTitle className="text-base font-medium">Recent Models</CardTitle>
         </CardHeader>
-        <CardContent className="flex items-center justify-center py-8">
+        <CardContent className="flex items-center justify-center py-4 sm:py-6 md:py-8">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </CardContent>
       </Card>
@@ -161,7 +161,7 @@ export function RecentModelsTable() {
           <CardTitle className="text-base font-medium">Recent Models</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
+          <div className="text-center py-4 sm:py-6 md:py-8 text-muted-foreground">
             <p>No models yet. Create your first model to get started.</p>
             <Button variant="outline" className="mt-4" onClick={() => navigate("/models/new")}>
               Create New Model

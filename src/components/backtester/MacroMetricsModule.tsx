@@ -316,7 +316,7 @@ export function MacroMetricsModule() {
           )}
 
           {activeEvents.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="text-center py-4 sm:py-6 md:py-8 text-muted-foreground">
               <p>Toggle events above to see portfolio performance during those periods.</p>
             </div>
           )}

@@ -94,7 +94,7 @@ export default function PredictionMarketsAI() {
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5 h-auto p-1 bg-muted/50">
+        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 h-auto p-1 bg-muted/50">
           {tabs.map((tab) => (
             <TabsTrigger
               key={tab.id}

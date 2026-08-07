@@ -73,14 +73,14 @@ function RowComponent({
       </div>
       
       {/* Price */}
-      <div className="w-[100px] px-4 text-right">
+      <div className="w-[76px] sm:w-[100px] px-4 text-right">
         <span className="font-medium tabular-nums">
           ${stock.price.toFixed(2)}
         </span>
       </div>
       
       {/* Change */}
-      <div className="w-[100px] px-4 text-right">
+      <div className="w-[76px] sm:w-[100px] px-4 text-right">
         <div className={cn(
           "flex items-center justify-end gap-1",
           isUp ? "text-emerald-500" : "text-rose-500"
@@ -93,7 +93,7 @@ function RowComponent({
       </div>
       
       {/* Volume */}
-      <div className="w-[120px] px-4 text-right">
+      <div className="hidden md:block w-[120px] px-4 text-right">
         <span className="font-medium tabular-nums">{formatVolume(stock.volume)}</span>
         {stock.relativeVolume && stock.relativeVolume > 1.5 && (
           <p className="text-xs text-amber-500">
@@ -103,7 +103,7 @@ function RowComponent({
       </div>
       
       {/* Market Cap */}
-      <div className="w-[100px] px-4 text-right text-muted-foreground tabular-nums">
+      <div className="hidden md:block w-[100px] px-4 text-right text-muted-foreground tabular-nums">
         {formatMarketCap(stock.marketCap)}
       </div>
       
@@ -175,10 +175,10 @@ export function VirtualizedResultsTable({
           <div className="flex items-center h-12">
             <div className="flex-1 min-w-[180px] px-4 text-sm font-medium text-muted-foreground">Stock</div>
             <div className="hidden sm:block w-[140px] px-4 text-sm font-medium text-muted-foreground">Sector</div>
-            <div className="w-[100px] px-4 text-sm font-medium text-muted-foreground text-right">Price</div>
-            <div className="w-[100px] px-4 text-sm font-medium text-muted-foreground text-right">Change</div>
-            <div className="w-[120px] px-4 text-sm font-medium text-muted-foreground text-right">Volume</div>
-            <div className="w-[100px] px-4 text-sm font-medium text-muted-foreground text-right">Market Cap</div>
+            <div className="w-[76px] sm:w-[100px] px-4 text-sm font-medium text-muted-foreground text-right">Price</div>
+            <div className="w-[76px] sm:w-[100px] px-4 text-sm font-medium text-muted-foreground text-right">Change</div>
+            <div className="hidden md:block w-[120px] px-4 text-sm font-medium text-muted-foreground text-right">Volume</div>
+            <div className="hidden md:block w-[100px] px-4 text-sm font-medium text-muted-foreground text-right">Market Cap</div>
             <div className="w-[48px]"></div>
           </div>
         </div>
@@ -187,10 +187,10 @@ export function VirtualizedResultsTable({
             <div key={i} className="flex items-center h-16 px-4">
               <div className="flex-1 min-w-[180px]"><Skeleton className="h-5 w-24" /></div>
               <div className="hidden sm:block w-[140px]"><Skeleton className="h-5 w-20" /></div>
-              <div className="w-[100px] flex justify-end"><Skeleton className="h-5 w-16" /></div>
-              <div className="w-[100px] flex justify-end"><Skeleton className="h-5 w-16" /></div>
-              <div className="w-[120px] flex justify-end"><Skeleton className="h-5 w-16" /></div>
-              <div className="w-[100px] flex justify-end"><Skeleton className="h-5 w-16" /></div>
+              <div className="w-[76px] sm:w-[100px] flex justify-end"><Skeleton className="h-5 w-16" /></div>
+              <div className="w-[76px] sm:w-[100px] flex justify-end"><Skeleton className="h-5 w-16" /></div>
+              <div className="hidden md:flex w-[120px] justify-end"><Skeleton className="h-5 w-16" /></div>
+              <div className="hidden md:flex w-[100px] justify-end"><Skeleton className="h-5 w-16" /></div>
               <div className="w-[48px]"></div>
             </div>
           ))}
@@ -220,10 +220,10 @@ export function VirtualizedResultsTable({
         <div className="flex items-center">
           <div className="flex-1 min-w-[180px] px-4 py-3 text-sm font-medium text-muted-foreground">Stock</div>
           <div className="hidden sm:block w-[140px] px-4 py-3 text-sm font-medium text-muted-foreground">Sector</div>
-          <SortableHeader column="price" className="w-[100px] text-right">Price</SortableHeader>
-          <SortableHeader column="change" className="w-[100px] text-right">Change</SortableHeader>
-          <SortableHeader column="volume" className="w-[120px] text-right">Volume</SortableHeader>
-          <SortableHeader column="marketCap" className="w-[100px] text-right">Market Cap</SortableHeader>
+          <SortableHeader column="price" className="w-[76px] sm:w-[100px] text-right">Price</SortableHeader>
+          <SortableHeader column="change" className="w-[76px] sm:w-[100px] text-right">Change</SortableHeader>
+          <SortableHeader column="volume" className="hidden md:block w-[120px] text-right">Volume</SortableHeader>
+          <SortableHeader column="marketCap" className="hidden md:block w-[100px] text-right">Market Cap</SortableHeader>
           <div className="w-[48px]"></div>
         </div>
       </div>

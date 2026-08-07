@@ -201,7 +201,7 @@ export function EfficientFrontierSlider({
 
         {/* Selected Portfolio Stats */}
         {selectedPoint && (
-          <div className="grid grid-cols-3 gap-4 pt-4 border-t border-border">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-4 border-t border-border">
             <div className="text-center">
               <p className="text-xs text-muted-foreground mb-1">Expected Return</p>
               <p className={cn(

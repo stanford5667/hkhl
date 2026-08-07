@@ -287,7 +287,7 @@ export function DataAuditPanel({
                                 {ticker.dataQuality} quality
                               </Badge>
                             </div>
-                            <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-muted-foreground">
                               <div>Source: {ticker.dataSource}</div>
                               <div>Range: {ticker.dateRange.start} — {ticker.dateRange.end}</div>
                               <div>Bars: {ticker.barCount}</div>

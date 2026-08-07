@@ -49,7 +49,7 @@ export function PendingOrdersTab({ orders, onRefresh }: Props) {
   if (pendingOrders.length === 0) {
     return (
       <Card>
-        <CardContent className="py-12 text-center">
+        <CardContent className="py-8 sm:py-10 md:py-12 text-center">
           <Clock className="w-10 h-10 mx-auto mb-3 text-muted-foreground/40" />
           <p className="text-muted-foreground">No pending orders</p>
           <p className="text-xs text-muted-foreground mt-1">Place a limit or stop order to see it here</p>

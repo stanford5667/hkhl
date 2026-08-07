@@ -108,7 +108,7 @@ export function InsiderTracker() {
               </TableBody>
             </Table>
           ) : (
-            <div className="text-center py-12 text-muted-foreground">
+            <div className="text-center py-8 sm:py-10 md:py-12 text-muted-foreground">
               <p>No insider transactions found.</p>
               <p className="text-xs mt-1">Data will populate once the SEC EDGAR pipeline runs.</p>
             </div>

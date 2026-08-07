@@ -88,7 +88,7 @@ export function IndustryNews({ companyId, companyName, industry }: IndustryNewsP
 
       {/* Key Market Metrics */}
       {data?.metrics && (
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <Card className="bg-primary/10 border-primary/30">
             <CardContent className="p-4 text-center">
               <BarChart3 className="h-6 w-6 text-primary mx-auto mb-2" />
@@ -129,7 +129,7 @@ export function IndustryNews({ companyId, companyName, industry }: IndustryNewsP
       )}
 
       {/* News Summary */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="bg-emerald-900/20 border-emerald-600/30">
           <CardContent className="p-4 text-center">
             <TrendingUp className="h-6 w-6 text-emerald-400 mx-auto mb-2" />

@@ -792,7 +792,7 @@ export function DynamicScreener({ onSelect, onComplete }: DynamicScreenerProps) 
             })}
             
             {displayedPortfolios.length === 0 && !isLoading && (
-              <div className="text-center py-12 text-muted-foreground">
+              <div className="text-center py-8 sm:py-10 md:py-12 text-muted-foreground">
                 <Database className="h-8 w-8 mx-auto mb-2 opacity-50" />
                 <p>No portfolios match your criteria</p>
                 <p className="text-xs mt-1">Try adjusting your filters</p>

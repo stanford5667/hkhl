@@ -131,7 +131,7 @@ export function TradingLearningHub({ portfolioId, trades, positions, initialCapi
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="report" className="w-full">
-          <TabsList className="w-full grid grid-cols-3 h-8">
+          <TabsList className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 h-8">
             <TabsTrigger value="report" className="text-xs">
               <BarChart3 className="h-3 w-3 mr-1" /> Report Card
             </TabsTrigger>

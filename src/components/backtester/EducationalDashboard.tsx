@@ -106,7 +106,7 @@ export function EducationalDashboard({
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-4">
-              <div className="text-4xl">{sleepScore.emoji}</div>
+              <div className="text-2xl sm:text-3xl md:text-4xl">{sleepScore.emoji}</div>
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-2xl font-bold">{sleepScore.score.toFixed(0)}</span>
@@ -220,7 +220,7 @@ export function EducationalDashboard({
         </CardHeader>
         <CardContent>
           <Tabs value={selectedStressTest} onValueChange={setSelectedStressTest}>
-            <TabsList className="grid w-full grid-cols-3 mb-6">
+            <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 mb-6">
               <TabsTrigger value="normal" className="gap-2">
                 <Sun className="h-4 w-4" />
                 Normal Market

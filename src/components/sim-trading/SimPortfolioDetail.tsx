@@ -452,7 +452,7 @@ export function SimPortfolioDetail({ portfolioId, onBack }: Props) {
   };
 
   if (loading || !portfolio) {
-    return <div className="text-muted-foreground text-center py-12">Loading simulation...</div>;
+    return <div className="text-muted-foreground text-center py-8 sm:py-10 md:py-12">Loading simulation...</div>;
   }
 
   const totalPositionsValue = positions.reduce((sum, p) => sum + (p.current_value || 0), 0);

@@ -100,7 +100,7 @@ export function ContactDetailPanel({ contact, open, onClose }: ContactDetailPane
           </div>
 
           {/* Quick Stats */}
-          <div className="grid grid-cols-4 gap-4 mt-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6">
             <QuickStat label="Tasks" value="3" />
             <QuickStat label="Emails" value="12" />
             <QuickStat label="Meetings" value="5" />
@@ -110,7 +110,7 @@ export function ContactDetailPanel({ contact, open, onClose }: ContactDetailPane
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-          <TabsList className="grid grid-cols-5 mx-6 mt-4 bg-muted/50">
+          <TabsList className="grid grid-cols-3 sm:grid-cols-5 mx-6 mt-4 bg-muted/50">
             <TabsTrigger value="chat" className="text-xs gap-1.5">
               <MessageSquare className="h-3.5 w-3.5" />
               {isTeamMember ? 'Chat' : 'Email'}

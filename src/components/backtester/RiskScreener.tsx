@@ -879,7 +879,7 @@ export function RiskScreener({ onSelect, onComplete }: RiskScreenerProps) {
                     </div>
                     
                     {/* Metrics row */}
-                    <div className="grid grid-cols-4 gap-1 text-center">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-1 text-center">
                       <div className={cn(
                         "p-1.5 rounded text-[10px]",
                         selectedMetric === 'maxDrawdown' ? "bg-primary/10" : "bg-muted/50"

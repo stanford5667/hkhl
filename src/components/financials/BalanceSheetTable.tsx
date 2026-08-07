@@ -186,7 +186,7 @@ export function BalanceSheetTable({ ticker, companyName }: BalanceSheetTableProp
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
+          <div className="text-center py-4 sm:py-6 md:py-8 text-muted-foreground">
             <Scale className="h-12 w-12 mx-auto mb-3 opacity-30" />
             <p>Balance sheet data not available for {ticker}</p>
             <p className="text-xs mt-1">Try refreshing or check back later</p>

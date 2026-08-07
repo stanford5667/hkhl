@@ -187,7 +187,7 @@ function RecentInsiderBuys() {
             ))}
           </div>
         ) : (
-          <div className="text-center py-8 text-muted-foreground text-sm">
+          <div className="text-center py-4 sm:py-6 md:py-8 text-muted-foreground text-sm">
             <p>No insider data loaded yet.</p>
             <p className="text-xs mt-1">Data will populate once the SEC EDGAR pipeline runs.</p>
           </div>
@@ -241,7 +241,7 @@ function RecentBlockTrades() {
             ))}
           </div>
         ) : (
-          <div className="text-center py-8 text-muted-foreground text-sm">
+          <div className="text-center py-4 sm:py-6 md:py-8 text-muted-foreground text-sm">
             <p>No block trade data yet.</p>
             <p className="text-xs mt-1">Data will populate once the Polygon pipeline runs.</p>
           </div>

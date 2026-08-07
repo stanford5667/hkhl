@@ -180,7 +180,7 @@ export function ManualPortfolioBuilder({
       {/* Asset cards */}
       <div className="space-y-2">
         {allocations.length === 0 ? (
-          <Card className="p-8 text-center">
+          <Card className="p-4 sm:p-6 md:p-8 text-center">
             <Layers className="h-10 w-10 mx-auto mb-3 text-muted-foreground/30" />
             <p className="text-muted-foreground text-sm">
               No assets yet. Add tickers above or choose a template.

@@ -84,7 +84,7 @@ export function AdvancedMetricsPanel({ visibleMetrics }: AdvancedMetricsPanelPro
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="portfolio" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 mb-4">
+          <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 mb-4">
             <TabsTrigger value="portfolio" className="text-xs">Portfolio</TabsTrigger>
             <TabsTrigger value="risk" className="text-xs">Risk</TabsTrigger>
             <TabsTrigger value="performance" className="text-xs">Performance</TabsTrigger>
@@ -107,7 +107,7 @@ export function AdvancedMetricsPanel({ visibleMetrics }: AdvancedMetricsPanelPro
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8 text-muted-foreground">
+              <div className="text-center py-4 sm:py-6 md:py-8 text-muted-foreground">
                 <p>No metrics selected. Use the Metrics selector to add metrics.</p>
               </div>
             )}
