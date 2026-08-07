@@ -99,10 +99,10 @@ export default function ResearchPage() {
 
         <SectionDivider />
 
-        <section className="relative -mx-3 sm:-mx-4 lg:-mx-6 px-3 sm:px-4 lg:px-6 py-5 sm:py-6 bg-card border-y border-primary/20 overflow-hidden">
-          {/* Strong top accent line */}
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent" />
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 h-1 w-32 bg-primary shadow-[0_0_20px_rgba(59,130,246,0.55)]" />
+        <section className="relative -mx-3 sm:-mx-4 lg:-mx-6 px-3 sm:px-4 lg:px-6 py-3 sm:py-6 bg-card border-y border-primary/20 overflow-hidden">
+          {/* Strong top accent line — slim on mobile */}
+          <div className="absolute top-0 left-0 right-0 h-px sm:h-1 bg-gradient-to-r from-transparent via-primary to-transparent" />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 h-px sm:h-1 w-24 sm:w-32 bg-primary shadow-[0_0_14px_rgba(59,130,246,0.5)] sm:shadow-[0_0_20px_rgba(59,130,246,0.55)]" />
           {/* Left vertical accent */}
           <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-primary via-cyan-400/60 to-transparent" />
           {/* Right vertical accent */}
