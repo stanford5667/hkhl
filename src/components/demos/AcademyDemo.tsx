@@ -512,18 +512,15 @@ export function AcademyDemo() {
               const moduleNum = sectionIdx + 1;
               const isExpanded = expandedModules.has(section.id);
               const isShowAll = expandedShowAll.has(section.id);
-              const visibleLessons = isShowAll ? section.lessons : section.lessons.slice(0, 2);
+              const visibleLessons = isShowAll ? section.lessons : section.lessons.slice(0, 4);
               const hiddenCount = section.lessons.length - visibleLessons.length;
 
               return (
                 <div key={section.id} className="rounded-xl border border-slate-800/80 bg-slate-900/40 overflow-hidden">
                   <button
                     type="button"
+                    data-guest-allow
                     onClick={() => {
-                      if (!user) {
-                        goToAuth();
-                        return;
-                      }
                       setExpandedModules((prev) => {
                         const next = new Set(prev);
                         if (next.has(section.id)) next.delete(section.id);
@@ -586,11 +583,8 @@ export function AcademyDemo() {
                       {hiddenCount > 0 && (
                         <button
                           type="button"
+                          data-guest-allow
                           onClick={() => {
-                            if (!user) {
-                              goToAuth();
-                              return;
-                            }
                             setExpandedShowAll((prev) => {
                               const next = new Set(prev);
                               if (next.has(section.id)) next.delete(section.id);
