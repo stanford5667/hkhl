@@ -11,14 +11,14 @@ interface ResearchHeroProps {
 export function ResearchHero({ className }: ResearchHeroProps) {
   return (
     <div className={cn("relative", className)}>
-      <div className="relative max-w-6xl mx-auto px-3 sm:px-6 pt-4 sm:pt-10 pb-5 sm:pb-8">
+      <div className="relative max-w-6xl mx-auto px-3 sm:px-6 pt-3 sm:pt-6 pb-3 sm:pb-4">
         {/* Hero Text — Terminal style */}
         <div className="text-center mb-2 sm:mb-3">
       {/* Removed Research Terminal badge */}
 
 
           <motion.h1
-            className="font-display text-[clamp(2.75rem,12vw,4.5rem)] leading-[1.0] tracking-tight font-bold mb-4 sm:mb-5 w-full"
+            className="font-display text-[clamp(2.75rem,12vw,4.5rem)] leading-[1.0] tracking-tight font-bold mb-2 sm:mb-3 w-full"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
@@ -76,7 +76,7 @@ export function ResearchHero({ className }: ResearchHeroProps) {
           </motion.p>
 
           <motion.div
-            className="mt-5 sm:mt-6 flex flex-col sm:flex-row items-center justify-center gap-3"
+            className="mt-3 sm:mt-4 flex flex-col sm:flex-row items-center justify-center gap-3"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.24 }}
