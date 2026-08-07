@@ -519,11 +519,8 @@ export function AcademyDemo() {
                 <div key={section.id} className="rounded-xl border border-slate-800/80 bg-slate-900/40 overflow-hidden">
                   <button
                     type="button"
+                    data-guest-allow
                     onClick={() => {
-                      if (!user) {
-                        goToAuth();
-                        return;
-                      }
                       setExpandedModules((prev) => {
                         const next = new Set(prev);
                         if (next.has(section.id)) next.delete(section.id);
