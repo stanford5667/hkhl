@@ -86,7 +86,7 @@ export function StrategyPillars() {
         </Button>
         <Button asChild variant="outline" size="lg" className="w-full sm:w-auto gap-2 border-white/[0.12] bg-white/[0.03] text-white hover:bg-white/[0.06] hover:text-white">
           <Link to="/auth" state={{ mode: 'signup', from: '/research' }}>
-            Start your free trial
+            Unlock full access
           </Link>
         </Button>
       </div>

@@ -134,7 +134,7 @@ export default function ResearchPage() {
             <Button asChild size="lg" className="w-full sm:w-auto gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
               <Link to="/auth" state={{ mode: "signup", from: "/research" }}>
                 <Sparkles className="h-4 w-4" />
-                Start your free trial
+                Get started now
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
