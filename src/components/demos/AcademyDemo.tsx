@@ -583,11 +583,8 @@ export function AcademyDemo() {
                       {hiddenCount > 0 && (
                         <button
                           type="button"
+                          data-guest-allow
                           onClick={() => {
-                            if (!user) {
-                              goToAuth();
-                              return;
-                            }
                             setExpandedShowAll((prev) => {
                               const next = new Set(prev);
                               if (next.has(section.id)) next.delete(section.id);
