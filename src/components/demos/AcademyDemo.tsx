@@ -512,7 +512,7 @@ export function AcademyDemo() {
               const moduleNum = sectionIdx + 1;
               const isExpanded = expandedModules.has(section.id);
               const isShowAll = expandedShowAll.has(section.id);
-              const visibleLessons = isShowAll ? section.lessons : section.lessons.slice(0, 2);
+              const visibleLessons = isShowAll ? section.lessons : section.lessons.slice(0, 4);
               const hiddenCount = section.lessons.length - visibleLessons.length;
 
               return (
