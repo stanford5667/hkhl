@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import { Button } from '@/components/ui/button';
+import { ArrowRight, Play } from 'lucide-react';
 
 interface ResearchHeroProps {
   className?: string;
