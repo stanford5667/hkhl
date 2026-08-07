@@ -456,7 +456,7 @@ function IndustryTrendsSection({ companyId, industry }: { companyId: string; ind
           </div>
 
           {data.trends && data.trends.length > 0 && (
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {data.trends.map((trend, i) => (
                 <Card key={i} className={cn(
                   trend.sentiment === 'tailwind' ? 'border-emerald-600/30' :
@@ -499,7 +499,7 @@ function MAActivitySection({ companyId, industry }: { companyId: string; industr
 
       {data && (
         <div className="space-y-4">
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Card>
               <CardContent className="p-4 text-center">
                 <p className="text-sm text-muted-foreground mb-1">Deal Activity</p>
@@ -605,7 +605,7 @@ function MarketDataSection({ companyId, industry }: { companyId: string; industr
 
       {data && (
         <div className="space-y-4">
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <Card className="bg-primary/10 border-primary/30">
               <CardContent className="p-4 text-center">
                 <p className="text-sm text-muted-foreground mb-1">TAM</p>
@@ -653,7 +653,7 @@ function MarketDataSection({ companyId, industry }: { companyId: string; industr
                 <CardTitle className="text-sm">Key Segments</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {data.keySegments.map((segment, i) => (
                     <div key={i} className="p-2 bg-muted/50 rounded-md">
                       <p className="font-medium text-sm">{segment.segment}</p>

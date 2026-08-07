@@ -304,7 +304,7 @@ export function MobileMarketIntelPanel({
               </div>
 
               {/* Quick Stats */}
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                 <div className="p-2 bg-secondary/30 rounded-lg text-center">
                   <p className="text-[10px] text-muted-foreground">Open</p>
                   <p className="text-sm font-mono font-medium">${chartData[0].value.toFixed(2)}</p>

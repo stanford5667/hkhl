@@ -13,7 +13,7 @@ interface Props {
 export function PositionsTable({ positions, onClose, onRowClick }: Props) {
   if (positions.length === 0) {
     return (
-      <div className="text-center py-12 text-muted-foreground">
+      <div className="text-center py-8 sm:py-10 md:py-12 text-muted-foreground">
         No open positions. Execute a trade to get started.
       </div>
     );

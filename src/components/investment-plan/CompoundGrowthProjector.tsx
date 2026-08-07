@@ -473,7 +473,7 @@ export function CompoundGrowthProjector({
         </div>
 
         {/* Scenario Summary */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {[
             { key: 'pessimistic', label: 'Bear Case', value: finalPessimistic, color: 'rose', desc: 'If returns are 30% lower' },
             { key: 'expected', label: 'Expected', value: finalExpected, color: 'emerald', desc: 'Based on your allocation' },

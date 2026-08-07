@@ -125,7 +125,7 @@ export default function Auth() {
       </div>
 
       {/* Right side - Auth form */}
-      <div className="flex-1 flex items-center justify-center p-8">
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-8">
         <div className="w-full max-w-md space-y-8 animate-fade-up">
           {/* Mobile logo */}
           <div className="lg:hidden flex justify-center mb-8">
@@ -133,7 +133,7 @@ export default function Auth() {
           </div>
 
           <div className="text-center space-y-2">
-            <h1 className="text-3xl font-bold text-foreground">
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
               {mode === "signin"
                 ? AUTH_COPY.signInTitle
                 : mode === "signup"

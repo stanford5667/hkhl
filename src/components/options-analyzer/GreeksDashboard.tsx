@@ -105,7 +105,7 @@ export function GreeksDashboard({ ticker }: Props) {
 
   if (loading) {
     return (
-      <Card className="p-8 flex items-center justify-center min-h-[400px]">
+      <Card className="p-4 sm:p-6 md:p-8 flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </Card>
     );

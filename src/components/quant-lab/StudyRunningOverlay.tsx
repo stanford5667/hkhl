@@ -43,7 +43,7 @@ export function StudyRunningOverlay({
             {/* Animated background glow */}
             <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent rounded-3xl blur-2xl" />
             
-            <div className="relative bg-card border-2 border-primary/30 rounded-3xl p-8 shadow-2xl overflow-hidden">
+            <div className="relative bg-card border-2 border-primary/30 rounded-3xl p-4 sm:p-6 md:p-8 shadow-2xl overflow-hidden">
               {/* Animated particles */}
               <div className="absolute inset-0 overflow-hidden">
                 {[...Array(6)].map((_, i) => (

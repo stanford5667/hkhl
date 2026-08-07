@@ -72,7 +72,7 @@ export function AuthStep({ progress, onComplete }: AuthStepProps) {
 
           {/* Features */}
           {mode === 'signup' && (
-            <div className="grid grid-cols-3 gap-2 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-6">
               {[
                 { icon: Shield, label: 'Save Progress' },
                 { icon: Sparkles, label: 'AI Insights' },

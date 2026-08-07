@@ -101,7 +101,7 @@ export function InstitutionalHoldings() {
               </TableBody>
             </Table>
           ) : (
-            <div className="text-center py-12 text-muted-foreground">
+            <div className="text-center py-8 sm:py-10 md:py-12 text-muted-foreground">
               <p>No institutional holdings data yet.</p>
               <p className="text-xs mt-1">Data will populate once 13F filings are processed.</p>
             </div>

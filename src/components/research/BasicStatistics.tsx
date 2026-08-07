@@ -140,7 +140,7 @@ export function BasicStatistics({
             <span className="text-xs font-medium text-emerald-400">Up Days vs Down Days</span>
           </div>
           
-          <div className="grid grid-cols-3 gap-1.5 mb-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5 mb-2">
             <div className="bg-emerald-500/10 border border-emerald-500/20 rounded p-2 text-center">
               <div className="flex items-center justify-center gap-0.5 text-emerald-400 mb-0.5">
                 <TrendingUp className="h-3 w-3" />

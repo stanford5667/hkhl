@@ -74,7 +74,7 @@ export function ComprehensiveMetricsCard({ data, isLoading }: ComprehensiveMetri
       <Card className="bg-card border-border">
         <CardContent className="p-2 space-y-2">
           <Skeleton className="h-4 w-24" />
-          <div className="grid grid-cols-4 gap-1.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-1.5">
             {Array.from({ length: 12 }).map((_, i) => (
               <Skeleton key={i} className="h-10" />
             ))}
@@ -105,7 +105,7 @@ export function ComprehensiveMetricsCard({ data, isLoading }: ComprehensiveMetri
         </div>
         
         {/* Valuation Row */}
-        <div className="grid grid-cols-4 gap-1.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-1.5">
           <MetricCell 
             label="Mkt Cap" 
             value={formatMarketCap(data.marketCap)}
@@ -132,7 +132,7 @@ export function ComprehensiveMetricsCard({ data, isLoading }: ComprehensiveMetri
         </div>
         
         {/* Valuation Row 2 */}
-        <div className="grid grid-cols-4 gap-1.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-1.5">
           <MetricCell 
             label="PEG" 
             value={data.peg}
@@ -159,7 +159,7 @@ export function ComprehensiveMetricsCard({ data, isLoading }: ComprehensiveMetri
         </div>
         
         {/* Profitability & Stability Row */}
-        <div className="grid grid-cols-4 gap-1.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-1.5">
           <MetricCell 
             label="Op Margin" 
             value={data.operatingMargin} 
@@ -187,7 +187,7 @@ export function ComprehensiveMetricsCard({ data, isLoading }: ComprehensiveMetri
         </div>
         
         {/* Growth & Returns Row */}
-        <div className="grid grid-cols-4 gap-1.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-1.5">
           <MetricCell 
             label="EPS Gr" 
             value={data.epsGrowthYoY} 

@@ -372,7 +372,7 @@ export function IncomeStatementTable({ ticker, companyName }: IncomeStatementTab
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
+          <div className="text-center py-4 sm:py-6 md:py-8 text-muted-foreground">
             <BarChart3 className="h-12 w-12 mx-auto mb-3 opacity-30" />
             <p>Financial data not available for {ticker}</p>
           </div>

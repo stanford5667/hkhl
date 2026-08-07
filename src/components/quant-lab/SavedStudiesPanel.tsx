@@ -233,11 +233,11 @@ export function SavedStudiesPanel({
       {/* Studies List */}
       <ScrollArea className="flex-1">
         {loading ? (
-          <div className="flex items-center justify-center py-12">
+          <div className="flex items-center justify-center py-8 sm:py-10 md:py-12">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : filteredStudies.length === 0 ? (
-          <div className="text-center py-12 px-4">
+          <div className="text-center py-8 sm:py-10 md:py-12 px-4">
             <Bookmark className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
             <p className="text-muted-foreground text-sm">
               {studies.length === 0 

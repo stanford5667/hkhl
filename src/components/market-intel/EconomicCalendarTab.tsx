@@ -341,7 +341,7 @@ export function EconomicCalendarTab({ onPerformanceUpdate }: EconomicCalendarTab
             </div>
 
             {/* Calendar Grid */}
-            <div className="grid grid-cols-7 gap-1">
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-1">
               {/* Day Headers */}
               {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
                 <div key={day} className="text-center text-xs font-medium text-muted-foreground py-2">

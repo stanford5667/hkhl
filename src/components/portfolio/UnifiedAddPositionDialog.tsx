@@ -96,7 +96,7 @@ export function UnifiedAddPositionDialog({
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="mt-4">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             <TabsTrigger value="manual" className="gap-2">
               <PenLine className="h-4 w-4" />
               <span className="hidden sm:inline">Manual</span>

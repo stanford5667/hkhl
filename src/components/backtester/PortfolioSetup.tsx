@@ -354,7 +354,7 @@ export function PortfolioSetup({ assets, onAssetsChange }: PortfolioSetupProps) 
               ))}
               {assets.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-muted-foreground">
+                  <td colSpan={6} className="py-4 sm:py-6 md:py-8 text-center text-muted-foreground">
                     No assets added. Click "Add Asset" to get started.
                   </td>
                 </tr>

@@ -51,7 +51,7 @@ export function SimBacktestTab({ heldTickers, activeTicker, portfolioName }: Sim
 
       {heldTickers.length === 0 && (
         <Card>
-          <CardContent className="py-8 text-center">
+          <CardContent className="py-4 sm:py-6 md:py-8 text-center">
             <FlaskConical className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
             <p className="text-muted-foreground text-sm">
               Open positions in your portfolio to quickly backtest strategies on those tickers
@@ -63,7 +63,7 @@ export function SimBacktestTab({ heldTickers, activeTicker, portfolioName }: Sim
       {/* Embedded backtester */}
       <Suspense fallback={
         <Card>
-          <CardContent className="py-12 text-center">
+          <CardContent className="py-8 sm:py-10 md:py-12 text-center">
             <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
             <p className="text-sm text-muted-foreground">Loading strategy backtester...</p>
           </CardContent>

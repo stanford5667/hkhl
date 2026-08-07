@@ -137,7 +137,7 @@ export function AIPortfolioInsights({ advice, investableCapital }: AIPortfolioIn
       </Card>
 
       <Tabs defaultValue="allocations" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
           <TabsTrigger value="allocations">Allocations</TabsTrigger>
           <TabsTrigger value="drawdown">Stress Tests</TabsTrigger>
           <TabsTrigger value="liquidity">Liquidity</TabsTrigger>
@@ -369,7 +369,7 @@ export function AIPortfolioInsights({ advice, investableCapital }: AIPortfolioIn
             </Card>
           ) : (
             <Card>
-              <CardContent className="py-8">
+              <CardContent className="py-4 sm:py-6 md:py-8">
                 <PremiumFeatureBlock 
                   size="lg"
                   description="Liquidity analysis requires premium access"

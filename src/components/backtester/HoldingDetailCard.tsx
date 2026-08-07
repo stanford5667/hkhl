@@ -246,7 +246,7 @@ export function HoldingDetailCard({ ticker, weight, annualReturn, onBack }: Hold
             Run technical studies on <span className="font-mono font-bold">{ticker}</span>
           </p>
 
-          <div className="grid grid-cols-3 gap-1.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5">
             {QUICK_STUDIES.map(study => (
               <Button
                 key={study.id}

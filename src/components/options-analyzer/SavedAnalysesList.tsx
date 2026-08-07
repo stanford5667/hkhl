@@ -63,19 +63,19 @@ export function SavedAnalysesList() {
 
   if (!user) {
     return (
-      <Card className="p-8 text-center text-muted-foreground">
+      <Card className="p-4 sm:p-6 md:p-8 text-center text-muted-foreground">
         <p className="text-sm">Sign in to save and view your analyses.</p>
       </Card>
     );
   }
 
   if (isLoading) {
-    return <Card className="p-8 text-center text-muted-foreground text-sm">Loading saved analyses...</Card>;
+    return <Card className="p-4 sm:p-6 md:p-8 text-center text-muted-foreground text-sm">Loading saved analyses...</Card>;
   }
 
   if (!analyses?.length) {
     return (
-      <Card className="p-8 text-center text-muted-foreground">
+      <Card className="p-4 sm:p-6 md:p-8 text-center text-muted-foreground">
         <Brain className="h-8 w-8 mx-auto mb-3 opacity-30" />
         <p className="text-sm">No saved analyses yet. Run an analysis and click Save to keep it here.</p>
       </Card>

@@ -1132,7 +1132,7 @@ export default function Portfolio() {
                 {/* Top accent gradient */}
                 <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-primary/80 to-primary/50" />
                 
-                <CardContent className="p-8 sm:p-12 text-center">
+                <CardContent className="p-4 sm:p-6 md:p-8 sm:p-12 text-center">
                   {/* Icon with glow */}
                   <motion.div
                     className="relative inline-flex mb-8"
@@ -1209,7 +1209,7 @@ export default function Portfolio() {
                     <Button 
                       onClick={() => navigate('/portfolio-visualizer')} 
                       size="lg" 
-                      className="gap-2 px-8 shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all group"
+                      className="gap-2 px-4 sm:px-6 md:px-8 shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all group"
                     >
                       <Zap className="h-5 w-5" />
                       Open Portfolio Builder
@@ -1864,7 +1864,7 @@ function EmptyState({
     opacity: 0
   }} animate={{
     opacity: 1
-  }} className="text-center py-12">
+  }} className="text-center py-8 sm:py-10 md:py-12">
       <Wallet className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
       <p className="text-foreground font-medium">No holdings found</p>
       <p className="text-muted-foreground text-sm mb-4">

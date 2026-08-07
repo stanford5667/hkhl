@@ -86,7 +86,7 @@ export function SmartMoneyLeaderboards() {
                 ))}
               </div>
             ) : (
-              <p className="text-center py-8 text-muted-foreground text-sm">No insider data yet.</p>
+              <p className="text-center py-4 sm:py-6 md:py-8 text-muted-foreground text-sm">No insider data yet.</p>
             )}
           </CardContent>
         </Card>
@@ -118,7 +118,7 @@ export function SmartMoneyLeaderboards() {
                 ))}
               </div>
             ) : (
-              <p className="text-center py-8 text-muted-foreground text-sm">No institutional data yet.</p>
+              <p className="text-center py-4 sm:py-6 md:py-8 text-muted-foreground text-sm">No institutional data yet.</p>
             )}
           </CardContent>
         </Card>

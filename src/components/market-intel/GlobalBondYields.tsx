@@ -176,7 +176,7 @@ export function GlobalBondYields({ onItemClick }: GlobalBondYieldsProps) {
       </CardHeader>
       <CardContent className="pt-0">
         <Tabs defaultValue="major" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 h-8 mb-4">
+          <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 h-8 mb-4">
             <TabsTrigger value="major" className="text-xs">Major</TabsTrigger>
             <TabsTrigger value="europe" className="text-xs">Europe</TabsTrigger>
             <TabsTrigger value="americas" className="text-xs">Americas</TabsTrigger>

@@ -248,7 +248,7 @@ export const MarketChatAssistant: React.FC<MarketChatAssistantProps> = ({
       initial={{ y: 20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: 20, opacity: 0 }}
-      className="fixed bottom-4 right-4 z-50 w-[420px] max-w-[calc(100vw-2rem)]"
+      className="fixed bottom-4 right-4 z-50 w-full max-w-[420px] max-w-[calc(100vw-2rem)]"
     >
       <Card className="flex flex-col h-[600px] max-h-[calc(100vh-2rem)] shadow-2xl border-border/50 bg-background/95 backdrop-blur-xl">
         {/* Header */}

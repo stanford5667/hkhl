@@ -64,7 +64,7 @@ export function CompanyCard({ company, onClick }: CompanyCardProps) {
       </div>
 
       {/* Metrics Row */}
-      <div className="grid grid-cols-3 gap-4 py-3 border-y border-border text-center">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4 py-3 border-y border-border text-center">
         <div>
           <p className="text-muted-foreground text-xs mb-1">Revenue</p>
           <p className="text-foreground font-medium">{formatCurrency(company.revenue_ltm)}</p>

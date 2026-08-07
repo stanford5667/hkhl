@@ -539,7 +539,7 @@ export function BacktestResultsDashboard({ result, compact = false }: BacktestRe
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Key Metrics Row */}
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
             <MetricCard 
               label="Total Return" 
               value={`${result.totalReturn >= 0 ? '+' : ''}${result.totalReturn.toFixed(2)}%`}
@@ -585,7 +585,7 @@ export function BacktestResultsDashboard({ result, compact = false }: BacktestRe
           </div>
           
           {/* Quick Stats */}
-          <div className="grid grid-cols-3 gap-2 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-xs">
             <div className="text-center p-2 rounded bg-secondary/50">
               <p className="text-muted-foreground">Max DD</p>
               <p className="font-mono font-semibold text-rose-400">-{result.maxDrawdown.toFixed(1)}%</p>
@@ -652,7 +652,7 @@ export function BacktestResultsDashboard({ result, compact = false }: BacktestRe
       </Card>
 
       <Tabs defaultValue="performance" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5 h-9">
+        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 h-9">
           <TabsTrigger value="performance" className="text-xs">Performance</TabsTrigger>
           <TabsTrigger value="risk" className="text-xs">Risk</TabsTrigger>
           <TabsTrigger value="trades" className="text-xs">Trade Analysis</TabsTrigger>
@@ -883,7 +883,7 @@ export function BacktestResultsDashboard({ result, compact = false }: BacktestRe
         {/* Trades Tab */}
         <TabsContent value="trades" className="space-y-4">
           {/* Trade Summary */}
-          <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 md:grid-cols-6 gap-3">
             <MetricCard label="Total Trades" value={result.totalTrades} trend="neutral" />
             <MetricCard 
               label="Win Rate" 
@@ -1135,7 +1135,7 @@ export function BacktestResultsDashboard({ result, compact = false }: BacktestRe
               <CardTitle className="text-sm">Optimal Position Sizing</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <div className="p-3 rounded-lg bg-secondary/30 border text-center">
                   <p className="text-xs text-muted-foreground mb-1">Kelly Criterion</p>
                   <p className={cn(

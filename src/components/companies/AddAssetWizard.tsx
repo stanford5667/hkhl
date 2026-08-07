@@ -663,7 +663,7 @@ function StepPrivateEquityStage({ form, updateForm }: { form: WizardForm; update
       {form.stage === 'pipeline' && (
         <div className="mt-4">
           <Label className="text-slate-300">Pipeline Stage</Label>
-          <div className="grid grid-cols-3 gap-2 mt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2">
             {PIPELINE_STAGES.map(stage => (
               <Button
                 key={stage.id}

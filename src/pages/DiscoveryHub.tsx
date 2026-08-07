@@ -287,7 +287,7 @@ export default function DiscoveryHub() {
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 h-auto p-1 bg-muted/50">
+        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 h-auto p-1 bg-muted/50">
           <TabsTrigger value="markets" className="flex items-center gap-2 py-3 data-[state=active]:bg-background">
             <Compass className="h-4 w-4" />
             <span className="text-sm font-medium">Markets</span>
@@ -385,10 +385,11 @@ export default function DiscoveryHub() {
                   ))}
                 </div>
               ) : (
+                <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
-                      <TableHead className="w-[400px]">Market</TableHead>
+                      <TableHead className="w-[250px] sm:w-[400px]">Market</TableHead>
                       <TableHead className="text-right">Price</TableHead>
                       <TableHead className="text-right">24h Change</TableHead>
                       <TableHead className="text-right">Volume</TableHead>
@@ -413,7 +414,7 @@ export default function DiscoveryHub() {
                             <div className="flex items-center gap-3">
                               <PlatformIcon platform={market.platform} />
                               <div className="min-w-0">
-                                <p className="font-medium truncate max-w-[350px]">
+                                <p className="font-medium truncate max-w-[200px] sm:max-w-[350px]">
                                   {market.title}
                                 </p>
                                 <p className="text-xs text-muted-foreground">
@@ -495,6 +496,7 @@ export default function DiscoveryHub() {
                     )}
                   </TableBody>
                 </Table>
+                </div>
               )}
             </CardContent>
           </Card>

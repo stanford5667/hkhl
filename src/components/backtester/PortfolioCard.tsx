@@ -160,7 +160,7 @@ export function PortfolioCard({
         </div>
 
         {/* Metrics Grid */}
-        <div className="grid grid-cols-4 gap-2 mb-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
           {/* Avg Returns */}
           <div className="p-2 rounded-lg bg-muted/40 text-center">
             <div className="text-[10px] text-muted-foreground mb-0.5 flex items-center justify-center gap-1">

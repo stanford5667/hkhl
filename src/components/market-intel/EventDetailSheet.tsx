@@ -1267,7 +1267,7 @@ export function EventDetailSheet({ event, open, onOpenChange }: EventDetailSheet
                     </div>
                     
                     {/* Summary */}
-                    <div className="grid grid-cols-3 gap-3 pt-4 border-t">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-4 border-t">
                       <div className="text-center p-3 rounded-lg bg-rose-500/10">
                         <div className="text-xs text-muted-foreground">Hike Probability</div>
                         <div className="text-lg font-bold text-rose-400">
@@ -1440,7 +1440,7 @@ export function EventDetailSheet({ event, open, onOpenChange }: EventDetailSheet
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       {event.previous_value && (
                         <div className="text-center p-3 rounded-lg bg-secondary/50">
                           <div className="text-xs text-muted-foreground">Previous</div>

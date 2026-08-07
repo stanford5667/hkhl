@@ -129,7 +129,7 @@ function EnhancedPercentageResult({ result, showInsights, showEducation }: { res
         />
         
         <div className="flex-1 space-y-4">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <StatBox value={result.up_days} label="Up Days" color="emerald" />
             <StatBox value={result.down_days} label="Down Days" color="rose" />
             <StatBox value={result.total_days} label="Total Days" />
@@ -304,7 +304,7 @@ function EnhancedStreaksResult({ result, showInsights, showEducation }: { result
             <TrendingDown className="h-10 w-10 text-rose-500" />
           )}
           <span className={cn(
-            "text-5xl font-bold",
+            "text-3xl sm:text-4xl md:text-5xl font-bold",
             result.currentDirection === 'up' ? 'text-emerald-600' : 'text-rose-600'
           )}>
             {Math.abs(result.currentStreak)}
@@ -462,7 +462,7 @@ function EnhancedRSIResult({ result, showInsights, showEducation }: { result: an
       )}>
         <p className="text-sm text-muted-foreground mb-2">Current RSI</p>
         <p className={cn(
-          "text-5xl font-bold",
+          "text-3xl sm:text-4xl md:text-5xl font-bold",
           isOverbought ? "text-rose-600" : isOversold ? "text-emerald-600" : ""
         )}>{currentRSI.toFixed(1)}</p>
         <Badge className="mt-2" variant={isOverbought ? "destructive" : isOversold ? "default" : "secondary"}>
@@ -638,7 +638,7 @@ function EnhancedDrawdownResult({ result, showInsights, showEducation }: { resul
       )}>
         <TrendingDown className="h-10 w-10 mx-auto mb-2 text-rose-500" />
         <p className="text-sm text-muted-foreground mb-2">Maximum Drawdown</p>
-        <p className="text-5xl font-bold text-rose-600">-{result.maxDrawdown?.toFixed(1)}%</p>
+        <p className="text-3xl sm:text-4xl md:text-5xl font-bold text-rose-600">-{result.maxDrawdown?.toFixed(1)}%</p>
         {result.maxDrawdownDate && (
           <p className="text-xs text-muted-foreground mt-2">on {result.maxDrawdownDate}</p>
         )}
@@ -687,7 +687,7 @@ function GenericEnhancedResult({ result, showInsights, showEducation }: { result
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 md:grid-cols-4 gap-2">
         {metrics.map(([key, value]) => (
           <div key={key} className="text-center p-2 bg-muted/50 rounded-lg">
             <p className="text-[10px] text-muted-foreground capitalize truncate">

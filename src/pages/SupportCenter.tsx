@@ -534,7 +534,7 @@ export default function SupportCenter() {
           {/* FAQ Accordion */}
           {filteredFAQ.length === 0 ? (
             <Card className="bg-secondary/30">
-              <CardContent className="p-8 text-center">
+              <CardContent className="p-4 sm:p-8 text-center">
                 <FileQuestion className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <h3 className="font-medium mb-2">No articles found</h3>
                 <p className="text-sm text-muted-foreground mb-4">
@@ -639,7 +639,7 @@ export default function SupportCenter() {
             </div>
           ) : tickets.length === 0 ? (
             <Card className="bg-secondary/30">
-              <CardContent className="p-12 text-center">
+              <CardContent className="p-6 sm:p-12 text-center">
                 <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold mb-2">No support tickets</h3>
                 <p className="text-muted-foreground text-sm mb-6 max-w-md mx-auto">

@@ -220,7 +220,7 @@ export function PortfolioAnalysisTabs({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
+          <div className="text-center py-4 sm:py-6 md:py-8 text-muted-foreground">
             <Target className="h-10 w-10 mx-auto mb-3 opacity-50" />
             <p className="text-sm">Create or load a portfolio to see analysis</p>
             <p className="text-xs text-muted-foreground mt-1">
@@ -247,7 +247,7 @@ export function PortfolioAnalysisTabs({
         </CardHeader>
         <CardContent className="space-y-4">
           <Progress value={(progress.current / Math.max(progress.total, 1)) * 100} className="h-1.5" />
-          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-8">
+          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-4 sm:py-6 md:py-8">
             <Loader2 className="h-5 w-5 animate-spin" />
             <span>Loading analysis data...</span>
           </div>
@@ -266,7 +266,7 @@ export function PortfolioAnalysisTabs({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8">
+          <div className="text-center py-4 sm:py-6 md:py-8">
             <AlertTriangle className="h-10 w-10 mx-auto mb-3 text-amber-500" />
             <p className="text-sm text-muted-foreground mb-4">Unable to load analysis</p>
             <Button variant="outline" size="sm" onClick={recalculate}>
@@ -306,7 +306,7 @@ export function PortfolioAnalysisTabs({
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4 sm:grid-cols-7 h-auto gap-1 p-1 mb-4">
+          <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 sm:grid-cols-7 h-auto gap-1 p-1 mb-4">
             <TabsTrigger value="performance" className="gap-1.5 text-xs px-2 py-2 flex-col sm:flex-row">
               <LineChart className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
               <span className="text-[10px] sm:text-xs">Performance</span>
@@ -582,7 +582,7 @@ export function PortfolioAnalysisTabs({
                 </div>
 
                 {/* Secondary Metrics */}
-                <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 md:grid-cols-6 gap-2">
                   <MetricItem label="Sortino" value={metrics.sortinoRatio.toFixed(2)} icon={Shield}
                     trend={metrics.sortinoRatio >= 1.5 ? 'good' : metrics.sortinoRatio >= 0.5 ? 'neutral' : 'bad'} />
                   <MetricItem label="Calmar" value={metrics.calmarRatio.toFixed(2)} icon={Gauge}
@@ -824,7 +824,7 @@ export function PortfolioAnalysisTabs({
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-center">
                         <p className="text-xs text-muted-foreground mb-1">Bull Market</p>
                         <p className="font-bold text-emerald-500">

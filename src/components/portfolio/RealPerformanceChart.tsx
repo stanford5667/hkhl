@@ -234,7 +234,7 @@ export function RealPerformanceChart({
         </CardHeader>
         <CardContent className="space-y-4">
           <Progress value={(progress.current / Math.max(progress.total, 1)) * 100} className="h-1" />
-          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-8">
+          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-4 sm:py-6 md:py-8">
             <Loader2 className="h-4 w-4 animate-spin" />
             <span>Fetching real market data...</span>
           </div>

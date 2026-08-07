@@ -218,7 +218,7 @@ export function EnhancedFinancialsPanel({ ticker, currentPrice }: EnhancedFinanc
 
         <CardContent className="space-y-4">
           <Tabs value={selectedView} onValueChange={(v) => setSelectedView(v as StatementView)}>
-            <TabsList className="grid w-full grid-cols-3 h-auto p-0 bg-transparent gap-1">
+            <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 h-auto p-0 bg-transparent gap-1">
               <TabsTrigger 
                 value="income"
                 className="data-[state=active]:bg-secondary data-[state=active]:text-foreground text-xs px-2 py-1.5"
@@ -292,14 +292,14 @@ export function EnhancedFinancialsPanel({ ticker, currentPrice }: EnhancedFinanc
 
             {/* Balance Sheet */}
             <TabsContent value="balance" className="mt-3">
-              <div className="text-center py-8 text-muted-foreground text-sm">
+              <div className="text-center py-4 sm:py-6 md:py-8 text-muted-foreground text-sm">
                 Balance sheet data available in full integration
               </div>
             </TabsContent>
 
             {/* Cash Flow */}
             <TabsContent value="cashflow" className="mt-3">
-              <div className="text-center py-8 text-muted-foreground text-sm">
+              <div className="text-center py-4 sm:py-6 md:py-8 text-muted-foreground text-sm">
                 Cash flow data available in full integration
               </div>
             </TabsContent>

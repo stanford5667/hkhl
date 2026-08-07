@@ -343,7 +343,7 @@ function MetricPopup({
             )}>
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-1">Current Value</p>
               <p className={cn(
-                "text-4xl font-bold font-mono",
+                "text-2xl sm:text-3xl md:text-4xl font-bold font-mono",
                 sentiment === 'good' && "text-emerald-500",
                 sentiment === 'bad' && "text-red-500",
                 sentiment === 'neutral' && "text-foreground"
@@ -1114,7 +1114,7 @@ export function StudyResultCard({
                     return (
                       <>
                         {/* Statistics Summary Cards */}
-                        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 sm:grid-cols-6 gap-2 mb-4">
                           <div className="flex flex-col items-center p-2 rounded-lg bg-primary/10 border border-primary/30">
                             <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Median</span>
                             <span className={cn("text-lg font-bold font-mono", medianMove >= 0 ? "text-emerald-500" : "text-red-500")}>

@@ -65,7 +65,7 @@ export function PerformanceMetricsSection({ ticker, compact = false }: Performan
 
   if (isLoading) {
     return compact ? (
-      <div className="grid grid-cols-3 gap-1">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1">
         {Array.from({ length: 6 }).map((_, i) => (
           <Skeleton key={i} className="h-10" />
         ))}
@@ -77,7 +77,7 @@ export function PerformanceMetricsSection({ ticker, compact = false }: Performan
             <Skeleton className="h-4 w-32" />
             <Skeleton className="h-5 w-20" />
           </div>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
             {Array.from({ length: 8 }).map((_, i) => (
               <Skeleton key={i} className="h-12" />
             ))}
@@ -119,7 +119,7 @@ export function PerformanceMetricsSection({ ticker, compact = false }: Performan
             </SelectContent>
           </Select>
         </div>
-        <div className="grid grid-cols-3 gap-x-4 gap-y-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-2">
           <MetricItem label="Total Return" value={formatPercent(metrics.totalReturn)} trend={metrics.totalReturn >= 0 ? 'good' : 'bad'} />
           <MetricItem label="Annual Return" value={formatPercent(metrics.cagr)} trend={metrics.cagr >= 0 ? 'good' : 'bad'} />
           <MetricItem label="Risk-Adj" value={formatRatio(metrics.sharpeRatio)} trend={metrics.sharpeRatio >= 1 ? 'good' : metrics.sharpeRatio >= 0.5 ? 'neutral' : 'bad'} />
@@ -156,7 +156,7 @@ export function PerformanceMetricsSection({ ticker, compact = false }: Performan
         </div>
 
         {/* Metrics Grid - Unified 3x3 */}
-        <div className="grid grid-cols-3 gap-x-4 gap-y-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-2">
           <MetricItem label="Total Return" value={formatPercent(metrics.totalReturn)} trend={metrics.totalReturn >= 0 ? 'good' : 'bad'} />
           <MetricItem label="Annual Return" value={formatPercent(metrics.cagr)} trend={metrics.cagr >= 0 ? 'good' : 'bad'} />
           <MetricItem label="Risk-Adj Return" value={formatRatio(metrics.sharpeRatio)} trend={metrics.sharpeRatio >= 1 ? 'good' : metrics.sharpeRatio >= 0.5 ? 'neutral' : 'bad'} />

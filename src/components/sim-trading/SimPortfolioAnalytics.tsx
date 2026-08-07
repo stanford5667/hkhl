@@ -264,7 +264,7 @@ function HistoricalPerformance({
   if (!holdingsInfo || holdingsInfo.length === 0) {
     return (
       <Card>
-        <CardContent className="py-8 text-center">
+        <CardContent className="py-4 sm:py-6 md:py-8 text-center">
           <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
           <p className="text-muted-foreground">No stock positions to analyze historically.</p>
           <p className="text-xs text-muted-foreground mt-1">Buy some stocks first, then view their historical backtested performance here.</p>
@@ -297,14 +297,14 @@ function HistoricalPerformance({
       </div>
 
       {loading && (
-        <div className="flex items-center justify-center py-12 text-muted-foreground">
+        <div className="flex items-center justify-center py-8 sm:py-10 md:py-12 text-muted-foreground">
           <Loader2 className="w-5 h-5 animate-spin mr-2" /> Running historical analysis...
         </div>
       )}
 
       {error && (
         <Card>
-          <CardContent className="py-8 text-center">
+          <CardContent className="py-4 sm:py-6 md:py-8 text-center">
             <AlertTriangle className="w-6 h-6 mx-auto mb-2 text-destructive" />
             <p className="text-muted-foreground">{error}</p>
           </CardContent>
@@ -335,7 +335,7 @@ function HistoricalPerformance({
           </div>
 
           <Tabs value={histTab} onValueChange={setHistTab}>
-            <TabsList className="w-full grid grid-cols-4">
+            <TabsList className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
               <TabsTrigger value="growth" className="text-xs">Growth vs SPY</TabsTrigger>
               <TabsTrigger value="drawdown" className="text-xs">Drawdown</TabsTrigger>
               <TabsTrigger value="risk" className="text-xs">Risk Metrics</TabsTrigger>
@@ -412,7 +412,7 @@ function HistoricalPerformance({
                   </CardContent>
                 </Card>
               ) : (
-                <Card><CardContent className="py-8 text-center text-muted-foreground">Need at least 1 year of data for annual returns</CardContent></Card>
+                <Card><CardContent className="py-4 sm:py-6 md:py-8 text-center text-muted-foreground">Need at least 1 year of data for annual returns</CardContent></Card>
               )}
             </TabsContent>
           </Tabs>
@@ -522,7 +522,7 @@ function TradePerformanceSection({
       )}
 
       <Tabs value={tradeTab} onValueChange={setTradeTab}>
-        <TabsList className="w-full grid grid-cols-3">
+        <TabsList className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           <TabsTrigger value="overview" className="text-xs">P&L Curve</TabsTrigger>
           <TabsTrigger value="distribution" className="text-xs">Distribution</TabsTrigger>
           <TabsTrigger value="details" className="text-xs">Closed Trades</TabsTrigger>
@@ -556,7 +556,7 @@ function TradePerformanceSection({
               </CardContent>
             </Card>
           ) : (
-            <Card><CardContent className="py-8 text-center text-muted-foreground">Close some positions to see the P&L curve</CardContent></Card>
+            <Card><CardContent className="py-4 sm:py-6 md:py-8 text-center text-muted-foreground">Close some positions to see the P&L curve</CardContent></Card>
           )}
 
           {/* Best / worst trades */}
@@ -604,7 +604,7 @@ function TradePerformanceSection({
               </CardContent>
             </Card>
           ) : (
-            <Card><CardContent className="py-8 text-center text-muted-foreground">No closed trades yet</CardContent></Card>
+            <Card><CardContent className="py-4 sm:py-6 md:py-8 text-center text-muted-foreground">No closed trades yet</CardContent></Card>
           )}
         </TabsContent>
 
@@ -651,7 +651,7 @@ function TradePerformanceSection({
               </CardContent>
             </Card>
           ) : (
-            <Card><CardContent className="py-8 text-center text-muted-foreground">No closed trades yet</CardContent></Card>
+            <Card><CardContent className="py-4 sm:py-6 md:py-8 text-center text-muted-foreground">No closed trades yet</CardContent></Card>
           )}
         </TabsContent>
       </Tabs>
@@ -734,7 +734,7 @@ export function SimPortfolioAnalytics({ portfolioId, initialCapital, trades, pos
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12 text-muted-foreground">
+      <div className="flex items-center justify-center py-8 sm:py-10 md:py-12 text-muted-foreground">
         <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading analytics...
       </div>
     );

@@ -234,7 +234,7 @@ export default function DealMatching() {
   };
 
   return (
-    <div className="p-6 space-y-6 animate-fade-up">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 animate-fade-up">
       {/* Header */}
       <div>
         <h1 className="h1 flex items-center gap-3">

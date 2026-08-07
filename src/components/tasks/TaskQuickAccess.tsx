@@ -114,7 +114,7 @@ export function TaskQuickAccess() {
         </SheetHeader>
 
         {/* Stats Row */}
-        <div className="grid grid-cols-3 gap-2 p-4 border-b border-slate-800">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-4 border-b border-slate-800">
           <div className="bg-slate-800/50 rounded-lg p-3 text-center">
             <p className="text-2xl font-bold text-white">{openTasks.length}</p>
             <p className="text-xs text-slate-500">Open</p>

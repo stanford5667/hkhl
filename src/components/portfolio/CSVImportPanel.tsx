@@ -190,7 +190,7 @@ export function CSVImportPanel({ onImport, isImporting }: CSVImportPanelProps) {
         <div
           onClick={() => fileInputRef.current?.click()}
           className={cn(
-            "border-2 border-dashed border-border rounded-lg p-12 text-center cursor-pointer",
+            "border-2 border-dashed border-border rounded-lg p-8 sm:p-10 md:p-12 text-center cursor-pointer",
             "hover:border-primary/50 hover:bg-muted/30 transition-all"
           )}
         >

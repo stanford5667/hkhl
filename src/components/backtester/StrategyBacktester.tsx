@@ -309,7 +309,7 @@ export function StrategyBacktester({ ticker, companyName, autoRunStrategy }: Str
       {/* Loading State */}
       {isRunning && (
         <Card>
-          <CardContent className="py-8 text-center">
+          <CardContent className="py-4 sm:py-6 md:py-8 text-center">
             <Loader2 className="h-6 w-6 animate-spin mx-auto mb-3 text-primary" />
             <p className="text-sm text-muted-foreground">Running backtest on {ticker}...</p>
           </CardContent>
@@ -345,7 +345,7 @@ export function StrategyBacktester({ ticker, companyName, autoRunStrategy }: Str
                 </div>
               </div>
               <Separator />
-              <div className="grid grid-cols-3 gap-4 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
                 <div>
                   <p className="text-muted-foreground mb-1">Shares</p>
                   <p className="font-semibold">{selectedTrade.shares}</p>

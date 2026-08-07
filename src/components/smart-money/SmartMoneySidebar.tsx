@@ -29,18 +29,18 @@ export function SmartMoneySidebar() {
   return (
     <div className={cn(
       "relative flex flex-col border-r border-border bg-card/50 transition-all duration-200 shrink-0",
-      sidebarCollapsed ? "w-14" : "w-56"
+      sidebarCollapsed ? "w-14" : "w-14 md:w-56"
     )}>
       {/* Header */}
       <div className="flex items-center gap-2 p-3 border-b border-border">
         <Fish className="h-5 w-5 text-primary shrink-0" />
         {!sidebarCollapsed && (
-          <span className="font-semibold text-sm truncate">Smart Money</span>
+          <span className="hidden md:inline font-semibold text-sm truncate">Smart Money</span>
         )}
         <Button
           variant="ghost"
           size="icon"
-          className="ml-auto h-6 w-6 shrink-0"
+          className="ml-auto h-6 w-6 shrink-0 hidden md:inline-flex"
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
         >
           {sidebarCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
@@ -63,7 +63,7 @@ export function SmartMoneySidebar() {
               )}
             >
               <item.icon className="h-4 w-4 shrink-0" />
-              {!sidebarCollapsed && <span className="truncate">{item.label}</span>}
+              {!sidebarCollapsed && <span className="hidden md:inline truncate">{item.label}</span>}
             </button>
           );
 

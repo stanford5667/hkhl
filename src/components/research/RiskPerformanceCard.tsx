@@ -67,7 +67,7 @@ export function RiskPerformanceCard({ data, isLoading }: RiskPerformanceCardProp
       <Card className="bg-card border-border">
         <CardContent className="p-2 space-y-2">
           <Skeleton className="h-4 w-32" />
-          <div className="grid grid-cols-4 gap-1.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-1.5">
             {Array.from({ length: 4 }).map((_, i) => (
               <Skeleton key={i} className="h-10" />
             ))}
@@ -88,7 +88,7 @@ export function RiskPerformanceCard({ data, isLoading }: RiskPerformanceCardProp
         </div>
         
         {/* Risk Metrics Row */}
-        <div className="grid grid-cols-4 gap-1.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-1.5">
           <MetricCell 
             label="Volatility" 
             value={data.volatility} 
@@ -113,7 +113,7 @@ export function RiskPerformanceCard({ data, isLoading }: RiskPerformanceCardProp
         </div>
         
         {/* Additional Metrics */}
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5">
           <MetricCell 
             label="EPS StdDev" 
             value={data.epsStdDev} 

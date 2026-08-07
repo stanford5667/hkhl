@@ -319,7 +319,7 @@ export function StrategyBacktester() {
       {/* Results */}
       {isBacktesting && (
         <Card>
-          <CardContent className="py-8">
+          <CardContent className="py-4 sm:py-6 md:py-8">
             <div className="flex flex-col items-center gap-4">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <p className="text-muted-foreground">Running backtest simulation...</p>

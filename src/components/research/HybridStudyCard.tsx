@@ -104,7 +104,7 @@ export function HybridStudyCard({
           </div>
 
           {/* Metrics Grid */}
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
             {study.avgMove_1w != null && (
               <div className="p-2 rounded-lg bg-secondary/50 text-center">
                 <div className={cn(

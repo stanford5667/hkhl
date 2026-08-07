@@ -134,7 +134,7 @@ export function CountriesContent({ onItemClick }: CountriesContentProps) {
 
         <TabsContent value={activeTab} className="mt-4 space-y-6">
           {/* Regional Summary */}
-          <div className="grid grid-cols-3 gap-2 sm:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
             <Card className="bg-secondary/30">
               <CardContent className="p-2 sm:p-4 flex flex-col sm:flex-row items-center gap-1 sm:gap-3">
                 <div className="p-1.5 sm:p-2 rounded-lg bg-emerald-500/20 shrink-0">

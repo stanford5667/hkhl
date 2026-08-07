@@ -72,7 +72,7 @@ function DayOfWeekResult({ data }: { data: any }) {
           </Bar>
         </BarChart>
       </ResponsiveContainer>
-      <div className="grid grid-cols-5 gap-1">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-1">
         {chartData.map((d: any) => (
           <div key={d.dayOfWeek} className="text-center p-1.5 rounded bg-muted/50">
             <div className="text-[10px] text-muted-foreground">{d.dayName?.slice(0, 3)}</div>
@@ -91,7 +91,7 @@ function MonthOfYearResult({ data }: { data: any }) {
   const months = [...data.analysis].sort((a: any, b: any) => a.month - b.month);
 
   return (
-    <div className="grid grid-cols-4 gap-1.5">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-1.5">
       {months.map((m: any) => (
         <div
           key={m.month}

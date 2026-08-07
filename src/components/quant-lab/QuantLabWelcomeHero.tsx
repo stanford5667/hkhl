@@ -257,7 +257,7 @@ export function QuantLabWelcomeHero({
                 </div>
 
                 {/* Hero Metrics */}
-                <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
                   {/* Win Rate */}
                   <motion.div 
                     initial={{ scale: 0.9 }}
@@ -360,7 +360,7 @@ export function QuantLabWelcomeHero({
                 </motion.div>
 
                 {/* Forward Analysis Preview */}
-                <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-1.5 sm:gap-2">
                   {CONDITIONAL_STUDY.distribution.map((item, idx) => (
                     <motion.div
                       key={item.day}
@@ -521,7 +521,7 @@ export function QuantLabWelcomeHero({
                   ))}
                 </div>
                 {/* Stats row */}
-                <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 pt-2 border-t border-border">
                   <div className="text-center">
                     <p className="text-xs sm:text-sm font-bold text-emerald-500 font-mono">+12.4%</p>
                     <p className="text-[9px] sm:text-[10px] text-muted-foreground">Ann. Return</p>

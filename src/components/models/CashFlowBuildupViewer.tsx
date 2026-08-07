@@ -32,12 +32,12 @@ export function CashFlowBuildupViewer({ model, companyName, onBack }: CashFlowBu
 
   if (!results) {
     return (
-      <div className="p-8">
+      <div className="p-4 sm:p-6 md:p-8">
         <Button variant="ghost" onClick={onBack} className="mb-4">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
         </Button>
-        <Card className="p-8 text-center">
+        <Card className="p-4 sm:p-6 md:p-8 text-center">
           <p className="text-muted-foreground">No model data available.</p>
         </Card>
       </div>

@@ -79,8 +79,8 @@ export default function ModelViewerPage() {
 
   if (!user) {
     return (
-      <div className="p-8 flex items-center justify-center">
-        <Card className="p-8 text-center">
+      <div className="p-4 sm:p-6 md:p-8 flex items-center justify-center">
+        <Card className="p-4 sm:p-6 md:p-8 text-center">
           <p className="text-muted-foreground">Please sign in to view this model.</p>
         </Card>
       </div>
@@ -89,7 +89,7 @@ export default function ModelViewerPage() {
 
   if (loading) {
     return (
-      <div className="p-8 flex items-center justify-center">
+      <div className="p-4 sm:p-6 md:p-8 flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
@@ -97,12 +97,12 @@ export default function ModelViewerPage() {
 
   if (error || !model) {
     return (
-      <div className="p-8">
+      <div className="p-4 sm:p-6 md:p-8">
         <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
         </Button>
-        <Card className="p-8 text-center">
+        <Card className="p-4 sm:p-6 md:p-8 text-center">
           <p className="text-destructive">{error || 'Model not found'}</p>
         </Card>
       </div>
@@ -122,12 +122,12 @@ export default function ModelViewerPage() {
 
   // Default fallback for unsupported model types
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 md:p-8">
       <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
         <ArrowLeft className="h-4 w-4 mr-2" />
         Back
       </Button>
-      <Card className="p-8 text-center">
+      <Card className="p-4 sm:p-6 md:p-8 text-center">
         <p className="text-muted-foreground">
           Viewer for "{model.model_type}" models is not yet implemented.
         </p>

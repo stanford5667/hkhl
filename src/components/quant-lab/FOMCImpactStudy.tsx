@@ -281,7 +281,7 @@ export default function FOMCImpactStudy() {
                     </div>
 
                     {/* Market Reactions */}
-                    <div className="flex-1 grid grid-cols-3 gap-4">
+                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       <div>
                         <p className="text-xs text-muted-foreground mb-1">SPY (5d)</p>
                         <div className="flex items-center gap-1">
@@ -419,7 +419,7 @@ export default function FOMCImpactStudy() {
                 </BarChart>
               </ResponsiveContainer>
 
-              <div className="grid grid-cols-3 gap-4 mt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
                 {stancePerformanceData.map((data) => (
                   <Card key={data.stance} className={`border ${
                     data.stance === 'Hawkish' ? 'border-destructive/30 bg-destructive/5' :

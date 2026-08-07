@@ -465,7 +465,7 @@ export function ALAOverviewTab({
                   </Select>
                 </div>
                 
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                   <div className="p-2 bg-secondary/30 rounded text-center">
                     <span className="text-[9px] text-muted-foreground uppercase block">Up</span>
                     <p className="text-sm font-bold text-success">{basicStats.upDays}</p>
@@ -659,7 +659,7 @@ export function ALAOverviewTab({
                   </Select>
                 </div>
                 
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                   <div className="p-2 bg-secondary/30 rounded text-center">
                     <span className="text-[9px] text-muted-foreground uppercase block">Up</span>
                     <p className="text-sm font-bold text-success">{basicStats.upDays}</p>

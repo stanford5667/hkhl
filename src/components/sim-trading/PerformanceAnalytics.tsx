@@ -225,7 +225,7 @@ export function PerformanceAnalytics({ portfolioId, initialCapital, trades }: Pr
 
       {closedTrades.length === 0 && (
         <Card>
-          <CardContent className="py-12 text-center">
+          <CardContent className="py-8 sm:py-10 md:py-12 text-center">
             <p className="text-muted-foreground">Close some positions to see performance analytics</p>
           </CardContent>
         </Card>

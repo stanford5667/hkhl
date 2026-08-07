@@ -165,7 +165,7 @@ export function PerformanceRankingPanel({
             
             {/* Summary Footer */}
             <div className="mt-4 pt-4 border-t border-border">
-              <div className="grid grid-cols-3 gap-4 text-center text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-center text-sm">
                 <div>
                   <div className="text-muted-foreground mb-1">UI Polish Avg</div>
                   <div className={cn("font-bold", getScoreColor(
@@ -295,7 +295,7 @@ function ComponentScoreCard({
       </div>
       
       {/* Score Breakdown */}
-      <div className="grid grid-cols-3 gap-4 mb-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-3">
         <ScoreMetric
           icon={<Palette className="h-3.5 w-3.5" />}
           label="UI Polish"

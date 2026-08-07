@@ -334,7 +334,7 @@ function PeekCard({ tab }: { tab: TabDef }) {
             </p>
           </div>
         </div>
-        <div className="mt-2.5 grid grid-cols-3 gap-px overflow-hidden rounded-md bg-border/50">
+        <div className="mt-2.5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px overflow-hidden rounded-md bg-border/50">
           {peek.metrics.map((m) => (
             <div key={m.label} className="bg-background/80 px-2 py-1.5">
               <p className="truncate text-[9px] uppercase tracking-wider text-muted-foreground">

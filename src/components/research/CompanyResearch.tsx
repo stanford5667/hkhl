@@ -61,7 +61,7 @@ export function CompanyResearch({ ticker, companyName }: CompanyResearchProps) {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-5 w-full">
+        <TabsList className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 w-full">
           <TabsTrigger value="news" className="gap-2">
             <Newspaper className="h-4 w-4" />
             News

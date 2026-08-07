@@ -199,7 +199,7 @@ export function EditCompanyDialog({ open, onOpenChange, company, onSave }: EditC
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
             <TabsTrigger value="basics">
               <Building2 className="h-4 w-4 mr-2" />
               Basics

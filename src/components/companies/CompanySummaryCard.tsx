@@ -248,7 +248,7 @@ export function CompanySummaryCard({ company, documentCount = 0 }: CompanySummar
 
             {/* Quick Facts (Standard & Detailed) */}
             {summaryLevel !== 'brief' && (
-              <div className="grid grid-cols-4 gap-3 pt-3 border-t border-border">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-border">
                 <QuickFact
                   icon={<TrendingUp className="h-4 w-4 text-emerald-400" />}
                   label="Revenue"

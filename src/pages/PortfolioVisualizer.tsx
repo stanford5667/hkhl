@@ -1248,7 +1248,7 @@ export default function PortfolioVisualizer() {
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           {/* Primary glow orb - larger and more prominent */}
           <motion.div
-            className="absolute top-1/3 left-1/4 w-[600px] h-[600px] bg-primary/30 rounded-full blur-[180px]"
+            className="absolute top-1/3 left-1/4 w-full max-w-[600px] h-[600px] bg-primary/30 rounded-full blur-[180px]"
             animate={{ 
               scale: [1, 1.3, 1],
               opacity: [0.2, 0.4, 0.2],
@@ -1258,7 +1258,7 @@ export default function PortfolioVisualizer() {
           />
           {/* Secondary glow orb */}
           <motion.div
-            className="absolute bottom-1/3 right-1/4 w-[500px] h-[500px] bg-emerald-500/25 rounded-full blur-[150px]"
+            className="absolute bottom-1/3 right-1/4 w-full max-w-[500px] h-[500px] bg-emerald-500/25 rounded-full blur-[150px]"
             animate={{ 
               scale: [1.2, 1, 1.2],
               opacity: [0.2, 0.35, 0.2],
@@ -1268,7 +1268,7 @@ export default function PortfolioVisualizer() {
           />
           {/* Center accent glow */}
           <motion.div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-gradient-to-r from-primary/10 via-purple-500/10 to-emerald-500/10 rounded-full blur-[120px]"
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[800px] h-[400px] bg-gradient-to-r from-primary/10 via-purple-500/10 to-emerald-500/10 rounded-full blur-[120px]"
             animate={{ 
               opacity: [0.3, 0.5, 0.3],
               rotate: [0, 5, 0],
@@ -1325,7 +1325,7 @@ export default function PortfolioVisualizer() {
               />
               <span className="text-sm font-medium text-primary">Institutional-Grade Analysis</span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-br from-foreground via-foreground to-muted-foreground bg-clip-text text-transparent">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl md:text-5xl font-bold bg-gradient-to-br from-foreground via-foreground to-muted-foreground bg-clip-text text-transparent">
               Portfolio Builder
             </h1>
             <p className="text-lg text-muted-foreground max-w-md mx-auto">
@@ -1598,7 +1598,7 @@ export default function PortfolioVisualizer() {
           </div>
           <div className="flex-1 flex items-center justify-center p-6">
             <Card className="w-full max-w-md border-border/50 bg-card/50 backdrop-blur-sm">
-              <CardContent className="py-12">
+              <CardContent className="py-8 sm:py-10 md:py-12">
                 <div className="text-center space-y-4">
                   <div className="h-16 w-16 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto">
                     <Lock className="h-8 w-8 text-amber-500" />
@@ -1686,7 +1686,7 @@ export default function PortfolioVisualizer() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-6">
         <Card className="w-full max-w-xl border-border/50 bg-card/50 backdrop-blur-sm">
-          <CardContent className="py-12">
+          <CardContent className="py-8 sm:py-10 md:py-12">
             {hasError ? (
               <>
                 <div className="text-center mb-6">
@@ -2099,7 +2099,7 @@ export default function PortfolioVisualizer() {
       )}
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-6 py-4 sm:py-6 md:py-8">
         {/* Full-page branded loading state - hide all results until loaded */}
         {isCalcLoading && (
           <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
@@ -2197,12 +2197,12 @@ export default function PortfolioVisualizer() {
             return (
               <TabsList className={cn(
                 "grid w-full max-w-5xl mx-auto mb-6",
-                visibleTabCount >= 8 ? "grid-cols-8" :
-                visibleTabCount === 7 ? "grid-cols-7" :
-                visibleTabCount === 6 ? "grid-cols-6" :
-                visibleTabCount === 5 ? "grid-cols-5" :
-                visibleTabCount === 4 ? "grid-cols-4" :
-                visibleTabCount === 3 ? "grid-cols-3" :
+                visibleTabCount >= 8 ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-8" :
+                visibleTabCount === 7 ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-7" :
+                visibleTabCount === 6 ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-6" :
+                visibleTabCount === 5 ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-5" :
+                visibleTabCount === 4 ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4" :
+                visibleTabCount === 3 ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" :
                 visibleTabCount === 2 ? "grid-cols-2" : "grid-cols-1"
               )}>
                 {visibleTabs['performance'] && (
@@ -2312,7 +2312,7 @@ export default function PortfolioVisualizer() {
                 </div>
               ) : (
                 <Card>
-                  <CardContent className="py-12 text-center text-muted-foreground">
+                  <CardContent className="py-8 sm:py-10 md:py-12 text-center text-muted-foreground">
                     <LineChart className="h-8 w-8 mx-auto mb-3 opacity-50" />
                     <p>Performance charts will appear after analysis</p>
                   </CardContent>
@@ -2345,7 +2345,7 @@ export default function PortfolioVisualizer() {
                   />
                 ) : (
                   <Card>
-                    <CardContent className="py-12 text-center text-muted-foreground">
+                    <CardContent className="py-8 sm:py-10 md:py-12 text-center text-muted-foreground">
                       <GraduationCap className="h-8 w-8 mx-auto mb-3 opacity-50" />
                       <p>Educational dashboard will appear after analysis</p>
                     </CardContent>
@@ -2531,7 +2531,7 @@ export default function PortfolioVisualizer() {
                   </div>
                 ) : (
                   <Card>
-                    <CardContent className="py-12 text-center text-muted-foreground">
+                    <CardContent className="py-8 sm:py-10 md:py-12 text-center text-muted-foreground">
                       <BookOpen className="h-8 w-8 mx-auto mb-3 opacity-50" />
                       <p>Metric explanations will appear after analysis</p>
                     </CardContent>
@@ -2550,7 +2550,7 @@ export default function PortfolioVisualizer() {
                   <AdvancedMetricsDashboard metrics={unifiedAdvancedMetrics} />
                 ) : (
                   <Card>
-                    <CardContent className="py-12 text-center text-muted-foreground">
+                    <CardContent className="py-8 sm:py-10 md:py-12 text-center text-muted-foreground">
                       <BarChart3 className="h-8 w-8 mx-auto mb-3 opacity-50" />
                       <p>Advanced metrics will appear after analysis</p>
                     </CardContent>
@@ -2615,7 +2615,7 @@ export default function PortfolioVisualizer() {
                 </div>
               ) : (
                 <Card>
-                  <CardContent className="py-12 text-center text-muted-foreground">
+                  <CardContent className="py-8 sm:py-10 md:py-12 text-center text-muted-foreground">
                     <Database className="h-8 w-8 mx-auto mb-3 opacity-50" />
                     <p>Data validation will appear after analysis</p>
                   </CardContent>

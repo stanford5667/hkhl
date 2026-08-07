@@ -710,7 +710,7 @@ export function ScoreBreakdown({ scores, totalScore, maxTotalScore }: ScoreBreak
       )}>
         <div className="flex items-center justify-center gap-3">
           <span className={cn(
-            "text-4xl font-bold",
+            "text-2xl sm:text-3xl md:text-4xl font-bold",
             color === 'emerald' && "text-emerald-600",
             color === 'blue' && "text-blue-600",
             color === 'amber' && "text-amber-600",
@@ -1168,8 +1168,8 @@ export function MiniStatGrid({ stats, columns = 3 }: MiniStatGridProps) {
     <div className={cn(
       "grid gap-2",
       columns === 2 && "grid-cols-2",
-      columns === 3 && "grid-cols-3",
-      columns === 4 && "grid-cols-4"
+      columns === 3 && "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
+      columns === 4 && "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
     )}>
       {stats.map((stat, idx) => (
         <div key={idx} className="p-2 rounded-lg bg-muted/50 text-center">

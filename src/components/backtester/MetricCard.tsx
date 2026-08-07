@@ -115,7 +115,7 @@ export function MetricCard({
       
       {term && (
         <PopoverContent 
-          className="w-[360px] p-0 overflow-hidden bg-card border border-border shadow-xl z-[100]"
+          className="w-full max-w-[360px] p-0 overflow-hidden bg-card border border-border shadow-xl z-[100]"
           sideOffset={8}
           align="start"
         >
@@ -134,7 +134,7 @@ export function MetricCard({
                   </Badge>
                 )}
               </div>
-              <TabsList className="grid w-full grid-cols-3 h-7">
+              <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 h-7">
                 <TabsTrigger value="definition" className="text-[10px]">Definition</TabsTrigger>
                 <TabsTrigger value="calculation" className="text-[10px]">Calculation</TabsTrigger>
                 <TabsTrigger value="ranges" className="text-[10px]">Ranges</TabsTrigger>

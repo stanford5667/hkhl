@@ -81,7 +81,7 @@ export function FullAnalysisModal({ idea, open, onOpenChange }: FullAnalysisModa
                 </div>
 
                 {/* Price Levels */}
-                <div className="grid grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg">
                   <div className="text-center">
                     <p className="text-xs text-muted-foreground mb-1">Entry Price</p>
                     <p className="text-xl font-mono font-bold">{idea.entry_price.toFixed(2)}</p>
@@ -115,7 +115,7 @@ export function FullAnalysisModal({ idea, open, onOpenChange }: FullAnalysisModa
 
             {/* Detailed Analysis Tabs */}
             <Tabs defaultValue="thesis">
-              <TabsList className="w-full grid grid-cols-4">
+              <TabsList className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                 <TabsTrigger value="thesis">Thesis</TabsTrigger>
                 <TabsTrigger value="evidence">Evidence</TabsTrigger>
                 <TabsTrigger value="risk">Risk Analysis</TabsTrigger>
@@ -382,7 +382,7 @@ export function FullAnalysisModal({ idea, open, onOpenChange }: FullAnalysisModa
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
+                <div className="text-center py-4 sm:py-6 md:py-8 text-muted-foreground">
                   <History className="h-12 w-12 mx-auto mb-3 opacity-30" />
                   <p>No similar historical ideas found</p>
                   <p className="text-sm">Track record will build over time</p>

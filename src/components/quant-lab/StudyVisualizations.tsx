@@ -147,7 +147,7 @@ function IntradayDirectionViz({ result }: { result: any }) {
             </div>
             <div className="flex flex-col justify-center space-y-3">
               <div className="text-center p-4 bg-gradient-to-r from-emerald-500/10 to-emerald-500/5 rounded-xl">
-                <p className="text-4xl font-bold text-emerald-600">{(result.percentage || 0).toFixed(1)}%</p>
+                <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-emerald-600">{(result.percentage || 0).toFixed(1)}%</p>
                 <p className="text-sm text-muted-foreground">Closed Above Open</p>
               </div>
               <div className="grid grid-cols-2 gap-2 text-center text-sm">
@@ -264,7 +264,7 @@ function ReturnDistributionViz({ result }: { result: any }) {
 
       <Card>
         <CardContent className="pt-4">
-          <div className="grid grid-cols-3 gap-4 text-center">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-center">
             <div>
               <p className="text-xs text-muted-foreground mb-1">Skewness</p>
               <p className="font-bold">{(result.skewness || 0).toFixed(3)}</p>
@@ -378,7 +378,7 @@ function DayOfWeekViz({ result }: { result: any }) {
           <CardTitle className="text-base font-semibold">Win Rates by Day</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-5 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
             {stats.map((day: any) => (
               <div key={day.name} className="text-center p-3 bg-muted/30 rounded-lg">
                 <p className="text-xs font-medium mb-1">{day.name.slice(0, 3)}</p>
@@ -425,7 +425,7 @@ function MonthOfYearViz({ result }: { result: any }) {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 md:grid-cols-6 gap-2">
         {stats.map((month: any) => (
           <div key={month.name} className={`text-center p-2 rounded-lg ${month.avgReturn >= 0 ? 'bg-emerald-50 dark:bg-emerald-950/30' : 'bg-red-50 dark:bg-red-950/30'}`}>
             <p className="text-xs font-medium">{month.name}</p>
@@ -469,7 +469,7 @@ function RSIViz({ result }: { result: any }) {
           </div>
           <div className="mt-4 p-4 bg-muted/30 rounded-xl text-center">
             <p className="text-sm text-muted-foreground mb-1">Current RSI</p>
-            <p className={`text-4xl font-bold ${result.current > 70 ? 'text-red-600' : result.current < 30 ? 'text-emerald-600' : 'text-foreground'}`}>
+            <p className={`text-2xl sm:text-3xl md:text-4xl font-bold ${result.current > 70 ? 'text-red-600' : result.current < 30 ? 'text-emerald-600' : 'text-foreground'}`}>
               {(result.current || 0).toFixed(1)}
             </p>
             <Badge variant={result.current > 70 ? 'destructive' : result.current < 30 ? 'default' : 'secondary'} className="mt-2">
@@ -619,7 +619,7 @@ function TrendStrengthViz({ result }: { result: any }) {
         </CardHeader>
         <CardContent>
           <div className="text-center mb-4">
-            <p className={`text-6xl font-bold ${score >= 4 ? 'text-emerald-600' : score <= 1 ? 'text-red-600' : 'text-yellow-600'}`}>
+            <p className={`text-3xl sm:text-5xl md:text-6xl font-bold ${score >= 4 ? 'text-emerald-600' : score <= 1 ? 'text-red-600' : 'text-yellow-600'}`}>
               {score}/{maxScore}
             </p>
             <Badge variant={score >= 4 ? 'default' : score <= 1 ? 'destructive' : 'secondary'} className="mt-2">
@@ -728,7 +728,7 @@ function BollingerViz({ result }: { result: any }) {
         <CardContent>
           <div className="text-center p-4 bg-muted/30 rounded-xl">
             <p className="text-sm text-muted-foreground mb-2">Price Position Within Bands</p>
-            <p className={`text-4xl font-bold ${result.position?.zone === 'upper' ? 'text-red-600' : result.position?.zone === 'lower' ? 'text-emerald-600' : 'text-foreground'}`}>
+            <p className={`text-2xl sm:text-3xl md:text-4xl font-bold ${result.position?.zone === 'upper' ? 'text-red-600' : result.position?.zone === 'lower' ? 'text-emerald-600' : 'text-foreground'}`}>
               {(result.position?.percentB || 0).toFixed(0)}%
             </p>
             <Badge variant={result.position?.zone === 'upper' ? 'destructive' : result.position?.zone === 'lower' ? 'default' : 'secondary'} className="mt-2">
@@ -871,7 +871,7 @@ function VolatilityViz({ result }: { result: any }) {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3 text-center">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-center">
               <div className="p-3 bg-muted/30 rounded-lg">
                 <p className="text-xs text-muted-foreground">Clustering</p>
                 <p className="font-bold">{(result.volatilityClustering || 0).toFixed(0)}%</p>
@@ -956,7 +956,7 @@ function MeanReversionViz({ result }: { result: any }) {
         <CardContent>
           <div className="text-center p-4 bg-muted/30 rounded-xl">
             <p className="text-sm text-muted-foreground mb-2">Autocorrelation</p>
-            <p className="text-4xl font-bold">{(result.autocorrelation || 0).toFixed(3)}</p>
+            <p className="text-2xl sm:text-3xl md:text-4xl font-bold">{(result.autocorrelation || 0).toFixed(3)}</p>
             <Badge variant={result.regime === 'mean_reverting' ? 'default' : result.regime === 'trending' ? 'secondary' : 'outline'} className="mt-3">
               {result.regime === 'mean_reverting' ? '↔️ Mean Reverting' : result.regime === 'trending' ? '📈 Trending' : '🎲 Random Walk'}
             </Badge>
@@ -1178,7 +1178,7 @@ function CloseToOpenViz({ result }: { result: any }) {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         <StatCard label="Green Days" value={`${(summary.greenDays?.pct || 0).toFixed(1)}%`} color="green" />
         <StatCard label="Red Days" value={`${(summary.redDays?.pct || 0).toFixed(1)}%`} color="red" />
         <StatCard label="Doji Days" value={`${(summary.dojiDays?.pct || 0).toFixed(1)}%`} color="yellow" />
@@ -1288,7 +1288,7 @@ function VolumeViz({ result }: { result: any }) {
       <Card>
         <CardContent className="pt-4">
           <p className="text-sm font-medium mb-3">High Volume Days Performance</p>
-          <div className="grid grid-cols-3 gap-3 text-center">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-center">
             <div>
               <p className="text-xs text-muted-foreground">Count</p>
               <p className="font-bold">{result.highVolumeDays?.count || 0}</p>
@@ -1323,7 +1323,7 @@ function PriceTargetsViz({ result }: { result: any }) {
         </CardHeader>
         <CardContent>
           <div className="text-center">
-            <p className="text-4xl font-bold">${(result.currentPrice || 0).toFixed(2)}</p>
+            <p className="text-2xl sm:text-3xl md:text-4xl font-bold">${(result.currentPrice || 0).toFixed(2)}</p>
             <div className="flex justify-center gap-4 mt-2 text-sm text-muted-foreground">
               <span>Daily Return: {(result.dailyReturn || 0).toFixed(3)}%</span>
               <span>Daily Vol: {(result.dailyVol || 0).toFixed(2)}%</span>
@@ -1338,7 +1338,7 @@ function PriceTargetsViz({ result }: { result: any }) {
             <CardTitle className="text-base font-semibold">30-Day Projections</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-5 gap-2 text-center text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 text-center text-sm">
               <div className="p-2 bg-red-100 dark:bg-red-950/50 rounded">
                 <p className="text-xs text-muted-foreground">Worst</p>
                 <p className="font-bold text-red-600">${projections.days30.worst?.toFixed(2)}</p>
@@ -1414,7 +1414,7 @@ function ConditionalStudyViz({ result, studyId }: { result: any; studyId: string
                     {item.winRate.toFixed(1)}% win rate
                   </Badge>
                 </div>
-                <div className="grid grid-cols-4 gap-3 text-center text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-center text-sm">
                   <div>
                     <p className="text-xs text-muted-foreground">Avg Return</p>
                     <p className={`font-bold ${item.avgReturn >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>

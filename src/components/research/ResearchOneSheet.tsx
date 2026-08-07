@@ -171,7 +171,7 @@ export function ResearchOneSheet({ articleUri, articleTitle, onClose }: Research
               <X className="h-4 w-4" />
             </Button>
           </div>
-          <div className="flex-1 grid grid-cols-3 gap-4 p-4">
+          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
             <div className="space-y-4">
               <Skeleton className="h-8 w-32" />
               <Skeleton className="h-96 w-full" />

@@ -282,7 +282,7 @@ export const MobileBuilder = memo(function MobileBuilder({
           </div>
 
           {/* Bottom Tab Bar - Renamed for clarity: Build, Add, Run */}
-          <TabsList className="grid grid-cols-3 h-14 rounded-none border-t bg-card">
+          <TabsList className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 h-14 rounded-none border-t bg-card">
             <TabsTrigger value="canvas" className="flex flex-col gap-0.5 h-full data-[state=active]:bg-primary/10">
               <LayoutGrid className="h-4 w-4" />
               <span className="text-[10px] font-medium">Build</span>

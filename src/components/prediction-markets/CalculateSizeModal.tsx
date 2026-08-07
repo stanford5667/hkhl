@@ -223,7 +223,7 @@ export function CalculateSizeModal({
           {/* Kelly Mode Selection */}
           <div className="space-y-3">
             <Label>Risk Profile</Label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
               {(['quarter', 'half', 'full'] as KellyMode[]).map((mode) => (
                 <Button
                   key={mode}
@@ -257,7 +257,7 @@ export function CalculateSizeModal({
               <CardContent className="pt-4">
                 <div className="text-center">
                   <p className="text-sm text-muted-foreground mb-1">Suggested Position Size</p>
-                  <p className="text-4xl font-bold text-primary">
+                  <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary">
                     ${calculations.position.positionSize.toFixed(0)}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">
@@ -268,7 +268,7 @@ export function CalculateSizeModal({
             </Card>
 
             {/* Kelly Breakdown */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <div className={cn(
                 "p-3 rounded-lg text-center",
                 kellyMode === 'quarter' ? "bg-primary/10 ring-2 ring-primary" : "bg-muted/50"

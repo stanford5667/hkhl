@@ -131,7 +131,7 @@ export function PortfolioSwitcher({
             <ChevronDown className="h-4 w-4 shrink-0 ml-2 opacity-50" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-[280px]">
+        <DropdownMenuContent align="start" className="w-full max-w-[280px]">
           {/* Saved portfolios */}
           {portfolios.map((portfolio) => (
             <DropdownMenuItem
