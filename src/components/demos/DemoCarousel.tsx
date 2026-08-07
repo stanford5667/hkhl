@@ -179,18 +179,34 @@ export function DemoCarousel() {
               i === activeIndex && 'md:ring-1 md:ring-cyan-400/30 md:rounded-2xl'
             )}
           >
-            <div className="relative overflow-hidden rounded-2xl">
-              {/* Progress bar across the top of the active card (desktop only) */}
-              <div
-                className={cn(
-                  'hidden md:block absolute left-0 right-0 top-0 z-20 h-0.5 bg-cyan-400/80 transition-transform duration-100 ease-linear',
-                  i === activeIndex ? 'opacity-100' : 'opacity-0'
-                )}
-                style={{ transform: `scaleX(${i === activeIndex ? progress : 0})`, transformOrigin: 'left' }}
-              />
-              <LazyDemo minHeight={d.minHeight}>{d.node}</LazyDemo>
+              <div className="relative overflow-hidden rounded-2xl">
+                {/* Progress bar across the top of the active card (desktop only) */}
+                <div
+                  className={cn(
+                    'hidden md:block absolute left-0 right-0 top-0 z-20 h-0.5 bg-cyan-400/80 transition-transform duration-100 ease-linear',
+                    i === activeIndex ? 'opacity-100' : 'opacity-0'
+                  )}
+                  style={{ transform: `scaleX(${i === activeIndex ? progress : 0})`, transformOrigin: 'left' }}
+                />
+                <LazyDemo minHeight={d.minHeight}>{d.node}</LazyDemo>
+              </div>
+              {d.cta && (
+                <div className="px-1 pt-3">
+                  <Button
+                    asChild
+                    variant={i === activeIndex ? 'default' : 'outline'}
+                    size="lg"
+                    className="w-full gap-2 sm:w-auto"
+                  >
+                    <Link to={d.cta.to} state={d.cta.state}>
+                      {d.cta.icon}
+                      {d.cta.label}
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
+              )}
             </div>
-          </div>
         ))}
       </div>
 
