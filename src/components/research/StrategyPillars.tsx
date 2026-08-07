@@ -1,4 +1,6 @@
-import { TrendingUp, Layers, ShieldCheck, LineChart } from "lucide-react";
+import { Link } from 'react-router-dom';
+import { TrendingUp, Layers, ShieldCheck, LineChart, ArrowRight, GraduationCap } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const PILLARS = [
   {
