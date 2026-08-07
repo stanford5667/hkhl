@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { ResearchTopBar } from "@/pages/research/components/ResearchTopBar";
@@ -8,6 +8,8 @@ import { ResearchHero } from "@/components/research/ResearchHero";
 import { SectionDivider } from "@/components/research/SectionDivider";
 import { StrategyPillars } from "@/components/research/StrategyPillars";
 import { DemoCarousel } from "@/components/demos/DemoCarousel";
+import { Button } from "@/components/ui/button";
+import { ArrowRight, Sparkles } from "lucide-react";
 
 
 
@@ -127,6 +129,20 @@ export default function ResearchPage() {
             <p className="text-sm sm:text-base lg:text-lg text-muted-foreground max-w-3xl mt-2 leading-relaxed">
               Great investments don't come from guesswork. Screen thousands of tickers, backtest any thesis against decades of data, and learn the same research process used by top hedge fund managers — so you can find your next winning idea with confidence.
             </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button asChild size="lg" className="w-full sm:w-auto gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
+              <Link to="/auth" state={{ mode: "signup", from: "/research" }}>
+                <Sparkles className="h-4 w-4" />
+                Start your free trial
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="lg" className="w-full sm:w-auto gap-2 border-white/[0.12] bg-white/[0.03] text-white hover:bg-white/[0.06] hover:text-white">
+              <Link to="/academy">
+                Browse the academy
+              </Link>
+            </Button>
           </div>
         </section>
 

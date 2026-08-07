@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import { Button } from '@/components/ui/button';
+import { ArrowRight, Play } from 'lucide-react';
 
 interface ResearchHeroProps {
   className?: string;
@@ -71,6 +73,35 @@ export function ResearchHero({ className }: ResearchHeroProps) {
             transition={{ duration: 0.5, delay: 0.18 }}
           >
             Automate investing with AI. Learn investing from top fund managers. Access their best plays.
+          </motion.p>
+
+          <motion.div
+            className="mt-5 sm:mt-6 flex flex-col sm:flex-row items-center justify-center gap-3"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.24 }}
+          >
+            <Button asChild size="lg" className="w-full sm:w-auto gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
+              <Link to="/auth" state={{ mode: 'signup', from: '/research' }}>
+                Start your free trial
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="lg" className="w-full sm:w-auto gap-2 border-white/[0.12] bg-white/[0.03] text-white hover:bg-white/[0.06] hover:text-white">
+              <Link to="/academy">
+                <Play className="h-4 w-4" />
+                Watch a lesson preview
+              </Link>
+            </Button>
+          </motion.div>
+
+          <motion.p
+            className="mt-3 text-[11px] text-muted-foreground"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+          >
+            No credit card required. 7-day free trial.
           </motion.p>
 
 
