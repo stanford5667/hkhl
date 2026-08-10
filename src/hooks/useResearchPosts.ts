@@ -182,6 +182,18 @@ export function useResearchPosts() {
     setPosts(prev => prev.map(p => p.id === postId ? { ...p, is_premium: isPremium } : p));
   };
 
+  const toggleFeatured = async (postId: string, isFeatured: boolean) => {
+    if (!user) throw new Error('Must be authenticated');
+
+    const { error } = await supabase
+      .from('research_posts')
+      .update({ is_featured: isFeatured, featured_at: isFeatured ? new Date().toISOString() : null })
+      .eq('id', postId);
+
+    if (error) throw error;
+    setPosts(prev => prev.map(p => (p.id === postId ? { ...p, is_featured: isFeatured } : p)));
+  };
+
   const updatePost = async (postId: string, title: string, content: string) => {
     if (!user) throw new Error('Must be authenticated');
 
