@@ -154,7 +154,7 @@ export function FeaturedResearch() {
 
       <div className="mt-4">
         <Button asChild variant="outline" size="sm" className="gap-2 border-white/[0.12] bg-white/[0.03] text-white hover:bg-white/[0.06] hover:text-white">
-          <Link to="/community?tab=posts">
+          <Link to="/community/posts">
             Read all research notes
             <ArrowRight className="h-4 w-4" />
           </Link>
