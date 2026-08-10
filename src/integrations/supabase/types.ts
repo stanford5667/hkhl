@@ -4665,7 +4665,9 @@ export type Database = {
           created_at: string
           detected_tickers: string[] | null
           downvotes: number
+          featured_at: string | null
           id: string
+          is_featured: boolean
           is_pinned: boolean
           is_premium: boolean
           share_token: string
@@ -4681,7 +4683,9 @@ export type Database = {
           created_at?: string
           detected_tickers?: string[] | null
           downvotes?: number
+          featured_at?: string | null
           id?: string
+          is_featured?: boolean
           is_pinned?: boolean
           is_premium?: boolean
           share_token?: string
@@ -4697,7 +4701,9 @@ export type Database = {
           created_at?: string
           detected_tickers?: string[] | null
           downvotes?: number
+          featured_at?: string | null
           id?: string
+          is_featured?: boolean
           is_pinned?: boolean
           is_premium?: boolean
           share_token?: string
