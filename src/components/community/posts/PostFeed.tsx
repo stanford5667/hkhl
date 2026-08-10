@@ -31,6 +31,7 @@ export function PostFeed() {
     vote,
     deletePost,
     togglePremium,
+    toggleFeatured,
     loadMore,
   } = useResearchPosts();
 
@@ -38,6 +39,15 @@ export function PostFeed() {
     try {
       await togglePremium(postId, isPremium);
       toast.success(isPremium ? 'Post marked as premium' : 'Post set to free');
+    } catch {
+      toast.error('Failed to update post');
+    }
+  };
+
+  const handleToggleFeatured = async (postId: string, isFeatured: boolean) => {
+    try {
+      await toggleFeatured(postId, isFeatured);
+      toast.success(isFeatured ? 'Featured on the Research page' : 'Removed from the Research page');
     } catch {
       toast.error('Failed to update post');
     }
@@ -191,6 +201,7 @@ export function PostFeed() {
                 onTickerClick={setTickerFilter}
                 onDelete={handleDelete}
                 onTogglePremium={handleTogglePremium}
+                onToggleFeatured={handleToggleFeatured}
               />
             ))}
           </div>

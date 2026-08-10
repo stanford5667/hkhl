@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { VoteButtons } from './VoteButtons';
-import { MessageSquare, Share2, Bookmark, ImageIcon, Trash2, Lock, Crown, ShieldCheck } from 'lucide-react';
+import { MessageSquare, Share2, Bookmark, ImageIcon, Trash2, Lock, Crown, ShieldCheck, Star, Clock } from 'lucide-react';
 import { ShareArticleDialog } from './ShareArticleDialog';
 import { cn } from '@/lib/utils';
 import { useAdmin } from '@/hooks/useAdmin';
@@ -19,6 +19,7 @@ interface PostCardProps {
   onTickerClick?: (ticker: string) => void;
   onDelete?: (postId: string) => void;
   onTogglePremium?: (postId: string, isPremium: boolean) => void;
+  onToggleFeatured?: (postId: string, isFeatured: boolean) => void;
   compact?: boolean;
 }
 
@@ -37,7 +38,7 @@ function getGradient(id: string) {
   return gradients[idx];
 }
 
-export function PostCard({ post, onVote, onTickerClick, onDelete, onTogglePremium, compact = false }: PostCardProps) {
+export function PostCard({ post, onVote, onTickerClick, onDelete, onTogglePremium, onToggleFeatured, compact = false }: PostCardProps) {
   const navigate = useNavigate();
   const { isAdmin } = useAdmin();
   const { user } = useAuth();
@@ -68,6 +69,11 @@ export function PostCard({ post, onVote, onTickerClick, onDelete, onTogglePremiu
       .trim();
     if (cleaned.length <= maxLength) return cleaned;
     return cleaned.slice(0, maxLength).trim() + '...';
+  }, [post.content]);
+
+  const readMinutes = useMemo(() => {
+    const words = post.content.trim().split(/\s+/).filter(Boolean).length;
+    return Math.max(1, Math.round(words / 200));
   }, [post.content]);
 
   const handleClick = () => {
@@ -119,6 +125,14 @@ export function PostCard({ post, onVote, onTickerClick, onDelete, onTogglePremiu
             <Badge className="bg-amber-500/90 text-white border-0 text-[10px] px-1.5 py-0.5 gap-1">
               <Crown className="h-3 w-3" />
               Premium
+            </Badge>
+          </div>
+        )}
+        {post.is_featured && (
+          <div className={cn("absolute top-2", post.is_premium ? "left-2 mt-7" : "left-2")}>
+            <Badge className="bg-primary/90 text-primary-foreground border-0 text-[10px] px-1.5 py-0.5 gap-1">
+              <Star className="h-3 w-3" />
+              Featured
             </Badge>
           </div>
         )}
@@ -177,6 +191,11 @@ export function PostCard({ post, onVote, onTickerClick, onDelete, onTogglePremiu
             <span className="text-xs text-muted-foreground/70 shrink-0">
               {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
             </span>
+            <span className="text-xs text-muted-foreground/50 hidden sm:inline">·</span>
+            <span className="text-xs text-muted-foreground/70 shrink-0 hidden sm:flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              {readMinutes} min
+            </span>
           </div>
 
           <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
@@ -214,6 +233,17 @@ export function PostCard({ post, onVote, onTickerClick, onDelete, onTogglePremiu
                 title={post.is_premium ? "Remove premium gate" : "Make premium"}
               >
                 <Crown className="h-3 w-3" />
+              </Button>
+            )}
+            {isAdmin && onToggleFeatured && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn("h-6 w-6", post.is_featured ? "text-primary hover:text-muted-foreground" : "text-muted-foreground hover:text-primary")}
+                onClick={(e) => { e.stopPropagation(); onToggleFeatured(post.id, !post.is_featured); }}
+                title={post.is_featured ? "Remove from Research page" : "Feature on Research page"}
+              >
+                <Star className={cn("h-3 w-3", post.is_featured && "fill-current")} />
               </Button>
             )}
           </div>

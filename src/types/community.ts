@@ -107,6 +107,8 @@ export interface ResearchPost {
   comment_count: number;
   is_pinned: boolean;
   is_premium: boolean;
+  is_featured?: boolean;
+  featured_at?: string | null;
   created_at: string;
   updated_at: string;
   // Joined data
