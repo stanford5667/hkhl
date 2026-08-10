@@ -502,3 +502,63 @@ export function usePostDetail(postId: string | null) {
     refresh: fetchPost,
   };
 }
+
+// Featured posts — curated by admins, surfaced on the Research page
+export function useFeaturedResearchPosts(limit = 3) {
+  const [posts, setPosts] = useState<ResearchPost[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('research_posts')
+          .select('id, user_id, title, content, thumbnail_url, detected_tickers, upvotes, downvotes, comment_count, is_pinned, is_premium, is_featured, featured_at, created_at, updated_at')
+          .eq('is_featured', true)
+          .order('featured_at', { ascending: false })
+          .limit(limit);
+
+        if (error) throw error;
+
+        let fetched = (data || []) as unknown as ResearchPost[];
+
+        if (fetched.length > 0) {
+          const userIds = [...new Set(fetched.map(p => p.user_id))];
+          const { data: profiles } = await supabase
+            .from('profiles_public')
+            .select('user_id, full_name, avatar_url, is_anonymous')
+            .in('user_id', userIds);
+
+          if (profiles) {
+            const profileMap = new Map(profiles.map(p => [p.user_id, p]));
+            fetched = fetched.map(post => {
+              const profile = profileMap.get(post.user_id);
+              return {
+                ...post,
+                user_profile: {
+                  full_name: profile && !profile.is_anonymous ? profile.full_name || null : 'Anonymous',
+                  avatar_url: profile && !profile.is_anonymous ? profile.avatar_url || null : null,
+                },
+              };
+            });
+          }
+        }
+
+        if (!cancelled) setPosts(fetched);
+      } catch (err) {
+        console.error('Error fetching featured posts:', err);
+        if (!cancelled) setPosts([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [limit]);
+
+  return { posts, loading };
+}
