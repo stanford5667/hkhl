@@ -319,6 +319,7 @@ export function useResearchPosts() {
     updatePost,
     deletePost,
     togglePremium,
+    toggleFeatured,
     vote,
     loadMore,
     refreshPosts: () => fetchPosts(0),
