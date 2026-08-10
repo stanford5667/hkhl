@@ -132,6 +132,13 @@ export default function ResearchPage() {
 
         <SectionDivider />
 
+        <section>
+          <FeaturedResearch />
+        </section>
+
+        <SectionDivider />
+
+
 
 
         <section>
