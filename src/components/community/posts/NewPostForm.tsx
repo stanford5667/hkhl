@@ -82,15 +82,42 @@ async function streamAIText(
 
 export function NewPostForm() {
   const navigate = useNavigate();
+  const { postId } = useParams<{ postId: string }>();
+  const isEditing = !!postId;
   const { user } = useAuth();
-  const { createPost } = useResearchPosts();
+  const { createPost, updatePost } = useResearchPosts();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
   const [isPremium, setIsPremium] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [loadingPost, setLoadingPost] = useState(isEditing);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load existing post when editing
+  useEffect(() => {
+    if (!postId) return;
+    let active = true;
+    (async () => {
+      const { data, error } = await supabase
+        .from('research_posts')
+        .select('title, content, thumbnail_url, is_premium')
+        .eq('id', postId)
+        .single();
+      if (!active) return;
+      if (error || !data) {
+        toast.error('Could not load post');
+      } else {
+        setTitle(data.title || '');
+        setContent(data.content || '');
+        setThumbnailUrl(data.thumbnail_url || null);
+        setIsPremium(!!data.is_premium);
+      }
+      setLoadingPost(false);
+    })();
+    return () => { active = false; };
+  }, [postId]);
 
   // AI state
   const [aiLoading, setAiLoading] = useState(false);
