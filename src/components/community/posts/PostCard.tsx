@@ -9,6 +9,7 @@ import { VoteButtons } from './VoteButtons';
 import { MessageSquare, Share2, Bookmark, ImageIcon, Trash2, Lock, Crown, ShieldCheck, Star, Clock, Pencil } from 'lucide-react';
 import { ShareArticleDialog } from './ShareArticleDialog';
 import { cn } from '@/lib/utils';
+import { parseThumbnail } from '@/lib/thumbnail';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUsage } from '@/contexts/UsageContext';
@@ -103,8 +104,9 @@ export function PostCard({ post, onVote, onTickerClick, onDelete, onTogglePremiu
       <div className="relative aspect-[16/9] overflow-hidden">
         {post.thumbnail_url ? (
           <img
-            src={post.thumbnail_url}
+            src={parseThumbnail(post.thumbnail_url)!.src}
             alt={post.title}
+            style={{ objectPosition: parseThumbnail(post.thumbnail_url)!.objectPosition }}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             loading="lazy"
           />

@@ -15,6 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { VoteButtons } from './VoteButtons';
 import { ArrowLeft, MessageSquare, Send, ImageIcon, Share2, Lock, Crown, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { parseThumbnail } from '@/lib/thumbnail';
 import { TickerBadge } from '@/components/ui/TickerBadge';
 import { toast } from 'sonner';
 
@@ -85,7 +86,12 @@ export function PostDetailView() {
       {/* Thumbnail */}
       {post.thumbnail_url ? (
         <div className="aspect-[16/9] rounded-xl overflow-hidden">
-          <img src={post.thumbnail_url} alt={post.title} className="w-full h-full object-cover" />
+          <img
+            src={parseThumbnail(post.thumbnail_url)!.src}
+            alt={post.title}
+            style={{ objectPosition: parseThumbnail(post.thumbnail_url)!.objectPosition }}
+            className="w-full h-full object-cover"
+          />
         </div>
       ) : (
         <div className="aspect-[16/9] rounded-xl overflow-hidden bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center">

@@ -1,5 +1,6 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { parseThumbnail, buildThumbnailUrl } from '@/lib/thumbnail';
 
 import { useResearchPosts } from '@/hooks/useResearchPosts';
 import { supabase } from '@/integrations/supabase/client';
@@ -118,6 +119,33 @@ export function NewPostForm() {
     })();
     return () => { active = false; };
   }, [postId]);
+
+  // Cover image focal point (repositioning)
+  const focal = useMemo(() => parseThumbnail(thumbnailUrl), [thumbnailUrl]);
+  const draggingFocal = useRef(false);
+
+  const applyFocalFromEvent = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!thumbnailUrl) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    setThumbnailUrl(buildThumbnailUrl(thumbnailUrl, x, y));
+  };
+
+  const handleFocalPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    draggingFocal.current = true;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    applyFocalFromEvent(e);
+  };
+
+  const handleFocalPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!draggingFocal.current) return;
+    applyFocalFromEvent(e);
+  };
+
+  const handleFocalPointerUp = () => {
+    draggingFocal.current = false;
+  };
 
   // AI state
   const [aiLoading, setAiLoading] = useState(false);
@@ -557,11 +585,44 @@ export function NewPostForm() {
               <label className="text-sm font-medium">Cover Image (optional)</label>
               <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleThumbnailUpload} />
               {thumbnailUrl ? (
-                <div className="relative rounded-lg overflow-hidden aspect-[16/9] border border-border/50">
-                  <img src={thumbnailUrl} alt="Thumbnail" className="w-full h-full object-cover" />
-                  <Button type="button" variant="destructive" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={() => setThumbnailUrl(null)}>
-                    <X className="h-4 w-4" />
-                  </Button>
+                <div className="space-y-2">
+                  <div
+                    className="relative rounded-lg overflow-hidden aspect-[16/9] border border-border/50 cursor-move select-none touch-none"
+                    onPointerDown={handleFocalPointerDown}
+                    onPointerMove={handleFocalPointerMove}
+                    onPointerUp={handleFocalPointerUp}
+                    onPointerCancel={handleFocalPointerUp}
+                  >
+                    <img
+                      src={focal?.src ?? thumbnailUrl}
+                      alt="Thumbnail"
+                      className="w-full h-full object-cover pointer-events-none"
+                      style={{ objectPosition: focal?.objectPosition ?? '50% 50%' }}
+                      draggable={false}
+                    />
+                    {/* Focal point marker */}
+                    <div
+                      className="absolute h-6 w-6 -ml-3 -mt-3 rounded-full border-2 border-white shadow-lg bg-primary/40 pointer-events-none"
+                      style={{ left: `${focal?.x ?? 50}%`, top: `${focal?.y ?? 50}%` }}
+                    />
+                    <Button type="button" variant="destructive" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={() => setThumbnailUrl(null)}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <p className="text-xs text-muted-foreground">
+                      Drag the image to reposition how it's cropped in previews.
+                    </p>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => setThumbnailUrl(buildThumbnailUrl(thumbnailUrl, 50, 50))}
+                    >
+                      Recenter
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <button

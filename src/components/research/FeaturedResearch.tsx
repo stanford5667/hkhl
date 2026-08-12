@@ -5,6 +5,7 @@ import { BookOpen, Clock, ImageIcon, Crown, ArrowRight, MessageSquare, ArrowUp }
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { parseThumbnail } from '@/lib/thumbnail';
 import { useFeaturedResearchPosts } from '@/hooks/useResearchPosts';
 import type { ResearchPost } from '@/types/community';
 
@@ -50,9 +51,10 @@ function FeaturedCard({ post, index }: { post: ResearchPost; index: number }) {
       <div className="relative aspect-[16/9] overflow-hidden">
         {post.thumbnail_url ? (
           <img
-            src={post.thumbnail_url}
+            src={parseThumbnail(post.thumbnail_url)!.src}
             alt={post.title}
             loading="lazy"
+            style={{ objectPosition: parseThumbnail(post.thumbnail_url)!.objectPosition }}
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
