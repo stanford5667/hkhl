@@ -1,5 +1,6 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { parseThumbnail, buildThumbnailUrl } from '@/lib/thumbnail';
 
 import { useResearchPosts } from '@/hooks/useResearchPosts';
 import { supabase } from '@/integrations/supabase/client';
