@@ -5,6 +5,7 @@ import { BookOpen, Clock, ImageIcon, Crown, ArrowRight, MessageSquare, ArrowUp }
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { parseThumbnail } from '@/lib/thumbnail';
 import { useFeaturedResearchPosts } from '@/hooks/useResearchPosts';
 import type { ResearchPost } from '@/types/community';
 
