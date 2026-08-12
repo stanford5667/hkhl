@@ -682,10 +682,16 @@ export function NewPostForm() {
                 <span className="text-xs text-muted-foreground">(subscribers only, unless shared via private link)</span>
               </label>
               <div className="flex gap-3">
-                <Button type="button" variant="outline" onClick={() => navigate('/community/posts')}>Cancel</Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigate(isEditing && postId ? `/community/posts/${postId}` : '/community/posts')}
+                >
+                  Cancel
+                </Button>
                 <Button type="submit" disabled={submitting || uploading || aiLoading} className="gap-2">
                   <Send className="h-4 w-4" />
-                  {submitting ? 'Publishing...' : 'Publish'}
+                  {submitting ? (isEditing ? 'Saving...' : 'Publishing...') : (isEditing ? 'Save changes' : 'Publish')}
                 </Button>
               </div>
             </div>
