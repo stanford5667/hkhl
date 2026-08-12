@@ -180,6 +180,7 @@ const App = () => {
                               <Route path="/community/chat/:roomId" element={<Community />} />
                               <Route path="/community/posts" element={<Community />} />
                               <Route path="/community/posts/:postId" element={<Community />} />
+                              <Route path="/community/posts/:postId/edit" element={<Community />} />
                               <Route path="/community/new-post" element={<Community />} />
                               <Route path="/terms" element={<Terms />} />
                               <Route path="/disclosures" element={<Disclosures />} />

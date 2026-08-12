@@ -1,5 +1,6 @@
-import { useState, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+
 import { useResearchPosts } from '@/hooks/useResearchPosts';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -81,15 +82,42 @@ async function streamAIText(
 
 export function NewPostForm() {
   const navigate = useNavigate();
+  const { postId } = useParams<{ postId: string }>();
+  const isEditing = !!postId;
   const { user } = useAuth();
-  const { createPost } = useResearchPosts();
+  const { createPost, updatePost } = useResearchPosts();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
   const [isPremium, setIsPremium] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [loadingPost, setLoadingPost] = useState(isEditing);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load existing post when editing
+  useEffect(() => {
+    if (!postId) return;
+    let active = true;
+    (async () => {
+      const { data, error } = await supabase
+        .from('research_posts')
+        .select('title, content, thumbnail_url, is_premium')
+        .eq('id', postId)
+        .single();
+      if (!active) return;
+      if (error || !data) {
+        toast.error('Could not load post');
+      } else {
+        setTitle(data.title || '');
+        setContent(data.content || '');
+        setThumbnailUrl(data.thumbnail_url || null);
+        setIsPremium(!!data.is_premium);
+      }
+      setLoadingPost(false);
+    })();
+    return () => { active = false; };
+  }, [postId]);
 
   // AI state
   const [aiLoading, setAiLoading] = useState(false);
@@ -412,27 +440,47 @@ export function NewPostForm() {
     }
     try {
       setSubmitting(true);
-      await createPost(title.trim(), content.trim(), thumbnailUrl, isPremium);
-      toast.success('Post published!');
-      navigate('/community/posts', { replace: true });
+      if (isEditing && postId) {
+        await updatePost(postId, title.trim(), content.trim(), thumbnailUrl, isPremium);
+        toast.success('Post updated!');
+        navigate(`/community/posts/${postId}`, { replace: true });
+      } else {
+        await createPost(title.trim(), content.trim(), thumbnailUrl, isPremium);
+        toast.success('Post published!');
+        navigate('/community/posts', { replace: true });
+      }
     } catch (err: any) {
-      console.error('Failed to create post:', err);
-      toast.error(err.message || 'Failed to create post');
+      console.error('Failed to save post:', err);
+      toast.error(err.message || 'Failed to save post');
     } finally {
       setSubmitting(false);
     }
   };
 
+  if (loadingPost) {
+    return (
+      <div className="max-w-3xl mx-auto flex items-center justify-center py-20 text-muted-foreground gap-2">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        Loading post...
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-3xl mx-auto">
-      <Button variant="ghost" size="sm" className="mb-4 gap-2" onClick={() => navigate('/community/posts')}>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="mb-4 gap-2"
+        onClick={() => navigate(isEditing && postId ? `/community/posts/${postId}` : '/community/posts')}
+      >
         <ArrowLeft className="h-4 w-4" />
-        Back to Research
+        {isEditing ? 'Back to Post' : 'Back to Research'}
       </Button>
 
       <Card className="border-border/50">
         <CardHeader className="flex flex-row items-center justify-between pb-3">
-          <CardTitle>New Research Post</CardTitle>
+          <CardTitle>{isEditing ? 'Edit Research Post' : 'New Research Post'}</CardTitle>
           {/* AI Assistant Dropdown */}
           <div className="flex items-center gap-2">
             {aiLoading && (
@@ -634,10 +682,16 @@ export function NewPostForm() {
                 <span className="text-xs text-muted-foreground">(subscribers only, unless shared via private link)</span>
               </label>
               <div className="flex gap-3">
-                <Button type="button" variant="outline" onClick={() => navigate('/community/posts')}>Cancel</Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigate(isEditing && postId ? `/community/posts/${postId}` : '/community/posts')}
+                >
+                  Cancel
+                </Button>
                 <Button type="submit" disabled={submitting || uploading || aiLoading} className="gap-2">
                   <Send className="h-4 w-4" />
-                  {submitting ? 'Publishing...' : 'Publish'}
+                  {submitting ? (isEditing ? 'Saving...' : 'Publishing...') : (isEditing ? 'Save changes' : 'Publish')}
                 </Button>
               </div>
             </div>
