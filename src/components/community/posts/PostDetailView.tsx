@@ -15,6 +15,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { VoteButtons } from './VoteButtons';
 import { ArrowLeft, MessageSquare, Send, ImageIcon, Share2, Lock, Crown, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { parseThumbnail } from '@/lib/thumbnail';
 import { TickerBadge } from '@/components/ui/TickerBadge';
 import { toast } from 'sonner';
 
