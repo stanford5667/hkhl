@@ -119,6 +119,33 @@ export function NewPostForm() {
     return () => { active = false; };
   }, [postId]);
 
+  // Cover image focal point (repositioning)
+  const focal = useMemo(() => parseThumbnail(thumbnailUrl), [thumbnailUrl]);
+  const draggingFocal = useRef(false);
+
+  const applyFocalFromEvent = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!thumbnailUrl) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    setThumbnailUrl(buildThumbnailUrl(thumbnailUrl, x, y));
+  };
+
+  const handleFocalPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    draggingFocal.current = true;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    applyFocalFromEvent(e);
+  };
+
+  const handleFocalPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!draggingFocal.current) return;
+    applyFocalFromEvent(e);
+  };
+
+  const handleFocalPointerUp = () => {
+    draggingFocal.current = false;
+  };
+
   // AI state
   const [aiLoading, setAiLoading] = useState(false);
   const [aiAction, setAiAction] = useState<string | null>(null);
