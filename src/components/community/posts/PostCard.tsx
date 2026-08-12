@@ -214,6 +214,17 @@ export function PostCard({ post, onVote, onTickerClick, onDelete, onTogglePremiu
             <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground">
               <Bookmark className="h-3 w-3" />
             </Button>
+            {canDelete && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-muted-foreground hover:text-primary"
+                onClick={(e) => { e.stopPropagation(); navigate(`/community/posts/${post.id}/edit`); }}
+                title="Edit post"
+              >
+                <Pencil className="h-3 w-3" />
+              </Button>
+            )}
             {canDelete && onDelete && (
               <Button
                 variant="ghost"
