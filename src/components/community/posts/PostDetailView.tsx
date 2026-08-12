@@ -85,7 +85,12 @@ export function PostDetailView() {
       {/* Thumbnail */}
       {post.thumbnail_url ? (
         <div className="aspect-[16/9] rounded-xl overflow-hidden">
-          <img src={post.thumbnail_url} alt={post.title} className="w-full h-full object-cover" />
+          <img
+            src={parseThumbnail(post.thumbnail_url)!.src}
+            alt={post.title}
+            style={{ objectPosition: parseThumbnail(post.thumbnail_url)!.objectPosition }}
+            className="w-full h-full object-cover"
+          />
         </div>
       ) : (
         <div className="aspect-[16/9] rounded-xl overflow-hidden bg-gradient-to-br from-primary/30 to-accent/30 flex items-center justify-center">
