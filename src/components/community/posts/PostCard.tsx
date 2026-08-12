@@ -103,8 +103,9 @@ export function PostCard({ post, onVote, onTickerClick, onDelete, onTogglePremiu
       <div className="relative aspect-[16/9] overflow-hidden">
         {post.thumbnail_url ? (
           <img
-            src={post.thumbnail_url}
+            src={parseThumbnail(post.thumbnail_url)!.src}
             alt={post.title}
+            style={{ objectPosition: parseThumbnail(post.thumbnail_url)!.objectPosition }}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             loading="lazy"
           />
