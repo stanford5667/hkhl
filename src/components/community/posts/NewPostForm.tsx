@@ -440,27 +440,47 @@ export function NewPostForm() {
     }
     try {
       setSubmitting(true);
-      await createPost(title.trim(), content.trim(), thumbnailUrl, isPremium);
-      toast.success('Post published!');
-      navigate('/community/posts', { replace: true });
+      if (isEditing && postId) {
+        await updatePost(postId, title.trim(), content.trim(), thumbnailUrl, isPremium);
+        toast.success('Post updated!');
+        navigate(`/community/posts/${postId}`, { replace: true });
+      } else {
+        await createPost(title.trim(), content.trim(), thumbnailUrl, isPremium);
+        toast.success('Post published!');
+        navigate('/community/posts', { replace: true });
+      }
     } catch (err: any) {
-      console.error('Failed to create post:', err);
-      toast.error(err.message || 'Failed to create post');
+      console.error('Failed to save post:', err);
+      toast.error(err.message || 'Failed to save post');
     } finally {
       setSubmitting(false);
     }
   };
 
+  if (loadingPost) {
+    return (
+      <div className="max-w-3xl mx-auto flex items-center justify-center py-20 text-muted-foreground gap-2">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        Loading post...
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-3xl mx-auto">
-      <Button variant="ghost" size="sm" className="mb-4 gap-2" onClick={() => navigate('/community/posts')}>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="mb-4 gap-2"
+        onClick={() => navigate(isEditing && postId ? `/community/posts/${postId}` : '/community/posts')}
+      >
         <ArrowLeft className="h-4 w-4" />
-        Back to Research
+        {isEditing ? 'Back to Post' : 'Back to Research'}
       </Button>
 
       <Card className="border-border/50">
         <CardHeader className="flex flex-row items-center justify-between pb-3">
-          <CardTitle>New Research Post</CardTitle>
+          <CardTitle>{isEditing ? 'Edit Research Post' : 'New Research Post'}</CardTitle>
           {/* AI Assistant Dropdown */}
           <div className="flex items-center gap-2">
             {aiLoading && (
