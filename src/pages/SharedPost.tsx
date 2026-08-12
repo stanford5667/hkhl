@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ImageIcon, ArrowLeft, MessageSquare } from 'lucide-react';
+import { parseThumbnail } from '@/lib/thumbnail';
 
 interface SharedPostData {
   id: string;
