@@ -9,6 +9,7 @@ import { VoteButtons } from './VoteButtons';
 import { MessageSquare, Share2, Bookmark, ImageIcon, Trash2, Lock, Crown, ShieldCheck, Star, Clock, Pencil } from 'lucide-react';
 import { ShareArticleDialog } from './ShareArticleDialog';
 import { cn } from '@/lib/utils';
+import { parseThumbnail } from '@/lib/thumbnail';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUsage } from '@/contexts/UsageContext';
