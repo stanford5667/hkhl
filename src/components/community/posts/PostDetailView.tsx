@@ -196,6 +196,17 @@ export function PostDetailView() {
           <Button
             variant="ghost"
             size="sm"
+            className="gap-1.5 text-muted-foreground hover:text-primary"
+            onClick={() => navigate(`/community/posts/${post.id}/edit`)}
+          >
+            <Pencil className="h-4 w-4" />
+            Edit
+          </Button>
+        )}
+        {(isAdmin || user?.id === post.user_id) && (
+          <Button
+            variant="ghost"
+            size="sm"
             className={cn("gap-1.5", post.is_premium ? "text-amber-500" : "text-muted-foreground hover:text-amber-500")}
             onClick={async () => {
               try {
