@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
 import { VoteButtons } from './VoteButtons';
-import { ArrowLeft, MessageSquare, Send, ImageIcon, Share2, Lock, Crown } from 'lucide-react';
+import { ArrowLeft, MessageSquare, Send, ImageIcon, Share2, Lock, Crown, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TickerBadge } from '@/components/ui/TickerBadge';
 import { toast } from 'sonner';
