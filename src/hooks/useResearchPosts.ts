@@ -194,26 +194,37 @@ export function useResearchPosts() {
     setPosts(prev => prev.map(p => (p.id === postId ? { ...p, is_featured: isFeatured } : p)));
   };
 
-  const updatePost = async (postId: string, title: string, content: string) => {
+  const updatePost = async (
+    postId: string,
+    title: string,
+    content: string,
+    thumbnailUrl?: string | null,
+    isPremium?: boolean,
+  ) => {
     if (!user) throw new Error('Must be authenticated');
 
     const detectedTickers = extractTickers(title + ' ' + content);
 
+    const payload: Record<string, unknown> = {
+      title,
+      content,
+      detected_tickers: detectedTickers,
+    };
+    if (thumbnailUrl !== undefined) payload.thumbnail_url = thumbnailUrl;
+    if (isPremium !== undefined) payload.is_premium = isPremium;
+
+    // RLS allows owners and admins to update
     const { error } = await supabase
       .from('research_posts')
-      .update({
-        title,
-        content,
-        detected_tickers: detectedTickers,
-      })
-      .eq('id', postId)
-      .eq('user_id', user.id);
+      .update(payload)
+      .eq('id', postId);
 
     if (error) throw error;
 
     // Refresh posts
     await fetchPosts(0);
   };
+
 
   const deletePost = async (postId: string) => {
     if (!user) throw new Error('Must be authenticated');
