@@ -24,13 +24,13 @@ export function ResearchHero({ className }: ResearchHeroProps) {
             transition={{ duration: 0.5 }}
           >
             {/* Mobile: fixed three-line lockup */}
-            <span className="flex sm:hidden flex-col items-center gap-1 text-[clamp(2rem,10vw,2.5rem)]">
+            <span className="flex sm:hidden flex-col items-center gap-1 text-[clamp(1.75rem,9vw,2.15rem)]">
               <span className="text-foreground block whitespace-nowrap">Your next big</span>
               <span className="text-primary block whitespace-nowrap">investment</span>
               <span className="text-foreground block whitespace-nowrap">starts here</span>
             </span>
             {/* Desktop: single line */}
-            <span className="hidden sm:block whitespace-nowrap text-[clamp(2.25rem,4vw,3.25rem)]">
+            <span className="hidden sm:block whitespace-nowrap text-[clamp(2rem,3.5vw,2.75rem)]">
               <span className="text-foreground">Your next big </span>
               <span className="text-primary">investment</span>
               <span className="text-foreground"> starts here</span>
