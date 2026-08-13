@@ -18,16 +18,16 @@ export function ResearchHero({ className }: ResearchHeroProps) {
 
 
           <motion.h1
-            className="font-display text-[clamp(2.75rem,12vw,4.5rem)] leading-[1.15] sm:leading-[1.05] tracking-normal font-bold mb-5 sm:mb-5 w-full"
+            className="font-display leading-[1.08] sm:leading-[1.05] tracking-normal font-bold mb-5 sm:mb-5 w-full"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            {/* Mobile: 3-line stacked with breathable line gaps */}
-            <span className="block sm:hidden space-y-1.5">
-              <span className="text-foreground block">Your next big</span>
-              <span className="text-primary block">investment</span>
-              <span className="text-foreground block">starts here</span>
+            {/* Mobile: fixed three-line lockup */}
+            <span className="flex sm:hidden flex-col items-center gap-1 text-[clamp(2rem,10vw,2.5rem)]">
+              <span className="text-foreground block whitespace-nowrap">Your next big</span>
+              <span className="text-primary block whitespace-nowrap">investment</span>
+              <span className="text-foreground block whitespace-nowrap">starts here</span>
             </span>
             {/* Desktop: single line */}
             <span className="hidden sm:block whitespace-nowrap text-[clamp(2.25rem,4vw,3.25rem)]">
