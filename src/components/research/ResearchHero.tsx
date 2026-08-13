@@ -18,7 +18,7 @@ export function ResearchHero({ className }: ResearchHeroProps) {
 
 
           <motion.h1
-            className="font-display leading-[1.08] sm:leading-[1.05] tracking-normal font-bold mb-5 sm:mb-5 w-full"
+            className="font-display leading-[1.08] sm:leading-[1.05] tracking-normal font-bold mb-7 sm:mb-8 w-full"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
