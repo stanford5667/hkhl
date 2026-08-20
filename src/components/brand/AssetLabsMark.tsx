@@ -25,10 +25,10 @@ export function AssetLabsMark({
   const paths: Array<{ d: string; duration: number }> = [
     { d: "M11.8 5 H20.2", duration: 0.25 },
     {
-      d: "M12 5 L12 12 L6.2 24.5 Q5.6 26 7.1 26 H24.9 Q26.4 26 25.8 24.5 L20 12 L20 5",
+      d: "M12 5 L12 12 L5.6 24.4 Q4.9 26 6.5 26 H25.5 Q27.1 26 26.4 24.4 L20 12 L20 5",
       duration: 0.65,
     },
-    { d: "M8.6 20 H23.4", duration: 0.3 },
+    { d: "M8.8 19 H23.2", duration: 0.3 },
   ];
 
 
