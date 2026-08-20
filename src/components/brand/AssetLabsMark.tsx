@@ -9,9 +9,10 @@ interface AssetLabsMarkProps {
 /**
  * Asset Labs AI brand mark.
  *
- * A geometric monoline "A" whose right stroke continues past the apex as an
- * ascending trend line, so it reads at once as the letter and as market growth.
- * The crossbar sits as a horizontal baseline.
+ * A monoline conical flask whose silhouette reads as a capital "A": narrow neck,
+ * mirrored shoulder diagonals, wide base. The liquid line sits where the A's
+ * crossbar would sit — so the form reads at once as "A" (Asset) and "flask"
+ * (Labs), and as testing a hypothesis before risking money.
  *
  * Inherits color from the parent via `currentColor`.
  */
@@ -20,12 +21,16 @@ export function AssetLabsMark({
   strokeWidth = 2.25,
   animated = false,
 }: AssetLabsMarkProps) {
-  // 1) the A itself, 2) the trend-line extension past the apex, 3) the crossbar
+  // 1) the rim, 2) the flask body outline (the "A"), 3) the liquid line (crossbar)
   const paths: Array<{ d: string; duration: number }> = [
-    { d: "M5 27 L13 11 L21 27", duration: 0.6 },
-    { d: "M13 11 L25.5 6", duration: 0.35 },
-    { d: "M8.5 21 H17.5", duration: 0.25 },
+    { d: "M11.8 5 H20.2", duration: 0.25 },
+    {
+      d: "M12 5 L12 12 L6.2 24.5 Q5.6 26 7.1 26 H24.9 Q26.4 26 25.8 24.5 L20 12 L20 5",
+      duration: 0.65,
+    },
+    { d: "M8.6 20 H23.4", duration: 0.3 },
   ];
+
 
   let elapsed = 0;
 
