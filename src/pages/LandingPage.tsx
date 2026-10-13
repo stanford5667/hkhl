@@ -1,9 +1,9 @@
-import { MarketingLandingPage } from '@/components/landing/MarketingLandingPage';
+import { InstitutionalLandingPage } from '@/components/landing/InstitutionalLandingPage';
 
 export default function LandingPage() {
   return (
     <div className="w-full">
-      <MarketingLandingPage />
+      <InstitutionalLandingPage />
     </div>
   );
 }

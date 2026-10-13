@@ -1,8 +1,78 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Figtree:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Landing-only editorial theme. The application's dark theme is unchanged. */
+.institutional-landing {
+  --background: 60 23% 97%;
+  --foreground: 210 16% 13%;
+  --card: 0 0% 100%;
+  --card-foreground: 210 16% 13%;
+  --popover: 60 23% 97%;
+  --popover-foreground: 210 16% 13%;
+  --primary: 213 73% 16%;
+  --primary-foreground: 60 23% 97%;
+  --secondary: 60 10% 94%;
+  --secondary-foreground: 213 73% 16%;
+  --muted: 60 10% 94%;
+  --muted-foreground: 210 6% 42%;
+  --accent: 210 15% 92%;
+  --accent-foreground: 213 73% 16%;
+  --border: 60 5% 84%;
+  --input: 60 5% 84%;
+  --ring: 213 73% 16%;
+  --success: 151 28% 32%;
+  --destructive: 0 35% 43%;
+  --radius: 0.25rem;
+  --shadow-sm: none;
+  --shadow: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --shadow-xl: none;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  color-scheme: light;
+}
+.institutional-landing h1,
+.institutional-landing h2,
+.institutional-landing h3,
+.institutional-landing .landing-serif {
+  font-family: 'Newsreader', Georgia, serif;
+  letter-spacing: 0;
+}
+.institutional-landing .terminal-heading,
+.institutional-landing .landing-eyebrow {
+  font-family: 'IBM Plex Sans', sans-serif;
+}
+.institutional-landing .font-mono {
+  font-family: 'IBM Plex Mono', monospace;
+}
+.landing-container {
+  width: min(100% - 3rem, 1160px);
+  margin-inline: auto;
+}
+.landing-eyebrow {
+  font-size: 9px;
+  line-height: 1.6;
+  letter-spacing: 0.12em;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+}
+.institutional-landing a:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 4px;
+}
+.institutional-landing button {
+  box-shadow: none;
+}
+@media (min-width: 640px) {
+  .landing-container { width: min(100% - 5rem, 1160px); }
+}
+@media (max-width: 639px) {
+  .institutional-landing #platform > div:first-child { align-items: flex-start; }
+  .institutional-landing #platform > div:first-child > span { max-width: 120px; text-align: right; line-height: 1.6; }
+}
 
 @layer base {
   :root {

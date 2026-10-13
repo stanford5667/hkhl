@@ -61,6 +61,7 @@ export function Layout({ children }: LayoutProps) {
   // Keyboard shortcut for search (Cmd+K / Ctrl+K)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (location.pathname === "/" || location.pathname === "/landing") return;
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         setSearchOpen(true);
@@ -68,7 +69,7 @@ export function Layout({ children }: LayoutProps) {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [location.pathname]);
 
   // Enable event notifications (checks for upcoming events and shows toasts)
   useEventNotifications();
@@ -117,6 +118,10 @@ export function Layout({ children }: LayoutProps) {
   }
 
   // Auth page, verify-email, and reset-password don't need the layout
+  if (location.pathname === "/" || location.pathname === "/landing") {
+    return <>{children}</>;
+  }
+
   if (location.pathname === "/auth" || location.pathname === "/verify-email" || location.pathname === "/reset-password") {
     return <>{children}</>;
   }
