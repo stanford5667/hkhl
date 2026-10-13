@@ -14,15 +14,15 @@ export function ResearchTerminalPreview({ onSearch }: { onSearch: () => void }) 
   const [range, setRange] = useState<LandingRange>('1Y');
   const { profile, history } = useLandingResearch(ticker, range);
   const bars = (history.data ?? []).filter(b => Number.isFinite(b.close));
-  const last = bars.at(-1);
-  const previous = bars.at(-2);
+  const last = bars[bars.length - 1];
+  const previous = bars[bars.length - 2];
   const change = last && previous && previous.close > 0 ? (last.close / previous.close - 1) * 100 : null;
   const currency = profile.data?.currency || 'USD';
   const stats = [
     ['Period high', bars.length ? number(Math.max(...bars.map(b => b.high))) : '—'],
     ['Period low', bars.length ? number(Math.min(...bars.map(b => b.low))) : '—'],
     ['Last volume', last ? number(last.volume, 0) : '—'],
-    ['Asset class', profile.data?.asset_type || '—'],
+    ['Asset class', profile.data?.asset_type === 'CS' ? 'Equity' : profile.data?.asset_type || '—'],
     ['Sector', profile.data?.sector || '—'],
     ['Currency', currency],
   ];
