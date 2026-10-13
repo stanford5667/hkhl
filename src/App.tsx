@@ -130,7 +130,7 @@ const App = () => {
                         <Layout>
                           <Suspense fallback={<PageLoader />}>
                             <Routes>
-                              <Route path="/" element={<Research />} />
+                              <Route path="/" element={<LandingPage />} />
                               <Route path="/news" element={<NewsIntelligence />} />
                               <Route path="/auth" element={<Auth />} />
                               <Route path="/reset-password" element={<ResetPassword />} />
