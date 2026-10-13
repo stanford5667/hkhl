@@ -66,6 +66,9 @@
 .institutional-landing button {
   box-shadow: none;
 }
+.institutional-landing .landing-cta .landing-eyebrow {
+  color: hsl(var(--primary-foreground) / 0.75);
+}
 @media (min-width: 640px) {
   .landing-container { width: min(100% - 5rem, 1160px); }
 }
