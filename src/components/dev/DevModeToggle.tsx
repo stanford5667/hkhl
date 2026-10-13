@@ -4,8 +4,10 @@ import { Button } from '@/components/ui/button';
 import { useDevMode } from '@/contexts/DevModeContext';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLocation } from 'react-router-dom';
 
 export function DevModeToggle() {
+  const location = useLocation();
   const { 
     marketDataEnabled, 
     toggleMarketData, 
@@ -17,7 +19,7 @@ export function DevModeToggle() {
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Only show in development or for debugging
-  if (!isDevEnvironment) return null;
+  if (!isDevEnvironment || location.pathname === '/' || location.pathname === '/landing') return null;
 
   return (
     <motion.div

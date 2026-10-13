@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, ArrowUpRight, Search, Menu, X, ChartNoAxesCombined, Layers3, SlidersHorizontal, Globe2, FlaskConical, MessagesSquare, Play, BookOpen, Check } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Search, Menu, X, ChartNoAxesCombined, Layers3, SlidersHorizontal, Globe2, FlaskConical, MessagesSquare, Play, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AssetLabsMark } from '@/components/brand/AssetLabsMark';
 import { useAuth } from '@/contexts/AuthContext';
